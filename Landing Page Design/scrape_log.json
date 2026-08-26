@@ -1,0 +1,362 @@
+[
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "navigate",
+    "action_taken": "opening homepage",
+    "url_visited": "https://www.patana.ac.th",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:23.995973+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "ai_navigate_decision",
+    "action_taken": "chose index 4",
+    "url_visited": "",
+    "decision_reasoning": "The URL at index 4 explicitly contains 'tuition-and-fees' within the admissions section, which directly matches the user's intent to find the tuition and fees page.",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:30.862901+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "navigate",
+    "action_taken": "opened candidate fee page",
+    "url_visited": "https://www.patana.ac.th/admissions/tuition-and-fees/",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:31.989314+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "pdf_detected",
+    "action_taken": "found PDF on page",
+    "url_visited": "https://www.patana.ac.th/wp-content/uploads/2026/04/Fee-announcement-2026-7.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:32.161851+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "pdf_extracted",
+    "action_taken": "extracted 6000 chars",
+    "url_visited": "https://www.patana.ac.th/wp-content/uploads/2026/04/Fee-announcement-2026-7.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:33.186876+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "pdf_detected",
+    "action_taken": "found PDF on page",
+    "url_visited": "https://www.patana.ac.th/wp-content/uploads/2026/01/School_Calendar_26-27.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:33.187028+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "pdf_extracted",
+    "action_taken": "extracted 2905 chars",
+    "url_visited": "https://www.patana.ac.th/wp-content/uploads/2026/01/School_Calendar_26-27.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:33.537706+00:00"
+  },
+  {
+    "school_name": "Bangkok Patana School",
+    "step": "extract",
+    "action_taken": "extraction complete",
+    "url_visited": "",
+    "decision_reasoning": "The tuition and fee details for the 2026/27 academic year are clearly provided with distinct values per grade and comprehensive hidden costs.",
+    "confidence": 0.95,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:37.006760+00:00"
+  },
+  {
+    "school_name": "NIST International School",
+    "step": "navigate",
+    "action_taken": "opening homepage",
+    "url_visited": "https://www.nist.ac.th",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:40.065740+00:00"
+  },
+  {
+    "school_name": "NIST International School",
+    "step": "ai_navigate_decision",
+    "action_taken": "chose index 5",
+    "url_visited": "",
+    "decision_reasoning": "The link with text 'Tuition & Fees' directly points to the page containing information about tuition costs and fees for NIST International School.",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:45.722376+00:00"
+  },
+  {
+    "school_name": "NIST International School",
+    "step": "navigate",
+    "action_taken": "opened candidate fee page",
+    "url_visited": "https://www.nist.ac.th/admissions/tuition-fees",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:48.561934+00:00"
+  },
+  {
+    "school_name": "NIST International School",
+    "step": "extract",
+    "action_taken": "extraction complete",
+    "url_visited": "",
+    "decision_reasoning": "The provided webpage content does not contain any curriculum information, tuition fees broken down by grade, or hidden costs. It only mentions that NIST is a not-for-profit school and provides contact information for admissions.",
+    "confidence": 0.0,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:49.639934+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "navigate",
+    "action_taken": "opening homepage",
+    "url_visited": "https://www.rism.ac.th",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:52.709172+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "ai_navigate_decision",
+    "action_taken": "chose index 0",
+    "url_visited": "",
+    "decision_reasoning": "The link explicitly points to the 'Tuition & Fees' page, which directly matches the user's request for tuition and admission costs.",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:56.707450+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "navigate",
+    "action_taken": "opened candidate fee page",
+    "url_visited": "https://www.rism.ac.th/admissions/tuition-fees/",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:58.836568+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "pdf_detected",
+    "action_taken": "found PDF on page",
+    "url_visited": "https://www.rism.ac.th/wp-content/uploads/2026/02/Tuition-Fees-2026-2027.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:58.931047+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "pdf_extracted",
+    "action_taken": "extracted 6000 chars",
+    "url_visited": "https://www.rism.ac.th/wp-content/uploads/2026/02/Tuition-Fees-2026-2027.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:59.832812+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "pdf_detected",
+    "action_taken": "found PDF on page",
+    "url_visited": "https://www.rism.ac.th/wp-content/uploads/2025/10/Tuition-Fees-2025-2026.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:23:59.832954+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "pdf_extracted",
+    "action_taken": "extracted 4870 chars",
+    "url_visited": "https://www.rism.ac.th/wp-content/uploads/2025/10/Tuition-Fees-2025-2026.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:00.379152+00:00"
+  },
+  {
+    "school_name": "Ruamrudee International School",
+    "step": "extract",
+    "action_taken": "extraction complete",
+    "url_visited": "",
+    "decision_reasoning": "Extracted detailed fee breakdowns for the most recent academic year (2026-2027) from the provided official PDF content, including combined annual totals and various additional fees such as registration, resources, and development fees.",
+    "confidence": 0.95,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:03.676936+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "navigate",
+    "action_taken": "opening homepage",
+    "url_visited": "https://www.harrowschool.ac.th",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:06.729966+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "ai_navigate_decision",
+    "action_taken": "chose index 3",
+    "url_visited": "",
+    "decision_reasoning": "The link with the text \"Tuition Fees\" directly corresponds to the page about admission costs and tuition.",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:12.413444+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "navigate",
+    "action_taken": "opened candidate fee page",
+    "url_visited": "https://www.harrowschool.ac.th/admissions/tuition-fees",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:15.374890+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "pdf_detected",
+    "action_taken": "found PDF on page",
+    "url_visited": "https://www.harrowschool.ac.th/uploaded/Footer_Link/Accreditations/Certificate_of_ONESQA.pdf?1515738275149",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:15.485061+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "pdf_extracted",
+    "action_taken": "extraction failed/empty",
+    "url_visited": "https://www.harrowschool.ac.th/uploaded/Footer_Link/Accreditations/Certificate_of_ONESQA.pdf?1515738275149",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "failed",
+    "timestamp": "2026-08-24T20:24:15.946932+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "pdf_detected",
+    "action_taken": "found PDF on page",
+    "url_visited": "https://www.harrowschool.ac.th/uploaded/Footer_Link/Accreditations/Certificate_of_ONESQA.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:15.947096+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "pdf_extracted",
+    "action_taken": "extraction failed/empty",
+    "url_visited": "https://www.harrowschool.ac.th/uploaded/Footer_Link/Accreditations/Certificate_of_ONESQA.pdf",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "failed",
+    "timestamp": "2026-08-24T20:24:16.176700+00:00"
+  },
+  {
+    "school_name": "Harrow International School",
+    "step": "extract",
+    "action_taken": "extraction complete",
+    "url_visited": "",
+    "decision_reasoning": "The scraped webpage explicitly contains the full schedule of tuition and fees for the academic year 2026/27 broken down by year groups with annual and term amounts, as well as various hidden costs such as application, admission fees, and deposits. Curriculum type is inferred from British context cues like Year groups, IGCSE, and AS/A2 levels.",
+    "confidence": 0.95,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:20.053288+00:00"
+  },
+  {
+    "school_name": "ISB – International School Bangkok",
+    "step": "navigate",
+    "action_taken": "opening homepage",
+    "url_visited": "https://www.isb.ac.th",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:23.107620+00:00"
+  },
+  {
+    "school_name": "ISB – International School Bangkok",
+    "step": "ai_navigate_decision",
+    "action_taken": "chose index 5",
+    "url_visited": "",
+    "decision_reasoning": "Link 5 has the text 'Tuition and Fees' which directly matches the user's request for tuition and fee information.",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:28.302240+00:00"
+  },
+  {
+    "school_name": "ISB – International School Bangkok",
+    "step": "navigate",
+    "action_taken": "opened candidate fee page",
+    "url_visited": "https://www.isb.ac.th/admissions/fees",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:30.408089+00:00"
+  },
+  {
+    "school_name": "ISB – International School Bangkok",
+    "step": "extract",
+    "action_taken": "extraction complete",
+    "url_visited": "",
+    "decision_reasoning": "The tuition fees and hidden costs for the 2026/27 academic year are clearly listed in the provided text. The curriculum is implicitly American based on typical ISB profile, though not explicitly stated in the text, but the fee and additional cost data are highly complete and unambiguous.",
+    "confidence": 0.95,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:33.653357+00:00"
+  },
+  {
+    "school_name": "Shrewsbury International School",
+    "step": "navigate",
+    "action_taken": "opening homepage",
+    "url_visited": "https://www.shrewsbury.ac.th",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:36.707211+00:00"
+  },
+  {
+    "school_name": "Shrewsbury International School",
+    "step": "ai_navigate_decision",
+    "action_taken": "chose index 2",
+    "url_visited": "",
+    "decision_reasoning": "The link with index 2 has the text 'Fees' and its URL explicitly points to the admissions fees overview page, making it the most direct match for tuition and costs.",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:41.140484+00:00"
+  },
+  {
+    "school_name": "Shrewsbury International School",
+    "step": "navigate",
+    "action_taken": "opened candidate fee page",
+    "url_visited": "https://www.shrewsbury.ac.th/admissions/fees/overview/",
+    "decision_reasoning": "",
+    "confidence": null,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:42.378299+00:00"
+  },
+  {
+    "school_name": "Shrewsbury International School",
+    "step": "extract",
+    "action_taken": "extraction complete",
+    "url_visited": "",
+    "decision_reasoning": "The webpage provided detailed and clear fee structures for the 2026/27 academic year, broken down by grade levels and per term/year, along with initial charges. While the explicit curriculum name like 'British' is not spelled out directly in the text snippet, Shrewsbury is a well-known British curriculum school and the year structure (Nursery, EY1-2, Years 1-13) clearly indicates the British system.",
+    "confidence": 0.9,
+    "status": "ok",
+    "timestamp": "2026-08-24T20:24:45.456129+00:00"
+  }
+]

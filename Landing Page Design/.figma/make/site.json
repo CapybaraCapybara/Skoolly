@@ -1,0 +1,10 @@
+{
+  "description": "Helps parents in Thailand find and compare international schools using AI-powered search, personalized recommendations, and cost calculators.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
