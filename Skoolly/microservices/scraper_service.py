@@ -341,14 +341,58 @@ def find_pdf_urls(page, max_pdfs=2, network_seen=None):
     ranked = sorted(scored.items(), key=lambda kv: kv[1], reverse=True)
     return [url for url, _ in ranked[:max_pdfs]]
 
-def extract_pdf_text(page, pdf_url, max_chars=6000, max_pages=10):
+def extract_pdf_text(page, pdf_url, max_chars=8000):
+    """
+    ฟังก์ชันดึงข้อความจากไฟล์ PDF:
+    - วิธีที่ 1 (วิธีหลัก): อ่านข้อความทั่วไปจาก 5 หน้าแรก
+    - วิธีที่ 3 (วิธีสำรอง): ถ้าวิธีที่ 1 ดึงได้น้อย ให้วนหาเฉพาะหน้าที่มีคำสำคัญเกี่ยวกับ Safeguarding/Policy
+    """
     try:
+        # 1. ดาวน์โหลดไฟล์ PDF
         resp = page.context.request.get(pdf_url, timeout=20000)
         if not resp.ok:
             return ""
-        with pdfplumber.open(io.BytesIO(resp.body())) as pdf:
-            text = "\n".join(p.extract_text() or "" for p in pdf.pages[:max_pages])
-        return text[:max_chars]
+
+        pdf_bytes = io.BytesIO(resp.body())
+
+        with pdfplumber.open(pdf_bytes) as pdf:
+            total_pages = len(pdf.pages)
+            if total_pages == 0:
+                return ""
+
+            # --- วิธีที่ 1 (หลัก): ดึงข้อความจาก 5 หน้าแรก ---
+            first_pages_text = []
+            for p in pdf.pages[:5]:
+                txt = p.extract_text() or ""
+                if txt.strip():
+                    first_pages_text.append(txt)
+
+            combined_text = "\n".join(first_pages_text).strip()
+
+            # ถ้าดึงได้ข้อความเกิน 200 ตัวอักษร ให้ถือว่าวิธีที่ 1 สำเร็จ
+            if len(combined_text) >= 200:
+                return combined_text[:max_chars]
+
+            # --- วิธีที่ 3 (สำรอง): ถ้าวิธีที่ 1 ได้ข้อความน้อย ให้ค้นหาเฉพาะหน้าที่ตรงกับคีย์เวิร์ด ---
+            keywords = ["safeguard", "child protect", "safety", "security", "health", "reporting", "policy"]
+            targeted_text = []
+
+            for i, p in enumerate(pdf.pages):
+                txt = p.extract_text() or ""
+                txt_lower = txt.lower()
+
+                # ถ้าหน้านี้มีคำสำคัญด้านความปลอดภัย
+                if any(kw in txt_lower for kw in keywords):
+                    targeted_text.append(f"--- หน้าที่ {i + 1} ---\n{txt}")
+                    # เก็บสูงสุดไม่เกิน 4 หน้าสำคัญ
+                    if len(targeted_text) >= 4:
+                        break
+
+            if targeted_text:
+                return "\n\n".join(targeted_text)[:max_chars]
+
+            return combined_text[:max_chars]
+
     except Exception as e:
         print(f"    ⚠️ Failed to read PDF ({pdf_url}): {e}")
         return ""
@@ -503,9 +547,12 @@ def scrape_endpoint(req: ScrapeRequest):
                 confidence=extraction.get("confidence")
             )
 
-            # If a policy URL was scraped and extraction didn't specify one, attach the detected safety URL
-            if safety_policy_url and extraction.get("safety_and_security") and not extraction["safety_and_security"].get("policy_url"):
-                extraction["safety_and_security"]["policy_url"] = safety_policy_url
+            # If a policy URL was scraped and extraction didn't specify one, attach direct PDF URL or safety page URL
+            if extraction.get("safety_and_security"):
+                if safety_pdf_urls and not extraction["safety_and_security"].get("policy_url"):
+                    extraction["safety_and_security"]["policy_url"] = safety_pdf_urls[0]
+                elif safety_policy_url and not extraction["safety_and_security"].get("policy_url"):
+                    extraction["safety_and_security"]["policy_url"] = safety_policy_url
 
             annual_values = [
                 g["annual_thb"] for g in extraction.get("tuition_by_grade", [])
