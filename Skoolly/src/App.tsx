@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import { HomePage } from "@/pages/HomePage";
 import { ForumPage } from "@/pages/ForumPage";
 import { SchoolDetailPage } from "@/pages/SchoolDetailPage";
-import { AuthModal } from "@/components/AuthModal";
-import { CompareBar } from "@/components/CompareBar";
+import { AuthModal } from "@/components/layout/AuthModal";
+import { CompareBar } from "@/components/schools/CompareBar";
 import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 

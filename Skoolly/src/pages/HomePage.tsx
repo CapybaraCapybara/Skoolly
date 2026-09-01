@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import Hero from "@/components/Hero";
-import { SchoolCard, formatTuition } from "@/components/SchoolCard";
-import { NoResults } from "@/components/NoResults";
-import { SchoolMap, EXAMPLE_SAVED_LOCATION } from "@/components/SchoolMap";
+import Hero from "@/components/schools/Hero";
+import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
+import { NoResults } from "@/components/schools/NoResults";
+import { SchoolMap, EXAMPLE_SAVED_LOCATION } from "@/components/schools/SchoolMap";
 import type { School, Filters } from "@/types";
 import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";

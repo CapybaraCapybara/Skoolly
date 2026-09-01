@@ -15,7 +15,7 @@
  */
 
 import type { Post } from "@/types";
-import { FORUM_POSTS_SEED } from "@/db/forumPosts";
+import { FORUM_POSTS_SEED } from "@/api/mock/forumPosts";
 
 // ─── Forum Posts ───────────────────────────────────────────────────────────────
 

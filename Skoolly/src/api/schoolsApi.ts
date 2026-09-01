@@ -8,8 +8,8 @@
  */
 
 import type { School, SchoolDetail } from "@/types";
-import { SCHOOLS_SEED } from "@/db/schools";
-import { SCHOOL_DETAILS_SEED } from "@/db/schoolDetails";
+import { SCHOOLS_SEED } from "@/api/mock/schools";
+import { SCHOOL_DETAILS_SEED } from "@/api/mock/schoolDetails";
 
 let cachedSchools: School[] | null = null;
 let cachedDetails: Record<number, SchoolDetail> | null = null;
