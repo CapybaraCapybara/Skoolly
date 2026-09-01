@@ -56,7 +56,7 @@ export function Navbar({
               <BookOpen className="size-4" />
             </div>
             <span className="text-base font-bold tracking-tight text-warm-charcoal">
-              SchoolFinder<span className="text-warm-bronze">AI</span>
+              Skool<span className="text-warm-bronze">ly</span>
             </span>
           </button>
 
@@ -227,7 +227,7 @@ export function Navbar({
                       <BookOpen className="size-4" />
                     </div>
                     <span className="text-base font-bold text-neutral-900 dark:text-white">
-                      SchoolFinder<span className="text-teal-500">AI</span>
+                      Skool<span className="text-teal-500">ly</span>
                     </span>
                   </div>
 

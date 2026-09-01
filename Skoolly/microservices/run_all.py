@@ -17,7 +17,7 @@ env = os.environ.copy()
 env["PYTHONIOENCODING"] = "utf-8"
 
 try:
-    print("[INFO] Starting School Finder AI microservices (Saga Pattern)...")
+    print("[INFO] Starting Skoolly microservices (Saga Pattern)...")
     dir_path = os.path.dirname(os.path.abspath(__file__))
     
     for name, script, port in services:

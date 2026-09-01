@@ -45,7 +45,7 @@ export default function App() {
     <div className="sticky top-0 z-30 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: "blur(12px)" }}>
       <Navbar
         onSignUp={() => showAuth("Create a free account to access personalised AI recommendations, save schools, and compare unlimited options.")}
-        onLogin={() => showAuth("Sign in to your SchoolFinderAI account.")}
+        onLogin={() => showAuth("Sign in to your Skoolly account.")}
         compareCount={compareIds.length}
         onCompare={() => showAuth("Sign in to save and revisit your school comparisons anytime.")}
         onForum={goForum}
