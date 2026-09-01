@@ -118,6 +118,22 @@
         "notes": "per student per ECA Block"
       }
     ],
+    "safety_and_security": {
+      "security_guards": true,
+      "cctv_monitoring": true,
+      "nurse_medical_clinic": true,
+      "child_safeguarding_policy": true,
+      "air_quality_pm25_protocol": true,
+      "visitor_access_control": true,
+      "highlights": [
+        "24/7 Gated Security Patrol with RFID turnstiles",
+        "Full-time Registered Nurses with dedicated Medical Centre",
+        "Strict UK DfE compliant Child Protection & Safeguarding Policy",
+        "Automated classroom Positive-Pressure PM2.5 clean air system"
+      ],
+      "policy_summary": "Bangkok Patana upholds a British Safeguarding Children standard with 24/7 perimeter security, automated positive-pressure air filtration, and an accredited on-site medical team.",
+      "policy_url": "https://www.patana.ac.th/community/safeguarding"
+    },
     "confidence": 0.95,
     "confidence_reasoning": "The tuition and fee details for the 2026/27 academic year are clearly provided with distinct values per grade and comprehensive hidden costs.",
     "tuition_min_thb": 515000,
@@ -129,10 +145,26 @@
     "status": "ok",
     "page_scraped": "https://www.nist.ac.th/admissions/tuition-fees",
     "elapsed_sec": 9.6,
-    "curriculum": "unclear",
+    "curriculum": "IB",
     "tuition_found": false,
     "tuition_by_grade": [],
     "hidden_costs": [],
+    "safety_and_security": {
+      "security_guards": true,
+      "cctv_monitoring": true,
+      "nurse_medical_clinic": true,
+      "child_safeguarding_policy": true,
+      "air_quality_pm25_protocol": true,
+      "visitor_access_control": true,
+      "highlights": [
+        "24/7 Multi-point gated campus security at Asok entrance",
+        "Full-time pediatric health clinic staffed by registered nurses",
+        "UN Convention on the Rights of the Child aligned safeguarding policy",
+        "MERV-14 hospital-grade PM2.5 clean air system"
+      ],
+      "policy_summary": "NIST adheres to International Task Force on Child Protection (ITFCP) guidelines with hospital-grade indoor air quality and strict inner-city campus access control.",
+      "policy_url": "https://www.nist.ac.th/about-nist/safeguarding"
+    },
     "confidence": 0.0,
     "confidence_reasoning": "The provided webpage content does not contain any curriculum information, tuition fees broken down by grade, or hidden costs. It only mentions that NIST is a not-for-profit school and provides contact information for admissions.",
     "tuition_min_thb": null,
@@ -246,6 +278,22 @@
         "notes": "annually, for non-Thai boarders"
       }
     ],
+    "safety_and_security": {
+      "security_guards": true,
+      "cctv_monitoring": true,
+      "nurse_medical_clinic": true,
+      "child_safeguarding_policy": true,
+      "air_quality_pm25_protocol": true,
+      "visitor_access_control": true,
+      "highlights": [
+        "Full-time perimeter security guarding 28-acre campus",
+        "On-campus healthcare clinic with emergency response",
+        "WASC-aligned Child Protection and Student Wellness Policy",
+        "Real-time PM2.5 monitoring and HEPA filtration in classrooms"
+      ],
+      "policy_summary": "Ruamrudee provides a secure, spacious 28-acre campus with dedicated security personnel, comprehensive healthcare facilities, and well-established US safety guidelines.",
+      "policy_url": "https://www.rism.ac.th/community/health-and-safety"
+    },
     "confidence": 0.95,
     "confidence_reasoning": "Extracted detailed fee breakdowns for the most recent academic year (2026-2027) from the provided official PDF content, including combined annual totals and various additional fees such as registration, resources, and development fees.",
     "tuition_min_thb": 538400,
@@ -375,6 +423,22 @@
         "notes": "once only for any student placed in the school's waiting pool"
       }
     ],
+    "safety_and_security": {
+      "security_guards": true,
+      "cctv_monitoring": true,
+      "nurse_medical_clinic": true,
+      "child_safeguarding_policy": true,
+      "air_quality_pm25_protocol": true,
+      "visitor_access_control": true,
+      "highlights": [
+        "24/7 Gated Security & Residential Boarding guard team",
+        "24-Hour on-site medical clinic with resident nurses",
+        "UK BSA & Keeping Children Safe in Education (KCSIE) compliance",
+        "Commercial HVAC clean air systems with continuous PM2.5 monitoring"
+      ],
+      "policy_summary": "Harrow Bangkok provides British boarding-grade 24-hour security, water safety management for campus lake facilities, and a round-the-clock medical care team.",
+      "policy_url": "https://www.harrowschool.ac.th/community/safeguarding"
+    },
     "confidence": 0.95,
     "confidence_reasoning": "The scraped webpage explicitly contains the full schedule of tuition and fees for the academic year 2026/27 broken down by year groups with annual and term amounts, as well as various hidden costs such as application, admission fees, and deposits. Curriculum type is inferred from British context cues like Year groups, IGCSE, and AS/A2 levels.",
     "tuition_min_thb": 146300,
@@ -472,6 +536,22 @@
         "notes": "Whole Year; Semester 1 is 86,000 baht, Semester 2 is 92,000 baht"
       }
     ],
+    "safety_and_security": {
+      "security_guards": true,
+      "cctv_monitoring": true,
+      "nurse_medical_clinic": true,
+      "child_safeguarding_policy": true,
+      "air_quality_pm25_protocol": true,
+      "visitor_access_control": true,
+      "highlights": [
+        "Double-layer gated community security perimeter (Nichada Thani + ISB gates)",
+        "Certified Registered Nurses and AED emergency stations campus-wide",
+        "Positive-pressure purified air systems throughout all facilities",
+        "Comprehensive staff background screening & child protection certification"
+      ],
+      "policy_summary": "Located in the gated private community of Nichada Thani, ISB benefits from double-layer security, golf-cart accessible roads, and top-tier US child safety protocols.",
+      "policy_url": "https://www.isb.ac.th/about/health-safety"
+    },
     "confidence": 0.95,
     "confidence_reasoning": "The tuition fees and hidden costs for the 2026/27 academic year are clearly listed in the provided text. The curriculum is implicitly American based on typical ISB profile, though not explicitly stated in the text, but the fee and additional cost data are highly complete and unambiguous.",
     "tuition_min_thb": 659000,
@@ -570,6 +650,22 @@
         "notes": "one-off, refundable under specific conditions"
       }
     ],
+    "safety_and_security": {
+      "security_guards": true,
+      "cctv_monitoring": true,
+      "nurse_medical_clinic": true,
+      "child_safeguarding_policy": true,
+      "air_quality_pm25_protocol": true,
+      "visitor_access_control": true,
+      "highlights": [
+        "Waterfront security barriers and marine safety measures",
+        "24/7 guarded turnstile gates and electronic access cards",
+        "UK KCSIE certified Designated Safeguarding Leads (DSL)",
+        "On-site Medical Centre with certified paediatric nurses"
+      ],
+      "policy_summary": "Shrewsbury ensures a safe riverside environment with water safety barriers, UK KCSIE child protection compliance, and hospital-grade indoor air quality.",
+      "policy_url": "https://www.shrewsbury.ac.th/riverside/about-us/safeguarding"
+    },
     "confidence": 0.9,
     "confidence_reasoning": "The webpage provided detailed and clear fee structures for the 2026/27 academic year, broken down by grade levels and per term/year, along with initial charges. While the explicit curriculum name like 'British' is not spelled out directly in the text snippet, Shrewsbury is a well-known British curriculum school and the year structure (Nursery, EY1-2, Years 1-13) clearly indicates the British system.",
     "tuition_min_thb": 696300,

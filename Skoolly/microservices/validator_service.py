@@ -72,6 +72,17 @@ def validate_data(req: ValidationRequest):
         except ValueError:
             errors.append(f"Confidence score must be a number: {confidence}")
 
+    # Rule 5: Safety and security validation
+    safety = data.get("safety_and_security")
+    if safety is not None:
+        if not isinstance(safety, dict):
+            errors.append("'safety_and_security' must be a dictionary/object.")
+        else:
+            if not isinstance(safety.get("highlights", []), list):
+                errors.append("'safety_and_security.highlights' must be a list.")
+            if "policy_summary" in safety and not isinstance(safety.get("policy_summary"), str):
+                errors.append("'safety_and_security.policy_summary' must be a string.")
+
     if errors:
         return {
             "status": "failed",

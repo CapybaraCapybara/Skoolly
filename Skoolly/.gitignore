@@ -22,3 +22,8 @@ logs/
 # Execution outputs / scraped data
 results.json
 scrape_log.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+
