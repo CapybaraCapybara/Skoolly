@@ -1,5 +1,6 @@
 // ─── Navigation ───────────────────────────────────────────────────────────────
-export type View = "home" | "forum" | { type: "school"; id: number };
+export type View = "home" | "forum" | "admin" | { type: "school"; id: number };
+export * from "./opec";
 
 // ─── School (core record — stored in DB) ──────────────────────────────────────
 export interface School {
@@ -32,6 +33,19 @@ export interface SchoolReview {
   childYear: string;
 }
 
+export interface SchoolSafety {
+  securityGuards?: string;
+  cctv?: string;
+  medicalNurse?: string;
+  safeguardingPolicy?: string;
+  airQualityPM25?: string;
+  visitorControl?: string;
+  emergencyDrill?: string;
+  summary?: string;
+  highlights?: string[];
+  policyUrl?: string;
+}
+
 export interface SchoolDetail {
   founded: string;
   students: string;
@@ -42,6 +56,7 @@ export interface SchoolDetail {
   gallery: string[];
   facilities: string[];
   reviews: SchoolReview[];
+  safety?: SchoolSafety;
 }
 
 // ─── Filters (UI state only — not persisted) ──────────────────────────────────

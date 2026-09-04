@@ -8,6 +8,8 @@ import { CompareBar } from "@/components/schools/CompareBar";
 import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 
+import { OpecAdminPage } from "@/pages/OpecAdminPage";
+
 export default function App() {
   const [view, setView] = useState<View>("home");
   const [compareIds, setCompareIds] = useState<number[]>([]);
@@ -23,6 +25,7 @@ export default function App() {
   const goHome = useCallback(() => { setView("home"); window.scrollTo(0, 0); }, []);
   const goForum = useCallback(() => { setView("forum"); window.scrollTo(0, 0); }, []);
   const goSchool = useCallback((id: number) => { setView({ type: "school", id }); window.scrollTo(0, 0); }, []);
+  const goAdmin = useCallback(() => { setView("admin"); window.scrollTo(0, 0); }, []);
 
   const showAuth = useCallback((reason: string) => setAuthModal(reason), []);
 
@@ -41,6 +44,11 @@ export default function App() {
     });
   }
 
+  // If in admin view, render OpecAdminPage in full screen
+  if (view === "admin") {
+    return <OpecAdminPage onBack={goHome} />;
+  }
+
   const navBar = (
     <div className="sticky top-0 z-30 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: "blur(12px)" }}>
       <Navbar
@@ -50,6 +58,7 @@ export default function App() {
         onCompare={() => showAuth("Sign in to save and revisit your school comparisons anytime.")}
         onForum={goForum}
         onHome={goHome}
+        onAdmin={goAdmin}
       />
     </div>
   );

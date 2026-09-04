@@ -12,7 +12,15 @@ function scraperDevServer(): Plugin {
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split('?')[0]
         if (url === '/results.json' || url === '/scrape_log.json') {
-          const filePath = path.resolve(__dirname, `.${url}`)
+          const filePath = path.resolve(import.meta.dirname, `.${url}`)
+          if (fs.existsSync(filePath)) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            res.end(fs.readFileSync(filePath))
+            return
+          }
+        }
+        if (url === '/data/international_schools_thailand_opec.json' || url === '/api/schools') {
+          const filePath = path.resolve(import.meta.dirname, './data/international_schools_thailand_opec.json')
           if (fs.existsSync(filePath)) {
             res.setHeader('Content-Type', 'application/json; charset=utf-8')
             res.end(fs.readFileSync(filePath))
@@ -34,7 +42,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
     dedupe: ['react', 'react-dom', 'react-leaflet', 'leaflet'],
   },

@@ -10,13 +10,16 @@ import json
 import csv
 
 # Directory paths
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DATA_FILE = os.path.join(DATA_DIR, "international_schools_thailand_opec.json")
 CSV_FILE = os.path.join(DATA_DIR, "international_schools_thailand_opec.csv")
+PUBLIC_DATA_DIR = os.path.join(BASE_DIR, "public", "data")
+PUBLIC_DATA_FILE = os.path.join(PUBLIC_DATA_DIR, "international_schools_thailand_opec.json")
 
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(PUBLIC_DATA_DIR, exist_ok=True)
 
 def load_schools():
     """
@@ -55,6 +58,12 @@ def save_schools(data):
                 os.replace(tmp_json, DATA_FILE)
             else:
                 os.rename(tmp_json, DATA_FILE)
+            # Sync to public/data for frontend static fallback
+            try:
+                import shutil
+                shutil.copy2(DATA_FILE, PUBLIC_DATA_FILE)
+            except Exception:
+                pass
         except Exception:
             if os.path.exists(tmp_json):
                 try:

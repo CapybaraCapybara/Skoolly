@@ -1,9 +1,18 @@
 import os
+import sys
 import time
 import threading
-from flask import Flask, render_template, jsonify, request, send_file
+from typing import List, Dict, Any, Optional
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, FileResponse
+from pydantic import BaseModel
 
-# Import from separated, dedicated modules
+# Add opec directory to sys.path
+OPEC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "opec")
+if OPEC_DIR not in sys.path:
+    sys.path.insert(0, OPEC_DIR)
+
 from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools
 from fetch_opec import fetch_opec_schools
 from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code
@@ -11,11 +20,21 @@ from enrich_school_names_en import enrich_all_school_names_en, enrich_single_sch
 from enrich_school_gps import enrich_all_school_gps, enrich_single_school_gps
 from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
 
-app = Flask(__name__)
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.jinja_env.auto_reload = True
+app = FastAPI(
+    title="OPEC International Schools Admin Service",
+    description="Microservice managing OPEC data scraping, official website resolving, GPS geocoding, and enrichment"
+)
 
-# State
+# Enable CORS for development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# In-memory Scraper State
 scraper_state = {
     "is_running": False,
     "task": "",
@@ -65,7 +84,6 @@ def update_progress(task, current, total, log=""):
 
 # Background workers
 def run_fetch_opec_worker():
-    """Worker for Button 1: OPEC Scraper"""
     try:
         def on_save(records):
             set_current_schools(records)
@@ -73,14 +91,13 @@ def run_fetch_opec_worker():
         if result:
             set_current_schools(result)
     except Exception as e:
-        print("[App] Error in OPEC fetch:", e)
+        print("[OPEC Service] Error in OPEC fetch:", e)
         update_progress("เกิดข้อผิดพลาดในการดึง OPEC", 100, 100, f"Error: {e}")
     finally:
         with state_lock:
             scraper_state["is_running"] = False
 
 def run_enrich_names_en_worker():
-    """Worker for Button 2: Enrich English Names"""
     try:
         def on_save(records):
             set_current_schools(records)
@@ -88,14 +105,13 @@ def run_enrich_names_en_worker():
         if result:
             set_current_schools(result)
     except Exception as e:
-        print("[App] Error in EN Name Enrichment:", e)
+        print("[OPEC Service] Error in EN Name Enrichment:", e)
         update_progress("เกิดข้อผิดพลาดในการเติมชื่อภาษาอังกฤษ", 100, 100, f"Error: {e}")
     finally:
         with state_lock:
             scraper_state["is_running"] = False
 
 def run_enrich_gps_worker():
-    """Worker for Button 3: Enrich GPS Coordinates"""
     try:
         def on_save(records):
             set_current_schools(records)
@@ -103,14 +119,13 @@ def run_enrich_gps_worker():
         if result:
             set_current_schools(result)
     except Exception as e:
-        print("[App] Error in GPS Enrichment:", e)
+        print("[OPEC Service] Error in GPS Enrichment:", e)
         update_progress("เกิดข้อผิดพลาดในการค้นหาพิกัด GPS", 100, 100, f"Error: {e}")
     finally:
         with state_lock:
             scraper_state["is_running"] = False
 
 def run_fetch_websites_worker():
-    """Worker for Button 4: Official Website Resolver"""
     try:
         def on_save(records):
             set_current_schools(records)
@@ -118,14 +133,13 @@ def run_fetch_websites_worker():
         if result:
             set_current_schools(result)
     except Exception as e:
-        print("[App] Error in Website fetch:", e)
+        print("[OPEC Service] Error in Website fetch:", e)
         update_progress("เกิดข้อผิดพลาดในการดึง Official Website", 100, 100, f"Error: {e}")
     finally:
         with state_lock:
             scraper_state["is_running"] = False
 
 def run_enrich_data_worker():
-    """Worker for Combined EN & GPS Data (Backward Compatibility)"""
     try:
         def on_save(records):
             set_current_schools(records)
@@ -133,34 +147,23 @@ def run_enrich_data_worker():
         if result:
             set_current_schools(result)
     except Exception as e:
-        print("[App] Error in Data Enrichment:", e)
+        print("[OPEC Service] Error in Data Enrichment:", e)
         update_progress("เกิดข้อผิดพลาดในการเติมข้อมูล", 100, 100, f"Error: {e}")
     finally:
         with state_lock:
             scraper_state["is_running"] = False
 
-@app.after_request
-def add_header(response):
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
-
-# Web Routes
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/api/schools", methods=["GET"])
+# API Routes
+@app.get("/api/schools")
 def get_schools():
     data = get_current_schools()
     if not data:
         data = load_schools()
         if data:
             set_current_schools(data)
-    return jsonify(data)
+    return data
 
-@app.route("/api/progress", methods=["GET"])
+@app.get("/api/progress")
 def get_progress():
     with state_lock:
         snapshot = {
@@ -172,13 +175,13 @@ def get_progress():
             "log": scraper_state["log"],
             "logs": list(scraper_state["logs"])
         }
-    return jsonify(snapshot)
+    return snapshot
 
-@app.route("/api/fetch-opec", methods=["POST"])
+@app.post("/api/fetch-opec")
 def trigger_fetch_opec():
     with state_lock:
         if scraper_state["is_running"]:
-            return jsonify({"status": "already_running"}), 400
+            return JSONResponse(status_code=400, content={"status": "already_running"})
         scraper_state["is_running"] = True
         scraper_state["task"] = "กำลังเริ่มดึงข้อมูลจาก OPEC API..."
         scraper_state["current"] = 1
@@ -188,13 +191,13 @@ def trigger_fetch_opec():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการดึงข้อมูล..."]
     
     threading.Thread(target=run_fetch_opec_worker, daemon=True).start()
-    return jsonify({"status": "started"})
+    return {"status": "started"}
 
-@app.route("/api/enrich-names-en", methods=["POST"])
+@app.post("/api/enrich-names-en")
 def trigger_enrich_names_en():
     with state_lock:
         if scraper_state["is_running"]:
-            return jsonify({"status": "already_running"}), 400
+            return JSONResponse(status_code=400, content={"status": "already_running"})
         scraper_state["is_running"] = True
         scraper_state["task"] = "กำลังเริ่มเติมชื่อภาษาอังกฤษ..."
         scraper_state["current"] = 1
@@ -204,13 +207,13 @@ def trigger_enrich_names_en():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการเติมชื่อภาษาอังกฤษทางการ..."]
 
     threading.Thread(target=run_enrich_names_en_worker, daemon=True).start()
-    return jsonify({"status": "started"})
+    return {"status": "started"}
 
-@app.route("/api/enrich-gps", methods=["POST"])
+@app.post("/api/enrich-gps")
 def trigger_enrich_gps():
     with state_lock:
         if scraper_state["is_running"]:
-            return jsonify({"status": "already_running"}), 400
+            return JSONResponse(status_code=400, content={"status": "already_running"})
         scraper_state["is_running"] = True
         scraper_state["task"] = "กำลังเริ่มค้นหาพิกัด GPS..."
         scraper_state["current"] = 1
@@ -220,13 +223,13 @@ def trigger_enrich_gps():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการค้นหาพิกัด GPS ความแม่นยำสูง..."]
 
     threading.Thread(target=run_enrich_gps_worker, daemon=True).start()
-    return jsonify({"status": "started"})
+    return {"status": "started"}
 
-@app.route("/api/fetch-official-websites", methods=["POST"])
+@app.post("/api/fetch-official-websites")
 def trigger_fetch_websites():
     with state_lock:
         if scraper_state["is_running"]:
-            return jsonify({"status": "already_running"}), 400
+            return JSONResponse(status_code=400, content={"status": "already_running"})
         scraper_state["is_running"] = True
         scraper_state["task"] = "กำลังเริ่มค้นหา Official Website..."
         scraper_state["current"] = 1
@@ -236,13 +239,13 @@ def trigger_fetch_websites():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นประมวลผลเว็บไซต์..."]
 
     threading.Thread(target=run_fetch_websites_worker, daemon=True).start()
-    return jsonify({"status": "started"})
+    return {"status": "started"}
 
-@app.route("/api/enrich-data", methods=["POST"])
+@app.post("/api/enrich-data")
 def trigger_enrich_data():
     with state_lock:
         if scraper_state["is_running"]:
-            return jsonify({"status": "already_running"}), 400
+            return JSONResponse(status_code=400, content={"status": "already_running"})
         scraper_state["is_running"] = True
         scraper_state["task"] = "กำลังเริ่มเติมเต็มข้อมูล EN และ GPS..."
         scraper_state["current"] = 1
@@ -252,9 +255,9 @@ def trigger_enrich_data():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการ Auto-Enrich (ชื่อ EN และพิกัด GPS)..."]
 
     threading.Thread(target=run_enrich_data_worker, daemon=True).start()
-    return jsonify({"status": "started"})
+    return {"status": "started"}
 
-@app.route("/api/clear-data", methods=["POST"])
+@app.post("/api/clear-data")
 def clear_all_data():
     with state_lock:
         scraper_state["is_running"] = False
@@ -267,55 +270,60 @@ def clear_all_data():
 
     set_current_schools([])
     save_schools([])
-    return jsonify({"status": "cleared"})
+    return {"status": "cleared"}
 
-@app.route("/api/clear-logs", methods=["POST"])
+@app.post("/api/clear-logs")
 def clear_logs():
     with state_lock:
         scraper_state["logs"] = []
         scraper_state["log"] = ""
-    return jsonify({"status": "logs_cleared"})
+    return {"status": "logs_cleared"}
 
-@app.route("/api/school/<school_code>", methods=["PUT"])
-def update_school(school_code):
-    data = request.json
+class UpdateSchoolPayload(BaseModel):
+    website: Optional[str] = None
+    official_website: Optional[str] = None
+    website_source: Optional[str] = "Manual Edit"
+
+@app.put("/api/school/{school_code}")
+def update_school(school_code: str, payload: UpdateSchoolPayload):
     schools = get_current_schools()
     found = False
+    new_website = payload.website or payload.official_website or ""
     for s in schools:
-        if s["school_code"] == school_code:
-            s["website"] = data.get("website", data.get("official_website", s.get("website", "")))
-            s["website_source"] = data.get("website_source", "Manual Edit")
+        if s.get("school_code") == school_code:
+            s["website"] = new_website
+            s["website_source"] = payload.website_source or "Manual Edit"
             s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
             found = True
             break
     if found:
         set_current_schools(schools)
         save_schools(schools)
-        return jsonify({"status": "updated"})
-    return jsonify({"error": "not found"}), 404
+        return {"status": "updated"}
+    raise HTTPException(status_code=404, detail="School not found")
 
-@app.route("/api/school/<school_code>/resolve", methods=["POST"])
-def resolve_one_school(school_code):
+@app.post("/api/school/{school_code}/resolve")
+def resolve_one_school(school_code: str):
     updated = resolve_single_school_by_code(school_code)
     if updated:
         updated["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
         schools = get_current_schools()
         for idx, s in enumerate(schools):
-            if s["school_code"] == school_code:
+            if s.get("school_code") == school_code:
                 schools[idx] = updated
                 break
         set_current_schools(schools)
         save_schools(schools)
-        return jsonify(updated)
-    return jsonify({"error": "not found"}), 404
+        return updated
+    raise HTTPException(status_code=404, detail="School not found or website unresolved")
 
-@app.route("/api/school/<school_code>/enrich", methods=["POST"])
-def enrich_one_school(school_code):
+@app.post("/api/school/{school_code}/enrich")
+def enrich_one_school(school_code: str):
     schools = get_current_schools()
     target = None
     target_idx = -1
     for idx, s in enumerate(schools):
-        if s["school_code"] == school_code:
+        if s.get("school_code") == school_code:
             target = s
             target_idx = idx
             break
@@ -325,22 +333,22 @@ def enrich_one_school(school_code):
         schools[target_idx] = enriched_s
         set_current_schools(schools)
         save_schools(schools)
-        return jsonify({"school": enriched_s, "changes": changes})
-    return jsonify({"error": "not found"}), 404
+        return {"school": enriched_s, "changes": changes}
+    raise HTTPException(status_code=404, detail="School not found")
 
-@app.route("/api/export/csv", methods=["GET"])
+@app.get("/api/export/csv")
 def export_csv():
     if os.path.exists(CSV_FILE):
-        return send_file(CSV_FILE, as_attachment=True, download_name="international_schools_thailand_opec.csv")
-    return jsonify({"error": "file not found"}), 404
+        return FileResponse(CSV_FILE, media_type="text/csv", filename="international_schools_thailand_opec.csv")
+    raise HTTPException(status_code=404, detail="CSV file not found")
 
-@app.route("/api/export/json", methods=["GET"])
+@app.get("/api/export/json")
 def export_json():
     if os.path.exists(DATA_FILE):
-        return send_file(DATA_FILE, as_attachment=True, download_name="international_schools_thailand_opec.json")
-    return jsonify({"error": "file not found"}), 404
+        return FileResponse(DATA_FILE, media_type="application/json", filename="international_schools_thailand_opec.json")
+    raise HTTPException(status_code=404, detail="JSON file not found")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    print(f"Server running at http://127.0.0.1:{port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    import uvicorn
+    port = int(os.environ.get("PORT", 8004))
+    uvicorn.run(app, host="127.0.0.1", port=port)

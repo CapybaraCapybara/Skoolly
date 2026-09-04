@@ -35,6 +35,7 @@ interface NavbarProps {
   onCompare?: () => void;
   onForum?: () => void;
   onHome?: () => void;
+  onAdmin?: () => void;
 }
 
 export function Navbar({
@@ -44,6 +45,7 @@ export function Navbar({
   onCompare,
   onForum,
   onHome,
+  onAdmin,
 }: NavbarProps) {
   return (
     <div className="relative w-full py-4 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: 'blur(12px)' }}>
@@ -191,6 +193,15 @@ export function Navbar({
                     💬 Community
                   </button>
                 </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <button
+                    onClick={onAdmin}
+                    className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-blue-700 border border-blue-200/80 transition-all hover:bg-blue-100 shadow-sm ml-1"
+                  >
+                    🏛️ OPEC Admin
+                  </button>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -234,7 +245,7 @@ export function Navbar({
                   <div className="flex flex-col gap-4">
                     <a href="#schools" className="text-base font-medium text-neutral-900 dark:text-neutral-50">Browse Schools</a>
 
-                    <Accordion type="single" collapsible className="w-full">
+                    <Accordion className="w-full">
                       <AccordionItem value="criteria" className="border-none">
                         <AccordionTrigger className="justify-between py-0 text-base font-medium text-neutral-900 hover:no-underline dark:text-neutral-50">
                           Find by Criteria
@@ -271,6 +282,9 @@ export function Navbar({
                     </button>
                     <button onClick={onForum} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
                       💬 Community Forum
+                    </button>
+                    <button onClick={onAdmin} className="text-left text-base font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                      🏛️ OPEC Admin Portal
                     </button>
                   </div>
 
