@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OPEC International Schools Admin | ระบบจัดการโรงเรียนนานาชาติ</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Modular Main Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-icon">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <span class="sidebar-brand-text">OPEC Portal</span>
+      </div>
+
+      <nav class="nav-list">
+        <button type="button" class="nav-item-btn active" onclick="switchNav('dashboard', this)">
+          <i class="fa-solid fa-table-cells-large"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('schools', this)">
+          <i class="fa-solid fa-school"></i>
+          <span>Schools</span>
+          <span class="nav-badge-pill" id="navSchoolCount">0</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('verify', this)">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Verification</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('reviews', this)">
+          <i class="fa-solid fa-star"></i>
+          <span>Reviews</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('tickets', this)">
+          <i class="fa-solid fa-ticket"></i>
+          <span>Tickets</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('ai-logs', this)">
+          <i class="fa-solid fa-robot"></i>
+          <span>AI / Scraper Logs</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('audit-log', this)">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Audit Log</span>
+        </button>
+
+        <button type="button" class="nav-item-btn" onclick="switchNav('users', this)">
+          <i class="fa-solid fa-users"></i>
+          <span>Users</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+
+      <!-- Header with Action Buttons & Theme Switcher -->
+      <header>
+        <div class="header-brand">
+          <div class="header-icon">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div class="header-info">
+            <h1>
+              <span>ระบบบริหารจัดการข้อมูลโรงเรียนนานาชาติ</span>
+              <span class="version-tag">สช. OPEC Pro</span>
+            </h1>
+            <p>
+              เชื่อมต่อ API สช. (school.opec.go.th) แบบลึก 100% พร้อมระบบค้นหา Official Website & GPS อัตโนมัติ
+              <span id="headerLastFetchedBadge" style="display:none; margin-left:8px; font-size:0.75rem; background:rgba(37,99,235,0.12); color:var(--accent-blue); padding:1px 8px; border-radius:10px; border:1px solid rgba(37,99,235,0.25);">
+                <i class="fa-regular fa-clock"></i> ข้อมูลล่าสุด: <b id="headerLastFetchedTime">—</b>
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button type="button" class="btn btn-solid-primary" id="btnFetchOpec" onclick="startFetchOpec()" title="ดึงข้อมูลโรงเรียนนานาชาติจากระบบ OPEC สช.">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>1. ดึงข้อมูล OPEC</span>
+          </button>
+
+          <button type="button" class="btn btn-solid-amber" id="btnEnrichEn" onclick="startEnrichEn()" title="แปลงและเติมชื่อภาษาอังกฤษมาตรฐาน">
+            <i class="fa-solid fa-language"></i>
+            <span>2. เติมชื่อ EN</span>
+          </button>
+
+          <button type="button" class="btn btn-solid-emerald" id="btnEnrichGps" onclick="startEnrichGps()" title="ค้นหาพิกัด GPS ความแม่นยำสูงระดับอาคาร/ถนน">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>3. ปักหมุด GPS</span>
+          </button>
+
+          <button type="button" class="btn btn-solid-secondary" id="btnFetchWebsites" onclick="startFetchWebsites()" title="ค้นหาและยืนยัน Official Website ของโรงเรียน">
+            <i class="fa-solid fa-globe"></i>
+            <span>4. ค้นหา Website</span>
+          </button>
+
+          <button type="button" class="btn btn-muted" id="btnEnrichData" onclick="startEnrichData()" title="ระบบรวม เติมเต็มข้อมูลอัตโนมัติ">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Auto-Enrich</span>
+          </button>
+
+          <button type="button" class="btn btn-danger-soft" id="btnClearData" onclick="clearAllData()" title="ล้างข้อมูลทั้งหมด">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+
+          <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="สลับโหมด มืด/สว่าง">
+            <i class="fa-solid fa-sun" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- SECTION 1: EXECUTIVE DASHBOARD -->
+      <section id="sectionDashboard" class="dashboard-container">
+        <!-- Dashboard Sub-Header -->
+        <div class="dash-header-bar">
+          <div class="dash-header-title">
+            <div class="dash-kpi-icon" style="background: rgba(37, 99, 235, 0.15); color: #60a5fa;">
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+              <h2>ภาพรวมสถิติและข้อมูลเชิงลึก (Executive Dashboard)</h2>
+              <p>สรุปการกระจายตัวของโรงเรียนนานาชาติ หลักสูตร ระดับชั้น และความพร้อมด้านดิจิทัลทั่วประเทศ</p>
+            </div>
+          </div>
+          <div class="dash-header-actions">
+            <button type="button" class="btn btn-solid-secondary" onclick="renderDashboard()" title="คำนวณสถิติใหม่">
+              <i class="fa-solid fa-arrows-rotate" id="dashRefreshIcon"></i> รีเฟรชสถิติ
+            </button>
+            <button type="button" class="btn btn-solid-primary" onclick="switchNav('schools', document.querySelectorAll('.nav-item-btn')[1])">
+              <i class="fa-solid fa-table-list"></i> ไปยังตารางโรงเรียน
+            </button>
+          </div>
+        </div>
+
+        <!-- 6 Interactive KPI Cards -->
+        <div class="dash-kpis-grid">
+          <!-- KPI 1: All Schools -->
+          <div class="dash-kpi-card" onclick="openAllSchoolsDrillDown()" title="คลิกดูรายชื่อโรงเรียนนานาชาติทั้งหมด">
+            <div class="dash-kpi-icon" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+              <i class="fa-solid fa-school"></i>
+            </div>
+            <div class="dash-kpi-info">
+              <div class="dash-kpi-val" id="dashKpiTotal">0</div>
+              <div class="dash-kpi-label">โรงเรียนนานาชาติทั้งหมด</div>
+              <div class="dash-kpi-sub"><i class="fa-solid fa-database"></i> ฐานข้อมูล สช. 100%</div>
+            </div>
+          </div>
+
+          <!-- KPI 2: Provinces -->
+          <div class="dash-kpi-card" onclick="scrollToProvinces()" title="คลิกดูการกระจายตัวรายจังหวัด">
+            <div class="dash-kpi-icon" style="background: rgba(14, 165, 233, 0.12); color: #0284c7;">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <div class="dash-kpi-info">
+              <div class="dash-kpi-val" id="dashKpiProvinces">0</div>
+              <div class="dash-kpi-label">จังหวัดที่มีโรงเรียน</div>
+              <div class="dash-kpi-sub"><i class="fa-solid fa-chart-column"></i> ทั่วประเทศไทย</div>
+            </div>
+          </div>
+
+          <!-- KPI 3: Total Students -->
+          <div class="dash-kpi-card" onclick="openStudentsDrillDown()" title="คลิกดูการจัดอันดับจำนวนนักเรียน">
+            <div class="dash-kpi-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div class="dash-kpi-info">
+              <div class="dash-kpi-val" id="dashKpiStudents">0</div>
+              <div class="dash-kpi-label">นักเรียนรวมทั้งหมด</div>
+              <div class="dash-kpi-sub" id="dashKpiAvgStudent">เฉลี่ย 0 คน/โรงเรียน</div>
+            </div>
+          </div>
+
+          <!-- KPI 4: Total Teachers -->
+          <div class="dash-kpi-card" onclick="openTeachersDrillDown()" title="คลิกดูสถิติจำนวนครู">
+            <div class="dash-kpi-icon" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
+              <i class="fa-solid fa-chalkboard-user"></i>
+            </div>
+            <div class="dash-kpi-info">
+              <div class="dash-kpi-val" id="dashKpiTeachers">0</div>
+              <div class="dash-kpi-label">ครูและบุคลากรรวม</div>
+              <div class="dash-kpi-sub" id="dashKpiRatio">อัตราส่วน ~0 : 1</div>
+            </div>
+          </div>
+
+          <!-- KPI 5: Official Websites -->
+          <div class="dash-kpi-card" onclick="openWebsiteDrillDown(true)" title="คลิกดูโรงเรียนที่มี Website แล้ว">
+            <div class="dash-kpi-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+              <i class="fa-solid fa-globe"></i>
+            </div>
+            <div class="dash-kpi-info">
+              <div class="dash-kpi-val" id="dashKpiWebsites">0%</div>
+              <div class="dash-kpi-label">ความครอบคลุม Website</div>
+              <div class="dash-kpi-sub" id="dashKpiWebsitesCount">0 จาก 0 แห่ง</div>
+            </div>
+          </div>
+
+          <!-- KPI 6: GPS Coverage -->
+          <div class="dash-kpi-card" onclick="openGpsDrillDown('Exact')" title="คลิกดูโรงเรียนที่มีพิกัดแม่นยำระดับอาคาร">
+            <div class="dash-kpi-icon" style="background: rgba(236, 72, 153, 0.12); color: #ec4899;">
+              <i class="fa-solid fa-location-crosshairs"></i>
+            </div>
+            <div class="dash-kpi-info">
+              <div class="dash-kpi-val" id="dashKpiGpsExact">0%</div>
+              <div class="dash-kpi-label">GPS แม่นยำระดับอาคาร</div>
+              <div class="dash-kpi-sub" id="dashKpiGpsCount">0 แห่ง (Exact)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 1: Province Distribution & Education Levels -->
+        <div class="dash-grid-2col" id="dashProvincesSection">
+          <!-- Card 1: Province Distribution with Search & Clickable Rows -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div class="dash-card-title">
+                <i class="fa-solid fa-map-location-dot" style="color: #3b82f6;"></i>
+                <span>การกระจายตัวตามจังหวัด (กดเพื่อดูรายชื่อ)</span>
+              </div>
+              <span class="dash-card-badge" id="dashProvinceCountBadge">0 จังหวัด</span>
+            </div>
+            
+            <div class="province-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="dashProvinceSearchInput" placeholder="ค้นหาจังหวัด เช่น กรุงเทพ, เชียงใหม่, ภูเก็ต..." oninput="filterDashProvinces()">
+            </div>
+
+            <div class="province-list-scroll" id="dashProvinceList">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Card 2: Levels Offered Breakdown (5 Education Levels + All-Through Highlight) -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div class="dash-card-title">
+                <i class="fa-solid fa-layer-group" style="color: #10b981;"></i>
+                <span>ระดับชั้นที่เปิดสอน (แยกตามจำนวนโรงเรียน)</span>
+              </div>
+              <span class="dash-card-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25);">5 ระดับชั้น</span>
+            </div>
+
+            <div class="levels-grid-cards">
+              <!-- Level 1: ก่อนอนุบาล -->
+              <div class="level-stat-box" onclick="openLevelDrillDown('ก่อนอนุบาล')" title="คลิกดูโรงเรียนที่เปิดสอนระดับ ก่อนอนุบาล">
+                <div class="level-stat-count" id="dashLvlPreK">0</div>
+                <div class="level-stat-title">ก่อนอนุบาล</div>
+                <div class="level-stat-pct" id="dashLvlPreKPct">0%</div>
+              </div>
+
+              <!-- Level 2: อนุบาล -->
+              <div class="level-stat-box" onclick="openLevelDrillDown('อนุบาล')" title="คลิกดูโรงเรียนที่เปิดสอนระดับ อนุบาล">
+                <div class="level-stat-count" id="dashLvlK">0</div>
+                <div class="level-stat-title">อนุบาล (Kindergarten)</div>
+                <div class="level-stat-pct" id="dashLvlKPct">0%</div>
+              </div>
+
+              <!-- Level 3: ประถม -->
+              <div class="level-stat-box" onclick="openLevelDrillDown('ประถมศึกษา')" title="คลิกดูโรงเรียนที่เปิดสอนระดับ ประถมศึกษา">
+                <div class="level-stat-count" id="dashLvlPrimary">0</div>
+                <div class="level-stat-title">ประถมศึกษา (Primary)</div>
+                <div class="level-stat-pct" id="dashLvlPrimaryPct">0%</div>
+              </div>
+
+              <!-- Level 4: ม.ต้น -->
+              <div class="level-stat-box" onclick="openLevelDrillDown('มัธยมศึกษาตอนต้น')" title="คลิกดูโรงเรียนที่เปิดสอนระดับ ม.ต้น">
+                <div class="level-stat-count" id="dashLvlLowerSec">0</div>
+                <div class="level-stat-title">มัธยมศึกษาตอนต้น</div>
+                <div class="level-stat-pct" id="dashLvlLowerSecPct">0%</div>
+              </div>
+
+              <!-- Level 5: ม.ปลาย -->
+              <div class="level-stat-box" onclick="openLevelDrillDown('มัธยมศึกษาตอนปลาย')" title="คลิกดูโรงเรียนที่เปิดสอนระดับ ม.ปลาย">
+                <div class="level-stat-count" id="dashLvlUpperSec">0</div>
+                <div class="level-stat-title">มัธยมศึกษาตอนปลาย</div>
+                <div class="level-stat-pct" id="dashLvlUpperSecPct">0%</div>
+              </div>
+            </div>
+
+            <!-- All-Through & Early Years Highlights -->
+            <div class="allthrough-highlight-banner" onclick="openAllThroughDrillDown()" title="คลิกดูโรงเรียนที่เปิดสอนครบทุกระดับชั้น">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-award" style="color: #10b981; font-size: 1.2rem;"></i>
+                <div>
+                  <div style="font-weight: 700; color: var(--text-main); font-size: 0.88rem;">เปิดสอนครบวงจร (All-Through Schools)</div>
+                  <div style="font-size: 0.76rem; color: var(--text-muted);">เปิดตั้งแต่ก่อนอนุบาล/อนุบาลจนถึงมัธยมปลาย (ม.6)</div>
+                </div>
+              </div>
+              <div style="font-weight: 800; color: #10b981; font-size: 1.15rem;" id="dashAllThroughCount">0 แห่ง</div>
+            </div>
+
+            <div class="allthrough-highlight-banner" style="margin-top: 8px; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.25);" onclick="openKindergartenOnlyDrillDown()" title="คลิกดูโรงเรียนเฉพาะระดับปฐมวัย/อนุบาล">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-shapes" style="color: #3b82f6; font-size: 1.2rem;"></i>
+                <div>
+                  <div style="font-weight: 700; color: var(--text-main); font-size: 0.88rem;">เฉพาะระดับปฐมวัย / อนุบาล (Early Years Only)</div>
+                  <div style="font-size: 0.76rem; color: var(--text-muted);">เน้นเตรียมความพร้อมก่อนเข้าประถม</div>
+                </div>
+              </div>
+              <div style="font-weight: 800; color: #3b82f6; font-size: 1.15rem;" id="dashEarlyYearsCount">0 แห่ง</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Curriculums & Top 10 Largest Schools -->
+        <div class="dash-grid-2col">
+          <!-- Card 3: Curriculums Breakdown -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div class="dash-card-title">
+                <i class="fa-solid fa-book-open" style="color: #a855f7;"></i>
+                <span>รูปแบบหลักสูตรการศึกษา (Curriculums)</span>
+              </div>
+              <span class="dash-card-badge" id="dashCurriculumCountBadge" style="background: rgba(168, 85, 247, 0.12); color: #a855f7; border-color: rgba(168, 85, 247, 0.25);">0 รูปแบบ</span>
+            </div>
+
+            <!-- Curriculum View Toggle & Instant Search -->
+            <div class="curriculum-controls-bar">
+              <div class="curriculum-view-toggle">
+                <button type="button" class="curriculum-toggle-btn active" id="btnCurrNorm" onclick="setCurriculumViewMode('normalized')" title="จัดกลุ่มตามระบบหลักสูตรมาตรฐานสากล">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> จัดกลุ่มมาตรฐาน
+                </button>
+                <button type="button" class="curriculum-toggle-btn" id="btnCurrRaw" onclick="setCurriculumViewMode('raw')" title="แสดงตามชื่อดิบที่โรงเรียนระบุใน สช. (268 รายการ)">
+                  <i class="fa-solid fa-list-ul"></i> ชื่อตาม สช. (Raw)
+                </button>
+              </div>
+              <div class="province-search-box" style="margin-bottom: 0; flex: 1;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="dashCurriculumSearchInput" placeholder="ค้นหาหลักสูตร เช่น British, American, IB, Singapore, เคมบริดจ์..." oninput="filterDashCurriculums()">
+              </div>
+            </div>
+
+            <div class="curriculum-list-scroll" id="dashCurriculumList">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Card 4: Top 10 Largest Schools Ranking -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div class="dash-card-title">
+                <i class="fa-solid fa-ranking-star" style="color: #f59e0b;"></i>
+                <span>10 อันดับโรงเรียนขนาดใหญ่ที่สุด (จำนวนนักเรียน)</span>
+              </div>
+              <span class="dash-card-badge" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border-color: rgba(245, 158, 11, 0.25);">Top 10 Rankings</span>
+            </div>
+
+            <div style="overflow-x: auto;">
+              <table class="top-schools-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    <th>ชื่อโรงเรียน</th>
+                    <th>จังหวัด</th>
+                    <th style="text-align: right;">นักเรียน</th>
+                    <th style="text-align: right;">นร./ครู</th>
+                  </tr>
+                </thead>
+                <tbody id="dashTopSchoolsBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Subsidy & Digital Readiness Breakdown -->
+        <div class="dash-grid-2col" style="margin-bottom: 0;">
+          <!-- Card 5: Subsidy Distribution -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div class="dash-card-title">
+                <i class="fa-solid fa-hand-holding-dollar" style="color: #38bdf8;"></i>
+                <span>การรับเงินอุดหนุนจากรัฐบาล (สช. OPEC)</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 4px;">
+              <div class="metric-pill-box" style="cursor: pointer;" onclick="openSubsidyDrillDown('ไม่รับเงินอุดหนุน')" title="คลิกดูรายชื่อ">
+                <div class="metric-pill-num" style="color: #38bdf8;" id="dashSubsidyNoCount">0</div>
+                <div class="metric-pill-label" style="font-weight: 600;">ไม่รับเงินอุดหนุน (100% เอกชน)</div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 2px;" id="dashSubsidyNoPct">0%</div>
+              </div>
+              <div class="metric-pill-box" style="cursor: pointer;" onclick="openSubsidyDrillDown('รับเงินอุดหนุน')" title="คลิกดูรายชื่อ">
+                <div class="metric-pill-num" style="color: #f59e0b;" id="dashSubsidyYesCount">0</div>
+                <div class="metric-pill-label" style="font-weight: 600;">รับเงินอุดหนุนรัฐบาล</div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 2px;" id="dashSubsidyYesPct">0%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 6: Digital & Spatial Data Quality -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div class="dash-card-title">
+                <i class="fa-solid fa-satellite-dish" style="color: #ec4899;"></i>
+                <span>คุณภาพข้อมูลและพิกัดภูมิศาสตร์ (Data Completeness)</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="curriculum-item-row" onclick="openGpsDrillDown('Exact')" title="คลิกดูโรงเรียนที่มีพิกัดแม่นยำระดับอาคาร">
+                <div class="curriculum-top-line" style="margin-bottom: 0;">
+                  <span style="font-size: 0.84rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-location-dot" style="color: #10b981;"></i> หมุด GPS ระดับอาคาร/ถนนจริง (Exact)
+                  </span>
+                  <span class="curriculum-count-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25);" id="dashGpsExactCount">0 แห่ง</span>
+                </div>
+              </div>
+
+              <div class="curriculum-item-row" onclick="openGpsDrillDown('Approximate')" title="คลิกดูโรงเรียนที่ใช้พิกัดประมาณการระดับอำเภอ">
+                <div class="curriculum-top-line" style="margin-bottom: 0;">
+                  <span style="font-size: 0.84rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-location-crosshairs" style="color: #f59e0b;"></i> หมุด GPS ระดับอำเภอ/ตำบล (Approximate)
+                  </span>
+                  <span class="curriculum-count-badge" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border-color: rgba(245, 158, 11, 0.25);" id="dashGpsApproxCount">0 แห่ง</span>
+                </div>
+              </div>
+
+              <div class="curriculum-item-row" onclick="openWebsiteDrillDown(true)" title="คลิกดูโรงเรียนที่มี Official Website ทางการ">
+                <div class="curriculum-top-line" style="margin-bottom: 0;">
+                  <span style="font-size: 0.84rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-globe" style="color: #3b82f6;"></i> Official Website ตรวจสอบสถานะแล้ว (Live)
+                  </span>
+                  <span class="curriculum-count-badge" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border-color: rgba(59, 130, 246, 0.25);" id="dashWebLiveCount">0 แห่ง</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: SCHOOLS DATA TABLE & FILTERS -->
+      <section id="sectionSchools" style="display: none;">
+        <!-- Clickable Stat Filter Cards -->
+        <div class="stats-grid">
+          <div class="stat-card card-total active-filter" id="cardFilter_all" onclick="filterByStatCard('all', this)" title="คลิกเพื่อแสดงโรงเรียนทั้งหมด">
+            <div class="stat-icon"><i class="fa-solid fa-school"></i></div>
+            <div class="stat-meta">
+              <div class="stat-number" id="statTotal">0</div>
+              <div class="stat-title">โรงเรียนทั้งหมด</div>
+            </div>
+            <span class="stat-card-badge"><i class="fa-solid fa-filter"></i> กรอง</span>
+          </div>
+
+          <div class="stat-card card-websites" id="cardFilter_has_website" onclick="filterByStatCard('has_website', this)" title="คลิกเพื่อกรองเฉพาะโรงเรียนที่มี Website แล้ว">
+            <div class="stat-icon"><i class="fa-solid fa-globe"></i></div>
+            <div class="stat-meta">
+              <div class="stat-number" id="statWebsites">0 (0%)</div>
+              <div class="stat-title">มี Website แล้ว</div>
+            </div>
+            <span class="stat-card-badge"><i class="fa-solid fa-filter"></i> กรอง</span>
+          </div>
+
+          <div class="stat-card card-missing-en" id="cardFilter_missing_en" onclick="filterByStatCard('missing_en', this)" title="คลิกเพื่อกรองเฉพาะโรงเรียนที่ไม่มีชื่อ EN">
+            <div class="stat-icon"><i class="fa-solid fa-language"></i></div>
+            <div class="stat-meta">
+              <div class="stat-number" id="statMissingEn">0 แห่ง</div>
+              <div class="stat-title">ไม่มีชื่อ EN</div>
+            </div>
+            <span class="stat-card-badge"><i class="fa-solid fa-filter"></i> กรอง</span>
+          </div>
+
+          <div class="stat-card card-missing-gps" id="cardFilter_missing_gps" onclick="filterByStatCard('missing_gps', this)" title="คลิกเพื่อกรองเฉพาะโรงเรียนที่ไม่มี GPS หรือพิกัดประมาณการ">
+            <div class="stat-icon"><i class="fa-solid fa-location-crosshairs"></i></div>
+            <div class="stat-meta">
+              <div class="stat-number" id="statMissingGps">0 แห่ง</div>
+              <div class="stat-title">ไม่มี/GPS ประมาณการ</div>
+            </div>
+            <span class="stat-card-badge"><i class="fa-solid fa-filter"></i> กรอง</span>
+          </div>
+
+          <div class="stat-card card-provinces" id="cardFilter_provinces" onclick="filterByStatCard('provinces', this)" title="คลิกเพื่อเรียงและจัดกลุ่มตามจังหวัด">
+            <div class="stat-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+            <div class="stat-meta">
+              <div class="stat-number" id="statProvinces">0 จังหวัด</div>
+              <div class="stat-title">กระจายตัวตามจังหวัด</div>
+            </div>
+            <span class="stat-card-badge"><i class="fa-solid fa-sort"></i> เรียง</span>
+          </div>
+
+          <div class="stat-card card-missing" id="cardFilter_missing_website" onclick="filterByStatCard('missing_website', this)" title="คลิกเพื่อกรองเฉพาะโรงเรียนที่ยังไม่มี Website">
+            <div class="stat-icon"><i class="fa-solid fa-link-slash"></i></div>
+            <div class="stat-meta">
+              <div class="stat-number" id="statMissing">0</div>
+              <div class="stat-title">ยังไม่มี Website</div>
+            </div>
+            <span class="stat-card-badge"><i class="fa-solid fa-filter"></i> กรอง</span>
+          </div>
+        </div>
+
+        <!-- Active Card Filter Banner Indicator -->
+        <div id="activeStatFilterBanner" class="active-card-filter-banner" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-filter" style="color: var(--accent-blue);"></i>
+            <span>กำลังกรองตามการ์ด: <strong id="activeStatFilterLabel">ทั้งหมด</strong></span>
+            <span class="badge badge-verified" id="activeStatFilterCount" style="margin-left: 4px;">0</span>
+          </div>
+          <button type="button" class="btn-mini" onclick="clearCardFilter()" title="ล้างตัวกรองการ์ด">
+            <i class="fa-solid fa-xmark"></i> ล้างตัวกรอง
+          </button>
+        </div>
+
+        <!-- Progress Banner & Live Activity Console -->
+        <div class="progress-banner" id="progressBanner" style="display: none;">
+          <div class="progress-top-row">
+            <div class="progress-task-label" id="progressTask">
+              <i class="fa-solid fa-spinner fa-spin"></i> กำลังเตรียมการ...
+            </div>
+            <div class="progress-controls">
+              <span class="badge-count" id="logCountBadge">0 บรรทัด</span>
+              <span class="percent-pill" id="progressPercent">0%</span>
+              <button type="button" class="btn-mini" id="btnExpandLog" onclick="toggleExpandLog()" title="ขยาย/ย่อกล่องข้อความ">
+                <i class="fa-solid fa-up-right-and-down-left-from-center"></i> ขยาย
+              </button>
+              <button type="button" class="btn-mini" id="btnToggleLog" onclick="toggleLogBox()" title="ซ่อน/แสดง">
+                <i class="fa-solid fa-chevron-up"></i> ซ่อน
+              </button>
+              <button type="button" class="btn-mini" onclick="copyLogContent()" title="คัดลอกข้อความ Log">
+                <i class="fa-solid fa-copy"></i> คัดลอก
+              </button>
+              <button type="button" class="btn-mini" onclick="clearLogs()" title="ล้างข้อความ">
+                <i class="fa-solid fa-broom"></i> ล้าง Log
+              </button>
+            </div>
+          </div>
+
+          <div class="progress-track">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+
+          <div class="activity-log-box" id="logBox">พร้อมเริ่มการทำงาน... (กดปุ่มด้านบนเพื่อเริ่มดึงข้อมูล)</div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="filter-card">
+          <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="searchInput" placeholder="ค้นหาชื่อโรงเรียน (TH/EN), รหัส สช, หลักสูตร, ที่อยู่, เบอร์โทร..." autocomplete="off">
+            <button type="button" class="clear-search-btn" id="clearSearchBtn" onclick="clearSearch()" title="ล้างคำค้นหา">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Searchable Combobox for Province Selection -->
+          <div class="combobox-wrap" id="provinceCombobox">
+            <div class="combobox-input-box">
+              <input type="text" id="provinceInput" class="combobox-input" placeholder="-- ค้นหาจังหวัด --" autocomplete="off">
+              <div class="combobox-icons">
+                <button type="button" class="combobox-clear" id="provinceClearBtn" onclick="clearProvinceSelection(event)" title="ล้างการเลือก">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+                <i class="fa-solid fa-chevron-down combobox-arrow" onclick="toggleProvinceDropdown(event)"></i>
+              </div>
+            </div>
+            <div class="combobox-dropdown" id="provinceDropdown">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <select class="custom-select" id="statusSelect" title="กรองตามสถานะเว็บไซต์">
+            <option value="">-- ทุกสถานะ URL --</option>
+            <option value="has_website">🟢 มี Official Website</option>
+            <option value="source_opec">สถิติจาก OPEC Profile</option>
+            <option value="source_live">ค้นพบจาก Live Domain / Directory</option>
+            <option value="no_website">🔴 ยังไม่มี Website</option>
+          </select>
+
+          <button type="button" class="btn btn-muted" onclick="manualRefreshTable()" title="รีเฟรชข้อมูลตารางใหม่">
+            <i class="fa-solid fa-arrows-rotate" id="refreshTableIcon"></i> รีเฟรชตาราง
+          </button>
+
+          <div class="filter-count-badge" id="filterCountBadge">แสดง 0 จาก 0 แห่ง</div>
+        </div>
+
+        <!-- School Data Table -->
+        <div class="table-container">
+          <div class="table-scroll-area">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;">#</th>
+                  <th style="width: 105px;">รหัส สช.</th>
+                  <th>ชื่อโรงเรียน (คลิกดูรายละเอียดเชิงลึก)</th>
+                  <th style="width: 130px;">จังหวัด</th>
+                  <th>Official Website</th>
+                  <th style="width: 155px;">แหล่งที่มา</th>
+                  <th style="width: 90px; text-align: center;">หน้า สช.</th>
+                  <th style="width: 110px; text-align: center;">เครื่องมือ</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-folder-open" style="font-size: 1.6rem; margin-bottom: 8px; display: block; color: var(--text-dim);"></i>
+                    <div style="font-weight: 500; font-size: 0.95rem; color: var(--text-main);">ไม่พบข้อมูลโรงเรียน</div>
+                    <div style="font-size: 0.82rem; margin-top: 2px;">กดปุ่ม <b>"ดึงข้อมูล OPEC (ปุ่ม 1)"</b> ด้านบนเพื่อเริ่มต้น</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: TAB PLACEHOLDER -->
+      <div id="sectionPlaceholder" class="tab-placeholder">
+        <i class="fa-solid fa-screwdriver-wrench" style="font-size: 2.2rem; color: var(--text-dim); margin-bottom: 12px; display: block;"></i>
+        <h3 id="placeholderTitle" style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">Feature Module</h3>
+        <p style="font-size: 0.86rem; color: var(--text-muted); max-width: 450px; margin: 0 auto 16px auto;">ส่วนนี้อยู่ระหว่างการพัฒนา สามารถใช้เมนู Dashboard และ Schools ในการจัดการข้อมูลหลักสูตรและเว็บไซต์ได้ทันที</p>
+        <button type="button" class="btn btn-solid-primary" onclick="switchNav('schools', document.querySelectorAll('.nav-item-btn')[1])">
+          <i class="fa-solid fa-school"></i> กลับไปหน้า Schools
+        </button>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==========================================================================
+       SPACIOUS LANDSCAPE RECTANGULAR SCHOOL DETAILS MODAL (100% DEEP OPEC DATA)
+       ========================================================================== -->
+  <div class="modal-overlay" id="detailModalOverlay">
+    <div class="modal-card-wide">
+      
+      <!-- Top Title Bar with Logo & Badges -->
+      <div class="modal-header-bar">
+        <div class="modal-header-brand-wrap">
+          <div class="school-logo-avatar" id="detLogoAvatar">
+            <i class="fa-solid fa-graduation-cap" style="color: #2563eb; font-size: 1.3rem;"></i>
+          </div>
+          <div class="modal-header-info">
+            <div class="modal-header-title">
+              <span id="detSchoolNameTh">ชื่อโรงเรียน</span>
+              <span class="badge badge-verified" id="detSchoolCodeBadge" style="font-family: monospace;">1110700001</span>
+              <span class="badge badge-province" id="detProvinceBadge">กรุงเทพมหานคร</span>
+              <span class="badge badge-opec" id="detGovSupportBadge">ไม่รับเงินอุดหนุน</span>
+            </div>
+            <div class="modal-header-subtitle" id="detSchoolNameEn">ENGLISH NAME</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Scrollable Landscape 2-Column Body -->
+      <div class="modal-scroll-body">
+        <div class="wide-cards-grid">
+          
+          <!-- Card 1: ระดับชั้นที่เปิดสอน & ข้อมูลการศึกษา -->
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fa-solid fa-graduation-cap"></i> ระดับชั้น & หลักสูตรการศึกษา
+            </div>
+            <div class="detail-items-list">
+              <div class="detail-row">
+                <span class="detail-k">ระดับชั้นที่เปิดสอน:</span>
+                <div class="detail-v">
+                  <div class="level-pills-wrap" id="detLevelsList"></div>
+                </div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">ช่วงชั้นรวม (Range):</span>
+                <span class="detail-v" id="detLevelRange" style="font-weight: 600;">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">หลักสูตร (Curriculums):</span>
+                <div class="detail-v" id="detCurriculums">—</div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">การรับเงินอุดหนุน:</span>
+                <span class="detail-v" id="detGovernmentSupport">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: สถิตินักเรียน บุคลากร และผู้บริหาร -->
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fa-solid fa-users"></i> สถิติและคณะผู้บริหาร
+            </div>
+            <div class="detail-items-list">
+              <div class="metrics-highlight-box">
+                <div class="metric-pill-box">
+                  <div class="metric-pill-num" id="detStudentCount">—</div>
+                  <div class="metric-pill-label">จำนวนนักเรียน</div>
+                </div>
+                <div class="metric-pill-box">
+                  <div class="metric-pill-num" id="detTeacherCount" style="color: var(--accent-blue);">—</div>
+                  <div class="metric-pill-label">จำนวนครู/บุคลากร</div>
+                </div>
+              </div>
+              <div class="detail-row" style="margin-top: 6px;">
+                <span class="detail-k">คณะผู้บริหารโรงเรียน:</span>
+                <div class="detail-v" id="detAdminsList" style="line-height: 1.6;">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: ข้อมูลสถานที่ตั้งและเขตพื้นที่ -->
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fa-solid fa-location-dot"></i> สถานที่ตั้ง & การปกครอง
+            </div>
+            <div class="detail-items-list">
+              <div class="detail-row">
+                <span class="detail-k">รหัสโรงเรียน สช.:</span>
+                <span class="detail-v" id="detCode" style="font-family: monospace; font-weight: 600;">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">จังหวัด / อำเภอ:</span>
+                <span class="detail-v"><span id="detProvince">—</span> / <span id="detDistrict">—</span></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">ตำบล / แขวง:</span>
+                <span class="detail-v" id="detSubdistrict">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">ที่อยู่ตามใบอนุญาต:</span>
+                <span class="detail-v" id="detAddress" style="color: var(--text-main);">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: เว็บไซต์และช่องทางออนไลน์ -->
+          <div class="detail-card">
+            <div class="detail-card-header">
+              <i class="fa-solid fa-globe"></i> เว็บไซต์ & โซเชียลมีเดีย
+            </div>
+            <div class="detail-items-list">
+              <div class="detail-row">
+                <span class="detail-k">Official Website:</span>
+                <div class="detail-v" id="detOfficialWeb">—</div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">แหล่งที่มา URL:</span>
+                <span class="detail-v" id="detWebSource">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">หน้าโปรไฟล์ สช.:</span>
+                <span class="detail-v" id="detOpecProfile">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">ช่องทางโซเชียลมีเดีย:</span>
+                <div class="detail-v" id="detSocials">—</div>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">ดึงข้อมูลเมื่อ:</span>
+                <span class="detail-v" id="detFetchedAt" style="font-size: 0.78rem; color: var(--text-dim);">—</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-k">อัปเดตล่าสุด:</span>
+                <span class="detail-v" id="detLastUpdated" style="font-size: 0.78rem; color: var(--text-dim);">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 5: การติดต่อและพิกัดแผนที่ GPS -->
+          <div class="detail-card" style="grid-column: span 2;">
+            <div class="detail-card-header">
+              <i class="fa-solid fa-map-pin"></i> ข้อมูลการติดต่อ & พิกัดแผนที่ GPS
+            </div>
+            <div class="detail-items-list">
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div class="detail-row" style="flex-direction: column; gap: 2px;">
+                  <span class="detail-k">เบอร์โทรศัพท์:</span>
+                  <span class="detail-v" id="detTelephone" style="text-align: left; font-weight: 600;">—</span>
+                </div>
+                <div class="detail-row" style="flex-direction: column; gap: 2px;">
+                  <span class="detail-k">เบอร์มือถือ:</span>
+                  <span class="detail-v" id="detMobile" style="text-align: left;">—</span>
+                </div>
+                <div class="detail-row" style="flex-direction: column; gap: 2px;">
+                  <span class="detail-k">อีเมลติดต่อ:</span>
+                  <span class="detail-v" id="detEmail" style="text-align: left;">—</span>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--border);">
+                <div>
+                  <div class="detail-row">
+                    <span class="detail-k">พิกัด GPS (Lat, Lon):</span>
+                    <span class="detail-v" id="detGps" style="font-family: monospace; font-weight: 600;">—</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-k">ความแม่นยำของพิกัด:</span>
+                    <span class="detail-v" id="detGpsPrecision">—</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-k">แหล่งที่มาของพิกัด:</span>
+                    <span class="detail-v" id="detGpsSource">—</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: flex-end;" id="detMapBtnContainer">
+                  <!-- Google Maps Action Button -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 6: ข้อมูลประวัติ เอกลักษณ์ และวิสัยทัศน์ (หากมี) -->
+          <div class="detail-card" id="detProfileExtraCard" style="grid-column: span 2; display: none;">
+            <div class="detail-card-header">
+              <i class="fa-solid fa-circle-info"></i> ประวัติ วิสัยทัศน์ & อัตลักษณ์โรงเรียน
+            </div>
+            <div class="detail-items-list">
+              <div class="detail-row" id="rowHistory" style="display: none;">
+                <span class="detail-k">ประวัติโรงเรียน:</span>
+                <span class="detail-v" id="detHistory" style="text-align: left; line-height: 1.6;">—</span>
+              </div>
+              <div class="detail-row" id="rowVision" style="display: none;">
+                <span class="detail-k">วิสัยทัศน์ / พันธกิจ:</span>
+                <span class="detail-v" id="detVision" style="text-align: left; line-height: 1.6;">—</span>
+              </div>
+              <div class="detail-row" id="rowIdentity" style="display: none;">
+                <span class="detail-k">เอกลักษณ์ / อัตลักษณ์:</span>
+                <span class="detail-v" id="detIdentity" style="text-align: left;">—</span>
+              </div>
+              <div class="detail-row" id="rowTags" style="display: none;">
+                <span class="detail-k">แท็ก / ป้ายกำกับ:</span>
+                <span class="detail-v" id="detTags" style="text-align: left;">—</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Modal Footer Action Bar -->
+      <div class="modal-footer-bar">
+        <button type="button" class="btn btn-muted" onclick="closeDetailModal()">
+          <i class="fa-solid fa-arrow-left"></i> ปิดหน้าต่าง
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn-solid-secondary" onclick="openEditFromDetail()">
+            <i class="fa-solid fa-pen"></i> แก้ไข URL
+          </button>
+          <button type="button" class="btn btn-solid-primary" onclick="resolveFromDetail()">
+            <i class="fa-solid fa-magnifying-glass"></i> ค้นหาเฉพาะโรงเรียนนี้
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: EDIT SCHOOL WEBSITE URL
+       ========================================================================== -->
+  <div class="modal-overlay" id="editModalOverlay">
+    <div class="modal-card-edit">
+      <div class="modal-header-bar">
+        <div style="font-weight: 700; color: var(--text-main); font-size: 1.05rem;">
+          <i class="fa-solid fa-pen" style="color: #2563eb; margin-right: 6px;"></i> แก้ไข Website URL
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeEditModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="padding: 20px 24px;">
+        <div id="modalSchoolName" style="font-weight: 600; margin-bottom: 12px; color: var(--accent-blue); font-size: 0.92rem;">ชื่อโรงเรียน</div>
+        <label for="modalWebsiteInput" style="display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px;">Official Website URL (ต้องขึ้นต้นด้วย http:// หรือ https://):</label>
+        <input type="url" id="modalWebsiteInput" class="modal-input" placeholder="https://example.ac.th" autocomplete="off">
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-muted" onclick="closeEditModal()">ยกเลิก</button>
+          <button type="button" class="btn btn-solid-primary" onclick="saveEditModal()"><i class="fa-solid fa-check"></i> บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       CUSTOM CONFIRMATION & ALERT DIALOG MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="confirmDialogOverlay">
+    <div class="modal-card-dialog">
+      <div class="dialog-header-bar">
+        <div class="dialog-icon-badge info" id="dialogIconBadge">
+          <i class="fa-solid fa-circle-question" id="dialogIcon"></i>
+        </div>
+        <div class="dialog-header-text">
+          <h3 id="dialogTitle">ยืนยันการดำเนินการ</h3>
+          <p id="dialogSubtitle">ระบบจัดการโรงเรียนนานาชาติ OPEC</p>
+        </div>
+      </div>
+      
+      <div class="dialog-body-content">
+        <div id="dialogMessage">คุณต้องการดำเนินการต่อหรือไม่?</div>
+        <div class="dialog-extra-box" id="dialogExtraBox" style="display: none;"></div>
+      </div>
+
+      <div class="dialog-footer-bar">
+        <button type="button" class="btn-dialog-cancel" id="dialogBtnCancel" onclick="closeConfirmDialog()">
+          ยกเลิก
+        </button>
+        <button type="button" class="btn btn-solid-primary" id="dialogBtnConfirm" onclick="handleDialogConfirm(event)">
+          <i class="fa-solid fa-check"></i> ยืนยัน
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       INTERACTIVE DRILL-DOWN MODAL (PROVINCE / LEVEL / CURRICULUM / METRIC LIST)
+       ========================================================================== -->
+  <div class="modal-overlay" id="drillDownModalOverlay">
+    <div class="modal-card-drilldown">
+      
+      <!-- Drilldown Header -->
+      <div class="drilldown-header">
+        <div class="drilldown-title-wrap">
+          <div class="drilldown-icon" id="drillDownIcon">
+            <i class="fa-solid fa-school"></i>
+          </div>
+          <div class="drilldown-title-text">
+            <h3 id="drillDownTitle">รายชื่อโรงเรียน</h3>
+            <p id="drillDownSubtitle">พบทั้งหมด 0 แห่ง</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeDrillDownModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Search Filter in Drilldown -->
+      <div class="drilldown-search-bar">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="drillDownSearchInput" class="drilldown-search-input" placeholder="พิมพ์เพื่อค้นหาโรงเรียนในรายการนี้ (ชื่อ, อำเภอ, รหัส สช., เบอร์โทร)..." oninput="filterDrillDownList()">
+        <span class="badge badge-province" id="drillDownFilteredCount" style="font-size: 0.76rem;">แสดง 0 แห่ง</span>
+      </div>
+
+      <!-- Drilldown School List Body -->
+      <div class="drilldown-body-list" id="drillDownListBody">
+        <!-- Rendered via JS -->
+      </div>
+
+      <!-- Drilldown Footer -->
+      <div class="modal-footer-bar">
+        <button type="button" class="btn btn-muted" onclick="closeDrillDownModal()">
+          <i class="fa-solid fa-arrow-left"></i> ปิดหน้ารายชื่อ
+        </button>
+        <button type="button" class="btn btn-solid-primary" onclick="switchNav('schools', document.querySelectorAll('.nav-item-btn')[1]); closeDrillDownModal();">
+          <i class="fa-solid fa-table"></i> เปิดตารางหลัก (Schools Table)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Popup -->
+  <div class="toast" id="toastNotification">
+    <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+    <span id="toastMessage">การทำงานเสร็จสมบูรณ์</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>
