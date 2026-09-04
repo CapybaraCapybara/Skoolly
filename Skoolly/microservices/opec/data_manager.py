@@ -8,18 +8,15 @@ data_manager.py
 import os
 import json
 import csv
+import shutil
 
 # Directory paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DATA_FILE = os.path.join(DATA_DIR, "international_schools_thailand_opec.json")
 CSV_FILE = os.path.join(DATA_DIR, "international_schools_thailand_opec.csv")
-PUBLIC_DATA_DIR = os.path.join(BASE_DIR, "public", "data")
-PUBLIC_DATA_FILE = os.path.join(PUBLIC_DATA_DIR, "international_schools_thailand_opec.json")
-
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(PUBLIC_DATA_DIR, exist_ok=True)
 
 def load_schools():
     """
@@ -39,75 +36,60 @@ def load_schools():
             return []
     return []
 
+def _atomic_write(path, write_fn, encoding, newline=None):
+    """
+    Writes via a temp file and swaps it in. Falls back to overwriting in place
+    when the target is held open (common on Windows while the file is served).
+    """
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding=encoding, newline=newline) as f:
+            write_fn(f)
+    except Exception as e:
+        print(f"[DataManager] Error writing {tmp}: {e}")
+        return
+
+    try:
+        os.replace(tmp, path)
+    except Exception as e:
+        print(f"[DataManager] Atomic swap failed for {path} ({e}); overwriting in place")
+        try:
+            shutil.copyfile(tmp, path)
+            os.remove(tmp)
+        except Exception as e2:
+            print(f"[DataManager] Fallback overwrite failed for {path}: {e2}")
+
+
+CSV_FALLBACK_HEADER = [
+    "no", "school_code", "school_name_th", "school_name_en", "province", "district",
+    "subdistrict", "address", "website", "website_source", "facebook", "telephone",
+    "mobile", "email", "latitude", "longitude", "gps_source", "gps_precision",
+    "opec_profile_url", "fetched_at", "last_updated",
+]
+
+
 def save_schools(data):
     """
     Atomically writes international schools data into both JSON and CSV files in data/.
+    Only data/ is written — the Vite dev middleware serves it directly, so there is
+    no second copy under public/.
     """
     os.makedirs(DATA_DIR, exist_ok=True)
+    data = data or []
 
-    if data is None:
-        data = []
+    _atomic_write(
+        DATA_FILE,
+        lambda f: json.dump(data, f, ensure_ascii=False, indent=2),
+        "utf-8",
+    )
 
-    # 1. Safe write for JSON (.json)
-    tmp_json = DATA_FILE + ".tmp"
-    try:
-        with open(tmp_json, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        try:
-            if os.path.exists(DATA_FILE):
-                os.replace(tmp_json, DATA_FILE)
-            else:
-                os.rename(tmp_json, DATA_FILE)
-            # Sync to public/data for frontend static fallback
-            try:
-                import shutil
-                shutil.copy2(DATA_FILE, PUBLIC_DATA_FILE)
-            except Exception:
-                pass
-        except Exception:
-            if os.path.exists(tmp_json):
-                try:
-                    with open(tmp_json, "r", encoding="utf-8") as src_f:
-                        content = src_f.read()
-                    with open(DATA_FILE, "w", encoding="utf-8") as dst_f:
-                        dst_f.write(content)
-                    os.remove(tmp_json)
-                except Exception:
-                    pass
-    except Exception:
-        pass
+    # Union of every record's keys, in first-seen order.
+    fieldnames = list(dict.fromkeys(k for item in data for k in item)) or CSV_FALLBACK_HEADER
 
-    # 2. Safe write for CSV (.csv)
-    tmp_csv = CSV_FILE + ".tmp"
-    try:
-        with open(tmp_csv, "w", encoding="utf-8-sig", newline="") as f:
-            if data:
-                all_fieldnames = []
-                for item in data:
-                    for k in item.keys():
-                        if k not in all_fieldnames:
-                            all_fieldnames.append(k)
-                writer = csv.DictWriter(f, fieldnames=all_fieldnames, extrasaction='ignore')
-                writer.writeheader()
-                writer.writerows(data)
-            else:
-                writer = csv.writer(f)
-                writer.writerow(["no", "school_code", "school_name_th", "school_name_en", "province", "district", "subdistrict", "address", "website", "website_source", "facebook", "telephone", "mobile", "email", "latitude", "longitude", "gps_source", "gps_precision", "opec_profile_url", "fetched_at", "last_updated"])
-        try:
-            if os.path.exists(CSV_FILE):
-                os.replace(tmp_csv, CSV_FILE)
-            else:
-                os.rename(tmp_csv, CSV_FILE)
-        except Exception:
-            # Direct overwrite fallback if file is held open
-            if os.path.exists(tmp_csv):
-                try:
-                    with open(tmp_csv, "r", encoding="utf-8-sig") as src_f:
-                        content = src_f.read()
-                    with open(CSV_FILE, "w", encoding="utf-8-sig") as dst_f:
-                        dst_f.write(content)
-                    os.remove(tmp_csv)
-                except Exception:
-                    pass
-    except Exception as e:
-        pass
+    def write_csv(f):
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(data)
+
+    # csv needs newline="" so the writer emits CRLF exactly once per row.
+    _atomic_write(CSV_FILE, write_csv, "utf-8-sig", newline="")

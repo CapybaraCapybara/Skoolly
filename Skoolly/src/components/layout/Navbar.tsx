@@ -196,8 +196,9 @@ export function Navbar({
 
                 <NavigationMenuItem>
                   <button
+                    type="button"
                     onClick={onAdmin}
-                    className="flex items-center gap-1.5 rounded-full bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-blue-700 border border-blue-200/80 transition-all hover:bg-blue-100 shadow-sm ml-1"
+                    className="flex items-center gap-1.5 rounded-full bg-[#faf5ee] px-3.5 py-1.5 text-xs font-bold text-[#ab8e72] border border-[#eae0d0] transition-all hover:bg-[#eae0d0]/50 hover:text-[#1c1917] shadow-xs ml-1"
                   >
                     🏛️ OPEC Admin
                   </button>
@@ -283,7 +284,7 @@ export function Navbar({
                     <button onClick={onForum} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
                       💬 Community Forum
                     </button>
-                    <button onClick={onAdmin} className="text-left text-base font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                    <button type="button" onClick={onAdmin} className="text-left text-base font-semibold text-[#ab8e72] hover:text-[#1c1917] flex items-center gap-2">
                       🏛️ OPEC Admin Portal
                     </button>
                   </div>

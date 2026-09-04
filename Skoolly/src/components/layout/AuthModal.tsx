@@ -1,9 +1,21 @@
+import { useEffect } from "react";
+
 interface AuthModalProps {
   reason: string;
   onClose: () => void;
 }
 
 export function AuthModal({ reason, onClose }: AuthModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div
       className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4"

@@ -26,11 +26,3 @@ import { FORUM_POSTS_SEED } from "@/api/mock/forumPosts";
 export async function getPosts(): Promise<Post[]> {
   return FORUM_POSTS_SEED;
 }
-
-/**
- * Fetch a single post by ID.
- * Replace body with: fetch(`${API_BASE}/forum/posts/${id}`).then(r => r.json())
- */
-export async function getPostById(id: number): Promise<Post | undefined> {
-  return FORUM_POSTS_SEED.find((p) => p.id === id);
-}

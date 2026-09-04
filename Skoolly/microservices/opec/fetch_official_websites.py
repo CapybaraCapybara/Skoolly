@@ -17,6 +17,7 @@ fetch_official_websites.py
 
 import os
 import re
+import time
 import socket
 import requests
 import urllib3
@@ -401,6 +402,7 @@ def resolve_single_school_by_code(school_code):
             url, source = dynamic_search_official_website(s)
             s["website"] = url
             s["website_source"] = source
+            s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
             save_schools(schools)
             return s
     return None

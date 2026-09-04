@@ -27,3 +27,12 @@ scrape_log.json
 __pycache__/
 *.py[cod]
 
+
+# Kept locally, not published: stale dataset backups, one-off maintenance
+# scripts and the ad-hoc OPEC benchmark/probe scripts.
+dump/
+microservices/opec/test/
+microservices/opec/run_strict_enrich_update.py
+
+# Local editor / tooling config
+.claude/

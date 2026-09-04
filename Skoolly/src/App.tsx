@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { HomePage } from "@/pages/HomePage";
 import { ForumPage } from "@/pages/ForumPage";
@@ -8,24 +8,69 @@ import { CompareBar } from "@/components/schools/CompareBar";
 import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 
-import { OpecAdminPage } from "@/pages/OpecAdminPage";
+// Admin console is a large, staff-only bundle — keep it out of the public entry chunk.
+const OpecAdminPage = lazy(() =>
+  import("@/pages/OpecAdminPage").then((m) => ({ default: m.OpecAdminPage }))
+);
+
+function parseHashView(): View {
+  if (typeof window === "undefined") return "home";
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  if (hash === "admin") return "admin";
+  if (hash === "forum") return "forum";
+  if (hash.startsWith("school/")) {
+    const id = parseInt(hash.replace("school/", ""), 10);
+    if (!isNaN(id)) return { type: "school", id };
+  }
+  return "home";
+}
 
 export default function App() {
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(() => parseHashView());
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [authModal, setAuthModal] = useState<string | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
+
+  // ── Sync with browser URL hash ──────────────────────────────────────────
+  useEffect(() => {
+    const onHashChange = () => {
+      setView(parseHashView());
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   // ── Fetch schools once at app level (used by CompareBar & SchoolDetailPage) ─
   useEffect(() => {
     getSchools().then(setSchools);
   }, []);
 
-  const goHome = useCallback(() => { setView("home"); window.scrollTo(0, 0); }, []);
-  const goForum = useCallback(() => { setView("forum"); window.scrollTo(0, 0); }, []);
-  const goSchool = useCallback((id: number) => { setView({ type: "school", id }); window.scrollTo(0, 0); }, []);
-  const goAdmin = useCallback(() => { setView("admin"); window.scrollTo(0, 0); }, []);
+  const goHome = useCallback(() => {
+    setView("home");
+    if (window.location.hash) {
+      window.history.pushState(null, "", window.location.pathname);
+    }
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goForum = useCallback(() => {
+    setView("forum");
+    window.location.hash = "forum";
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goSchool = useCallback((id: number) => {
+    setView({ type: "school", id });
+    window.location.hash = `school/${id}`;
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goAdmin = useCallback(() => {
+    setView("admin");
+    window.location.hash = "admin";
+    window.scrollTo(0, 0);
+  }, []);
 
   const showAuth = useCallback((reason: string) => setAuthModal(reason), []);
 
@@ -46,7 +91,17 @@ export default function App() {
 
   // If in admin view, render OpecAdminPage in full screen
   if (view === "admin") {
-    return <OpecAdminPage onBack={goHome} />;
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-screen grid place-items-center bg-[#faf8f5] text-xs text-[#1c1917]/60">
+            กำลังโหลดระบบผู้ดูแล...
+          </div>
+        }
+      >
+        <OpecAdminPage onBack={goHome} />
+      </Suspense>
+    );
   }
 
   const navBar = (

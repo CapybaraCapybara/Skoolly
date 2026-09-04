@@ -84,12 +84,24 @@ export async function enrichSchoolData(schoolCode: string): Promise<{ school: Op
   return null;
 }
 
+// The OPEC dataset repeats the same few hundred raw strings across ~1,000 schools,
+// so the ~200-branch match below is run once per distinct string, not once per row.
+const curriculumCache = new Map<string, string>();
+
 /**
  * Intelligent Curriculum Normalizer:
  * Maps 268+ fragmented/duplicate raw OPEC strings into standardized, recognized international curriculum systems.
  */
 export function normalizeCurriculum(raw?: string): string {
   if (!raw || !raw.trim()) return "หลักสูตรสากลทั่วไป (General International)";
+  const cached = curriculumCache.get(raw);
+  if (cached !== undefined) return cached;
+  const result = classifyCurriculum(raw);
+  curriculumCache.set(raw, result);
+  return result;
+}
+
+function classifyCurriculum(raw: string): string {
   const r = raw.trim();
   const rl = r.toLowerCase();
 

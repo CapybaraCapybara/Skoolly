@@ -1,7 +1,6 @@
 'use client';
 
 import { ArrowRight } from 'lucide-react';
-import { motion } from 'motion/react';
 
 interface HeroProps {
   eyebrow?: string;
