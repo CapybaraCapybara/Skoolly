@@ -27,3 +27,7 @@ scrape_log.json
 __pycache__/
 *.py[cod]
 
+# Personal Discussion Logs & Summaries (Not committed to Git)
+PROJECT_DISCUSSION_LOG.md
+*_SUMMARY*.md
+*DISCUSSION_LOG*.md

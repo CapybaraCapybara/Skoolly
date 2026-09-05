@@ -43,3 +43,8 @@ logs/
 /.plugins/
 /.opencode-skills/
 .agents/
+
+# Personal Discussion Logs & Summaries (Not committed to Git)
+PROJECT_DISCUSSION_LOG.md
+*_SUMMARY*.md
+*DISCUSSION_LOG*.md

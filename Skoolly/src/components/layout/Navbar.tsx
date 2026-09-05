@@ -33,6 +33,7 @@ interface NavbarProps {
   onLogin?: () => void;
   compareCount?: number;
   onCompare?: () => void;
+  onCalculator?: () => void;
   onForum?: () => void;
   onHome?: () => void;
 }
@@ -42,6 +43,7 @@ export function Navbar({
   onLogin,
   compareCount = 0,
   onCompare,
+  onCalculator,
   onForum,
   onHome,
 }: NavbarProps) {
@@ -75,10 +77,27 @@ export function Navbar({
               <NavigationMenuList className="gap-1">
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze"
+                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
                     href="#schools"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onHome?.();
+                    }}
                   >
                     Browse Schools
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    href="#calculator"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onCalculator?.();
+                    }}
+                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
+                  >
+                    Cost Calculator
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
@@ -140,7 +159,7 @@ export function Navbar({
                     AI Tools
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
-                    <div className="grid w-2xl grid-cols-2 gap-6 px-8 py-8">
+                    <div className="grid w-md grid-cols-1 gap-4 px-6 py-6">
                       <a href="#features" className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 hover:border-warm-bronze transition-all">
                         <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white bg-warm-charcoal">
                           <MessageSquare className="h-5 w-5" />
@@ -153,26 +172,18 @@ export function Navbar({
                           <p className="text-xs text-warm-charcoal/70">Chat with AI to get a personalised school shortlist based on your child's needs.</p>
                         </div>
                       </a>
-                      <a href="#features" className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 hover:border-warm-bronze transition-all">
-                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white bg-warm-bronze">
-                          <Calculator className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-warm-charcoal">Cost Calculator</h4>
-                            <Badge className="bg-warm-accent text-warm-charcoal text-[10px] px-1.5 rounded-full hover:bg-warm-accent">Premium</Badge>
-                          </div>
-                          <p className="text-xs text-warm-charcoal/70">12-year cost projection with multi-currency support and PDF export.</p>
-                        </div>
-                      </a>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <button
-                    onClick={onCompare}
-                    className="flex items-center gap-1.5 rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze"
+                  <NavigationMenuLink
+                    href="#compare"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onCompare?.();
+                    }}
+                    className="flex items-center gap-1.5 rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
                   >
                     Compare
                     {compareCount > 0 && (
@@ -180,16 +191,20 @@ export function Navbar({
                         {compareCount}
                       </span>
                     )}
-                  </button>
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <button
-                    onClick={onForum}
-                    className="flex items-center gap-1.5 rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze"
+                  <NavigationMenuLink
+                    href="#forum"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onForum?.();
+                    }}
+                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
                   >
-                    💬 Community
-                  </button>
+                    Community
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
@@ -232,7 +247,16 @@ export function Navbar({
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    <a href="#schools" className="text-base font-medium text-neutral-900 dark:text-neutral-50">Browse Schools</a>
+                    <button onClick={onHome} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
+                      Browse Schools
+                    </button>
+
+                    <button
+                      onClick={onCalculator}
+                      className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50"
+                    >
+                      Cost Calculator
+                    </button>
 
                     <Accordion type="single" collapsible className="w-full">
                       <AccordionItem value="criteria" className="border-none">
@@ -255,11 +279,11 @@ export function Navbar({
                         <AccordionContent className="mt-1 ml-2 flex !h-auto flex-col gap-2 border-l border-neutral-200 pb-0 pl-4 dark:border-neutral-800 [&_a]:no-underline">
                           <div className="flex flex-col gap-2 pt-3">
                             <a href="#features" className="text-sm font-medium text-neutral-600 hover:text-teal-600 dark:text-neutral-300">AI School Advisor</a>
-                            <a href="#features" className="text-sm font-medium text-neutral-600 hover:text-teal-600 dark:text-neutral-300">Cost Calculator</a>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
+
 
                     <button onClick={onCompare} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
                       Compare Schools
@@ -270,7 +294,7 @@ export function Navbar({
                       )}
                     </button>
                     <button onClick={onForum} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
-                      💬 Community Forum
+                      Community
                     </button>
                   </div>
 

@@ -10,6 +10,11 @@ function scraperDevServer(): Plugin {
     name: 'scraper-dev-server',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
+        // Do not intercept if Vite is importing it as an ES module (?import)
+        if (req.url && (req.url.includes('?import') || req.url.includes('?raw'))) {
+          return next()
+        }
+
         const url = req.url?.split('?')[0]
         if (url === '/results.json' || url === '/scrape_log.json') {
           const filePath = path.resolve(__dirname, `.${url}`)
