@@ -533,18 +533,28 @@ Leaflet/Mapbox) และตารางเปรียบเทียบ (UC-U0
 | Merge เข้า `main` | Deploy Frontend (Vercel/Netlify auto-deploy จาก Git) + `supabase functions deploy` (Edge Functions ทั้ง 7 ตัว) + รัน DB migration ที่เก็บเป็นไฟล์ version control (Supabase CLI migration) |
 | ก่อน Deploy Production | รัน k6 load test แบบย่อ (smoke test) — ถ้า error rate/latency ผิดปกติ หยุด pipeline ไม่ deploy ต่อ |
 
-**Environment แยก (ปรับใน v6.3 ให้อยู่ในเพดาน Free tier):** Supabase Free plan ให้ **active
-project ได้สูงสุด 2 ตัว** แผนเดิมที่เขียนไว้ว่าจะแยก Dev/Staging/Production เป็น 3 project จึงทำ
-ไม่ได้จริงโดยไม่เสียเงิน — ปรับเป็น:
+**Environment แยก (ปรับใน v6.3):** แผนเดิมเขียนว่าจะแยก Dev/Staging/Production เป็น 3 Supabase
+project ซึ่งทั้งเกินเพดาน Free plan (ให้ active project ได้ 2 ตัว) และเกินความจำเป็นของทีม 2 คน —
+ปรับเหลือ **2 ชั้นจริงคือ local กับ cloud**:
 
 | Environment | ใช้อะไร | เหตุผล |
 |---|---|---|
-| **Dev** | **Supabase CLI รัน local ด้วย Docker** (`supabase start`) | ฟรี ไม่จำกัดจำนวน ไม่นับโควตา cloud และได้ Postgres/Auth/Storage/Edge Functions ครบเหมือนของจริง เหมาะกับการรัน migration/pgTAP ซ้ำๆ ตอนพัฒนา |
-| **Staging** | Supabase cloud project ที่ 1 | ใช้ทดสอบก่อน deploy จริงและใช้ตอน demo/UAT |
-| **Production** | Supabase cloud project ที่ 2 | ข้อมูลผู้ปกครองจริง |
+| **Dev** | **Supabase CLI รัน local ด้วย Docker** (`supabase start`) | ฟรี ไม่จำกัดจำนวน ไม่นับโควตา cloud และได้ Postgres/Auth/Storage/Edge Functions ครบเหมือนของจริง — พังยังไงก็ `supabase db reset` ใหม่ได้ เหมาะกับการรัน migration/pgTAP ซ้ำๆ ตอนพัฒนา |
+| **Production** | **Supabase cloud project เดียว** | ใช้ทั้ง demo, UAT และผู้ใช้จริง |
 
-ทุก environment ใช้ schema ชุดเดียวกัน (`school_data`/`community`/`user_data`/`ai`/`ops`) แต่คนละ
-instance กัน bug ตอนพัฒนาไปกระทบข้อมูลจริง
+**ทำไมถึงไม่มี Staging (การตัดสินใจ ไม่ใช่การมองข้าม):** local dev กันความเสี่ยงส่วนใหญ่ไปแล้ว
+ความเสี่ยงที่เหลือจริงๆ คือ "migration ทำงานต่างออกไปเมื่อเจอข้อมูลจริง" ซึ่งตอนนี้ยังไม่มีข้อมูล
+จริงของใครเลย — ข้อมูลโรงเรียน 291 แห่งสร้างใหม่จาก `data/international_schools_thailand_opec.json`
+ได้ทุกเมื่อ ความเสียหายถ้า production พังจึงเกือบเป็นศูนย์ ในทางกลับกันการมี staging มีต้นทุนจริง
+(รัน migration 2 รอบ, secret 2 ชุดใน CI, seed data ที่ค่อยๆ ไม่ตรงกัน) และบน Free plan ที่หยุด
+โปรเจกต์อัตโนมัติเมื่อไม่มี activity 1 สัปดาห์ ยังกลายเป็นภาระต้องคอยปลุก 2 ที่แทนที่จะเป็นที่เดียว
+
+**เงื่อนไขที่จะเพิ่ม Staging เป็น project ที่ 2:** เมื่อเริ่ม **UAT กับผู้ปกครองจริง** (หัวข้อ 13.1)
+เพราะนาทีนั้นระบบจะมี `children_profiles` ซึ่งเป็นข้อมูลเด็กจริงตาม PDPA ที่สร้างใหม่ไม่ได้และ
+เอามาเสี่ยงกับ migration ที่ยังไม่ผ่านการทดสอบไม่ได้ — ก่อนถึงจุดนั้น staging เป็นพิธีกรรมที่ไม่
+ได้ป้องกันอะไรเพิ่ม
+
+ทุก environment ใช้ schema ชุดเดียวกัน (`school_data`/`community`/`user_data`/`ai`/`ops`)
 
 **⚠️ ข้อควรระวังของ Free tier ที่กระทบวัน demo:** โปรเจกต์ Supabase บน Free plan **ถูกหยุด
 อัตโนมัติเมื่อไม่มี activity ครบ 1 สัปดาห์** และตอนหยุด `pg_cron` ก็ไม่ทำงานด้วย — ต้องตั้ง

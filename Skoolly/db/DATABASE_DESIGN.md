@@ -70,7 +70,7 @@
 | Monthly Active Users | **50,000** | ผู้ปกครองทดสอบ + UAT 5-10 คน | เหลือเยอะ |
 | Egress | **5 GB** + cached 5 GB | เว็บ demo | พอ |
 | Edge Function invocations | **500,000/เดือน** | 7 functions | พอ |
-| Active projects | **2 โปรเจกต์** | ⚠️ ดู 2.3 | ติดเพดาน |
+| Active projects | **2 โปรเจกต์** | ใช้จริง 1 (Production) — Dev รัน local | เหลือ 1 เผื่อเพิ่ม staging ทีหลัง |
 | นโยบายหยุด | **หยุดอัตโนมัติหลังไม่มี activity 1 สัปดาห์** | ⚠️ ดู 2.3 | ต้องมีแผนรับมือ |
 
 **เหตุผลที่ชนะตัวอื่นสำหรับโปรเจกต์นี้:** ได้ Postgres + Auth + Storage + Edge Functions + pg_cron +
@@ -92,10 +92,16 @@ Database Webhooks + PostGIS + pgvector **ในที่เดียวและ
 
 ### 2.3 ⚠️ 2 ข้อจำกัด free tier ที่กระทบเอกสารที่เขียนไว้แล้ว
 
-1. **Architecture 13.2 เขียนว่าจะใช้ Supabase project แยกสำหรับ Dev / Staging / Production (3 ตัว)
-   แต่ free tier ให้ active project ได้แค่ 2** → แนะนำ:
-   - **Dev = Supabase CLI รัน local ด้วย Docker** (ฟรี ไม่จำกัด ไม่นับโควตา)
-   - **Staging + Production = 2 cloud projects** (พอดีเพดาน)
+1. **Architecture 13.2 เดิมเขียนว่าจะใช้ Supabase project แยกสำหรับ Dev / Staging / Production
+   (3 ตัว) แต่ free tier ให้ active project ได้แค่ 2 — และพอดูบริบทจริงแล้วแม้แต่ 2 ก็เกินจำเป็น**
+   → ข้อสรุป: **ใช้ cloud project เดียว**
+   - **Dev = Supabase CLI รัน local ด้วย Docker** (ฟรี ไม่จำกัด ไม่นับโควตา พังแล้ว reset ใหม่ได้)
+   - **Production = cloud project เดียว** ใช้ทั้ง demo/UAT/ผู้ใช้จริง
+   - **ยังไม่ทำ Staging** เพราะ local กันความเสี่ยงส่วนใหญ่ไปแล้ว และตอนนี้ยังไม่มีข้อมูลจริงของ
+     ใครเลย (291 โรงเรียนสร้างใหม่จาก JSON ได้ทุกเมื่อ) — การมี staging ที่ไม่มีใครแตะบน free tier
+     ที่หยุดโปรเจกต์เองหลัง 1 สัปดาห์ จะกลายเป็นภาระต้องคอยปลุก 2 ที่โดยไม่ได้ป้องกันอะไรเพิ่ม
+   - **เพิ่ม Staging เมื่อ:** เริ่ม UAT กับผู้ปกครองจริง เพราะจะมี `children_profiles` ที่เป็น
+     ข้อมูลเด็กจริงตาม PDPA ซึ่งสร้างใหม่ไม่ได้
 2. **โปรเจกต์ถูกหยุดอัตโนมัติเมื่อไม่มี activity 1 สัปดาห์** — เสี่ยงมากกับวันสอบ/วัน demo เพราะ
    pg_cron ก็ไม่รันตอนโปรเจกต์หยุด แนะนำตั้ง GitHub Actions cron ยิง health-check สัปดาห์ละครั้ง
    (ฟรี) และซ้อม restore ไว้ล่วงหน้าอย่างน้อย 1 วันก่อน demo
@@ -190,8 +196,87 @@ ops         ── audit_log (append-only) │ failed_jobs
 
 ## 5. ลำดับการลงมือ (แนะนำ)
 
-1. `supabase init` + วาง `db/schema.sql` เป็น migration แรก แล้ว `supabase db reset` ทดสอบ local ก่อน
-2. เขียนสคริปต์ import ครั้งเดียว: OPEC JSON → `schools` + join tables (291 แถว)
+### 5.0 ค่าที่ต้องเลือกตอนสร้างโปรเจกต์ Supabase
+
+| ตัวเลือก | เลือก | เหตุผล |
+|---|---|---|
+| Region | **Southeast Asia (Singapore)** | ใกล้ผู้ใช้ไทยที่สุด |
+| Enable Data API | ✅ เปิด | Frontend เรียก Auto-API ของแต่ละ schema ตรงตาม Architecture หัวข้อ 5/9 |
+| Automatically expose new tables | ❌ **ปิด** | เราต้องคุมเองว่าตารางไหนเปิดให้เข้าถึง — ตารางอย่าง `school_versions` (มีเวอร์ชัน `pending_review`), `report_submissions`, `ops.failed_jobs` ห้ามหลุดออกสาธารณะ |
+| Enable automatic RLS | ✅ เปิด | safety net ฟรี (มีผลกับ schema `public` ซึ่งเราไม่ได้ใช้) กันกรณีเผลอสร้างตารางทดสอบทิ้งไว้ |
+| Postgres Type | **Postgres (DEFAULT)** | OrioleDB เป็น alpha และไม่การันตีว่ารองรับ PostGIS/pgvector/pg_cron — **ตัวเลือกนี้แก้ทีหลังไม่ได้** |
+
+**สร้าง cloud project เดียวพอ** (ตั้งชื่อให้เป็น production ไปเลย) — ส่วน Dev ใช้ `supabase start`
+รัน local ไม่ต้องสร้าง project เพิ่ม ดูเหตุผลข้อ 2.3
+
+**ลำดับที่ถูกต้อง: รัน `schema.sql` ก่อน แล้วค่อยมาตั้ง Exposed schemas** — dropdown ของ Supabase
+list เฉพาะ schema ที่มีอยู่จริงในฐานข้อมูลแล้วเท่านั้น ถ้ายังไม่รัน DDL จะเห็นแค่ `public` กับ
+`graphql_public` เลือกอะไรไม่ได้
+
+**หลังรัน `schema.sql` แล้วไปตั้งที่ Data API → แท็บ Settings → Exposed schemas:** ค่า default มีแค่ `public`
+ต้องเพิ่ม `school_data`, `community`, `user_data`, `ai`, `ops` เข้าไป (Admin Dashboard ต้องใช้ทั้ง 5
+ตาม Architecture หัวข้อ 9) — ปลอดภัยได้เพราะทั้ง 28 ตารางเปิด RLS ครบและมี policy กำกับทุกตัวแล้ว
+โดยตารางที่ไม่ควรให้ใครอ่านผ่าน API เลย (`ai.school_embeddings`) จงใจเปิด RLS ไว้โดยไม่มี policy
+select และไม่ GRANT ให้ใคร ซึ่งเท่ากับปิดสนิท ส่วน Edge Function/Pipeline ใช้ service role ที่
+bypass RLS อยู่แล้ว
+
+> **ไม่ต้องไปกดทีละตารางในช่อง "Exposed tables" ของ Dashboard** — ช่องนั้นคือ UI สำหรับสั่ง `GRANT`
+> ให้ role `anon`/`authenticated` ซึ่ง `schema.sql` หัวข้อ 10.1 ทำให้ครบแล้วในรูปแบบที่อยู่ใน
+> version control ตรวจทานได้และ deploy ซ้ำได้ ต่างจากการกดใน UI ที่ไม่มีร่องรอยว่าใครเปลี่ยนอะไร
+> ตอนไหน — เหตุผลเดียวกับที่ปิด "Automatically expose new tables" ไว้ตั้งแต่แรก
+
+### 5.1 ขั้นตอนถัดไป
+
+**หลังรัน `schema.sql` เสร็จ ตรวจก่อนว่าลงครบจริง:**
+
+```sql
+select table_schema, count(*) from information_schema.tables
+where table_schema in ('school_data','community','user_data','ai','ops')
+group by 1 order by 1;                                   -- ต้องได้รวม 28
+select extname from pg_extension order by 1;             -- ต้องมี postgis, vector, pg_trgm, pg_cron
+select count(*) from school_data.curriculums;            -- 15
+select count(*) from school_data.grade_level_aliases;    -- 6
+```
+
+**สร้างบัญชี Admin** — RLS เช็ค role จาก `user_data.user_accounts` ไม่ได้เช็คจาก JWT claim
+ดังนั้นการเป็น owner ของ Supabase project ไม่ได้ทำให้เข้า Admin Dashboard ได้เอง:
+สร้าง user ที่ Authentication → Users → Add user ก่อน แล้วรัน
+
+แถว `user_accounts` ถูกสร้างให้อัตโนมัติแล้วโดย trigger ในหัวข้อ 12.1 ของ `schema.sql`
+เหลือแค่เลื่อนขั้นเป็น admin — **ต้องระบุตัวคนเสมอ ห้าม `update` ทั้งตาราง** เพราะคำสั่งแบบนั้น
+จะเลื่อนขั้นผู้ปกครองทุกคนที่สมัครเข้ามาให้เป็น admin ทันทีถ้าเผลอรันซ้ำในอนาคต:
+
+```sql
+update user_data.user_accounts a set role = 'admin'
+from auth.users u
+where u.id = a.user_id and u.email = 'อีเมลที่ต้องการ';
+
+-- ตรวจผลทุกครั้ง จำนวนแถวต้องเท่ากับจำนวน admin ที่ตั้งใจมีจริง
+select u.email, a.role from user_data.user_accounts a
+join auth.users u on u.id = a.user_id where a.role = 'admin';
+```
+
+Admin เป็นใครก็ได้ ไม่ได้ล็อกไว้ที่ทีมงาน — เพิ่ม/ถอดได้ตลอดด้วยคำสั่งเดียวกัน (เปลี่ยนเป็น
+`'parent'` เพื่อถอดสิทธิ์) และทุกการเปลี่ยน `role`/`status` ถูกบันทึกลง `ops.audit_log`
+โดยอัตโนมัติผ่าน trigger ในหัวข้อ 12.2 แม้จะเปลี่ยนจาก SQL Editor ก็ตาม
+
+**Import ข้อมูล OPEC 291 โรงเรียน** ด้วย `db/import_opec.py`:
+
+```bash
+pip install "psycopg[binary]"
+# ใส่ connection string (Session pooler) ลง .env เป็น DATABASE_URL — .env ถูก gitignore อยู่แล้ว
+python db/import_opec.py --dry-run     # ลองก่อน rollback ไม่เขียนจริง
+python db/import_opec.py               # เขียนจริง
+```
+
+สคริปต์ map หลักสูตรได้ **~89%** ของค่าที่พบจริง (exact alias สำหรับค่าที่พบบ่อย + keyword
+pattern สำหรับ long tail ที่มีถึง 268 ค่าไม่ซ้ำ) ค่าที่ map ไม่ได้จะตกเป็น `OTHER` **พร้อมรายงาน
+ออกมาให้เห็นทุกค่า** ตาม Business Rule ของหัวข้อ 7.16 — ส่วนที่ map ด้วย keyword จะถูกเขียนกลับ
+เข้า `curriculum_aliases` ให้ Admin ตรวจ/แก้ทีหลังได้โดยไม่ต้องแตะโค้ด
+
+ถัดไป:
+
+1. `supabase init` + ย้าย `db/schema.sql` เป็น migration แรก เพื่อให้ CI/CD deploy ซ้ำได้
 3. แก้ `microservices/db_service.py` ให้เขียนลง Postgres แทนไฟล์ JSON —
    **ลบกลไก Saga ด้วย `.bak` ออกได้เลย** เพราะ `BEGIN/COMMIT` จริงทำหน้าที่นี้แทนแบบปลอดภัยกว่า
 4. เพิ่ม `psycopg[binary]` ใน `requirements.txt`, เพิ่ม `@supabase/supabase-js` ใน `package.json`
@@ -221,7 +306,7 @@ ops         ── audit_log (append-only) │ failed_jobs
 | ฟอรัมไม่มีใน Use Case | ✅ **แก้แล้ว (v6.2)** — เพิ่ม UC-G08 (อ่าน), UC-U09 (เขียน/รายงาน), UC-A12 (moderate) + ตาราง 7.11-7.13 |
 | `safety_and_security` ไม่มีในเอกสาร | ✅ **แก้แล้ว (v6.2)** — เพิ่มแท็บใน UC-G02 (+ E2b), แถวเปรียบเทียบใน UC-U03, ขั้นตอนสกัดใน UC-A03, ตาราง 7.10 |
 | Architecture หัวข้อ 5: full-text search ภาษาไทย | ✅ **แก้แล้ว (v6.3)** — เปลี่ยนเป็น `pg_trgm` พร้อมเหตุผลว่า Postgres ไม่มี dictionary ภาษาไทย |
-| Architecture หัวข้อ 13.2: 3 Supabase projects | ✅ **แก้แล้ว (v6.3)** — ปรับเป็น Dev local (Supabase CLI) + Staging + Production = 2 cloud projects พอดีเพดาน พร้อมเตือนเรื่องโปรเจกต์ถูกหยุดหลังไม่มี activity 1 สัปดาห์ |
+| Architecture หัวข้อ 13.2: 3 Supabase projects | ✅ **แก้แล้ว (v6.3)** — เหลือ Dev local (Supabase CLI) + Production cloud **project เดียว** พร้อมเงื่อนไขชัดเจนว่าจะเพิ่ม staging เมื่อเริ่ม UAT กับผู้ใช้จริง และเตือนเรื่องโปรเจกต์ถูกหยุดหลังไม่มี activity 1 สัปดาห์ |
 | เอกสารหัวข้อ 7 ไม่ตรงกับ `schema.sql` (ขาด 10 ตาราง + คอลัมน์/enum/type ไม่ตรง) | ✅ **แก้แล้ว (v6.3)** — Use Case doc หัวข้อ 7 เป็น Data Dictionary ครบ 28 ตารางตรงกับ DDL แบบคอลัมน์ต่อคอลัมน์ (7.14-7.21 เป็นของใหม่) และเคลียร์ว่า JSONB เป็น provenance ส่วนตาราง normalize เป็นค่าที่ระบบใช้จริง |
 | `src/api/schoolsApi.ts` คอมเมนต์อ้าง `testz.py` ที่ไม่มีแล้ว | ✅ **แก้แล้ว** — ชี้ไป `microservices/scraper_service.py` |
 | FE ใช้ `id: number` แต่ schema เป็น `uuid` | ⏳ **ยังไม่แก้โดยตั้งใจ** — เป็นงานที่ต้องทำพร้อมกันตอนต่อ DB จริง (ขั้นที่ 5 ของหัวข้อ 5) แก้ตอนนี้จะทำให้ mock data พังโดยไม่ได้อะไร |

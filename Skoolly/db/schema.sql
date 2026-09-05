@@ -681,6 +681,53 @@ grant insert on ops.audit_log, ops.failed_jobs to svc_school_data, svc_community
 
 
 -- =============================================================================
+-- 10.1 GRANT ให้ role ของ Data API (anon / authenticated)
+-- =============================================================================
+-- สำคัญ: **RLS policy อย่างเดียวไม่พอ** — PostgREST เชื่อมต่อด้วย role `anon` (ผู้ไม่ล็อกอิน)
+-- และ `authenticated` (ผู้ล็อกอินแล้ว) ซึ่งต้องมีสิทธิ์ระดับตาราง (GRANT) ก่อน แล้ว RLS ถึงจะ
+-- ทำหน้าที่กรองว่าเห็น "แถวไหน" ได้ ถ้าไม่มี GRANT จะขึ้น permission denied ทั้งที่ policy ถูกต้อง
+-- (ตัวเลือก "Automatically expose new tables" ใน Dashboard คือการทำ GRANT ชุดนี้ให้อัตโนมัติ
+--  เราปิดไว้แล้วจึงต้องระบุเองตรงนี้ ซึ่งดีกว่าเพราะอยู่ใน version control ตรวจทานได้)
+
+grant usage on schema school_data, community, user_data, ai, ops to anon, authenticated;
+
+-- อ่านสาธารณะได้ (RLS เป็นตัวจำกัดว่าเห็นแถวไหน เช่น เฉพาะเวอร์ชัน published)
+grant select on
+  school_data.schools, school_data.school_versions,
+  school_data.version_fees, school_data.version_extra_fees, school_data.version_safety,
+  school_data.curriculums, school_data.grade_levels,
+  school_data.school_curriculums, school_data.school_levels,
+  community.reviews, community.forum_posts, community.forum_comments
+to anon, authenticated;
+
+-- สมาชิกที่ล็อกอิน: จัดการข้อมูลของตัวเองได้ (RLS บังคับว่าต้องเป็นแถวของตัวเองเท่านั้น)
+grant select, insert, update, delete on
+  user_data.user_accounts, user_data.children_profiles,
+  user_data.favorites, user_data.comparison_sets,
+  community.forum_likes,
+  ai.conversations, ai.messages
+to authenticated;
+
+grant insert, update on community.reviews, community.forum_posts, community.forum_comments to authenticated;
+grant select, insert, update on community.data_correction_reports to authenticated;
+grant select, insert on community.report_submissions, community.forum_reports to authenticated;
+
+-- Admin ใช้ role `authenticated` ตัวเดียวกับผู้ใช้ทั่วไป — แยกสิทธิ์ด้วย RLS (`user_data.is_admin()`)
+-- ไม่ใช่ด้วย database role เพราะ Supabase Auth ออก JWT เป็น authenticated ให้ทุกคนที่ล็อกอิน
+grant select on
+  school_data.school_scrape_log, school_data.curriculum_aliases, school_data.grade_level_aliases,
+  ops.audit_log, ops.failed_jobs
+to authenticated;
+grant insert on ops.audit_log to authenticated;
+grant insert, update, delete on
+  school_data.schools, school_data.school_versions,
+  school_data.version_fees, school_data.version_extra_fees, school_data.version_safety
+to authenticated;
+
+-- `ai.school_embeddings` ตั้งใจไม่ grant ให้ใครเลย — เข้าถึงผ่าน Edge Function (service role) เท่านั้น
+
+
+-- =============================================================================
 -- 11. ROW LEVEL SECURITY
 -- =============================================================================
 alter table user_data.user_accounts           enable row level security;
@@ -696,6 +743,23 @@ alter table community.forum_reports           enable row level security;
 alter table ai.conversations                  enable row level security;
 alter table ai.messages                       enable row level security;
 alter table ops.audit_log                     enable row level security;
+-- เปิดครบทุกตารางที่เหลือด้วย: เมื่อ schema ถูก expose ผ่าน Data API แล้ว ตารางที่ไม่เปิด RLS
+-- จะถูกอ่านได้โดย anon ทันที — ต้องเปิดทุกตารางแล้วค่อยเขียน policy ว่าใครเห็นอะไร
+alter table school_data.schools               enable row level security;
+alter table school_data.school_versions       enable row level security;
+alter table school_data.version_fees          enable row level security;
+alter table school_data.version_extra_fees    enable row level security;
+alter table school_data.version_safety        enable row level security;
+alter table school_data.school_scrape_log     enable row level security;
+alter table school_data.curriculums           enable row level security;
+alter table school_data.curriculum_aliases    enable row level security;
+alter table school_data.grade_levels          enable row level security;
+alter table school_data.grade_level_aliases   enable row level security;
+alter table school_data.school_curriculums    enable row level security;
+alter table school_data.school_levels         enable row level security;
+alter table community.report_submissions      enable row level security;
+alter table ai.school_embeddings              enable row level security;
+alter table ops.failed_jobs                   enable row level security;
 
 -- helper: ตรวจว่าเป็น admin จากตารางของเราเอง (ไม่พึ่ง JWT claim ที่ client แก้ได้)
 create or replace function user_data.is_admin() returns boolean
@@ -799,6 +863,114 @@ create policy own_messages on ai.messages
     where c.conversation_id = messages.conversation_id and c.user_id = auth.uid()
   ));
 
+-- ── School Data: เปิดอ่านสาธารณะ "เฉพาะข้อมูลที่ published แล้ว" เท่านั้น ────────
+-- บังคับ Business Rule ของ UC-G01 ที่ระดับ database ไม่ใช่แค่เงื่อนไขใน query ของ Frontend
+drop policy if exists schools_public_read on school_data.schools;
+create policy schools_public_read on school_data.schools
+  for select using (
+    (status = 'active' and current_published_version_id is not null)
+    or user_data.is_admin()
+  );
+
+-- เวอร์ชันที่ยังเป็น pending_review/rejected ต้องไม่หลุดออกไปเด็ดขาด
+-- (ถ้าไม่มี policy นี้ Guest จะเห็นค่าเทอมที่ Admin ยังไม่อนุมัติผ่าน Auto-API)
+drop policy if exists versions_published_read on school_data.school_versions;
+create policy versions_published_read on school_data.school_versions
+  for select using (status = 'published' or user_data.is_admin());
+
+-- ตารางลูกของเวอร์ชัน: เห็นได้ก็ต่อเมื่อเวอร์ชันแม่เห็นได้
+drop policy if exists fees_published_read on school_data.version_fees;
+create policy fees_published_read on school_data.version_fees
+  for select using (exists (
+    select 1 from school_data.school_versions v
+    where v.version_id = version_fees.version_id
+      and (v.status = 'published' or user_data.is_admin())
+  ));
+
+drop policy if exists extra_fees_published_read on school_data.version_extra_fees;
+create policy extra_fees_published_read on school_data.version_extra_fees
+  for select using (exists (
+    select 1 from school_data.school_versions v
+    where v.version_id = version_extra_fees.version_id
+      and (v.status = 'published' or user_data.is_admin())
+  ));
+
+drop policy if exists safety_published_read on school_data.version_safety;
+create policy safety_published_read on school_data.version_safety
+  for select using (exists (
+    select 1 from school_data.school_versions v
+    where v.version_id = version_safety.version_id
+      and (v.status = 'published' or user_data.is_admin())
+  ));
+
+-- ตาราง lookup: อ่านสาธารณะได้หมด (ไม่มีอะไรอ่อนไหว และ Frontend ต้องใช้ทำ dropdown ตัวกรอง)
+drop policy if exists curriculums_read on school_data.curriculums;
+create policy curriculums_read on school_data.curriculums for select using (true);
+drop policy if exists curriculum_aliases_read on school_data.curriculum_aliases;
+create policy curriculum_aliases_read on school_data.curriculum_aliases for select using (user_data.is_admin());
+drop policy if exists grade_levels_read on school_data.grade_levels;
+create policy grade_levels_read on school_data.grade_levels for select using (true);
+drop policy if exists grade_level_aliases_read on school_data.grade_level_aliases;
+create policy grade_level_aliases_read on school_data.grade_level_aliases for select using (user_data.is_admin());
+drop policy if exists school_curriculums_read on school_data.school_curriculums;
+create policy school_curriculums_read on school_data.school_curriculums for select using (true);
+drop policy if exists school_levels_read on school_data.school_levels;
+create policy school_levels_read on school_data.school_levels for select using (true);
+
+-- log การทำงานของ pipeline: ข้อมูลภายใน ไม่เปิดสาธารณะ
+drop policy if exists scrape_log_admin_read on school_data.school_scrape_log;
+create policy scrape_log_admin_read on school_data.school_scrape_log
+  for select using (user_data.is_admin());
+
+-- ── School Data: การเขียนทำได้เฉพาะ Admin (UC-A01/A04 ผ่าน Admin Dashboard) ───
+-- ถ้าไม่มี policy กลุ่มนี้ RLS จะปฏิเสธการเขียนของทุกคนรวมทั้ง Admin ด้วย
+-- (Data Pipeline กับ Edge Function ใช้ service role ซึ่ง bypass RLS อยู่แล้ว ไม่พึ่ง policy นี้)
+drop policy if exists schools_admin_write on school_data.schools;
+create policy schools_admin_write on school_data.schools
+  for all to authenticated using (user_data.is_admin()) with check (user_data.is_admin());
+
+drop policy if exists versions_admin_write on school_data.school_versions;
+create policy versions_admin_write on school_data.school_versions
+  for all to authenticated using (user_data.is_admin()) with check (user_data.is_admin());
+
+drop policy if exists fees_admin_write on school_data.version_fees;
+create policy fees_admin_write on school_data.version_fees
+  for all to authenticated using (user_data.is_admin()) with check (user_data.is_admin());
+
+drop policy if exists extra_fees_admin_write on school_data.version_extra_fees;
+create policy extra_fees_admin_write on school_data.version_extra_fees
+  for all to authenticated using (user_data.is_admin()) with check (user_data.is_admin());
+
+drop policy if exists safety_admin_write on school_data.version_safety;
+create policy safety_admin_write on school_data.version_safety
+  for all to authenticated using (user_data.is_admin()) with check (user_data.is_admin());
+
+-- ── แจ้งข้อมูลผิด (UC-U07): สมาชิกสร้าง/อัปเดตจำนวนผู้แจ้งได้ Admin ปิด ticket ได้ ──
+drop policy if exists reports_insert on community.data_correction_reports;
+create policy reports_insert on community.data_correction_reports
+  for insert to authenticated with check (true);
+
+drop policy if exists reports_admin_update on community.data_correction_reports;
+create policy reports_admin_update on community.data_correction_reports
+  for update to authenticated using (user_data.is_admin());
+
+-- ── report_submissions: เห็นได้เฉพาะเจ้าของรายการกับ Admin ───────────────────
+-- เก็บว่า "ใครแจ้งอะไร" จึงเป็นข้อมูลส่วนบุคคล ต้องไม่เปิดให้ผู้ใช้อื่นไล่ดูได้
+drop policy if exists report_submissions_own on community.report_submissions;
+create policy report_submissions_own on community.report_submissions
+  for select using (user_id = auth.uid() or user_data.is_admin());
+drop policy if exists report_submissions_insert on community.report_submissions;
+create policy report_submissions_insert on community.report_submissions
+  for insert with check (user_id = auth.uid());
+
+-- ── ai.school_embeddings / ops.failed_jobs: ไม่มี policy select สำหรับผู้ใช้ ──
+-- เปิด RLS ไว้เฉยๆ โดยไม่มี policy = ไม่มีใครอ่านได้ผ่าน Data API เลย
+-- ทั้งสองตารางถูกใช้โดย Edge Function ด้วย service role ซึ่ง bypass RLS อยู่แล้ว
+-- (failed_jobs.payload อาจมีข้อมูลผู้ใช้ติดมา, embeddings เป็นข้อมูลภายในของ AI Service)
+drop policy if exists failed_jobs_admin_read on ops.failed_jobs;
+create policy failed_jobs_admin_read on ops.failed_jobs
+  for select using (user_data.is_admin());
+
 -- ── audit_log: append-only แม้แต่ Admin ก็แก้/ลบไม่ได้ (UC-A10 E1) ───────────
 drop policy if exists audit_admin_read on ops.audit_log;
 create policy audit_admin_read on ops.audit_log for select using (user_data.is_admin());
@@ -850,6 +1022,69 @@ end $$;
 
 
 -- =============================================================================
+-- 12.1 สร้างแถว user_accounts อัตโนมัติเมื่อมีคนสมัครสมาชิก
+-- =============================================================================
+-- จำเป็นจริง ไม่ใช่ของอำนวยความสะดวก: `children_profiles`/`favorites`/`comparison_sets`
+-- ต่างมี FK ไปที่ `user_accounts.user_id` ถ้าไม่มีแถวนี้ ผู้ใช้ที่เพิ่งสมัครตาม UC-G06 จะ
+-- ใช้ฟีเจอร์อะไรไม่ได้เลยสักอย่าง — Supabase Auth เขียนเฉพาะ `auth.users` ให้เท่านั้น
+-- ไม่รู้จักตารางฝั่งธุรกิจของเรา จึงต้องมี trigger เชื่อมให้
+create or replace function user_data.handle_new_auth_user() returns trigger
+language plpgsql security definer set search_path = user_data, public as $$
+begin
+  insert into user_data.user_accounts (user_id, display_name)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1))
+  )
+  on conflict (user_id) do nothing;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function user_data.handle_new_auth_user();
+
+-- ผู้ใช้ที่ถูกสร้างไว้ "ก่อน" ติดตั้ง trigger นี้ (เช่น บัญชี Admin ที่สร้างจาก Dashboard)
+-- จะยังไม่มีแถว จึงเติมย้อนหลังให้ครบตรงนี้
+insert into user_data.user_accounts (user_id, display_name)
+select id, split_part(email, '@', 1) from auth.users
+on conflict (user_id) do nothing;
+
+
+-- =============================================================================
+-- 12.2 บันทึกทุกการเปลี่ยน role/status ของบัญชีลง audit_log อัตโนมัติ
+-- =============================================================================
+-- การเลื่อนขั้นเป็น admin คือ action ที่อันตรายที่สุดในระบบ (เห็นข้อมูลบุตรหลานคนอื่น,
+-- ลบข้อมูลโรงเรียนได้) และทำผ่าน SQL ตรงตาม Use Case §6 ซึ่งไม่ผ่าน Edge Function ใดๆ
+-- จึงไม่มีอะไรบันทึกให้เลยถ้าไม่ดักที่ระดับ database — trigger นี้ทำให้ต่อให้เปลี่ยนจาก
+-- SQL Editor ก็ยังมีร่องรอยเสมอ ตอบ Business Rule ของ UC-A05/UC-A10
+create or replace function user_data.audit_account_privilege_change() returns trigger
+language plpgsql security definer set search_path = user_data, ops, public as $$
+begin
+  if new.role is distinct from old.role or new.status is distinct from old.status then
+    insert into ops.audit_log (
+      actor_id, actor_type, action, entity_type, entity_id, before_snapshot, after_snapshot
+    ) values (
+      auth.uid(),
+      -- auth.uid() เป็น null เมื่อรันจาก SQL Editor/สคริปต์ = ไม่ได้มาจาก request ของผู้ใช้
+      -- ต้อง cast เอง: CASE คืนค่าเป็น text และ Postgres ไม่ implicit cast text → enum ให้
+      (case when auth.uid() is null then 'system' else 'admin' end)::ops.actor_type,
+      'account.privilege_change', 'user_account', new.user_id,
+      jsonb_build_object('role', old.role, 'status', old.status),
+      jsonb_build_object('role', new.role, 'status', new.status)
+    );
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists on_user_account_privilege_change on user_data.user_accounts;
+create trigger on_user_account_privilege_change
+  after update on user_data.user_accounts
+  for each row execute function user_data.audit_account_privilege_change();
+
+
+-- =============================================================================
 -- 13. SEED — lookup tables (map ค่าดิบที่พบจริงใน dataset OPEC)
 -- =============================================================================
 insert into school_data.curriculums (code, name_th, name_en, sort_order) values
@@ -862,6 +1097,10 @@ insert into school_data.curriculums (code, name_th, name_en, sort_order) values
   ('CHINESE',   'หลักสูตรจีน',           'Chinese',            70),
   ('JAPANESE',  'หลักสูตรญี่ปุ่น',         'Japanese',           80),
   ('INDIAN',    'หลักสูตรอินเดีย',        'Indian',             90),
+  ('FRENCH',    'หลักสูตรฝรั่งเศส',       'French',             91),
+  ('GERMAN',    'หลักสูตรเยอรมัน',        'German',             92),
+  ('KOREAN',    'หลักสูตรเกาหลี',         'Korean',             93),
+  ('MONTESSORI','แนวมอนเตสซอรี',         'Montessori',         94),
   ('THAI_MOE',  'หลักสูตรกระทรวงศึกษาธิการ','Thai MOE',          95),
   ('OTHER',     'อื่นๆ',                 'Other',             999)
 on conflict (code) do nothing;
@@ -874,7 +1113,9 @@ insert into school_data.grade_levels (code, name_th, name_en, sort_order) values
   ('UPPER_SEC',    'มัธยมศึกษาตอนปลาย',   'Upper Secondary',  50)
 on conflict (code) do nothing;
 
+-- ค่าที่พบจริงในข้อมูล OPEC ทั้ง 5 ค่า (ตรวจนับแล้วครอบคลุม 100% ของ levels_offered)
 insert into school_data.grade_level_aliases (raw_text, level_code) values
+  ('ก่อนอนุบาล', 'PRE_K'),
   ('เตรียมอนุบาล', 'PRE_K'),
   ('อนุบาล', 'KINDERGARTEN'),
   ('ประถมศึกษา', 'PRIMARY'),
@@ -882,21 +1123,48 @@ insert into school_data.grade_level_aliases (raw_text, level_code) values
   ('มัธยมศึกษาตอนปลาย', 'UPPER_SEC')
 on conflict (raw_text) do nothing;
 
--- alias ตั้งต้นจากค่าที่พบจริงในไฟล์ data/international_schools_thailand_opec.json
+-- alias ตั้งต้น = ค่าที่พบบ่อยที่สุดจริงในไฟล์ data/international_schools_thailand_opec.json
+-- (ไฟล์นั้นมีข้อความหลักสูตรที่ไม่ซ้ำกันถึง 268 ค่า จึงเป็นไปไม่ได้ที่จะ seed ให้ครบด้วยมือ —
+--  ส่วนที่เหลือ `db/import_opec.py` จะ map ด้วย keyword แล้วเขียน alias ที่ได้กลับเข้าตารางนี้
+--  ให้ Admin ตรวจทาน/แก้ทีหลังได้ ดู Use Case doc หัวข้อ 7.16)
 insert into school_data.curriculum_aliases (raw_text, curriculum_code) values
-  ('หลักสูตรราชอาณาจักร', 'BRITISH'),
   ('หลักสูตรสหราชอาณาจักร', 'BRITISH'),
-  ('หลักสูตรจากระบบอังกฤษ (IGCSE and A-Level)', 'BRITISH'),
+  ('หลักสูตรประเทศอังกฤษ', 'BRITISH'),
+  ('หลักสูตรกลางของประเทศอังกฤษ', 'BRITISH'),
+  ('The national Curriculum in England', 'BRITISH'),
+  ('National Curriculum in England', 'BRITISH'),
+  ('UK National Curriculum', 'BRITISH'),
+  ('British National Curriculum', 'BRITISH'),
+  ('British Curriculum', 'BRITISH'),
+  ('National Curriculum for England and Wales', 'BRITISH'),
+  ('The Early Years Foundation Stage', 'BRITISH'),
+  ('Early years foundation stage statutory framework', 'BRITISH'),
+  ('Early Years Foundation Stage (EYFS)', 'BRITISH'),
+  ('The Early Years Foundation Stage (EYFS)', 'BRITISH'),
+  ('Cambridge International Curriculum', 'BRITISH'),
+  ('Cambridge IGCSE', 'BRITISH'),
+  ('Cambridge International A & AS Level', 'BRITISH'),
   ('หลักสูตร General Certificate of Secondary Education (GCSE)', 'BRITISH'),
-  ('หลักสูตรประเทศสหรัฐอเมริกา', 'AMERICAN'),
-  ('United State (Californian) Common Core', 'AMERICAN'),
+  ('หลักสูตรเวลส์', 'BRITISH'),
+  ('หลักสูตรสหรัฐอเมริกัน', 'AMERICAN'),
   ('หลักสูตรอเมริกัน', 'AMERICAN'),
+  ('American Curriculum', 'AMERICAN'),
+  ('Massachusetts Curriculum Frameworks', 'AMERICAN'),
+  ('California Department of Education', 'AMERICAN'),
+  ('หลักสูตรแคลิฟอร์เนีย', 'AMERICAN'),
+  ('American Education Reaches Out (AERO)', 'AMERICAN'),
+  ('หลักสูตร High School Diploma', 'AMERICAN'),
   ('หลักสูตร International Baccalaureate (IB)', 'IB'),
+  ('International Baccalaureate (IB)', 'IB'),
+  ('IB - International Baccalaureate Organization', 'IB'),
+  ('International Baccalaureate (IB) Primary Year Programe (PYP)', 'IB'),
+  ('International Baccalaureate Career-related Programme (IB-CP)', 'IB'),
   ('IB', 'IB'),
   ('หลักสูตรสิงคโปร์', 'SINGAPORE'),
-  ('หลักสูตรสาธารณรัฐสิงคโปร์', 'SINGAPORE'),
-  ('Singapore Primary School Curriculum', 'SINGAPORE'),
-  ('Nurturing Early Learners', 'SINGAPORE'),
   ('หลักสูตรญี่ปุ่น', 'JAPANESE'),
-  ('หลักสูตรอินเดีย', 'INDIAN')
+  ('หลักสูตรจีน', 'CHINESE'),
+  ('หลักสูตรฝรั่งเศส', 'FRENCH'),
+  ('หลักสูตรภาษาไทย วัฒนธรรมไทยและประวัติศาสตร์ไทย', 'THAI_MOE'),
+  ('หลักสูตรวิชา ภาษาไทย วัฒนธรรมไทยและประวัติศาสตร์ไทย', 'THAI_MOE'),
+  ('International Preschool Curriculum (IPC)', 'OTHER')
 on conflict (raw_text) do nothing;
