@@ -14,7 +14,7 @@
         "semester_thb": null,
         "notes": "Academic Year 2026/27"
       },
-      { 
+      {
         "grade_level": "Foundation Stage 1",
         "annual_thb": 577000,
         "semester_thb": null,
@@ -119,20 +119,21 @@
       }
     ],
     "safety_and_security": {
-      "security_guards": true,
-      "cctv_monitoring": true,
-      "nurse_medical_clinic": true,
+      "security_guards": false,
+      "cctv_monitoring": false,
+      "nurse_medical_clinic": false,
       "child_safeguarding_policy": true,
-      "air_quality_pm25_protocol": true,
+      "air_quality_pm25_protocol": false,
       "visitor_access_control": true,
       "highlights": [
-        "24/7 Gated Security Patrol with RFID turnstiles",
-        "Full-time Registered Nurses with dedicated Medical Centre",
-        "Strict UK DfE compliant Child Protection & Safeguarding Policy",
-        "Automated classroom Positive-Pressure PM2.5 clean air system"
+        "Bangkok Patana School maintains a comprehensive child safeguarding and protection policy.",
+        "Visitors and parents must keep their Patana Card or temporary Visitor tag visible at all times on campus.",
+        "Strict rules govern privacy, prohibiting cameras in toilets, changing rooms, or private areas.",
+        "Designated Safeguarding Leads are appointed to handle any safety or welfare concerns.",
+        "The school prohibits physical punishment and promotes non-physical forms of discipline."
       ],
-      "policy_summary": "Bangkok Patana upholds a British Safeguarding Children standard with 24/7 perimeter security, automated positive-pressure air filtration, and an accredited on-site medical team.",
-      "policy_url": "https://www.patana.ac.th/life-at-patana/about/safeguarding/"
+      "policy_summary": "Bangkok Patana School enforces a strict child safeguarding and parent code of conduct policy to ensure student safety, privacy, and well-being. The policy mandates visible ID tags for visitors, regulates photography and privacy on campus, outlines behavioral expectations, maintains student confidentiality, and establishes Designated Safeguarding Leads for reporting concerns.",
+      "policy_url": "https://www.patana.ac.th/wp-content/uploads/2023/09/English-Parent-Safeguarding-Code-of-Conduct-.pdf"
     },
     "confidence": 0.95,
     "confidence_reasoning": "The tuition and fee details for the 2026/27 academic year are clearly provided with distinct values per grade and comprehensive hidden costs.",
@@ -150,19 +151,19 @@
     "tuition_by_grade": [],
     "hidden_costs": [],
     "safety_and_security": {
-      "security_guards": true,
-      "cctv_monitoring": true,
-      "nurse_medical_clinic": true,
+      "security_guards": false,
+      "cctv_monitoring": false,
+      "nurse_medical_clinic": false,
       "child_safeguarding_policy": true,
-      "air_quality_pm25_protocol": true,
-      "visitor_access_control": true,
+      "air_quality_pm25_protocol": false,
+      "visitor_access_control": false,
       "highlights": [
-        "24/7 Multi-point gated campus security at Asok entrance",
-        "Full-time pediatric health clinic staffed by registered nurses",
-        "UN Convention on the Rights of the Child aligned safeguarding policy",
-        "MERV-14 hospital-grade PM2.5 clean air system"
+        "Safeguarding and child protection are NIST's top priorities.",
+        "The school fosters an environment where everyone feels safe, secure, and supported.",
+        "Safeguarding and child protection are considered the responsibility of every community member.",
+        "The school believes children have a right to a life free from harm or abuse."
       ],
-      "policy_summary": "NIST adheres to International Task Force on Child Protection (ITFCP) guidelines with hospital-grade indoor air quality and strict inner-city campus access control.",
+      "policy_summary": "NIST International School prioritizes safeguarding and child protection, driven by a commitment to diversity, equity, and inclusion, ensuring an environment where children are free from harm or abuse and everyone supports student safety.",
       "policy_url": "https://www.nist.ac.th/community/safeguarding"
     },
     "confidence": 0.0,
@@ -279,19 +280,20 @@
       }
     ],
     "safety_and_security": {
-      "security_guards": true,
-      "cctv_monitoring": true,
-      "nurse_medical_clinic": true,
+      "security_guards": false,
+      "cctv_monitoring": false,
+      "nurse_medical_clinic": false,
       "child_safeguarding_policy": true,
-      "air_quality_pm25_protocol": true,
+      "air_quality_pm25_protocol": false,
       "visitor_access_control": true,
       "highlights": [
-        "Full-time perimeter security guarding 28-acre campus",
-        "On-campus healthcare clinic with emergency response",
-        "WASC-aligned Child Protection and Student Wellness Policy",
-        "Real-time PM2.5 monitoring and HEPA filtration in classrooms"
+        "Committed to student safety and protection from harm in a nurturing environment.",
+        "Comprehensive code of conduct covering staff relationships, physical touch, online contact, and image use.",
+        "Specific procedures for sensitive contexts including bathrooms, changing rooms, overnight trips, and one-to-one situations.",
+        "Detailed guidelines and reporting procedures for suspected child abuse, neglect, and peer-on-peer abuse.",
+        "Includes dedicated policies on anti-bullying, whistleblowing, online learning, and a visitor's code of conduct."
       ],
-      "policy_summary": "Ruamrudee provides a secure, spacious 28-acre campus with dedicated security personnel, comprehensive healthcare facilities, and well-established US safety guidelines.",
+      "policy_summary": "Ruamrudee International School maintains a comprehensive child safeguarding framework, outlining strict employee codes of conduct, visitor guidelines, anti-bullying protocols, and explicit reporting procedures for suspected abuse or neglect to ensure a safe learning environment.",
       "policy_url": "https://sites.google.com/rism.ac.th/child-safeguarding"
     },
     "confidence": 0.95,
@@ -428,16 +430,17 @@
       "cctv_monitoring": true,
       "nurse_medical_clinic": true,
       "child_safeguarding_policy": true,
-      "air_quality_pm25_protocol": true,
+      "air_quality_pm25_protocol": false,
       "visitor_access_control": true,
       "highlights": [
-        "24/7 Gated Security & Residential Boarding guard team",
-        "24-Hour on-site medical clinic with resident nurses",
-        "UK BSA & Keeping Children Safe in Education (KCSIE) compliance",
-        "Commercial HVAC clean air systems with continuous PM2.5 monitoring"
+        "Rigorous recruitment and vetting procedures for all new staff members",
+        "Mandatory Safeguarding Code of Conduct for all employees",
+        "Regular and mandatory safeguarding training for staff based on responsibility levels",
+        "Dedicated Designated Safeguarding Leads (DSL) for Upper School, Lower School, and Boarding",
+        "Regular internal and external audits of safeguarding arrangements"
       ],
-      "policy_summary": "Harrow Bangkok provides British boarding-grade 24-hour security, water safety management for campus lake facilities, and a round-the-clock medical care team.",
-      "policy_url": "https://www.harrowschool.ac.th/pastoral-care/safeguarding"
+      "policy_summary": "Harrow International School Bangkok upholds a strict Safeguarding Policy and commitment to child safety. The policy covers staff vetting, a mandatory code of conduct, tiered safeguarding training, dedicated Designated Safeguarding Leads across all school sections, and regular internal/external audits.",
+      "policy_url": "https://heyzine.com/flip-book/HS2.2.06_Safeguarding_Policy_EN.html"
     },
     "confidence": 0.95,
     "confidence_reasoning": "The scraped webpage explicitly contains the full schedule of tuition and fees for the academic year 2026/27 broken down by year groups with annual and term amounts, as well as various hidden costs such as application, admission fees, and deposits. Curriculum type is inferred from British context cues like Year groups, IGCSE, and AS/A2 levels.",
@@ -537,19 +540,20 @@
       }
     ],
     "safety_and_security": {
-      "security_guards": true,
+      "security_guards": false,
       "cctv_monitoring": true,
-      "nurse_medical_clinic": true,
+      "nurse_medical_clinic": false,
       "child_safeguarding_policy": true,
-      "air_quality_pm25_protocol": true,
+      "air_quality_pm25_protocol": false,
       "visitor_access_control": true,
       "highlights": [
-        "Double-layer gated community security perimeter (Nichada Thani + ISB gates)",
-        "Certified Registered Nurses and AED emergency stations campus-wide",
-        "Positive-pressure purified air systems throughout all facilities",
-        "Comprehensive staff background screening & child protection certification"
+        "Comprehensive safeguarding policies and procedures aligned with global standards and local legislation.",
+        "Mandatory child protection training for all school staff upon employment and annually.",
+        "Thorough background checks and criminal record verification for all new employees, contractors, and volunteers.",
+        "Strict guidelines and appointment requirements for parents and visitors accessing the school campus.",
+        "Close monitoring of community spaces and sports facilities to maintain a secure environment."
       ],
-      "policy_summary": "Located in the gated private community of Nichada Thani, ISB benefits from double-layer security, golf-cart accessible roads, and top-tier US child safety protocols.",
+      "policy_summary": "ISB maintains a comprehensive child safeguarding and protection framework designed to ensure a secure, supportive environment free from harm, abuse, and neglect. The policy mandates strict staff background checks, annual child protection training, controlled visitor and parent access to campus, and continuous review of safeguarding practices.",
       "policy_url": "https://www.isb.ac.th/about-isb/safeguarding-of-children-in-our-care"
     },
     "confidence": 0.95,
@@ -651,19 +655,20 @@
       }
     ],
     "safety_and_security": {
-      "security_guards": true,
-      "cctv_monitoring": true,
-      "nurse_medical_clinic": true,
+      "security_guards": false,
+      "cctv_monitoring": false,
+      "nurse_medical_clinic": false,
       "child_safeguarding_policy": true,
-      "air_quality_pm25_protocol": true,
-      "visitor_access_control": true,
+      "air_quality_pm25_protocol": false,
+      "visitor_access_control": false,
       "highlights": [
-        "Waterfront security barriers and marine safety measures",
-        "24/7 guarded turnstile gates and electronic access cards",
-        "UK KCSIE certified Designated Safeguarding Leads (DSL)",
-        "On-site Medical Centre with certified paediatric nurses"
+        "School operations are built upon a framework of policies stored in The Policy Compendium.",
+        "The Policy Compendium is organised in line with CIS accreditation and inspection procedures.",
+        "Parent-facing school policies include the Child Protection and Safeguarding policy.",
+        "Policies are housed in Firefly and are accessible to parents with a unique login and password.",
+        "Each school policy is reviewed regularly by the Senior Management Team and relevant experts."
       ],
-      "policy_summary": "Shrewsbury ensures a safe riverside environment with water safety barriers, UK KCSIE child protection compliance, and hospital-grade indoor air quality.",
+      "policy_summary": "Shrewsbury International School maintains a comprehensive framework of operational and safeguarding policies, including specific policies on Child Protection and Safeguarding, which are regularly reviewed by the Senior Management Team and housed securely in the parent portal.",
       "policy_url": "https://www.shrewsbury.ac.th/riverside-campus/policies/"
     },
     "confidence": 0.9,

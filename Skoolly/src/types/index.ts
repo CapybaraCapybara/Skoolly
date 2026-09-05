@@ -1,5 +1,5 @@
 // ─── Navigation ───────────────────────────────────────────────────────────────
-export type View = "home" | "forum" | { type: "school"; id: number };
+export type View = "home" | "forum" | "calculator" | { type: "school"; id: number } | { type: "calculator"; schoolId?: number };
 
 // ─── School (core record — stored in DB) ──────────────────────────────────────
 export interface School {
