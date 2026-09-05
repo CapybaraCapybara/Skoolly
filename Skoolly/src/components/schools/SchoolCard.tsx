@@ -45,7 +45,7 @@ export function SchoolCard({
   return (
     <div className="card-hover bg-warm-cream rounded-[2rem] overflow-hidden border border-warm-accent shadow-sm flex flex-col p-3">
       {/* Cover image */}
-      <div className="relative h-48 bg-warm-accent rounded-[1.5rem] overflow-hidden cursor-pointer" onClick={() => onSchoolClick(school.id)}>
+      <div className="relative h-56 bg-warm-accent rounded-[1.5rem] overflow-hidden cursor-pointer" onClick={() => onSchoolClick(school.id)}>
         <img
           src={`https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`}
           alt={`${school.name} campus`}
