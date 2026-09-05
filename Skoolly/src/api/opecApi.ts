@@ -43,15 +43,36 @@ export async function getScraperProgress(): Promise<ScraperProgressState | null>
   return null;
 }
 
+const BACKEND_DOWN =
+  "เชื่อมต่อ OPEC Service (พอร์ต 8004) ไม่ได้ — ตรวจสอบว่ารัน `python microservices/run_all.py` แล้วหรือยัง";
+
 export async function postAction(endpoint: string): Promise<{ status: string }> {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.status || "Action failed");
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch {
+    // fetch itself rejected: nothing is listening at all.
+    throw new Error(BACKEND_DOWN);
   }
+
+  if (!res.ok) {
+    // The dev proxy answers with a non-JSON 500 when the backend is down, so
+    // read as text first — res.json() would throw and hide the real cause.
+    const body = await res.text().catch(() => "");
+    let detail = "";
+    try {
+      const parsed = JSON.parse(body);
+      detail = parsed.detail || parsed.status || "";
+    } catch {
+      // not JSON — the proxy, not the API, produced this response
+    }
+    if (detail) throw new Error(detail);
+    throw new Error(res.status >= 500 ? BACKEND_DOWN : `Action failed (HTTP ${res.status})`);
+  }
+
   return await res.json();
 }
 

@@ -71,7 +71,11 @@ def build_pure_opec_record(s):
     if zipcode: addr_parts.append(zipcode)
     full_address = " ".join([p for p in addr_parts if p])
 
-    # Website strictly from OPEC Profile
+    # Website strictly from OPEC Profile.
+    # As of this writing GetSchoolSearch/GetSchoolDetail return an empty website for
+    # all 291 international schools, but when one does appear it is kept in its own
+    # opec_website field. fetch_official_websites.py reads that field and never writes
+    # it, so a resolved guess can never masquerade as OPEC-supplied data.
     raw_web = s.get("website", "").strip()
     if raw_web and "." in raw_web:
         website = raw_web if raw_web.startswith("http") else "https://" + raw_web
@@ -128,6 +132,7 @@ def build_pure_opec_record(s):
         "address": full_address,
         "website": website,
         "website_source": website_source,
+        "opec_website": website,
         "facebook": facebook,
         "telephone": s.get("tel", "").strip(),
         "mobile": s.get("mobile", "").strip(),

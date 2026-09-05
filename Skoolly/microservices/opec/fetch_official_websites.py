@@ -1,18 +1,30 @@
 """
 fetch_official_websites.py
-โมดูลสำหรับปุ่มที่ 3: ค้นหา & ตรวจสอบ Official Website ทางการของโรงเรียนนานาชาติแบบครบวงจร
-(Unified Dual-Engine: Verified Registry Authority + Autonomous Candidate Prober)
+โมดูลสำหรับปุ่มที่ 4: ค้นหา & ตรวจสอบ Official Website ทางการของโรงเรียนนานาชาติ
 
-หลักการทำงานของระบบ (Multi-Tier Intelligent Architecture):
-1. Tier 1 - Verified Official Registry Authority:
-   - โหลดฐานข้อมูลโรงเรียนและเว็บไซต์ทางการที่ผ่านการตรวจสอบจริง 100% (reference/schoolAndURL.txt)
-   - จับคู่รหัสโรงเรียน (school_code) และชื่อ เพื่อคืนค่า URL ที่ถูกต้องแม่นยำ 100% ปราศจาก False Positive
-2. Tier 2 - OPEC Official Authority Fallback:
-   - หากเป็นโรงเรียนนอกเหนือจากทะเบียน จะตรวจสอบ URL จากฐานข้อมูล OPEC Profile
-3. Tier 3 - Autonomous Dynamic Prober & Live Verification:
-   - สร้าง Candidate Domains อัตโนมัติตามชื่อแบรนด์, สาขาวิทยาเขต, และ TLD สากล
-   - ตรวจสอบ DNS (<5ms) และ Live HTTP Status
-   - กรอง Parked Domains, Domain Brokers และหน้า 404 อัตโนมัติ
+ลำดับความน่าเชื่อถือ (สูง -> ต่ำ) ทุกชั้นต้องผ่านการตรวจสอบก่อนเขียนทับข้อมูลเดิม:
+
+1. Verified Registry (reference/schoolAndURL.txt)
+   ทะเบียนที่ตรวจสอบด้วยมือแล้ว จับคู่ด้วย school_code ก่อน ถ้าไม่เจอจึงจับคู่ด้วยชื่อ
+   ที่ normalize แล้ว (รองรับกรณี สช. เปลี่ยนรหัสโรงเรียน)
+
+2. OPEC Profile (ฟิลด์ opec_website เท่านั้น)
+   ปัจจุบัน API ของ สช. ยังไม่ส่ง website มาเลยสักแห่ง แต่ถ้าวันหนึ่งส่งมา ค่านั้นจะถูก
+   เก็บแยกไว้ใน opec_website โดย fetch_opec.py และ "ห้าม" โมดูลนี้เขียนทับ
+   เหตุผลที่ต้องแยกฟิลด์: เดิมโมดูลนี้อ่าน s["website"] ที่ตัวเองเขียนไว้รอบก่อน แล้วติดป้าย
+   ว่า "OPEC Profile" ทำให้ผลเดาจากรอบก่อนกลายเป็นข้อมูลทางการถาวรและแก้ไม่ได้อีกเลย
+
+3. Brand Domain (อนุมานจากทะเบียน)
+   วิทยาเขตใหม่ที่ยังไม่อยู่ในทะเบียน จะเดาโดเมนจากโรงเรียนในเครือเดียวกันที่อยู่ในทะเบียนแล้ว
+   ไม่ hardcode URL รายโรงเรียนอีกต่อไป (ของเดิม hardcode ไว้ ~20 URL ซึ่งซ้ำกับทะเบียน)
+
+4. Algorithmic Probe + Relevance Check
+   สร้างโดเมนผู้สมัครจากชื่อโรงเรียน แล้วต้องผ่านทั้ง DNS, HTTP, ตัวกรอง parked domain
+   และ "ตรวจเนื้อหาหน้าเว็บว่าเป็นของโรงเรียนนั้นจริง" ก่อนจึงยอมรับ
+   ชั้นนี้คือต้นเหตุของ false positive เดิม เช่น ipc.com / kids.org / crescent.com
+   ซึ่งเป็นโดเมนของธุรกิจอื่นที่บังเอิญชื่อพ้องกัน
+
+ถ้าไม่มีชั้นไหนผ่านเลย จะ "คงค่าเดิมไว้" ไม่ล้างเป็นค่าว่าง
 """
 
 import os
@@ -38,13 +50,28 @@ session.headers.update({
     "Accept-Language": "en-US,en;q=0.9,th;q=0.8"
 })
 
+def _find_reference_file():
+    """
+    reference/schoolAndURL.txt sits at the repo root, not next to this module.
+    The old code looked only inside microservices/opec/, so the registry silently
+    loaded 0 entries and every school fell through to domain guessing.
+    Walk up the tree so it resolves regardless of the service's working directory.
+    """
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(5):
+        for candidate in (os.path.join(d, "reference", "schoolAndURL.txt"),
+                          os.path.join(d, "schoolAndURL.txt")):
+            if os.path.exists(candidate):
+                return candidate
+        d = os.path.dirname(d)
+    return ""
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-REFERENCE_FILE = os.path.join(BASE_DIR, "reference", "schoolAndURL.txt")
-ALT_REF_FILE = os.path.join(BASE_DIR, "schoolAndURL.txt")
+REFERENCE_FILE = _find_reference_file()
 
 DISQUALIFIED_DOMAINS = {
-    'perfectdomain.com', 'expireddomains.com', 'hugedomains.com', 'dan.com', 
-    'sedo.com', 'godaddy.com', 'namecheap.com', 'domainmarketplace', 
+    'perfectdomain.com', 'expireddomains.com', 'hugedomains.com', 'dan.com',
+    'sedo.com', 'godaddy.com', 'namecheap.com', 'domainmarketplace',
     'domainmarket.com', 'buydomains.com', 'uniregistry.com', 'afternic.com',
     'parkingcrew.net', 'bodis.com', 'above.com', 'domainnamesales.com',
     'forsale.godaddy.com', 'domainnameshop.com', 'namefind.com', 'atom.com',
@@ -67,32 +94,96 @@ PARKED_PAGE_PATTERNS = [
 
 FOREIGN_DISQUALIFIED_TLDS = ['.co.uk', '.ac.uk', '.edu.au', '.gov.au', '.edu.sg', '.gov.sg', '.co.nz']
 
+# Words carrying no identity — nearly every school shares them, so they must never
+# be what makes a domain or a page look like the right school.
+GENERIC_WORDS = {
+    'the', 'of', 'in', 'and', 'at', 'campus', 'for', 'school', 'schools', 'international',
+    'inter', 'pre-school', 'preschool', 'kindergarten', 'kindergaten', 'kindergarden', 'pre',
+    'primary', 'secondary', 'college', 'academy', 'demonstration', 'bilingual', 'nursery',
+    'thailand', 'thai', 'bangkok', 'education', 'learning', 'centre', 'center', 'student',
+}
+
+# A genuine school homepage says so somewhere in its first screenful.
+SCHOOL_PAGE_HINTS = (
+    'school', 'kindergarten', 'academy', 'campus', 'admission', 'curriculum', 'pupil',
+    'student', 'nursery', 'preschool', 'igcse', 'early years',
+    'โรงเรียน', 'นานาชาติ', 'อนุบาล', 'หลักสูตร', 'รับสมัคร', 'นักเรียน',
+)
+
 dns_cache = {}
-reference_registry = {}
+reference_registry = {}     # school_code -> url
+registry_by_name = {}       # normalized english name -> url
+brand_domains = {}          # distinctive brand token -> domain
+
+
+def _normalize_name(name):
+    """Lowercase, drop punctuation and generic words — what remains identifies the school."""
+    cleaned = re.sub(r'[^a-z0-9\s]+', ' ', (name or '').lower())
+    return " ".join(w for w in cleaned.split() if w and w not in GENERIC_WORDS)
+
+
+def _domain_of(url):
+    return re.sub(r'^(https?://)?(www\.)?', '', (url or '').lower()).split('/')[0].split(':')[0]
+
 
 def load_verified_registry():
-    """Loads verified ground-truth official website mapping from reference file"""
+    """
+    Loads the hand-verified school_code -> official URL mapping, and derives two
+    extra indexes from it:
+      - registry_by_name: fallback match when OPEC reissues a school_code
+      - brand_domains:    lets a new campus inherit its group's domain, replacing
+                          the ~20 hardcoded per-school URLs the old version carried
+    """
     global reference_registry
     if reference_registry:
         return reference_registry
-    
-    target_path = REFERENCE_FILE if os.path.exists(REFERENCE_FILE) else ALT_REF_FILE
-    if os.path.exists(target_path):
-        try:
-            with open(target_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    m = re.search(r'\[\d+\s*-\s*(\d+)\]', line)
-                    if m:
-                        code = m.group(1).strip()
-                        url_m = re.search(r'https?://[^\s\)]+', line)
-                        url = url_m.group(0).strip().rstrip('/') if url_m else ""
-                        reference_registry[code] = url
-        except Exception as e:
-            print(f"[Registry] Warning loading {target_path}: {e}")
-            
+
+    if not REFERENCE_FILE:
+        print("[Registry] reference/schoolAndURL.txt not found — probing only")
+        return reference_registry
+
+    brand_hits = {}
+    try:
+        with open(REFERENCE_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                m = re.search(r'\[\d+\s*-\s*(\d+)\]', line)
+                if not m:
+                    continue
+                code = m.group(1).strip()
+                url_m = re.search(r'https?://[^\s\)]+', line)
+                url = url_m.group(0).strip().rstrip('/') if url_m else ""
+                reference_registry[code] = url
+                if not url:
+                    continue
+
+                # English name is the text between "]" and the "(" holding the Thai name.
+                name_m = re.search(r'\]\s*(.*?)\s*\(', line)
+                key = _normalize_name(name_m.group(1) if name_m else "")
+                if key:
+                    registry_by_name.setdefault(key, url)
+                    # Index the HEAD token only. These names put the brand first and
+                    # the location last, so indexing every token let a trailing place
+                    # name act as a brand: "NAWATTAPHUME ... KRABI" matched
+                    # krabiinternationalschool.com, a different school entirely.
+                    head = key.split()[0]
+                    if len(head) >= 4:
+                        brand_hits.setdefault(head, set()).add(_domain_of(url))
+    except Exception as e:
+        print(f"[Registry] Warning loading {REFERENCE_FILE}: {e}")
+        return reference_registry
+
+    # Keep only tokens pointing at exactly one domain. "singapore" appears under both
+    # sisb.ac.th and glorysingapore.com, so it is ambiguous and gets dropped.
+    for token, domains in brand_hits.items():
+        if len(domains) == 1:
+            brand_domains[token] = next(iter(domains))
+
+    print(f"[Registry] loaded {len(reference_registry)} verified schools "
+          f"({sum(1 for v in reference_registry.values() if v)} with a URL), "
+          f"{len(brand_domains)} brand domains")
     return reference_registry
 
 # Load registry on module import
@@ -111,24 +202,80 @@ def check_dns(host):
         dns_cache[host] = False
         return False
 
-def verify_live_url(url, name_en="", name_th=""):
+def _distinctive_tokens(name_en, name_th=""):
+    """Name tokens that actually identify this school, longest first."""
+    tokens = [t for t in _normalize_name(name_en).split() if len(t) >= 3]
+    tokens.sort(key=len, reverse=True)
+    th = re.sub(r'(โรงเรียน|นานาชาติ|อนุบาล|ประถม|สาธิต)', ' ', name_th or '')
+    tokens += [t for t in th.split() if len(t) >= 4]
+    return tokens
+
+
+def _page_text(response, limit=32768):
+    """First chunk of the response with tags stripped, lowercased."""
+    try:
+        raw = b""
+        for chunk in response.iter_content(8192):
+            raw += chunk
+            if len(raw) >= limit:
+                break
+    except Exception:
+        return ""
+    html = raw.decode('utf-8', errors='ignore')
+    html = re.sub(r'(?is)<(script|style)[^>]*>.*?</\1>', ' ', html)
+    return re.sub(r'<[^>]+>', ' ', html).lower()
+
+
+def _looks_like_a_school(text):
+    return any(hint in text for hint in SCHOOL_PAGE_HINTS)
+
+
+def _page_belongs_to_school(text, domain, name_en, name_th):
+    """
+    Guards the guessing tier. A candidate domain built from the school's name will
+    happily resolve to an unrelated business that shares the name — ipc.com,
+    kids.org and crescent.com were all accepted as "official" this way.
+    So an algorithmic hit must look like a school AND mention the school.
+    """
+    if not _looks_like_a_school(text):
+        return False
+    tokens = _distinctive_tokens(name_en, name_th)
+    if not tokens:
+        return False
+    flat_domain = re.sub(r'[^a-z0-9]', '', domain)
+    for t in tokens:
+        if t in text:
+            return True
+        # Thai tokens reduce to "" here, and "" is a substring of everything —
+        # that would make this guard pass unconditionally.
+        ascii_t = re.sub(r'[^a-z0-9]', '', t)
+        if ascii_t and ascii_t in flat_domain:
+            return True
+    return False
+
+
+def verify_live_url(url, name_en="", name_th="", require_relevance=False):
     """
     Verifies that a candidate URL is a live, authentic school website:
-    - Performs fast DNS pre-filtering
-    - Checks HTTP response status with strict timeout
-    - Filters parked pages, domain brokers, and 404 redirects
+    - Fast DNS pre-filtering
+    - HTTP status with strict timeout
+    - Filters parked pages, domain brokers and 404 redirects
+    - When require_relevance is set (guessed domains, never verified ones), the page
+      itself must look like this school's site
+
+    Returns (is_live, canonical_url).
     """
     if not url or not isinstance(url, str):
         return False, None
     u = url.strip()
     if not u.startswith("http"):
         u = "https://" + u
-        
+
     if 'sites.google.com' in u or 'gism.ac.th' in u:
         return True, u
 
     raw_host = re.sub(r'^(https?://)?', '', u).split('/')[0].split(':')[0].lower()
-    
+
     # 1. Blacklist check
     if any(b in raw_host for b in DISQUALIFIED_DOMAINS):
         return False, None
@@ -139,161 +286,148 @@ def verify_live_url(url, name_en="", name_th=""):
     if not check_dns(raw_host):
         return False, None
 
-    # 2. Live HTTP Request verification
+    # 2. Live HTTP verification
     try:
         r = session.get(u, timeout=(2.0, 3.5), verify=False, stream=True, allow_redirects=True)
-        if r.status_code in [200, 201, 202, 301, 302, 403, 406]:
-            final_url = r.url
-            dom = re.sub(r'^(https?://)?(www\.)?', '', final_url.lower()).split('/')[0].split(':')[0]
+        if r.status_code not in (200, 201, 202, 301, 302, 403, 406):
+            return False, None
 
-            for ftld in FOREIGN_DISQUALIFIED_TLDS:
-                if dom.endswith(ftld):
-                    return False, None
+        final_url = r.url
+        dom = _domain_of(final_url)
 
-            if any(b in dom for b in DISQUALIFIED_DOMAINS):
+        for ftld in FOREIGN_DISQUALIFIED_TLDS:
+            if dom.endswith(ftld):
                 return False, None
+        if any(b in dom for b in DISQUALIFIED_DOMAINS):
+            return False, None
+        if any(marker in final_url.lower() for marker in ('404.html', 'error-404', 'notfound')):
+            return False, None
 
-            if any(p in final_url.lower() for p in ['404.html', 'error-404', 'notfound']):
-                return False, None
+        text = _page_text(r)
+        if any(pattern in text for pattern in PARKED_PAGE_PATTERNS):
+            return False, None
 
-            chunk = next(r.iter_content(8192), b"").decode('utf-8', errors='ignore').lower()
-            for p in PARKED_PAGE_PATTERNS:
-                if p in chunk:
-                    return False, None
+        clean_dom = re.sub(r'\.(ac\.th|co\.th|com|org|asia|net|academy)$', '', dom)
+        if len(clean_dom) <= 2:
+            return False, None
 
-            clean_dom = dom.replace('.ac.th', '').replace('.com', '').replace('.co.th', '').replace('.org', '').replace('.asia', '')
-            if len(clean_dom) <= 2:
-                return False, None
+        if require_relevance and not _page_belongs_to_school(text, dom, name_en, name_th):
+            return False, None
 
-            if '#' in u or '/' in u.replace('https://', '').replace('http://', ''):
-                return True, u
-            return True, final_url
+        # Keep a deep link the caller supplied; otherwise report where we landed.
+        if '#' in u or '/' in u.replace('https://', '').replace('http://', ''):
+            return True, u
+        return True, final_url
     except Exception:
-        if (raw_host.endswith('.ac.th') or 'silverfern' in raw_host) and check_dns(raw_host) and 'bealbright' not in raw_host:
+        # A .ac.th domain is registrar-gated to Thai academic institutions, so an
+        # unreachable one built from the school's own name is still worth keeping —
+        # but only when we are not in strict mode.
+        if (not require_relevance and raw_host.endswith('.ac.th')
+                and check_dns(raw_host) and 'bealbright' not in raw_host):
             return True, u
 
     return False, None
 
+
 def generate_algorithmic_candidates(s):
-    """Generates focused candidate domains for unlisted or newly added schools"""
+    """
+    Builds candidate domains from the school's own name.
+
+    The old version also carried ~20 hardcoded URLs (St Andrews, SISB, Regents,
+    Wells, Brighton, HEI, Ruamrudee, Garden). Those duplicated reference/schoolAndURL.txt
+    and went stale independently of it, so they are gone: the registry is now the single
+    source of truth and campus groups are handled by the brand tier instead.
+    """
     if isinstance(s, dict):
         name_en = s.get("school_name_en", "").strip()
-        name_th = s.get("school_name_th", "").strip()
-        code = str(s.get("school_code", "")).strip()
     else:
         name_en = str(s).strip()
-        name_th = ""
-        code = ""
 
-    candidates = []
-    name_en = re.sub(r'[\u0e30-\u0e3a\u0e47-\u0e4e\u200b-\u200f]', '', name_en).strip()
+    name_en = re.sub(r'[ะ-ฺ็-๎​-‏]', '', name_en).strip()
     clean_en = re.sub(r'[\(\)\[\],\'\"\-\./\\:]+', ' ', name_en).strip()
     words = [w.lower() for w in clean_en.split() if w]
-    stop_words = {'the', 'of', 'in', 'and', 'at', 'campus', 'for', 'school', 'international', 'pre-school', 'preschool', 'kindergarten', 'kindergaten', 'pre', 'primary', 'secondary', 'college', 'academy', 'demonstration', 'bilingual', 'nursery', 'thailand'}
-    core_words = [w for w in words if w not in stop_words and not w.isdigit()]
+    core_words = [w for w in words if w not in GENERIC_WORDS and not w.isdigit()] or words
     if not core_words:
-        core_words = words
+        return []
 
     core_join = "".join(core_words)
     core_dash = "-".join(core_words)
+    if len(core_join) < 3 or core_join == 'school':
+        return []
 
-    # Multi-Campus Rules
-    if 'standrews' in core_join or 'andrews' in words:
-        if 'sathorn' in name_en.lower(): candidates.append("https://www.standrewssathorn.com")
-        elif 'dusit' in name_en.lower(): candidates.append("https://www.standrewsdusit.com")
-        elif 'samakee' in name_en.lower(): candidates.append("https://www.standrews-samakee.com")
-        elif 'green' in name_en.lower(): candidates.append("https://www.standrewsgreenvalley.com/")
-        else: candidates.append("https://www.standrewssukhumvit.com/")
-
-    if 'sisb' in words or 'singapore' in words:
-        if 'suvarnabhumi' in name_en.lower(): candidates.append("https://sisb.ac.th/th/singapore-international-school-suvarnabhumi-campus/")
-        elif 'thonburi' in name_en.lower(): candidates.append("https://sisb.ac.th/singapore-international-school-thonburi-campus/")
-        elif 'nonthaburi' in name_en.lower(): candidates.append("https://sisb.ac.th/nonthaburi-campus/")
-        elif 'rayong' in name_en.lower(): candidates.append("https://sisb.ac.th/th/rayong-campus/")
-        elif 'chiang' in name_en.lower(): candidates.append("https://sisb.ac.th/singapore-international-school-chiangmai/")
-        else: candidates.append("https://sisb.ac.th")
-
-    if 'regents' in words or 'regent' in words:
-        if 'pattaya' in name_en.lower(): candidates.append("https://www.nordangliaeducation.com/risp-pattaya")
-        elif 'rama' in name_en.lower(): candidates.append("https://regents.ac.th/th/rama-9-campus/")
-        else: candidates.append("https://regents.ac.th")
-
-    if 'wells' in words:
-        if 'chonburi' in name_en.lower(): candidates.append("https://wells.ac.th/campuses/wells-chonburi/")
-        else: candidates.append("https://wells.ac.th")
-
-    if 'brighton' in words:
-        if 'vibhavadi' in name_en.lower(): candidates.append("https://brightoncollege.ac.th/vibhavadi")
-        else: candidates.append("https://brightoncollege.ac.th/")
-
-    if 'hei' in words:
-        if 'udon' in name_en.lower(): candidates.append("https://udon.heischools.com/")
-        elif 'phuket' in name_en.lower(): candidates.append("https://phuket.heischools.com/")
-        else: candidates.append("https://www.heibangkok.com")
-
-    if 'ruamrudee' in words:
-        if 'early' in name_en.lower(): candidates.append("https://www.rise.ac.th/")
-        elif 'ratchapruek' in name_en.lower(): candidates.append("https://www.risr.ac.th/")
-        elif 'phuket' in name_en.lower(): candidates.append("https://risphuket.ac.th/")
-        else: candidates.append("https://www.rism.ac.th")
-
-    if 'garden' in words:
-        if 'bangkok' in name_en.lower(): candidates.append("https://gardenbangkok.com/")
-        else: candidates.append("https://gardenrayong.com/")
-
-    # Standard Domain Slug Patterns
-    if len(core_join) >= 3 and core_join != 'school':
-        candidates.extend([
-            f"https://www.{core_join}.ac.th",
-            f"https://{core_join}.ac.th",
-            f"https://www.{core_dash}.ac.th",
-            f"https://{core_dash}.ac.th",
-            f"https://www.{core_join}school.ac.th",
-            f"https://{core_join}school.ac.th",
-            f"https://{core_join}school.com",
-            f"https://{core_join}.com",
-            f"https://{core_join}.org"
-        ])
-
+    candidates = [
+        f"https://www.{core_join}.ac.th",
+        f"https://{core_join}.ac.th",
+        f"https://www.{core_dash}.ac.th",
+        f"https://{core_dash}.ac.th",
+        f"https://www.{core_join}school.ac.th",
+        f"https://{core_join}school.ac.th",
+        f"https://{core_join}school.com",
+        f"https://{core_join}.com",
+        f"https://{core_join}.org",
+    ]
     return list(dict.fromkeys(candidates))
+
+
+def brand_domain_candidates(s):
+    """
+    A campus missing from the registry usually belongs to a group already in it.
+    Derives the group's domain from the registry rather than from a hardcoded table.
+
+    Matches on the leading token of both names only — the brand. Matching anywhere in
+    the name made every shared place name look like a shared brand.
+    """
+    tokens = _normalize_name(s.get("school_name_en", "")).split()
+    if not tokens or len(tokens[0]) < 4:
+        return []
+    domain = brand_domains.get(tokens[0])
+    return [f"https://{domain}"] if domain else []
+
 
 def dynamic_search_official_website(s):
     """
-    High-Precision Resolver for a single school:
-    1. Tier 1: Verified Official Registry (100% exact match against verified master)
-    2. Tier 2: OPEC Profile Authority Fallback
-    3. Tier 3: Focused Candidate Discovery & Live Probing
-    
-    Returns (url, source)
+    Resolves one school's official website. Returns (url, source).
+    An empty url means "no confident answer" — the caller keeps the existing value
+    rather than erasing it.
     """
     code = str(s.get("school_code", "")).strip()
-    registry = load_verified_registry()
-    
-    # === Priority 1: Verified Registry Authority ===
-    if code in registry:
-        reg_url = registry[code]
-        if reg_url:
-            return reg_url, "Verified Official Registry"
-        else:
-            return "", "Not Found"
+    name_en = s.get("school_name_en", "") or ""
+    name_th = s.get("school_name_th", "") or ""
+    load_verified_registry()
 
-    # === Priority 2: OPEC Profile Authority ===
-    opec_w = str(s.get("website") or "").strip()
+    # === Tier 1: verified registry, by code then by name ===
+    if code in reference_registry and reference_registry[code]:
+        return reference_registry[code], "Verified Official Registry"
+
+    by_name = registry_by_name.get(_normalize_name(name_en))
+    if by_name:
+        return by_name, "Verified Official Registry (Name Match)"
+
+    # === Tier 2: genuine OPEC value — read only, never overwritten ===
+    # Deliberately NOT s["website"]: that field holds this module's own previous
+    # answer, and reading it back was promoting old guesses to "OPEC Profile".
+    opec_w = str(s.get("opec_website") or "").strip()
     if opec_w:
-        is_live, canonical = verify_live_url(opec_w)
+        is_live, canonical = verify_live_url(opec_w, name_en, name_th)
         if is_live and canonical:
             return canonical.rstrip('/'), "OPEC Profile"
-        elif opec_w.startswith("http"):
+        if opec_w.startswith("http"):
             return opec_w.rstrip('/'), "OPEC Profile"
 
-    # === Priority 3: Dynamic Candidate Probing ===
-    candidates = generate_algorithmic_candidates(s)
-    for c in candidates:
-        is_live, canonical = verify_live_url(c)
+    # === Tier 3: sibling campus domain inferred from the registry ===
+    for candidate in brand_domain_candidates(s):
+        is_live, canonical = verify_live_url(candidate, name_en, name_th, require_relevance=True)
+        if is_live and canonical:
+            return canonical.rstrip('/'), "Brand Domain Match"
+
+    # === Tier 4: name-derived candidates, relevance-checked ===
+    for candidate in generate_algorithmic_candidates(s):
+        is_live, canonical = verify_live_url(candidate, name_en, name_th, require_relevance=True)
         if is_live and canonical:
             return canonical.rstrip('/'), "Live Domain Match & Verification"
 
     return "", "Not Found"
+
 
 def resolve_all_official_websites(update_progress, on_save_callback=None):
     """
@@ -340,10 +474,17 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
 
         url, source = results_map.get(code, ("", "Not Found"))
         completed_count += 1
-        
-        s["website"] = url
-        s["website_source"] = source
-        s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+
+        # No confident answer keeps whatever is already on record. The old code
+        # assigned unconditionally, so one failed lookup erased a good URL.
+        if url:
+            s["website"] = url
+            s["website_source"] = source
+            s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            kept = str(s.get("website") or "").strip()
+            if kept:
+                url, source = kept, s.get("website_source") or "Kept (unverified)"
 
         if url:
             resolved_count += 1
@@ -400,9 +541,10 @@ def resolve_single_school_by_code(school_code):
     for s in schools:
         if s["school_code"] == school_code:
             url, source = dynamic_search_official_website(s)
-            s["website"] = url
-            s["website_source"] = source
-            s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            save_schools(schools)
+            if url:
+                s["website"] = url
+                s["website_source"] = source
+                s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                save_schools(schools)
             return s
     return None
