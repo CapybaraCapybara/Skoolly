@@ -4,7 +4,7 @@
  * Backend service layer for School data.
  *
  * Currently reads from the mock database (src/db/) and merges with scraped
- * results from results.json (produced by testz.py) if available.
+ * results from results.json (produced by microservices/scraper_service.py) if available.
  */
 
 import type { School, SchoolDetail } from "@/types";

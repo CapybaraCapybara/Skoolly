@@ -42,6 +42,31 @@ Service) เป็น public read-only endpoint, เพิ่มตาราง 
 พร้อม `share_token`/`share_enabled`, และเพิ่มข้อยกเว้น Anti-IDOR ที่ตั้งใจสำหรับ resource ที่
 เจ้าของเปิดแชร์เอง (ดูหัวข้อ 4.4 และ Use Case doc หัวข้อ 8.1)
 
+**v6.1 ตรวจทานความสอดคล้องข้ามเอกสาร (Architecture ↔ Use Case) แล้วแก้จุดที่ขัดกัน:** (1) เติม
+`user_accounts` เข้าเป็นตารางของ User Service ทั้งในตาราง 4.1 และหัวข้อ 7 (v4 สร้างตารางนี้ขึ้นใน
+Use Case doc แต่ไม่เคยถูกใส่กลับเข้าเอกสารนี้) (2) เติม `school_embeddings` เข้าตาราง 4.1 ของ AI
+Service ให้ตรงกับหัวข้อ 7 (3) เพิ่ม `get_comparison_set(comparison_id)` เป็น operation ของ
+`user-data-api` — เดิมตาราง 4.3/หัวข้อ 6 บอกว่า PDF Export ดึง `comparison_sets` ผ่าน
+`user-data-api` แต่ interface ที่ประกาศไว้มีแค่ `get_profile_summary` (4) แยกให้ชัดว่า Google Maps
+API ใช้เฉพาะฝั่ง Data Pipeline ส่วนแผนที่ที่ผู้ใช้เห็นใช้ Leaflet + tile provider (UC-G03 เคยเขียน
+กำกวมว่า "เรียก Maps API") (5) แก้ cross-reference ที่ชี้ผิดหัวข้อในตารางสรุป v2
+
+**v6.2 ผนวก 2 ฟีเจอร์ที่พัฒนาไปแล้วจริงในโค้ดแต่เอกสารยังไม่เคยครอบคลุม:** (1) **ฟอรัมชุมชน
+ผู้ปกครอง** (`src/pages/ForumPage.tsx`) — เพิ่ม `forum_posts`/`forum_comments`/`forum_reports`
+เป็นตารางของ Community Service (หัวข้อ 4.1, 7) และเพิ่ม UC-G08/UC-U09/UC-A12 ใน Use Case doc
+โดยใช้ **Post-Moderation** ต่างจากรีวิวที่เป็น Pre-Moderation (2) **ข้อมูลความปลอดภัย/นโยบาย
+คุ้มครองเด็ก** ที่ `scraper_service.py` สกัดมาแล้วจริงทุกโรงเรียน — เพิ่มตาราง `version_safety`
+เข้า School Data Service และเพิ่มเป็นขั้นตอนหนึ่งของ Phase 3 (หัวข้อ 3)
+
+**v6.3 ปรับให้ตรงกับ schema ที่ implement จริง และแก้ 2 จุดที่พิสูจน์แล้วว่าทำตามที่เขียนไว้ไม่ได้:**
+(1) **Full-text search ภาษาไทยใช้ไม่ได้จริง** — Postgres ไม่มี dictionary ภาษาไทยจึงตัดคำไทยไม่ได้
+เปลี่ยนเป็น `pg_trgm` (หัวข้อ 5) (2) **แผน Supabase 3 project เกินเพดาน Free tier ที่ให้ 2 project**
+เปลี่ยนเป็น Dev รัน local ด้วย Supabase CLI (หัวข้อ 13.2) (3) เติมตารางที่ schema จริงมีแต่หัวข้อ 7
+ยังไม่เคยระบุ (`version_fees`, `version_extra_fees`, ตาราง lookup หลักสูตร/ระดับชั้น, ตารางเชื่อม)
+
+**หมายเหตุการออกแบบฐานข้อมูลจริง:** DDL ที่ implement ตามเอกสารนี้อยู่ที่ `db/schema.sql`
+พร้อมเหตุผลการเลือกเครื่องมือ/free tier ที่ `db/DATABASE_DESIGN.md`
+
 ---
 
 ## สรุปการเปลี่ยนแปลงจาก v1
@@ -52,7 +77,7 @@ Service) เป็น public read-only endpoint, เพิ่มตาราง 
 | pgvector | เตรียมไว้เฉยๆ ยังไม่ได้ใช้ | ยังไม่ได้ใช้จริงเหมือนเดิม แต่ตอนนี้รู้ชัดว่าต้อง**ขยาย Phase 3 ให้ scrape ข้อความอิสระเพิ่ม**ถึงจะมีอะไรให้ vector search จริง | Use case เขียนว่า chatbot ใช้ "RAG: vector search" แต่ข้อมูลที่มีตอนนี้เป็น structured ล้วน |
 | Sync ระหว่าง service | ไม่ได้พูดถึง | ตัดแนวคิด Message Queue/Circuit Breaker/Reconciliation Job ระหว่าง service ออก | Use case spec เขียนสมมติว่าเป็น microservices แยกกัน ไม่ตรงกับ Supabase รวมศูนย์ที่ออกแบบไว้ตอนนั้น *(หมายเหตุ v4: การตัดสินใจนี้ถูกปรับกลับใน v3 — ดูหัวข้อ 4 ฉบับปัจจุบันซึ่งนำ Circuit Breaker/Event-Driven Sync ระหว่าง service กลับมาใช้จริงในรูปแบบ Schema-per-Service แทน ไม่ใช่ "Supabase รวมศูนย์" อีกต่อไป)* |
 | Scheduler | cron ทั่วไป | **pg_cron** (รันในตัว Postgres) | อยู่ใน platform เดียวกันหมด ไม่ต้องมี cron server แยก |
-| ตารางใหม่ | schools, school_versions, school_scrape_log | เพิ่ม reviews, favorites, children_profiles, comparison_sets, conversations, messages, data_correction_reports, audit_log, failed_jobs | รองรับ use case ที่เพิ่มเข้ามา (ดูหัวข้อ 6) |
+| ตารางใหม่ | schools, school_versions, school_scrape_log | เพิ่ม reviews, favorites, children_profiles, comparison_sets, conversations, messages, data_correction_reports, audit_log, failed_jobs | รองรับ use case ที่เพิ่มเข้ามา (ดูหัวข้อ 7) *(v4 เพิ่ม `user_accounts` แยกจาก `auth.users`, v6 เพิ่มคอลัมน์ `share_token`/`share_enabled` ใน `comparison_sets`)* |
 
 **v3:**
 
@@ -93,9 +118,9 @@ Service) เป็น public read-only endpoint, เพิ่มตาราง 
 
 | Actor | เข้าถึงอะไรได้ | ปิดกั้นอะไร |
 |---|---|---|
-| Guest | ค้นหา, ดูรายละเอียด, แผนที่, รีวิว, เปรียบเทียบเบื้องต้น (จำกัดจำนวน, ไม่บันทึก), ดูลิงก์เปรียบเทียบที่คนอื่นแชร์มา (UC-G07, ไม่ต้องมีบัญชี) | Chatbot, เครื่องคำนวณค่าใช้จ่าย — ต้อง login ก่อนเสมอ |
-| Parent/User | ทุกอย่างของ Guest + บันทึกโปรด, เปรียบเทียบไม่จำกัด, คำนวณค่าใช้จ่ายส่วนตัว, Chatbot (พร้อม Guided Prompts), เขียนรีวิว, แจ้งข้อมูลผิด, export/แชร์ผลเปรียบเทียบ (PDF หรือลิงก์) | — |
-| Admin | จัดการข้อมูลโรงเรียนโดยตรง, ตรวจ/อนุมัติข้อมูลจาก Scraper, จัดการบัญชี/รีวิว, ดู log/audit/dashboard | บทบาทเดียว ไม่มีแบ่งระดับสิทธิ์ย่อย |
+| Guest | ค้นหา, ดูรายละเอียด (รวมแท็บความปลอดภัย), แผนที่, รีวิว, อ่านกระทู้ในฟอรัม (UC-G08), เปรียบเทียบเบื้องต้น (จำกัดจำนวน, ไม่บันทึก), ดูลิงก์เปรียบเทียบที่คนอื่นแชร์มา (UC-G07, ไม่ต้องมีบัญชี) | Chatbot, เครื่องคำนวณค่าใช้จ่าย, ตั้งกระทู้/คอมเมนต์ในฟอรัม — ต้อง login ก่อนเสมอ |
+| Parent/User | ทุกอย่างของ Guest + บันทึกโปรด, เปรียบเทียบไม่จำกัด, คำนวณค่าใช้จ่ายส่วนตัว, Chatbot (พร้อม Guided Prompts), เขียนรีวิว, ตั้งกระทู้/คอมเมนต์/รายงานเนื้อหาในฟอรัม (UC-U09), แจ้งข้อมูลผิด, export/แชร์ผลเปรียบเทียบ (PDF หรือลิงก์) | — |
+| Admin | จัดการข้อมูลโรงเรียนโดยตรง, ตรวจ/อนุมัติข้อมูลจาก Scraper, จัดการบัญชี/รีวิว/เนื้อหาฟอรัมที่ถูกรายงาน (UC-A12), ดู log/audit/dashboard | บทบาทเดียว ไม่มีแบ่งระดับสิทธิ์ย่อย |
 
 จัดการผ่าน **Supabase Auth + Row Level Security (RLS)** — policy ระดับ table กำหนดว่า role ไหน
 อ่าน/เขียนอะไรได้บ้าง ไม่ต้องเขียน authorization logic เองฝั่ง backend
@@ -108,7 +133,7 @@ Service) เป็น public read-only endpoint, เพิ่มตาราง 
 |---|---|
 | `school.opec.go.th` | รายชื่อโรงเรียนนานาชาติทั้งประเทศแบบทางการ (แหล่งตั้งต้น) |
 | Google Search / Serper API | หา URL เว็บไซต์จริงของแต่ละโรงเรียน |
-| Google Maps API | เติมพิกัด/ที่อยู่ที่ OPEC ไม่มีให้ |
+| Google Maps API | เติมพิกัด/ที่อยู่ที่ OPEC ไม่มีให้ — ใช้เฉพาะฝั่ง Data Pipeline (Phase 2 Enrichment) ไม่ได้ยิงรายครั้งตอนผู้ใช้เปิดแผนที่ ส่วนแผนที่ที่ผู้ใช้เห็น (UC-G03) วาดด้วย Leaflet + tile provider จากพิกัดใน PostGIS ของเราเอง (ดูหัวข้อ 9) |
 | เว็บไซต์โรงเรียนแต่ละแห่ง | แหล่งข้อมูลค่าเทอม/หลักสูตร/hidden cost ตัวจริง |
 | Resend (email API) | ส่งอีเมลยืนยันสมัคร, แจ้งสถานะ ticket, แจ้ง PDF พร้อมดาวน์โหลด |
 
@@ -137,6 +162,10 @@ Service) เป็น public read-only endpoint, เพิ่มตาราง 
    - **Read:** อ่าน PDF ถ้าข้อมูลอยู่ในนั้น (พบว่าเกินครึ่งของโรงเรียนที่ทดสอบเป็นแบบนี้)
    - **Extract:** แปลงเป็น JSON ตาม schema ตายตัว (ค่าเทอมแยกชั้น, hidden cost พร้อมจำนวนเงิน,
      curriculum) พร้อม confidence score ต่อฟิลด์
+   - **Safety pass:** นำทางไปหน้า Safety/Safeguarding Policy แยกอีกรอบ สกัดมาตรการความปลอดภัย
+     (รปภ., CCTV, ห้องพยาบาล, ระบบกรอง PM2.5, การควบคุมบุคคลภายนอก, นโยบายคุ้มครองเด็ก) ลงตาราง
+     `version_safety` — ฟิลด์ที่หาไม่เจอเก็บเป็น `null` **ห้ามเดาเป็น `false`** เพราะ "หาไม่เจอ"
+     กับ "โรงเรียนไม่มี" คนละความหมายกันและกระทบชื่อเสียงโรงเรียน (ดู UC-G02 E2b)
    - เนื้อหาเว็บถูกปฏิบัติเป็น untrusted data เสมอ ป้องกัน prompt injection
    - ผลลัพธ์ที่ต่างจากข้อมูล Published เดิมอย่างมีนัยสำคัญ → สร้างเวอร์ชันใหม่สถานะ
      `pending_review` ส่งเข้าคิว Admin (UC-A04) ไม่ auto-publish เอง
@@ -157,9 +186,9 @@ Postgres instance เดียวของ Supabase project เดียวก�
 | Service | Schema | ตารางที่เป็นเจ้าของ | Edge Function ประจำ Service |
 |---|---|---|---|
 | **School Data Service** | `school_data` | `schools`, `school_versions`, `school_scrape_log` | `school-data-api` (search/get/compare — ใช้ทั้งจาก Frontend และจาก Service อื่น) |
-| **Community Service** | `community` | `reviews`, `data_correction_reports` | ไม่มี (CRUD ธรรมดาผ่าน Auto-API + RLS พอ) |
-| **User Service** | `user_data` | `children_profiles` 🔒, `favorites`, `comparison_sets` | `user-data-api` (ให้ Service อื่นดึงสรุปโปรไฟล์แบบจำกัดสิทธิ์), `get-shared-comparison` (public endpoint สำหรับลิงก์แชร์ผลเปรียบเทียบ — UC-G07) |
-| **AI Service** | `ai` | `conversations`, `messages` | `chatbot-api`, `re-embed-handler` |
+| **Community Service** | `community` | `reviews`, `data_correction_reports`, `forum_posts`, `forum_comments`, `forum_reports` | ไม่มี (CRUD ธรรมดาผ่าน Auto-API + RLS พอ — ฟอรัมก็เป็น CRUD ตรงเช่นกัน ไม่ต้องมี Edge Function เพิ่ม) |
+| **User Service** | `user_data` | `user_accounts` (ฟิลด์ธุรกิจของบัญชี ผูก 1:1 กับ `auth.users`), `children_profiles` 🔒, `favorites`, `comparison_sets` | `user-data-api` (ให้ Service อื่นดึงสรุปโปรไฟล์/ชุดเปรียบเทียบแบบจำกัดสิทธิ์), `get-shared-comparison` (public endpoint สำหรับลิงก์แชร์ผลเปรียบเทียบ — UC-G07) |
+| **AI Service** | `ai` | `conversations`, `messages`, `school_embeddings` | `chatbot-api`, `re-embed-handler` |
 | **Ops Service** | `ops` | `audit_log`, `failed_jobs` | `pdf-export`, `notification-sender` |
 
 ### 4.2 Golden Rule — กติกาเดียวที่ทำให้เป็น Microservices จริง ไม่ใช่แค่แบ่งชื่อ schema
@@ -284,8 +313,12 @@ Auth, Cron ในที่เดียว) โดยไม่ต้องแล�
 
 - **Postgres + PostGIS + pgvector + Full-text search:** เก็บทุกตาราง แบ่งเป็น 5 schema ตาม
   Service (ดูหัวข้อ 4) — `school_data`, `community`, `user_data`, `ai`, `ops`, PostGIS
-  รองรับ query แผนที่, full-text search ของ Postgres พอสำหรับค้นหาชื่อโรงเรียนแบบ fuzzy
-  ไม่ต้องมี Elasticsearch แยก, pgvector เตรียมไว้สำหรับ semantic search ในอนาคต
+  รองรับ query แผนที่ — ส่วนการค้นหาชื่อโรงเรียนใช้ **`pg_trgm` (trigram) ไม่ใช่ full-text search**
+  เพราะ Postgres ไม่มี dictionary ภาษาไทย จึงตัดคำไทยไม่ได้ ทำให้ `to_tsvector` ใช้กับชื่อโรงเรียน
+  ภาษาไทยไม่ได้ผลจริง (แก้ไขใน v6.3 — รุ่นก่อนหน้าเขียนว่าใช้ full-text search ซึ่งใช้ไม่ได้จริง)
+  ขณะที่ `pg_trgm` ทำงานที่ระดับตัวอักษร จึงค้นได้ทั้งไทย/อังกฤษ และทนการพิมพ์ผิดตรงตามคำว่า
+  "fuzzy" ที่ต้องการอยู่แล้ว — ทั้งสองทางไม่ต้องมี Elasticsearch แยก, pgvector เตรียมไว้สำหรับ
+  semantic search ในอนาคต
 - **Storage:** เก็บโลโก้โรงเรียน — S3-compatible + CDN + resize รูปในตัว
 - **Auth + RLS:** login ของทั้ง 3 actor + policy ควบคุมสิทธิ์อ่าน/เขียนต่อ table **และ**
   บังคับ ownership boundary ระหว่าง schema ตาม Golden Rule ของแต่ละ Service (ดูหัวข้อ 4.2)
@@ -306,11 +339,11 @@ Auth, Cron ในที่เดียว) โดยไม่ต้องแล�
 | Function | ใช้อะไร | เพื่ออะไร | ทำงานยังไง |
 |---|---|---|---|
 | **`school-data-api`** | Query ตรงบน schema `school_data` ของตัวเอง | เป็น API ตัวแทนของ School Data Service ให้ Service อื่นเรียกข้อมูลข้าม service ได้โดยไม่ผิด Golden Rule | expose `search_schools`, `get_school_details`, `compare_schools` — เรียกจาก Chatbot, Re-embed handler, PDF Export ผ่าน internal service secret (ดูหัวข้อ 4.4) |
-| **`user-data-api`** | Query ตรงบน schema `user_data` ของตัวเอง | เป็น API ตัวแทนของ User Service ให้ Service อื่นดึงข้อมูลผู้ใช้แบบจำกัดสิทธิ์ | expose `get_profile_summary(user_id)` — ตรวจ JWT ของ user เดิมที่ forward มาเสมอ ไม่ใช้ service role ข้ามสิทธิ์ |
+| **`user-data-api`** | Query ตรงบน schema `user_data` ของตัวเอง | เป็น API ตัวแทนของ User Service ให้ Service อื่นดึงข้อมูลผู้ใช้แบบจำกัดสิทธิ์ | expose `get_profile_summary(user_id)` (ให้ Chatbot ใช้เสริม context) และ `get_comparison_set(comparison_id)` (ให้ PDF Export ของ Ops Service ดึงชุดเปรียบเทียบที่ผู้ใช้บันทึกไว้ ตามตาราง 4.3) — ทั้งสองตรวจ JWT ของ user เดิมที่ forward มาเสมอ ไม่ใช้ service role ข้ามสิทธิ์ |
 | **`get-shared-comparison`** (User Service) | Query `comparison_sets` ด้วย Service Role (bypass RLS โดยตั้งใจ) + เรียก `school-data-api` | เป็น public read-only endpoint ให้ Guest เปิดลิงก์แชร์ดูได้โดยไม่ต้อง login (UC-G07) | รับ `share_token` → เช็ค `share_enabled=true` → เรียก `school-data-api` ดึงรายละเอียดโรงเรียนล่าสุดตาม `school_ids` → คืนเฉพาะ field ที่จำเป็น (`name`, รายละเอียดโรงเรียน) **ไม่คืน `user_id`** — มี rate limit ต่อ IP กัน abuse (ดู UC-G07 E3) |
 | **Chatbot tool-calling** (`chatbot-api`, AI Service) | Claude/Gemini + function calling | ตอบคำถามผู้ปกครองโดยอ้างอิงข้อมูลจริงเสมอ ไม่เดาตัวเลข | AI เรียก tool ที่ภายในยิง HTTP ไปหา `school-data-api` (`search_schools`/`get_school_details`/`compare_schools`) และ `user-data-api` (โปรไฟล์บุตรหลาน) แทนการ query schema อื่นตรงๆ (ดูเหตุผลหัวข้อ 8) — คืนค่าเป็น structured output แยก `answer` กับ `suggested_replies` (array ของ Quick Reply 2-3 ข้อ) เสมอ ไม่ใช่ text ปนกัน เพื่อให้ Frontend render เป็นปุ่ม Guided Prompts ได้ตรงๆ (UC-U05) — มี rate limiter นับ request/user/ช่วงเวลา กันต้นทุนบาน |
 | **Re-embed handler** (AI Service) | รับ trigger จาก Database Webhook ของ School Data Service | ทำให้ pgvector อัปเดตตามข้อมูลล่าสุดเสมอเมื่อมีการ publish | เรียก `school-data-api` ดึงข้อความเวอร์ชันที่เพิ่ง publish → คำนวณ embedding → เขียนกลับ schema `ai` ของตัวเอง — ล้มเหลวก็ retry แบบ exponential backoff, พังซ้ำเข้า `failed_jobs` |
-| **PDF Export** (Ops Service) | PDF generation library | ให้ผู้ใช้ export ตารางเปรียบเทียบเป็น PDF ได้ (UC-U08) | เรียก `user-data-api` ดึง `comparison_sets` แล้วเรียก `school-data-api` ดึงรายละเอียดโรงเรียนแต่ละแห่ง → สร้าง PDF แบบ async, ใช้ snapshot ข้อมูล ณ ตอนกดสร้างเท่านั้น (ไม่ใช่ real-time — ต่างจาก `get-shared-comparison` ข้างบนที่ตั้งใจให้เป็น live เสมอ), เสร็จแล้วเรียก Notification sender |
+| **PDF Export** (Ops Service) | PDF generation library | ให้ผู้ใช้ export ตารางเปรียบเทียบเป็น PDF ได้ (UC-U08) | เรียก `user-data-api` (`get_comparison_set(comparison_id)`) ดึงชุดเปรียบเทียบที่บันทึกไว้ — จึง Export ได้เฉพาะชุดที่ผู้ใช้กด "บันทึก" แล้วเท่านั้นตาม UC-U08 E4 — แล้วเรียก `school-data-api` ดึงรายละเอียดโรงเรียนแต่ละแห่ง → สร้าง PDF แบบ async, ใช้ snapshot ข้อมูล ณ ตอนกดสร้างเท่านั้น (ไม่ใช่ real-time — ต่างจาก `get-shared-comparison` ข้างบนที่ตั้งใจให้เป็น live เสมอ), เสร็จแล้วเรียก Notification sender |
 | **Notification sender** (Ops Service) | Resend API | ส่งอีเมลยืนยัน/แจ้งสถานะ ticket/แจ้ง PDF เสร็จ | รับ event จาก 3 ทาง: (1)-(2) **Database Webhook** จาก `auth.users` (สมัครสมาชิก) และจาก `community.data_correction_reports` (ticket เปลี่ยนสถานะ) — ทั้งสองไม่ผ่าน Edge Function ต้นทาง ยิงตรงจาก Postgres trigger (ดูหัวข้อ 4.3.1) (3) เรียกภายใน Ops Service เองตอน PDF Export เสร็จ — รับแค่ payload สำเร็จรูป ไม่ต้องดึงข้อมูลข้าม Service เพิ่มเอง |
 
 ---
@@ -320,9 +353,16 @@ Auth, Cron ในที่เดียว) โดยไม่ต้องแล�
 | Schema (Service) | ตาราง | เก็บอะไร | มาจาก Use Case |
 |---|---|---|---|
 | `school_data` (School Data Service) | `schools`, `school_versions` | `schools` เป็น pointer เบาๆ (status enum `active`/`archived` + `current_published_version_id`), `school_versions` เป็น log แบบ full-snapshot (JSONB) ต่อเวอร์ชัน มี `version_number`/`parent_version_id` เองสำหรับ Optimistic Locking และ status enum ของตัวเอง (`pending_review`/`approved`/`rejected`/`published`/`superseded`) | UC-A01 ถึง A04 |
+| `school_data` (School Data Service) | `version_fees`, `version_extra_fees` | ค่าเทอมรายชั้นและค่าใช้จ่ายแฝง normalize ออกจาก `data_snapshot` เป็นคอลัมน์ `numeric` พร้อม `academic_year`/`source_published_at` กำกับรายแถว — JSONB เก็บไว้เป็น provenance ดิบเท่านั้น ระบบอ่านค่าจริงจาก 2 ตารางนี้ (ดู Use Case doc หัวข้อ 7.3, 7.14-7.15) | UC-U03, U04, A03 |
+| `school_data` (School Data Service) | `curriculums`, `curriculum_aliases`, `school_curriculums`, `grade_levels`, `grade_level_aliases`, `school_levels` | ตาราง lookup + alias สำหรับ normalize หลักสูตร/ระดับชั้นที่ OPEC ส่งมาเป็น free-text ภาษาไทยไม่มีมาตรฐาน — ถ้าไม่มีชั้นนี้ ตัวกรองของ UC-G01 จะกรองไม่เจอโรงเรียนจำนวนมาก (Use Case doc หัวข้อ 7.16) | UC-G01, A02 |
+| `school_data` (School Data Service) | `version_safety` | มาตรการความปลอดภัย/นโยบายคุ้มครองเด็กต่อเวอร์ชัน — ทุกฟิลด์ boolean เป็น nullable โดยเจตนา (`null` = ระบบหาไม่เจอ ไม่ใช่ไม่มี) | UC-G02, UC-U03, UC-A03 |
 | `school_data` (School Data Service) | `school_scrape_log` | log การทำงานของ Phase 3 พร้อม reasoning ของ AI | UC-A03 |
 | `community` (Community Service) | `reviews` | รีวิว/คะแนน สถานะ pending/approved/rejected | UC-G04, U06, A06 |
 | `community` (Community Service) | `data_correction_reports` | ticket แจ้งข้อมูลผิด (รวมจำนวนคนแจ้งซ้ำ) | UC-U07, A11 |
+| `community` (Community Service) | `forum_posts`, `forum_comments` | กระทู้/ความคิดเห็นในฟอรัมผู้ปกครอง — สถานะ default เป็น `approved` (Post-Moderation) ต่างจาก `reviews` ที่ default `pending` | UC-G08, U09, A12 |
+| `community` (Community Service) | `report_submissions`, `forum_likes` | ตารางเชื่อมที่บังคับ "1 บัญชีทำได้ครั้งเดียว" ที่ระดับ database (แจ้งข้อมูลผิดซ้ำ / กดถูกใจ) แทนการเขียน logic กันเองในโค้ด | UC-U07, U09 |
+| `community` (Community Service) | `forum_reports` | รายการที่ผู้ใช้กดรายงานเนื้อหา 1 บัญชีต่อ 1 เนื้อหา ใช้จัดลำดับความสำคัญให้ Admin เท่านั้น ไม่ซ่อนเนื้อหาอัตโนมัติ | UC-U09, A12 |
+| `user_data` (User Service) | `user_accounts` | ฟิลด์ธุรกิจของบัญชี (`status`, `deletion_requested_at`) ที่เพิ่มเข้า `auth.users` ตรงๆ ไม่ได้ ผูก 1:1 กับ `auth.users.id` — เป็น FK anchor ให้ตารางอื่นใน `user_data` | UC-U01, UC-A05 |
 | `user_data` (User Service) | `children_profiles` 🔒 | ข้อมูลบุตรหลาน (อายุ, งบ, หลักสูตรที่สนใจ) — **sensitive ตาม PDPA** | UC-U01 |
 | `user_data` (User Service) | `favorites` | โรงเรียนที่ผู้ใช้บันทึกไว้ (เก็บแค่ `school_id` อ้างอิง ไม่ join ข้าม schema ระดับ DB) | UC-U02 |
 | `user_data` (User Service) | `comparison_sets` | ชุดเปรียบเทียบที่บันทึกไว้ (เก็บ `school_ids` อ้างอิงแบบ array) + `share_token`/`share_enabled` สำหรับลิงก์แชร์แบบ public read-only | UC-U03, U08, G07 |
@@ -363,8 +403,8 @@ pgvector (เก็บใน `ai.school_embeddings` — ดูหัวข้อ
 
 | แอป | ใช้อะไร | เพื่ออะไร |
 |---|---|---|
-| Admin Dashboard | React + SWR, เรียก Supabase Auto-API ของ**ทุก schema** (`school_data`, `community`, `user_data`, `ai`, `ops`) + Auth ตามสิทธิ์ RLS ของ role admin | ตรวจ diff ข้อมูลจาก Scraper พร้อม reasoning ของ AI, จัดการรีวิว/ticket, จัดการบัญชีผู้ใช้รวมถึง soft-delete ข้อมูลใน `user_data` (UC-A05), ดูบทสนทนา AI เพื่อตรวจสอบ (UC-A08, ต้อง `ai` schema), ดู audit log |
-| Public Web | React + SWR, เรียก Supabase Auto-API ของแต่ละ schema ตรง (`school_data` ค้นหา, `community` รีวิว, `user_data` โปรด/เปรียบเทียบ — เฉพาะของบัญชีตัวเอง ผ่าน RLS) + `get-shared-comparison` (User Service) สำหรับหน้าลิงก์แชร์โดยเฉพาะ | ค้นหา/กรอง, แผนที่ (PostGIS), รีวิว, เปรียบเทียบ, เครื่องคำนวณค่าใช้จ่าย (เฉพาะสมาชิก), ดูหน้าเปรียบเทียบที่ถูกแชร์แบบไม่ต้อง login (UC-G07) |
+| Admin Dashboard | React + SWR, เรียก Supabase Auto-API ของ**ทุก schema** (`school_data`, `community`, `user_data`, `ai`, `ops`) + Auth ตามสิทธิ์ RLS ของ role admin | ตรวจ diff ข้อมูลจาก Scraper พร้อม reasoning ของ AI, จัดการรีวิว/ticket/เนื้อหาฟอรัมที่ถูกรายงาน (UC-A12), จัดการบัญชีผู้ใช้รวมถึง soft-delete ข้อมูลใน `user_data` (UC-A05), ดูบทสนทนา AI เพื่อตรวจสอบ (UC-A08, ต้อง `ai` schema), ดู audit log |
+| Public Web | React + SWR, เรียก Supabase Auto-API ของแต่ละ schema ตรง (`school_data` ค้นหา, `community` รีวิว, `user_data` โปรด/เปรียบเทียบ — เฉพาะของบัญชีตัวเอง ผ่าน RLS) + `get-shared-comparison` (User Service) สำหรับหน้าลิงก์แชร์โดยเฉพาะ | ค้นหา/กรอง, แผนที่ (PostGIS), รีวิว, ฟอรัมผู้ปกครอง (อ่านได้ทุกคน เขียนเฉพาะสมาชิก — UC-G08/U09), เปรียบเทียบ, เครื่องคำนวณค่าใช้จ่าย (เฉพาะสมาชิก), ดูหน้าเปรียบเทียบที่ถูกแชร์แบบไม่ต้อง login (UC-G07) |
 | Chatbot UI | React, เรียก `chatbot-api` (AI Service) ตัวเดียว | สนทนา + ขอคำแนะนำโรงเรียนแบบ personalized (เฉพาะสมาชิก) — ฝั่ง client ไม่ต้องรู้เลยว่า Chatbot ไปเรียก School Data/User Service ต่ออีกที |
 
 **หมายเหตุ:** Frontend เรียก Auto-API ของหลาย schema ตรงๆ ได้ (client เรียก "API สาธารณะ" ของ
@@ -493,9 +533,23 @@ Leaflet/Mapbox) และตารางเปรียบเทียบ (UC-U0
 | Merge เข้า `main` | Deploy Frontend (Vercel/Netlify auto-deploy จาก Git) + `supabase functions deploy` (Edge Functions ทั้ง 7 ตัว) + รัน DB migration ที่เก็บเป็นไฟล์ version control (Supabase CLI migration) |
 | ก่อน Deploy Production | รัน k6 load test แบบย่อ (smoke test) — ถ้า error rate/latency ผิดปกติ หยุด pipeline ไม่ deploy ต่อ |
 
-**Environment แยก:** ใช้ Supabase project คนละตัวสำหรับ Dev/Staging และ Production (แยก
-`school_data`/`community`/`user_data`/`ai`/`ops` schema ชุดเดียวกันแต่คนละ instance) กัน bug
-ตอนพัฒนาไปกระทบข้อมูลจริงของผู้ปกครองที่ใช้งานอยู่
+**Environment แยก (ปรับใน v6.3 ให้อยู่ในเพดาน Free tier):** Supabase Free plan ให้ **active
+project ได้สูงสุด 2 ตัว** แผนเดิมที่เขียนไว้ว่าจะแยก Dev/Staging/Production เป็น 3 project จึงทำ
+ไม่ได้จริงโดยไม่เสียเงิน — ปรับเป็น:
+
+| Environment | ใช้อะไร | เหตุผล |
+|---|---|---|
+| **Dev** | **Supabase CLI รัน local ด้วย Docker** (`supabase start`) | ฟรี ไม่จำกัดจำนวน ไม่นับโควตา cloud และได้ Postgres/Auth/Storage/Edge Functions ครบเหมือนของจริง เหมาะกับการรัน migration/pgTAP ซ้ำๆ ตอนพัฒนา |
+| **Staging** | Supabase cloud project ที่ 1 | ใช้ทดสอบก่อน deploy จริงและใช้ตอน demo/UAT |
+| **Production** | Supabase cloud project ที่ 2 | ข้อมูลผู้ปกครองจริง |
+
+ทุก environment ใช้ schema ชุดเดียวกัน (`school_data`/`community`/`user_data`/`ai`/`ops`) แต่คนละ
+instance กัน bug ตอนพัฒนาไปกระทบข้อมูลจริง
+
+**⚠️ ข้อควรระวังของ Free tier ที่กระทบวัน demo:** โปรเจกต์ Supabase บน Free plan **ถูกหยุด
+อัตโนมัติเมื่อไม่มี activity ครบ 1 สัปดาห์** และตอนหยุด `pg_cron` ก็ไม่ทำงานด้วย — ต้องตั้ง
+GitHub Actions cron ยิง health-check สัปดาห์ละครั้ง (ใช้โควตาฟรีของ GitHub) และซ้อม restore
+ล่วงหน้าอย่างน้อย 1 วันก่อนวันสอบ ไม่ใช่มารู้ตอนเปิดเว็บหน้างาน
 
 ### 13.3 Centralized Logging & Error Tracking
 
