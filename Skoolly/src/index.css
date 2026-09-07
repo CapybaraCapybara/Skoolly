@@ -56,21 +56,32 @@ body {
 }
 
 
-.star-rating {
-  color: #f59e0b;
-}
-
 input[type="range"] {
   accent-color: #0f9488;
 }
 
-.compare-bar {
+.compare-bar,
+/* used by the admin toast — Tailwind has no built-in `animate-slideUp` */
+.animate-slideUp {
   animation: slideUp 0.3s ease;
 }
 
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* used by the admin scroll panes — not a Tailwind v4 core utility */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, currentColor 25%, transparent);
+  border-radius: 999px;
 }
 
 .card-hover {

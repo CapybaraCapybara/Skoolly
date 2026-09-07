@@ -8,6 +8,7 @@ services = [
     ("Scraper Service", "scraper_service.py", 8001),
     ("Validator Service", "validator_service.py", 8002),
     ("Database Service", "db_service.py", 8003),
+    ("OPEC Service", "opec_service.py", 8004),
 ]
 
 processes = []

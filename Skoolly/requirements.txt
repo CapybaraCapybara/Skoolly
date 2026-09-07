@@ -3,3 +3,9 @@ beautifulsoup4
 python-dotenv
 playwright
 google-genai
+fastapi
+uvicorn
+pydantic
+requests
+urllib3
+psycopg[binary]

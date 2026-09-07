@@ -36,6 +36,8 @@ interface NavbarProps {
   onCalculator?: () => void;
   onForum?: () => void;
   onHome?: () => void;
+  onAdmin?: () => void;
+  onScrape?: () => void;
 }
 
 export function Navbar({
@@ -46,6 +48,8 @@ export function Navbar({
   onCalculator,
   onForum,
   onHome,
+  onAdmin,
+  onScrape,
 }: NavbarProps) {
   return (
     <div className="relative w-full py-4 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: 'blur(12px)' }}>
@@ -206,6 +210,19 @@ export function Navbar({
                     Community
                   </NavigationMenuLink>
                 </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <button
+                    type="button"
+                    onClick={onScrape || onAdmin}
+                    className="flex items-center gap-1.5 rounded-full bg-warm-card px-3.5 py-1.5 text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs ml-1 cursor-pointer"
+                    title="Scrape Management (Admin)"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Scrape</span>
+                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
+                  </button>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -258,7 +275,7 @@ export function Navbar({
                       Cost Calculator
                     </button>
 
-                    <Accordion type="single" collapsible className="w-full">
+                    <Accordion className="w-full">
                       <AccordionItem value="criteria" className="border-none">
                         <AccordionTrigger className="justify-between py-0 text-base font-medium text-neutral-900 hover:no-underline dark:text-neutral-50">
                           Find by Criteria
@@ -295,6 +312,13 @@ export function Navbar({
                     </button>
                     <button onClick={onForum} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
                       Community
+                    </button>
+                    <button type="button" onClick={onScrape || onAdmin} className="text-left text-base font-semibold text-warm-charcoal hover:text-warm-bronze flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Scrape Management
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
                     </button>
                   </div>
 
