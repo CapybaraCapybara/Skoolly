@@ -66,22 +66,22 @@ export function Navbar({
             </span>
           </button>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:block">
+          {/* Desktop & Tablet Navigation */}
+          <div className="hidden md:block">
             <NavigationMenu
               className={cn(
                 'static',
                 '[&>div:last-child]:inset-x-0 [&>div:last-child]:top-full [&>div:last-child]:w-full',
-                '[&_[data-slot=navigation-menu-viewport]]:mx-auto [&_[data-slot=navigation-menu-viewport]]:-mt-6 [&_[data-slot=navigation-menu-viewport]]:max-w-4xl [&_[data-slot=navigation-menu-viewport]]:ring-0',
+                '[&_[data-slot=navigation-menu-viewport]]:mx-auto [&_[data-slot=navigation-menu-viewport]]:-mt-6 [&_[data-slot=navigation-menu-viewport]]:max-w-[calc(100vw-2rem)] [&_[data-slot=navigation-menu-viewport]]:md:max-w-3xl [&_[data-slot=navigation-menu-viewport]]:lg:max-w-4xl [&_[data-slot=navigation-menu-viewport]]:ring-0',
                 '[&_[data-slot=navigation-menu-viewport]]:rounded-[2rem] [&_[data-slot=navigation-menu-viewport]]:border [&_[data-slot=navigation-menu-viewport]]:border-warm-accent',
                 '[&_[data-slot=navigation-menu-viewport]]:bg-warm-cream [&_[data-slot=navigation-menu-viewport]]:shadow-2xl',
                 '[&_[data-slot=navigation-menu-viewport]]:transition-all [&_[data-slot=navigation-menu-viewport]]:duration-300 [&_[data-slot=navigation-menu-viewport]]:ease-in-out',
               )}
             >
-              <NavigationMenuList className="gap-0.5 xl:gap-1 flex-nowrap">
+              <NavigationMenuList className="gap-0.5 lg:gap-1 flex-nowrap">
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
+                    className="rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                     href="#schools"
                     onClick={(e) => {
                       e.preventDefault();
@@ -99,14 +99,14 @@ export function Navbar({
                       e.preventDefault();
                       onCalculator?.();
                     }}
-                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
+                    className="rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Cost Calculator
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
+                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
                     Find by Criteria
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
@@ -159,11 +159,11 @@ export function Navbar({
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
+                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
                     AI Tools
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
-                    <div className="grid w-md grid-cols-1 gap-4 px-6 py-6">
+                    <div className="grid w-md max-w-[calc(100vw-3rem)] grid-cols-1 gap-4 px-6 py-6">
                       <a href="#features" className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 hover:border-warm-bronze transition-all">
                         <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white bg-warm-charcoal">
                           <MessageSquare className="h-5 w-5" />
@@ -187,11 +187,11 @@ export function Navbar({
                       e.preventDefault();
                       onCompare?.();
                     }}
-                    className="flex items-center gap-1 rounded-full bg-transparent px-2 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
+                    className="flex items-center gap-1 rounded-full bg-transparent px-1.5 lg:px-2 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Compare
                     {compareCount > 0 && (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-warm-bronze">
+                      <span className="flex h-3.5 w-3.5 lg:h-4 lg:w-4 items-center justify-center rounded-full text-[9px] lg:text-[10px] font-bold text-white bg-warm-bronze">
                         {compareCount}
                       </span>
                     )}
@@ -205,7 +205,7 @@ export function Navbar({
                       e.preventDefault();
                       onForum?.();
                     }}
-                    className="rounded-full bg-transparent px-2 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
+                    className="rounded-full bg-transparent px-1.5 lg:px-2 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Community
                   </NavigationMenuLink>
@@ -215,12 +215,12 @@ export function Navbar({
                   <button
                     type="button"
                     onClick={onScrape || onAdmin}
-                    className="flex items-center gap-1.5 rounded-full bg-warm-card px-2.5 xl:px-3 py-1 text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs whitespace-nowrap cursor-pointer shrink-0"
+                    className="flex items-center gap-1 rounded-full bg-warm-card px-2 lg:px-2.5 xl:px-3 py-1 text-[11px] md:text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs whitespace-nowrap cursor-pointer shrink-0"
                     title="Scrape Management (Admin)"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span>Scrape</span>
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
+                    <span className="hidden sm:inline text-[9px] uppercase tracking-wider font-extrabold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
                   </button>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -241,14 +241,14 @@ export function Navbar({
             </div>
             <Button
               onClick={onSignUp}
-              className="hidden rounded-full px-3.5 xl:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white md:block bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap"
+              className="hidden rounded-full px-3 lg:px-3.5 xl:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white md:block bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap"
             >
               Sign Up Free
             </Button>
 
 
-            {/* Mobile */}
-            <div className="lg:hidden">
+            {/* Mobile (only on < md) */}
+            <div className="md:hidden">
               <Sheet>
                 <SheetTrigger className="inline-flex items-center justify-center rounded-full p-2 text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors">
                   <Menu className="size-5" />
