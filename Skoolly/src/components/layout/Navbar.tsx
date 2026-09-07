@@ -53,11 +53,11 @@ export function Navbar({
 }: NavbarProps) {
   return (
     <div className="relative w-full py-4 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: 'blur(12px)' }}>
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-center px-4 sm:px-6">
         {/* Floating Navbar Pill */}
-        <div className="flex h-16 w-full max-w-5xl items-center justify-between gap-2 rounded-full border border-warm-accent bg-warm-cream pr-3 shadow-sm">
+        <div className="flex h-16 w-full max-w-6xl items-center justify-between gap-1 xl:gap-2 rounded-full border border-warm-accent bg-warm-cream px-3 sm:px-4 shadow-sm">
           {/* Logo */}
-          <button onClick={onHome} className="flex items-center gap-2 pr-4 pl-5 hover:opacity-80 transition-opacity">
+          <button onClick={onHome} className="flex items-center gap-2 pr-2 pl-2 sm:pl-3 hover:opacity-80 transition-opacity shrink-0">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg text-white bg-warm-bronze">
               <BookOpen className="size-4" />
             </div>
@@ -78,10 +78,10 @@ export function Navbar({
                 '[&_[data-slot=navigation-menu-viewport]]:transition-all [&_[data-slot=navigation-menu-viewport]]:duration-300 [&_[data-slot=navigation-menu-viewport]]:ease-in-out',
               )}
             >
-              <NavigationMenuList className="gap-1">
+              <NavigationMenuList className="gap-0.5 xl:gap-1 flex-nowrap">
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
+                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                     href="#schools"
                     onClick={(e) => {
                       e.preventDefault();
@@ -99,14 +99,14 @@ export function Navbar({
                       e.preventDefault();
                       onCalculator?.();
                     }}
-                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
+                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Cost Calculator
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent">
+                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
                     Find by Criteria
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
@@ -159,7 +159,7 @@ export function Navbar({
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent">
+                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
                     AI Tools
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
@@ -187,7 +187,7 @@ export function Navbar({
                       e.preventDefault();
                       onCompare?.();
                     }}
-                    className="flex items-center gap-1.5 rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
+                    className="flex items-center gap-1 rounded-full bg-transparent px-2 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Compare
                     {compareCount > 0 && (
@@ -205,7 +205,7 @@ export function Navbar({
                       e.preventDefault();
                       onForum?.();
                     }}
-                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer"
+                    className="rounded-full bg-transparent px-2 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Community
                   </NavigationMenuLink>
@@ -215,12 +215,12 @@ export function Navbar({
                   <button
                     type="button"
                     onClick={onScrape || onAdmin}
-                    className="flex items-center gap-1.5 rounded-full bg-warm-card px-3.5 py-1.5 text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs ml-1 cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-full bg-warm-card px-2.5 xl:px-3 py-1 text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs whitespace-nowrap cursor-pointer shrink-0"
                     title="Scrape Management (Admin)"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span>Scrape</span>
-                    <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
                   </button>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -228,20 +228,20 @@ export function Navbar({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-1 md:flex">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="hidden items-center gap-1 sm:flex">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onLogin}
-                className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50"
+                className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50 size-8"
               >
                 <User className="size-4" />
               </Button>
             </div>
             <Button
               onClick={onSignUp}
-              className="hidden rounded-full px-5 text-sm font-semibold text-white md:block bg-warm-charcoal hover:bg-warm-charcoal/90"
+              className="hidden rounded-full px-3.5 xl:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white md:block bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap"
             >
               Sign Up Free
             </Button>
