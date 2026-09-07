@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import subprocess
+import threading
 
 services = [
     ("Orchestrator", "orchestrator.py", 8000),
@@ -13,19 +14,47 @@ services = [
 
 processes = []
 
+# Detect virtual environment Python
+dir_path = os.path.dirname(os.path.abspath(__file__))
+venv_candidates = [
+    os.path.join(dir_path, "..", ".venv", "Scripts", "python.exe"),
+    os.path.join(dir_path, "..", ".venv", "bin", "python"),
+    os.path.join(dir_path, ".venv", "Scripts", "python.exe"),
+    os.path.join(dir_path, ".venv", "bin", "python"),
+]
+
+python_bin = sys.executable
+for candidate in venv_candidates:
+    if os.path.isfile(candidate):
+        python_bin = os.path.abspath(candidate)
+        break
+
 # Set environment variable to force UTF-8 for subprocesses
 env = os.environ.copy()
 env["PYTHONIOENCODING"] = "utf-8"
 
+def stream_logs(service_name: str, pipe):
+    try:
+        for line in iter(pipe.readline, ''):
+            if line:
+                print(f"[{service_name}] {line.rstrip()}")
+    except Exception:
+        pass
+    finally:
+        try:
+            pipe.close()
+        except Exception:
+            pass
+
 try:
     print("[INFO] Starting Skoolly microservices (Saga Pattern)...")
-    dir_path = os.path.dirname(os.path.abspath(__file__))
+    print(f"[INFO] Python Interpreter: {python_bin}")
     
     for name, script, port in services:
         script_path = os.path.join(dir_path, script)
         print(f"  -> Starting {name} on port {port}...")
         p = subprocess.Popen(
-            [sys.executable, script_path],
+            [python_bin, script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -34,10 +63,16 @@ try:
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
         )
         processes.append((name, p))
-        time.sleep(1.5)
+        
+        # Start log streamer thread
+        t = threading.Thread(target=stream_logs, args=(name, p.stdout), daemon=True)
+        t.start()
+        
+        time.sleep(1.0)
 
     print("\n[SUCCESS] All microservices started successfully! Press Ctrl+C to terminate.")
     print("Saga Orchestrator is listening at: http://localhost:8000")
+    print("OPEC Service is listening at:      http://localhost:8004")
     print("----------------------------------------------------------------------")
 
     # Monitor processes
@@ -59,3 +94,4 @@ except KeyboardInterrupt:
         except Exception:
             p.kill()
     print("[INFO] Shutdown complete.")
+
