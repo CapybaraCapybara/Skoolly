@@ -15,6 +15,7 @@ export interface School {
   grades: string;
   image: string;
   badge?: string | null;
+  lastUpdated?: string;
 }
 
 // ─── School Detail (extended — stored in DB, fetched on demand) ───────────────
@@ -42,6 +43,19 @@ export interface SchoolDetail {
   gallery: string[];
   facilities: string[];
   reviews: SchoolReview[];
+  safety?: {
+    securityGuards?: string;
+    cctv?: string;
+    medicalNurse?: string;
+    safeguardingPolicy?: string;
+    airQualityPM25?: string;
+    visitorControl?: string;
+    emergencyDrill?: string;
+    summary?: string;
+    highlights?: string[];
+    policyUrl?: string;
+  };
+  lastUpdated?: string;
 }
 
 // ─── Filters (UI state only — not persisted) ──────────────────────────────────

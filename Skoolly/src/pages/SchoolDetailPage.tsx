@@ -27,6 +27,26 @@ interface SchoolDetailPageProps {
   onOpenCalculator?: () => void;
 }
 
+// ─── Format date helper ───────────────────────────────────────────────────────
+function formatLastUpdated(val?: string | number): string {
+  if (!val) return "September 2026";
+  const str = String(val).trim();
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed) && (str.includes("-") || str.includes("/"))) {
+    try {
+      const d = new Date(parsed);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return str;
+    }
+  }
+  return str;
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: SchoolDetailPageProps) {
   const [tab, setTab] = useState("Overview");
@@ -45,6 +65,14 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
     );
   }
 
+  const rawLastUpdated =
+    detail.lastUpdated ||
+    school.lastUpdated ||
+    (detail as any).last_updated ||
+    (detail as any).updated_at ||
+    (school as any).last_updated;
+  const lastUpdatedDisplay = formatLastUpdated(rawLastUpdated);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
@@ -54,10 +82,28 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
           alt={school.name}
           className="w-full h-full object-cover opacity-60"
         />
-        {/* Draft watermark */}
-        <div className="absolute top-4 right-4 bg-amber-400 text-amber-900 text-xs font-black px-3 py-1 rounded-full rotate-2 shadow-lg">
-          PROTOTYPE DRAFT
+
+        {/* Top-right badges: Last updated date & Draft watermark */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2.5">
+          {/* Last updated badge (circled in red by user) */}
+          <div
+            id="school-last-updated-badge"
+            className="flex items-center gap-1.5 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white text-xs font-medium px-3.5 py-1.5 rounded-full shadow-md transition-all select-none"
+            title="Last updated date"
+          >
+            <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-slate-300">Updated:</span>
+            <span className="font-semibold text-white">{lastUpdatedDisplay}</span>
+          </div>
+
+          {/* Draft watermark */}
+          <div className="bg-amber-400 text-amber-900 text-xs font-black px-3 py-1 rounded-full rotate-2 shadow-lg select-none">
+            PROTOTYPE DRAFT
+          </div>
         </div>
+
         <div
           className="absolute inset-0"
           style={{ background: "linear-gradient(to top, rgba(10,22,40,0.85) 0%, transparent 60%)" }}
