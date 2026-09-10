@@ -24,10 +24,31 @@ interface SchoolDetailPageProps {
   school: School;
   onBack: () => void;
   onForum: () => void;
+  onOpenCalculator?: () => void;
+}
+
+// ─── Format date helper ───────────────────────────────────────────────────────
+function formatLastUpdated(val?: string | number): string {
+  if (!val) return "September 2026";
+  const str = String(val).trim();
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed) && (str.includes("-") || str.includes("/"))) {
+    try {
+      const d = new Date(parsed);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return str;
+    }
+  }
+  return str;
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
-export function SchoolDetailPage({ school, onBack, onForum }: SchoolDetailPageProps) {
+export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: SchoolDetailPageProps) {
   const [tab, setTab] = useState("Overview");
   const [detail, setDetail] = useState<SchoolDetail | null>(null);
 
@@ -44,6 +65,14 @@ export function SchoolDetailPage({ school, onBack, onForum }: SchoolDetailPagePr
     );
   }
 
+  const rawLastUpdated =
+    detail.lastUpdated ||
+    school.lastUpdated ||
+    (detail as any).last_updated ||
+    (detail as any).updated_at ||
+    (school as any).last_updated;
+  const lastUpdatedDisplay = formatLastUpdated(rawLastUpdated);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
@@ -53,10 +82,28 @@ export function SchoolDetailPage({ school, onBack, onForum }: SchoolDetailPagePr
           alt={school.name}
           className="w-full h-full object-cover opacity-60"
         />
-        {/* Draft watermark */}
-        <div className="absolute top-4 right-4 bg-amber-400 text-amber-900 text-xs font-black px-3 py-1 rounded-full rotate-2 shadow-lg">
-          PROTOTYPE DRAFT
+
+        {/* Top-right badges: Last updated date & Draft watermark */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2.5">
+          {/* Last updated badge (circled in red by user) */}
+          <div
+            id="school-last-updated-badge"
+            className="flex items-center gap-1.5 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white text-xs font-medium px-3.5 py-1.5 rounded-full shadow-md transition-all select-none"
+            title="Last updated date"
+          >
+            <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-slate-300">Updated:</span>
+            <span className="font-semibold text-white">{lastUpdatedDisplay}</span>
+          </div>
+
+          {/* Draft watermark */}
+          <div className="bg-amber-400 text-amber-900 text-xs font-black px-3 py-1 rounded-full rotate-2 shadow-lg select-none">
+            PROTOTYPE DRAFT
+          </div>
         </div>
+
         <div
           className="absolute inset-0"
           style={{ background: "linear-gradient(to top, rgba(10,22,40,0.85) 0%, transparent 60%)" }}
@@ -108,8 +155,8 @@ export function SchoolDetailPage({ school, onBack, onForum }: SchoolDetailPagePr
               key={t}
               onClick={() => (t === "Forum" ? onForum() : setTab(t))}
               className={`px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t && t !== "Forum"
-                  ? "border-teal-500 text-teal-700"
-                  : "border-transparent text-slate-500 hover:text-navy-900"
+                ? "border-teal-500 text-teal-700"
+                : "border-transparent text-slate-500 hover:text-navy-900"
                 }`}
             >
               {t === "Forum" ? "💬 " + t : t}
@@ -273,12 +320,17 @@ export function SchoolDetailPage({ school, onBack, onForum }: SchoolDetailPagePr
                   </div>
                 ))}
               </div>
-              <div className="mt-5 bg-teal-50 border border-teal-200 rounded-xl p-4">
-                <div className="text-sm font-semibold text-teal-800 mb-1">12-Year Cost Estimate</div>
-                <div className="text-xs text-teal-700">
-                  Sign in to access the Personalised Cost Calculator — see total 12-year projections including registration, uniforms, transport, and activity fees, with PDF export.
+              <div className="mt-5 bg-warm-cream border border-warm-accent rounded-2xl p-5 shadow-2xs">
+                <div className="text-sm font-bold text-warm-charcoal mb-1">Interactive Multi-Year Cost Calculator</div>
+                <div className="text-xs text-warm-charcoal/70">
+                  Calculate full journey cost projections with exact grade tiers, registration fees, uniforms, school bus transport, and lunch catering.
                 </div>
-                <button className="mt-2 text-xs font-semibold text-teal-700 underline">Unlock calculator →</button>
+                <button
+                  onClick={onOpenCalculator}
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white bg-warm-bronze hover:bg-warm-bronze/90 transition-all shadow-xs"
+                >
+                  Open Cost Calculator for {school.name} →
+                </button>
               </div>
             </div>
           </div>

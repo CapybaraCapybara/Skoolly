@@ -28,11 +28,15 @@ function getMergedData(): Promise<MergedData> {
 
 async function loadMergedData(): Promise<MergedData> {
   // Clone seed data to avoid direct mutation issues
-  const schools = SCHOOLS_SEED.map((s) => ({ ...s }));
+  const schools = SCHOOLS_SEED.map((s) => ({
+    ...s,
+    lastUpdated: s.lastUpdated || "September 2026",
+  }));
   const details = Object.keys(SCHOOL_DETAILS_SEED).reduce((acc, key) => {
     const id = Number(key);
     acc[id] = {
       ...SCHOOL_DETAILS_SEED[id],
+      lastUpdated: SCHOOL_DETAILS_SEED[id]?.lastUpdated || "September 2026",
       fees: SCHOOL_DETAILS_SEED[id].fees.map((f) => ({ ...f })),
       accreditation: [...SCHOOL_DETAILS_SEED[id].accreditation],
       gallery: [...SCHOOL_DETAILS_SEED[id].gallery],
@@ -125,6 +129,20 @@ async function loadMergedData(): Promise<MergedData> {
                   highlights: Array.isArray(s.highlights) && s.highlights.length > 0 ? s.highlights : detailRecord.safety?.highlights || [],
                   policyUrl: s.policy_url || detailRecord.safety?.policyUrl || item.page_scraped,
                 };
+              }
+
+              // Scraped last updated date
+              const lastUpdatedScraped =
+                item.last_updated ||
+                item.lastUpdated ||
+                item.updated_at ||
+                item.updatedAt ||
+                item.scraped_at ||
+                item.last_scraped ||
+                item.date_updated;
+              if (lastUpdatedScraped) {
+                detailRecord.lastUpdated = String(lastUpdatedScraped);
+                matchedSchool.lastUpdated = String(lastUpdatedScraped);
               }
             }
           }

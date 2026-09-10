@@ -33,9 +33,11 @@ interface NavbarProps {
   onLogin?: () => void;
   compareCount?: number;
   onCompare?: () => void;
+  onCalculator?: () => void;
   onForum?: () => void;
   onHome?: () => void;
   onAdmin?: () => void;
+  onScrape?: () => void;
 }
 
 export function Navbar({
@@ -43,17 +45,19 @@ export function Navbar({
   onLogin,
   compareCount = 0,
   onCompare,
+  onCalculator,
   onForum,
   onHome,
   onAdmin,
+  onScrape,
 }: NavbarProps) {
   return (
     <div className="relative w-full py-4 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: 'blur(12px)' }}>
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-6">
+      <div className="mx-auto flex max-w-7xl items-center justify-center px-4 sm:px-6">
         {/* Floating Navbar Pill */}
-        <div className="flex h-16 w-full max-w-5xl items-center justify-between gap-2 rounded-full border border-warm-accent bg-warm-cream pr-3 shadow-sm">
+        <div className="flex h-16 w-full max-w-6xl items-center justify-between gap-1 xl:gap-2 rounded-full border border-warm-accent bg-warm-cream px-3 sm:px-4 shadow-sm">
           {/* Logo */}
-          <button onClick={onHome} className="flex items-center gap-2 pr-4 pl-5 hover:opacity-80 transition-opacity">
+          <button onClick={onHome} className="flex items-center gap-2 pr-2 pl-2 sm:pl-3 hover:opacity-80 transition-opacity shrink-0">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg text-white bg-warm-bronze">
               <BookOpen className="size-4" />
             </div>
@@ -62,30 +66,47 @@ export function Navbar({
             </span>
           </button>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:block">
+          {/* Desktop & Tablet Navigation */}
+          <div className="hidden md:block">
             <NavigationMenu
               className={cn(
                 'static',
                 '[&>div:last-child]:inset-x-0 [&>div:last-child]:top-full [&>div:last-child]:w-full',
-                '[&_[data-slot=navigation-menu-viewport]]:mx-auto [&_[data-slot=navigation-menu-viewport]]:-mt-6 [&_[data-slot=navigation-menu-viewport]]:max-w-4xl [&_[data-slot=navigation-menu-viewport]]:ring-0',
+                '[&_[data-slot=navigation-menu-viewport]]:mx-auto [&_[data-slot=navigation-menu-viewport]]:-mt-6 [&_[data-slot=navigation-menu-viewport]]:max-w-[calc(100vw-2rem)] [&_[data-slot=navigation-menu-viewport]]:md:max-w-3xl [&_[data-slot=navigation-menu-viewport]]:lg:max-w-4xl [&_[data-slot=navigation-menu-viewport]]:ring-0',
                 '[&_[data-slot=navigation-menu-viewport]]:rounded-[2rem] [&_[data-slot=navigation-menu-viewport]]:border [&_[data-slot=navigation-menu-viewport]]:border-warm-accent',
                 '[&_[data-slot=navigation-menu-viewport]]:bg-warm-cream [&_[data-slot=navigation-menu-viewport]]:shadow-2xl',
                 '[&_[data-slot=navigation-menu-viewport]]:transition-all [&_[data-slot=navigation-menu-viewport]]:duration-300 [&_[data-slot=navigation-menu-viewport]]:ease-in-out',
               )}
             >
-              <NavigationMenuList className="gap-1">
+              <NavigationMenuList className="gap-0.5 lg:gap-1 flex-nowrap">
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    className="rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze"
+                    className="rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                     href="#schools"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onHome?.();
+                    }}
                   >
                     Browse Schools
                   </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent">
+                  <NavigationMenuLink
+                    href="#calculator"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onCalculator?.();
+                    }}
+                    className="rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
+                  >
+                    Cost Calculator
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
                     Find by Criteria
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
@@ -138,11 +159,11 @@ export function Navbar({
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent">
+                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2 lg:px-2.5 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
                     AI Tools
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="p-0">
-                    <div className="grid w-2xl grid-cols-2 gap-6 px-8 py-8">
+                    <div className="grid w-md max-w-[calc(100vw-3rem)] grid-cols-1 gap-4 px-6 py-6">
                       <a href="#features" className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 hover:border-warm-bronze transition-all">
                         <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white bg-warm-charcoal">
                           <MessageSquare className="h-5 w-5" />
@@ -155,52 +176,51 @@ export function Navbar({
                           <p className="text-xs text-warm-charcoal/70">Chat with AI to get a personalised school shortlist based on your child's needs.</p>
                         </div>
                       </a>
-                      <a href="#features" className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 hover:border-warm-bronze transition-all">
-                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white bg-warm-bronze">
-                          <Calculator className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-warm-charcoal">Cost Calculator</h4>
-                            <Badge className="bg-warm-accent text-warm-charcoal text-[10px] px-1.5 rounded-full hover:bg-warm-accent">Premium</Badge>
-                          </div>
-                          <p className="text-xs text-warm-charcoal/70">12-year cost projection with multi-currency support and PDF export.</p>
-                        </div>
-                      </a>
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <button
-                    onClick={onCompare}
-                    className="flex items-center gap-1.5 rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze"
+                  <NavigationMenuLink
+                    href="#compare"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onCompare?.();
+                    }}
+                    className="flex items-center gap-1 rounded-full bg-transparent px-1.5 lg:px-2 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
                     Compare
                     {compareCount > 0 && (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-warm-bronze">
+                      <span className="flex h-3.5 w-3.5 lg:h-4 lg:w-4 items-center justify-center rounded-full text-[9px] lg:text-[10px] font-bold text-white bg-warm-bronze">
                         {compareCount}
                       </span>
                     )}
-                  </button>
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
-                  <button
-                    onClick={onForum}
-                    className="flex items-center gap-1.5 rounded-full bg-transparent px-4 py-2 text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze"
+                  <NavigationMenuLink
+                    href="#forum"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onForum?.();
+                    }}
+                    className="rounded-full bg-transparent px-1.5 lg:px-2 xl:px-3 py-1.5 text-[11px] md:text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
                   >
-                    💬 Community
-                  </button>
+                    Community
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 <NavigationMenuItem>
                   <button
                     type="button"
-                    onClick={onAdmin}
-                    className="flex items-center gap-1.5 rounded-full bg-[#faf5ee] px-3.5 py-1.5 text-xs font-bold text-[#ab8e72] border border-[#eae0d0] transition-all hover:bg-[#eae0d0]/50 hover:text-[#1c1917] shadow-xs ml-1"
+                    onClick={onScrape || onAdmin}
+                    className="flex items-center gap-1 rounded-full bg-warm-card px-2 lg:px-2.5 xl:px-3 py-1 text-[11px] md:text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs whitespace-nowrap cursor-pointer shrink-0"
+                    title="Scrape Management (Admin)"
                   >
-                    🏛️ OPEC Admin
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Scrape</span>
+                    <span className="hidden sm:inline text-[9px] uppercase tracking-wider font-extrabold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
                   </button>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -208,27 +228,27 @@ export function Navbar({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-1 md:flex">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="hidden items-center gap-1 sm:flex">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onLogin}
-                className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50"
+                className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50 size-8"
               >
                 <User className="size-4" />
               </Button>
             </div>
             <Button
               onClick={onSignUp}
-              className="hidden rounded-full px-5 text-sm font-semibold text-white md:block bg-warm-charcoal hover:bg-warm-charcoal/90"
+              className="hidden rounded-full px-3 lg:px-3.5 xl:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white md:block bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap"
             >
               Sign Up Free
             </Button>
 
 
-            {/* Mobile */}
-            <div className="lg:hidden">
+            {/* Mobile (only on < md) */}
+            <div className="md:hidden">
               <Sheet>
                 <SheetTrigger className="inline-flex items-center justify-center rounded-full p-2 text-neutral-700 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800 transition-colors">
                   <Menu className="size-5" />
@@ -244,7 +264,16 @@ export function Navbar({
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    <a href="#schools" className="text-base font-medium text-neutral-900 dark:text-neutral-50">Browse Schools</a>
+                    <button onClick={onHome} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
+                      Browse Schools
+                    </button>
+
+                    <button
+                      onClick={onCalculator}
+                      className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50"
+                    >
+                      Cost Calculator
+                    </button>
 
                     <Accordion className="w-full">
                       <AccordionItem value="criteria" className="border-none">
@@ -267,11 +296,11 @@ export function Navbar({
                         <AccordionContent className="mt-1 ml-2 flex !h-auto flex-col gap-2 border-l border-neutral-200 pb-0 pl-4 dark:border-neutral-800 [&_a]:no-underline">
                           <div className="flex flex-col gap-2 pt-3">
                             <a href="#features" className="text-sm font-medium text-neutral-600 hover:text-teal-600 dark:text-neutral-300">AI School Advisor</a>
-                            <a href="#features" className="text-sm font-medium text-neutral-600 hover:text-teal-600 dark:text-neutral-300">Cost Calculator</a>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
+
 
                     <button onClick={onCompare} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50 flex items-center gap-2">
                       Compare Schools
@@ -282,10 +311,14 @@ export function Navbar({
                       )}
                     </button>
                     <button onClick={onForum} className="text-left text-base font-medium text-neutral-900 dark:text-neutral-50">
-                      💬 Community Forum
+                      Community
                     </button>
-                    <button type="button" onClick={onAdmin} className="text-left text-base font-semibold text-[#ab8e72] hover:text-[#1c1917] flex items-center gap-2">
-                      🏛️ OPEC Admin Portal
+                    <button type="button" onClick={onScrape || onAdmin} className="text-left text-base font-semibold text-warm-charcoal hover:text-warm-bronze flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Scrape Management
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">Admin</span>
                     </button>
                   </div>
 

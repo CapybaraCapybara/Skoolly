@@ -20,6 +20,11 @@ function rootJsonAssets(): Plugin {
     name: 'root-json-assets',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
+        // Do not intercept if Vite is importing it as an ES module (?import)
+        if (req.url && (req.url.includes('?import') || req.url.includes('?raw'))) {
+          return next()
+        }
+
         const url = req.url?.split('?')[0]
         const rel = url ? ROOT_ASSETS[url] : undefined
         if (!rel) return next()

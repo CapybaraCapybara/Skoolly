@@ -3,6 +3,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { HomePage } from "@/pages/HomePage";
 import { ForumPage } from "@/pages/ForumPage";
 import { SchoolDetailPage } from "@/pages/SchoolDetailPage";
+import { CostCalculatorPage } from "@/pages/CostCalculatorPage";
 import { AuthModal } from "@/components/layout/AuthModal";
 import { CompareBar } from "@/components/schools/CompareBar";
 import { getSchools } from "@/api/schoolsApi";
@@ -16,8 +17,9 @@ const OpecAdminPage = lazy(() =>
 function parseHashView(): View {
   if (typeof window === "undefined") return "home";
   const hash = window.location.hash.replace(/^#\/?/, "");
-  if (hash === "admin") return "admin";
+  if (hash === "admin" || hash === "scrape" || hash === "scraper") return "admin";
   if (hash === "forum") return "forum";
+  if (hash === "calculator") return "calculator";
   if (hash.startsWith("school/")) {
     const id = parseInt(hash.replace("school/", ""), 10);
     if (!isNaN(id)) return { type: "school", id };
@@ -57,6 +59,12 @@ export default function App() {
   const goForum = useCallback(() => {
     setView("forum");
     window.location.hash = "forum";
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goCalculator = useCallback((schoolId?: number) => {
+    setView(schoolId ? { type: "calculator", schoolId } : "calculator");
+    window.location.hash = "calculator";
     window.scrollTo(0, 0);
   }, []);
 
@@ -111,9 +119,11 @@ export default function App() {
         onLogin={() => showAuth("Sign in to your Skoolly account.")}
         compareCount={compareIds.length}
         onCompare={() => showAuth("Sign in to save and revisit your school comparisons anytime.")}
+        onCalculator={() => goCalculator()}
         onForum={goForum}
         onHome={goHome}
         onAdmin={goAdmin}
+        onScrape={goAdmin}
       />
     </div>
   );
@@ -121,10 +131,26 @@ export default function App() {
   let pageContent;
   if (view === "forum") {
     pageContent = <ForumPage onSchoolClick={goSchool} />;
+  } else if (view === "calculator" || (typeof view === "object" && view.type === "calculator")) {
+    const initialId = typeof view === "object" && "schoolId" in view ? view.schoolId : undefined;
+    pageContent = (
+      <CostCalculatorPage
+        initialSchoolId={initialId}
+        onBack={goHome}
+        onSelectSchool={goSchool}
+      />
+    );
   } else if (typeof view === "object" && view.type === "school") {
     const school = schools.find((s) => s.id === view.id) ?? schools[0];
     pageContent = school
-      ? <SchoolDetailPage school={school} onBack={goHome} onForum={goForum} />
+      ? (
+          <SchoolDetailPage
+            school={school}
+            onBack={goHome}
+            onForum={goForum}
+            onOpenCalculator={() => goCalculator(school.id)}
+          />
+        )
       : null;
   } else {
     pageContent = (
@@ -135,6 +161,7 @@ export default function App() {
         onToggleFavorite={toggleFavorite}
         onRestrictedAction={showAuth}
         onSchoolClick={goSchool}
+        onOpenCalculator={() => goCalculator()}
       />
     );
   }

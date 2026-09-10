@@ -47,5 +47,11 @@ logs/
 /.opencode-skills/
 .agents/
 
-# Report
+# LaTeX / Project Reports
 report/
+Skoolly/report/
+
+# Personal Discussion Logs & Summaries (Not committed to Git)
+PROJECT_DISCUSSION_LOG.md
+*_SUMMARY*.md
+*DISCUSSION_LOG*.md

@@ -22,6 +22,7 @@ interface HomePageProps {
   onToggleFavorite: (id: number) => void;
   onRestrictedAction: (reason: string) => void;
   onSchoolClick: (id: number) => void;
+  onOpenCalculator?: () => void;
 }
 
 export function HomePage({
@@ -31,6 +32,7 @@ export function HomePage({
   onToggleFavorite,
   onRestrictedAction,
   onSchoolClick,
+  onOpenCalculator,
 }: HomePageProps) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [schools, setSchools] = useState<School[]>([]);
@@ -71,7 +73,7 @@ export function HomePage({
 
       {/* ── SEARCH / FILTER PANEL ─────────────────────────────────────────── */}
       <section className="relative z-10 -mt-12 pb-4">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="bg-warm-cream rounded-[2rem] shadow-xl p-6 md:p-8 border border-warm-accent">
             <div className="flex items-center gap-2 mb-6">
               <svg className="w-4 h-4 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -174,7 +176,7 @@ export function HomePage({
 
       {/* ── PREMIUM FEATURES ──────────────────────────────────────────────── */}
       <section className="py-12 border-b border-warm-accent" style={{ background: "linear-gradient(180deg, #faf8f5 0%, #f3ece3 100%)" }}>
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-warm-cream border border-warm-accent rounded-full px-3 py-1 text-xs font-semibold text-warm-bronze mb-3">
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -233,13 +235,10 @@ export function HomePage({
             {/* Cost Calculator */}
             <div
               className="relative group rounded-[2rem] overflow-hidden border border-warm-accent bg-warm-cream cursor-pointer transition-all hover:shadow-lg p-6 flex flex-col"
-              onClick={() => onRestrictedAction("Sign in to access the Personalised Cost Calculator — see total schooling costs including registration, uniform, transport, and activities, tailored to your family's situation.")}
+              onClick={onOpenCalculator}
             >
-              <div className="absolute top-0 right-0 bg-warm-charcoal text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                </svg>
-                Account Required
+              <div className="absolute top-0 right-0 bg-warm-bronze text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl flex items-center gap-1.5">
+                Direct Access
               </div>
               <div className="flex-1">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-warm-bronze text-white">
@@ -269,7 +268,7 @@ export function HomePage({
                 </div>
               </div>
               <button className="mt-6 w-full py-3 rounded-full text-sm font-semibold text-warm-charcoal border border-warm-charcoal hover:bg-warm-charcoal/5 transition-all active:scale-[0.98]">
-                Unlock Cost Calculator →
+                Open Cost Calculator →
               </button>
             </div>
           </div>
@@ -278,12 +277,12 @@ export function HomePage({
 
 
       {/* ── SCHOOL LISTINGS ───────────────────────────────────────────────────── */}
-      <section id="schools" className="py-12 pb-28">
-        <div className="max-w-6xl mx-auto px-4">
+      <section id="schools" className="py-10 pb-28">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
             <div>
-              <h2 className="font-display text-2xl text-navy-900">International Schools in Thailand</h2>
-              <p className="text-slate-500 text-sm mt-0.5">
+              <h2 className="font-display text-2xl sm:text-3xl text-navy-900 font-bold">International Schools in Thailand</h2>
+              <p className="text-slate-500 text-sm mt-1">
                 {filteredSchools.length} school{filteredSchools.length !== 1 ? "s" : ""} match your criteria
                 {compareIds.length > 0 && <span className="ml-2 text-teal-600 font-medium">· {compareIds.length} selected to compare</span>}
               </p>
@@ -296,7 +295,7 @@ export function HomePage({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
             {filteredSchools.length > 0
               ? filteredSchools.map((school) => (
                 <SchoolCard
@@ -330,7 +329,7 @@ export function HomePage({
 
       {/* ── MAP SECTION ───────────────────────────────────────────────────── */}
       <section className="py-12 border-t border-slate-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
             <div>
               <h2 className="font-display text-2xl text-navy-900">Schools Near You</h2>
@@ -426,7 +425,7 @@ export function HomePage({
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
       <footer style={{ background: "#0a1628" }} className="text-slate-400 py-10">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0f9488,#152d55)" }}>
               <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
