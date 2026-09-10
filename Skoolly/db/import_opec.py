@@ -10,7 +10,8 @@ Idempotent: re-running updates existing rows instead of duplicating them, keyed 
 
 Usage:
     pip install "psycopg[binary]"
-    # put your Supabase connection string in .env as DATABASE_URL (Session pooler)
+    # Put the Supabase connection string in .env as DATABASE_URL. Use the Session pooler
+    # one (aws-0-<region>.pooler.supabase.com:5432) — the direct connection is IPv6-only.
     python db/import_opec.py                  # Phase 1: schools only, nothing published yet
     python db/import_opec.py --publish-initial  # also create a published v1 per school
 
@@ -154,7 +155,10 @@ def main() -> int:
     unmapped_levels: Counter[str] = Counter()
     used_slugs: set[str] = set()
 
-    with psycopg.connect(dsn, row_factory=dict_row) as conn:
+    # prepare_threshold=None disables prepared statements, which the transaction pooler
+    # (port 6543) cannot handle. The session pooler is fine either way, so this just makes
+    # the script work whichever connection string was pasted into .env.
+    with psycopg.connect(dsn, row_factory=dict_row, prepare_threshold=None) as conn:
         with conn.cursor() as cur:
             # Load the alias tables once; the mapping happens in Python so unmapped values
             # can be reported instead of silently vanishing from the filters.

@@ -311,3 +311,74 @@ function classifyCurriculum(raw: string): string {
 
   return r;
 }
+
+export interface SupabaseStatusResponse {
+  configured: boolean;
+  connected: boolean;
+  masked_url?: string;
+  latency_ms?: number | null;
+  has_schema?: boolean;
+  school_count?: number;
+  error?: string | null;
+}
+
+export async function getSupabaseStatus(): Promise<SupabaseStatusResponse> {
+  try {
+    const res = await fetch(`${API_BASE}/api/supabase/status?t=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.debug("[opecApi] getSupabaseStatus failed:", err);
+  }
+  return {
+    configured: false,
+    connected: false,
+    error: "ไม่สามารถเชื่อมต่อ OPEC Service ได้",
+  };
+}
+
+export async function saveSupabaseConfig(databaseUrl: string): Promise<{ status: string; connection: SupabaseStatusResponse }> {
+  const res = await fetch(`${API_BASE}/api/supabase/config`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ database_url: databaseUrl }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "บันทึกการตั้งค่าไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function initSupabaseSchema(): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/init-schema`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถสร้าง Schema ได้" }));
+    throw new Error(err.detail || "สร้าง Schema ไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function syncOpecToSupabase(options?: {
+  fetchFresh?: boolean;
+  publishInitial?: boolean;
+}): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/sync-to-supabase`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fetch_fresh: options?.fetchFresh ?? false,
+      publish_initial: options?.publishInitial ?? true,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถเริ่มนำเข้าข้อมูลได้" }));
+    throw new Error(err.detail || "เริ่มนำเข้าข้อมูลไม่สำเร็จ");
+  }
+  return await res.json();
+}
+

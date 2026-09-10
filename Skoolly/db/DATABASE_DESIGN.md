@@ -264,7 +264,10 @@ Admin เป็นใครก็ได้ ไม่ได้ล็อกไว�
 
 ```bash
 pip install "psycopg[binary]"
-# ใส่ connection string (Session pooler) ลง .env เป็น DATABASE_URL — .env ถูก gitignore อยู่แล้ว
+# เอา connection string จากปุ่ม Connect ของ Dashboard → แท็บ Session pooler
+# (aws-0-<region>.pooler.supabase.com:5432 — ไม่ใช่ :6543 ซึ่งเป็น Transaction pooler
+#  และไม่ใช่ db.xxx.supabase.co ซึ่งเป็น IPv6 อย่างเดียว)
+# ใส่ลง .env เป็น DATABASE_URL — .env ถูก gitignore อยู่แล้ว
 python db/import_opec.py --dry-run     # ลองก่อน rollback ไม่เขียนจริง
 python db/import_opec.py               # เขียนจริง
 ```

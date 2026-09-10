@@ -46,3 +46,6 @@ logs/
 /.plugins/
 /.opencode-skills/
 .agents/
+
+# Report
+report/

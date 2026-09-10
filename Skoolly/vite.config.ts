@@ -73,6 +73,8 @@ export default defineConfig({
           norm.endsWith('.tmp') ||
           norm.endsWith('.csv') ||
           norm.endsWith('.bak') ||
+          norm.endsWith('.env') ||
+          norm.includes('/.env') ||
           norm.endsWith('results.json') ||
           norm.endsWith('scrape_log.json')
         );

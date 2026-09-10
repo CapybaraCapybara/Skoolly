@@ -36,3 +36,6 @@ microservices/opec/run_strict_enrich_update.py
 
 # Local editor / tooling config
 .claude/
+
+# LaTeX / Project Reports
+report/

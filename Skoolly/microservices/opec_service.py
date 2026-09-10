@@ -19,6 +19,13 @@ from fetch_official_websites import resolve_all_official_websites, resolve_singl
 from enrich_school_names_en import enrich_all_school_names_en, enrich_single_school_name_en
 from enrich_school_gps import enrich_all_school_gps, enrich_single_school_gps
 from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
+from supabase_sync import (
+    test_database_connection,
+    save_database_url,
+    initialize_schema_on_supabase,
+    execute_opec_import,
+    get_current_dsn,
+)
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
@@ -153,6 +160,36 @@ def run_enrich_data_worker():
         with state_lock:
             scraper_state["is_running"] = False
 
+def run_sync_supabase_worker(fetch_fresh: bool = False, publish_initial: bool = True):
+    try:
+        if fetch_fresh:
+            update_progress("กำลังดึงข้อมูลโรงเรียนสดจาก OPEC API...", 3, 100, "เริ่มต้นดึงข้อมูลสดจาก OPEC API...")
+            def on_save(records):
+                set_current_schools(records)
+            fetched = fetch_opec_schools(update_progress, on_save_callback=on_save)
+            records = fetched if fetched else get_current_schools()
+        else:
+            records = get_current_schools()
+            if not records:
+                records = load_schools()
+                if records:
+                    set_current_schools(records)
+
+        def progress_cb(task, cur, tot, log_msg):
+            update_progress(task, cur, tot, log_msg)
+
+        execute_opec_import(
+            records=records,
+            publish_initial=publish_initial,
+            progress_callback=progress_cb
+        )
+    except Exception as e:
+        print("[OPEC Service] Error syncing to Supabase:", e)
+        update_progress("เกิดข้อผิดพลาดในการนำเข้า Supabase", 100, 100, f"Error: {e}")
+    finally:
+        with state_lock:
+            scraper_state["is_running"] = False
+
 # API Routes
 @app.get("/api/schools")
 def get_schools():
@@ -255,6 +292,49 @@ def trigger_enrich_data():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการ Auto-Enrich (ชื่อ EN และพิกัด GPS)..."]
 
     threading.Thread(target=run_enrich_data_worker, daemon=True).start()
+    return {"status": "started"}
+
+class SupabaseConfigPayload(BaseModel):
+    database_url: str
+
+class SyncSupabasePayload(BaseModel):
+    fetch_fresh: Optional[bool] = False
+    publish_initial: Optional[bool] = True
+
+@app.get("/api/supabase/status")
+def get_supabase_status():
+    return test_database_connection()
+
+@app.post("/api/supabase/config")
+def set_supabase_config(payload: SupabaseConfigPayload):
+    save_database_url(payload.database_url)
+    res = test_database_connection(payload.database_url)
+    return {"status": "saved", "connection": res}
+
+@app.post("/api/supabase/init-schema")
+def run_init_schema():
+    try:
+        res = initialize_schema_on_supabase()
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/sync-to-supabase")
+def trigger_sync_to_supabase(payload: Optional[SyncSupabasePayload] = None):
+    with state_lock:
+        if scraper_state["is_running"]:
+            return JSONResponse(status_code=400, content={"status": "already_running"})
+        scraper_state["is_running"] = True
+        scraper_state["task"] = "กำลังเตรียมนำเข้าข้อมูลสู่ Supabase..."
+        scraper_state["current"] = 1
+        scraper_state["total"] = 100
+        scraper_state["percent"] = 1
+        scraper_state["log"] = "เริ่มต้นการนำเข้าข้อมูลสู่ Supabase Database..."
+        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการเชื่อมต่อ Supabase..."]
+
+    fetch_fresh = payload.fetch_fresh if payload else False
+    publish_initial = payload.publish_initial if payload and payload.publish_initial is not None else True
+    threading.Thread(target=run_sync_supabase_worker, args=(fetch_fresh, publish_initial), daemon=True).start()
     return {"status": "started"}
 
 @app.post("/api/clear-data")

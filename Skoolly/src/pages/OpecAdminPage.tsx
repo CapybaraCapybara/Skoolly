@@ -18,6 +18,7 @@ import {
   Users,
   ArrowLeft,
   Loader2,
+  Database,
 } from "lucide-react";
 import type { OpecSchoolRecord, ScraperProgressState } from "@/types/opec";
 import {
@@ -27,6 +28,9 @@ import {
   updateSchoolWebsite,
   resolveSchoolWebsite,
   enrichSchoolData,
+  getSupabaseStatus,
+  syncOpecToSupabase,
+  type SupabaseStatusResponse,
 } from "@/api/opecApi";
 import { OpecDashboard } from "@/components/admin/OpecDashboard";
 import { OpecSchoolsTable } from "@/components/admin/OpecSchoolsTable";
@@ -34,6 +38,7 @@ import { OpecActivityConsole } from "@/components/admin/OpecActivityConsole";
 import { OpecSchoolDetailModal } from "@/components/admin/OpecSchoolDetailModal";
 import { OpecEditWebsiteModal } from "@/components/admin/OpecEditWebsiteModal";
 import { OpecDrillDownModal } from "@/components/admin/OpecDrillDownModal";
+import { OpecSupabaseModal } from "@/components/admin/OpecSupabaseModal";
 
 interface OpecAdminPageProps {
   onBack: () => void;
@@ -62,6 +67,8 @@ export function OpecAdminPage({ onBack }: OpecAdminPageProps) {
     subtitle: "",
     schools: [],
   });
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatusResponse | null>(null);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
 
   // Toast state — a single reusable timer instead of one orphaned timeout per toast
   const [toast, setToast] = useState<string | null>(null);
@@ -89,6 +96,16 @@ export function OpecAdminPage({ onBack }: OpecAdminPageProps) {
     }
   }, []);
 
+  // Fetch Supabase status
+  const loadSupabaseStatus = useCallback(async () => {
+    try {
+      const s = await getSupabaseStatus();
+      setSupabaseStatus(s);
+    } catch (err) {
+      console.debug("[OpecAdminPage] Failed to load Supabase status:", err);
+    }
+  }, []);
+
   // Poll progress — self-rescheduling only while a job runs and the page is mounted
   const pollProgress = useCallback(async () => {
     if (isPollingRef.current || !isMountedRef.current) return;
@@ -108,24 +125,26 @@ export function OpecAdminPage({ onBack }: OpecAdminPageProps) {
         }, 1200);
       } else if (state && state.percent >= 100) {
         loadSchoolsData();
+        loadSupabaseStatus();
       }
     } catch {
       // Backend service not running — stop polling until the next user action
     } finally {
       if (!rescheduled) isPollingRef.current = false;
     }
-  }, [loadSchoolsData]);
+  }, [loadSchoolsData, loadSupabaseStatus]);
 
   useEffect(() => {
     isMountedRef.current = true;
     loadSchoolsData();
+    loadSupabaseStatus();
     pollProgress();
     return () => {
       isMountedRef.current = false;
       if (pollTimerRef.current !== null) window.clearTimeout(pollTimerRef.current);
       if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     };
-  }, [loadSchoolsData, pollProgress]);
+  }, [loadSchoolsData, loadSupabaseStatus, pollProgress]);
 
   // Actions
   const handleTriggerAction = async (endpoint: string, label: string) => {
@@ -135,6 +154,25 @@ export function OpecAdminPage({ onBack }: OpecAdminPageProps) {
       pollProgress();
     } catch (err: any) {
       showToast(`ผิดพลาด: ${err.message || "ไม่สามารถดำเนินการได้"}`);
+    }
+  };
+
+  const handleSyncToSupabase = async (fetchFresh: boolean = false) => {
+    if (!supabaseStatus?.connected) {
+      setIsSupabaseModalOpen(true);
+      showToast("กรุณาตั้งค่าการเชื่อมต่อ Supabase ก่อนเริ่มนำเข้าข้อมูล");
+      return;
+    }
+    try {
+      showToast(
+        fetchFresh
+          ? "กำลังเริ่มดึงข้อมูลสดจาก OPEC และนำเข้าสู่ Supabase..."
+          : "กำลังเริ่มนำเข้าข้อมูล 291 โรงเรียนเข้าสู่ Supabase..."
+      );
+      await syncOpecToSupabase({ fetchFresh, publishInitial: true });
+      pollProgress();
+    } catch (err: any) {
+      showToast(`นำเข้า Supabase ผิดพลาด: ${err.message || "ไม่สามารถดำเนินการได้"}`);
     }
   };
 
@@ -275,12 +313,46 @@ export function OpecAdminPage({ onBack }: OpecAdminPageProps) {
               onClick={() => handleTriggerAction("/api/fetch-opec", "ดึงข้อมูล OPEC")}
               disabled={isRunning}
               className="px-3.5 py-2 rounded-xl bg-[#1c1917] hover:bg-[#1c1917]/90 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
-              title="ดึงข้อมูลโรงเรียนนานาชาติจากระบบ OPEC สช."
+              title="ดึงข้อมูลโรงเรียนนานาชาติจากระบบ OPEC สช. (บันทึกลง Local Cache)"
             >
               <CloudDownload className="w-4 h-4" />
               <span className="hidden xl:inline">1. ดึงข้อมูล OPEC</span>
               <span className="xl:hidden">OPEC</span>
             </button>
+
+            {/* Supabase Real Database Sync Button */}
+            <div className="flex items-center gap-1 bg-[#faf5ee] p-1 rounded-2xl border border-[#eae0d0] shadow-xs">
+              <button
+                type="button"
+                onClick={() => handleSyncToSupabase(false)}
+                disabled={isRunning}
+                className="px-3.5 py-1.5 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+                title="ดึง/นำเข้าข้อมูลโรงเรียน OPEC เข้าสู่ Supabase Database จริง"
+              >
+                <Database className="w-4 h-4" />
+                <span className="hidden xl:inline">ดึง OPEC เข้า Supabase</span>
+                <span className="xl:hidden">เข้า Supabase</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSupabaseModalOpen(true)}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 border ${
+                  supabaseStatus?.connected
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                    : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                }`}
+                title="ตั้งค่า Supabase Connection / ทดสอบสถานะฐานข้อมูล"
+              >
+                <span className={`w-2 h-2 rounded-full ${supabaseStatus?.connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                <span className="hidden 2xl:inline">
+                  {supabaseStatus?.connected
+                    ? `DB: ${supabaseStatus.school_count || 0} รร.`
+                    : "ตั้งค่า DB"}
+                </span>
+                <span className="2xl:hidden">DB</span>
+              </button>
+            </div>
 
             <button
               type="button"
@@ -552,6 +624,16 @@ export function OpecAdminPage({ onBack }: OpecAdminPageProps) {
           setDrillDown((prev) => ({ ...prev, isOpen: false }));
           setSelectedSchool(s);
         }}
+      />
+
+      {/* Supabase Connection & Sync Modal */}
+      <OpecSupabaseModal
+        isOpen={isSupabaseModalOpen}
+        status={supabaseStatus}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        onRefreshStatus={loadSupabaseStatus}
+        onStartSync={(fetchFresh) => handleSyncToSupabase(fetchFresh)}
+        isSyncing={isRunning}
       />
 
       {/* Toast Notification */}
