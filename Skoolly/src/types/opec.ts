@@ -176,6 +176,17 @@ export interface CreateSupabaseSchoolInput {
   gps_precision?: string;
 }
 
+export interface WebsiteHealthState {
+  is_running: boolean;
+  current: number;
+  total: number;
+  percent: number;
+  broken_count: number;
+  healthy_count: number;
+  message: string;
+  last_run_at?: string;
+}
+
 export interface WebsiteRegistryItem {
   school_code: string;
   school_name_th: string;
@@ -186,6 +197,14 @@ export interface WebsiteRegistryItem {
   is_verified: boolean;
   status: "verified" | "opec" | "probed" | "missing";
   ref_url?: string;
+  verified_at?: string;
+  verified_at_display?: string;
+  verified_by?: string;
+  http_status?: number | null;
+  is_broken?: boolean;
+  error_reason?: string;
+  last_checked_at?: string;
+  last_checked_at_display?: string;
 }
 
 export interface WebsiteRegistryResponse {
@@ -195,6 +214,9 @@ export interface WebsiteRegistryResponse {
   opec_count: number;
   probed_count: number;
   missing_count: number;
+  broken_count?: number;
+  healthy_count?: number;
+  health_state?: WebsiteHealthState;
   items: WebsiteRegistryItem[];
 }
 

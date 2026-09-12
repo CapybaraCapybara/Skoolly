@@ -40,6 +40,8 @@ from website_registry import (
     get_full_registry_status,
     verify_or_update_school_url,
     bulk_sync_from_reference_txt,
+    run_bulk_health_check,
+    get_health_state,
 )
 
 app = FastAPI(
@@ -355,6 +357,15 @@ def api_verify_website(payload: VerifyWebsitePayload):
 @app.post("/api/websites/sync-registry")
 def api_sync_registry():
     return bulk_sync_from_reference_txt()
+
+@app.post("/api/websites/health-check")
+def api_start_health_check():
+    threading.Thread(target=run_bulk_health_check, daemon=True).start()
+    return {"status": "started"}
+
+@app.get("/api/websites/health-check/status")
+def api_get_health_check_status():
+    return get_health_state()
 
 class SupabaseConfigPayload(BaseModel):
     database_url: str

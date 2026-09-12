@@ -7,6 +7,7 @@ import type {
   CreateSupabaseSchoolInput,
   WebsiteRegistryItem,
   WebsiteRegistryResponse,
+  WebsiteHealthState,
 } from "@/types/opec";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
@@ -500,6 +501,26 @@ export async function syncWebsiteRegistryFromText(): Promise<{
   });
   if (!res.ok) {
     throw new Error("ไม่สามารถซิงค์ข้อมูลจาก schoolAndURL.txt ได้");
+  }
+  return await res.json();
+}
+
+export async function triggerWebsiteHealthCheck(): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/websites/health-check`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถเริ่มตรวจเช็คสุขภาพเว็บไซต์ได้");
+  }
+  return await res.json();
+}
+
+export async function getWebsiteHealthCheckStatus(): Promise<WebsiteHealthState> {
+  const res = await fetch(`${API_BASE}/api/websites/health-check/status?t=${Date.now()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถดึงสถานะการตรวจสุขภาพเว็บไซต์ได้");
   }
   return await res.json();
 }

@@ -138,45 +138,70 @@ def load_verified_registry():
     if reference_registry:
         return reference_registry
 
-    if not REFERENCE_FILE:
-        print("[Registry] reference/schoolAndURL.txt not found — probing only")
-        return reference_registry
-
     brand_hits = {}
+
+    # 1. Primary Source: Supabase official_website_registry table
+    loaded_from_db = False
     try:
-        with open(REFERENCE_FILE, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                m = re.search(r'\[\d+\s*-\s*(\d+)\]', line)
-                if not m:
-                    continue
-                code = m.group(1).strip()
-                url_m = re.search(r'https?://[^\s\)]+', line)
-                url = url_m.group(0).strip().rstrip('/') if url_m else ""
-                reference_registry[code] = url
-                if not url:
-                    continue
-
-                # English name is the text between "]" and the "(" holding the Thai name.
-                name_m = re.search(r'\]\s*(.*?)\s*\(', line)
-                key = _normalize_name(name_m.group(1) if name_m else "")
-                if key:
-                    registry_by_name.setdefault(key, url)
-                    # Index the HEAD token only. These names put the brand first and
-                    # the location last, so indexing every token let a trailing place
-                    # name act as a brand: "NAWATTAPHUME ... KRABI" matched
-                    # krabiinternationalschool.com, a different school entirely.
-                    head = key.split()[0]
-                    if len(head) >= 4:
-                        brand_hits.setdefault(head, set()).add(_domain_of(url))
+        from supabase_sync import get_current_dsn, psycopg, dict_row
+        dsn = get_current_dsn()
+        if dsn and psycopg:
+            with psycopg.connect(dsn, row_factory=dict_row) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT school_code, school_name_th, school_name_en, website_url 
+                        FROM school_data.official_website_registry 
+                        WHERE is_verified = TRUE AND website_url != ''
+                    """)
+                    rows = cur.fetchall()
+                    if rows:
+                        for r in rows:
+                            code = str(r["school_code"]).strip()
+                            url = str(r["website_url"]).strip().rstrip('/')
+                            if code and url:
+                                reference_registry[code] = url
+                                name_en = str(r["school_name_en"] or "").strip()
+                                key = _normalize_name(name_en)
+                                if key:
+                                    registry_by_name.setdefault(key, url)
+                                    head = key.split()[0]
+                                    if len(head) >= 4:
+                                        brand_hits.setdefault(head, set()).add(_domain_of(url))
+                        loaded_from_db = True
+                        print(f"[Registry] Loaded {len(reference_registry)} verified schools directly from Supabase official_website_registry!")
     except Exception as e:
-        print(f"[Registry] Warning loading {REFERENCE_FILE}: {e}")
-        return reference_registry
+        print(f"[Registry] Note: Could not load from Supabase ({e}), falling back to file...")
 
-    # Keep only tokens pointing at exactly one domain. "singapore" appears under both
-    # sisb.ac.th and glorysingapore.com, so it is ambiguous and gets dropped.
+    # 2. Fallback Source: reference/schoolAndURL.txt
+    if not loaded_from_db and REFERENCE_FILE:
+        try:
+            with open(REFERENCE_FILE, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    m = re.search(r'\[\d+\s*-\s*(\d+)\]', line)
+                    if not m:
+                        continue
+                    code = m.group(1).strip()
+                    url_m = re.search(r'https?://[^\s\)]+', line)
+                    url = url_m.group(0).strip().rstrip('/') if url_m else ""
+                    reference_registry[code] = url
+                    if not url:
+                        continue
+
+                    # English name is the text between "]" and the "(" holding the Thai name.
+                    name_m = re.search(r'\]\s*(.*?)\s*\(', line)
+                    key = _normalize_name(name_m.group(1) if name_m else "")
+                    if key:
+                        registry_by_name.setdefault(key, url)
+                        head = key.split()[0]
+                        if len(head) >= 4:
+                            brand_hits.setdefault(head, set()).add(_domain_of(url))
+        except Exception as e:
+            print(f"[Registry] Warning loading {REFERENCE_FILE}: {e}")
+
+    # Keep only tokens pointing at exactly one domain.
     for token, domains in brand_hits.items():
         if len(domains) == 1:
             brand_domains[token] = next(iter(domains))

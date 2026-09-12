@@ -7,21 +7,25 @@ import {
   ExternalLink,
   Search,
   RefreshCw,
-  Download,
   Upload,
   Check,
   Edit2,
   ShieldCheck,
   Loader2,
-  Layers,
-  Sparkles,
-  ArrowUpDown,
+  Clock,
+  Activity,
+  AlertTriangle,
+  School,
+  ArrowRight,
+  HelpCircle,
 } from "lucide-react";
-import type { WebsiteRegistryItem, WebsiteRegistryResponse } from "@/types/opec";
+import type { WebsiteRegistryItem, WebsiteRegistryResponse, WebsiteHealthState } from "@/types/opec";
 import {
   getWebsiteRegistry,
   verifySchoolWebsite,
   syncWebsiteRegistryFromText,
+  triggerWebsiteHealthCheck,
+  getWebsiteHealthCheckStatus,
 } from "@/api/opecApi";
 
 interface OpecUrlVerificationModalProps {
@@ -30,7 +34,7 @@ interface OpecUrlVerificationModalProps {
   onDataChanged?: () => void;
 }
 
-type FilterTab = "all" | "verified" | "opec" | "probed" | "missing";
+type FilterTab = "all" | "verified" | "broken" | "pending" | "missing";
 
 export function OpecUrlVerificationModal({
   isOpen,
@@ -43,6 +47,8 @@ export function OpecUrlVerificationModal({
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [actionLoadingCode, setActionLoadingCode] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [healthCheckState, setHealthCheckState] = useState<WebsiteHealthState | null>(null);
+  const [isStartingHealthCheck, setIsStartingHealthCheck] = useState(false);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editUrlValue, setEditUrlValue] = useState("");
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -57,6 +63,9 @@ export function OpecUrlVerificationModal({
     try {
       const res = await getWebsiteRegistry();
       setData(res);
+      if (res.health_state) {
+        setHealthCheckState(res.health_state);
+      }
     } catch (err: any) {
       showMsg(err.message || "ไม่สามารถโหลดข้อมูลทะเบียนได้", "error");
     } finally {
@@ -69,6 +78,44 @@ export function OpecUrlVerificationModal({
       loadData();
     }
   }, [isOpen, loadData]);
+
+  // Handle Run Health Check
+  const handleRunHealthCheck = async () => {
+    setIsStartingHealthCheck(true);
+    try {
+      await triggerWebsiteHealthCheck();
+      showMsg("เริ่มต้นระบบตรวจสอบสุขภาพเว็บไซต์ (Link Health Check)...");
+      const status = await getWebsiteHealthCheckStatus();
+      setHealthCheckState(status);
+    } catch (err: any) {
+      showMsg(err.message || "เกิดข้อผิดพลาดในการเริ่มตรวจสุขภาพ", "error");
+    } finally {
+      setIsStartingHealthCheck(false);
+    }
+  };
+
+  // Poll Health Check while running
+  useEffect(() => {
+    let timer: number | null = null;
+    if (healthCheckState?.is_running) {
+      timer = window.setInterval(async () => {
+        try {
+          const status = await getWebsiteHealthCheckStatus();
+          setHealthCheckState(status);
+          if (!status.is_running) {
+            await loadData();
+            if (onDataChanged) onDataChanged();
+            showMsg(status.message || "ตรวจสุขภาพเว็บไซต์เสร็จสิ้น!");
+          }
+        } catch (e) {
+          // ignore polling errors
+        }
+      }, 1500);
+    }
+    return () => {
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, [healthCheckState?.is_running, loadData, onDataChanged]);
 
   // Handle single URL verify
   const handleVerify = async (item: WebsiteRegistryItem) => {
@@ -108,7 +155,11 @@ export function OpecUrlVerificationModal({
 
   // Handle bulk sync from schoolAndURL.txt
   const handleBulkSync = async () => {
-    if (!window.confirm("ต้องการซิงค์รายชื่อเว็บไซต์ทั้งหมด 284 โรงเรียนจาก reference/schoolAndURL.txt เข้าสู่ระบบและ Supabase ใช่หรือไม่?")) {
+    if (
+      !window.confirm(
+        "ต้องการซิงค์รายชื่อเว็บไซต์ทั้งหมด 284 โรงเรียนจาก reference/schoolAndURL.txt เข้าสู่ระบบและ Supabase ใช่หรือไม่?"
+      )
+    ) {
       return;
     }
     setIsSyncingAll(true);
@@ -131,10 +182,10 @@ export function OpecUrlVerificationModal({
 
     if (activeTab === "verified") {
       list = list.filter((i) => i.status === "verified");
-    } else if (activeTab === "opec") {
-      list = list.filter((i) => i.status === "opec");
-    } else if (activeTab === "probed") {
-      list = list.filter((i) => i.status === "probed");
+    } else if (activeTab === "broken") {
+      list = list.filter((i) => i.is_broken);
+    } else if (activeTab === "pending") {
+      list = list.filter((i) => i.status === "opec" || i.status === "probed");
     } else if (activeTab === "missing") {
       list = list.filter((i) => i.status === "missing");
     }
@@ -154,77 +205,130 @@ export function OpecUrlVerificationModal({
     return list;
   }, [data, activeTab, search]);
 
+  const pendingCount = useMemo(() => {
+    if (!data) return 0;
+    return (data.opec_count ?? 0) + (data.probed_count ?? 0);
+  }, [data]);
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div className="bg-[#faf8f5] border border-[#eae0d0] rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
-        {/* Header */}
-        <div className="p-5 sm:px-8 border-b border-[#eae0d0] bg-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-[#0f9488]/15 text-[#0f9488] flex items-center justify-center shadow-xs">
-              <ShieldCheck className="w-6 h-6" />
+        {/* Top Header */}
+        <div className="px-6 py-4 border-b border-[#eae0d0] bg-white flex flex-wrap items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#0f9488]/10 text-[#0f9488] flex items-center justify-center shadow-xs shrink-0">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-[#1c1917]">
-                  ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Verification)
+                <h2 className="text-base font-bold text-[#1c1917] tracking-tight">
+                  ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ
                 </h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 font-bold border border-teal-200">
-                  Audited Registry
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0f9488]/10 text-[#0f9488] border border-[#0f9488]/20">
+                  Supabase Registry
                 </span>
               </div>
               <p className="text-xs text-[#78716c] mt-0.5">
-                ควบคุมและรับรองความถูกต้องของ URL โรงเรียนนานาชาติ ซิงค์ตรงกับ Supabase และ reference/schoolAndURL.txt
+                Official Website Registry & Link Health Monitor · ข้อมูลจะถูกบันทึกถาวร ไม่สูญหายเมื่อ Re-scrape
               </p>
             </div>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Health Check Button */}
+            <button
+              type="button"
+              onClick={handleRunHealthCheck}
+              disabled={healthCheckState?.is_running || isStartingHealthCheck}
+              className="px-4 py-2 rounded-xl bg-[#1c1917] hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              title="ตรวจสอบสถานะการเข้าถึงของทุกลิงก์ (Link Health Check)"
+            >
+              {healthCheckState?.is_running || isStartingHealthCheck ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+              ) : (
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+              <span>
+                {healthCheckState?.is_running
+                  ? `กำลังตรวจ (${healthCheckState.percent}%)`
+                  : "ตรวจสุขภาพทุกลิงก์"}
+              </span>
+            </button>
+
+            {/* Sync from txt button */}
             <button
               type="button"
               onClick={handleBulkSync}
               disabled={isSyncingAll}
-              className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-[#1c1917] border border-[#eae0d0] text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               title="ซิงค์ข้อมูล URL 284 แห่งจาก schoolAndURL.txt เข้าสู่ Supabase"
             >
               {isSyncingAll ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-500" />
               ) : (
-                <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                <Upload className="w-3.5 h-3.5 text-stone-500" />
               )}
-              <span className="hidden sm:inline">📥 ซิงค์จาก schoolAndURL.txt</span>
+              <span>ซิงค์ไฟล์อ้างอิง</span>
             </button>
 
+            {/* Refresh */}
             <button
               type="button"
               onClick={loadData}
               disabled={loading}
-              className="p-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#1c1917] transition-all"
+              className="p-2 rounded-xl bg-white border border-[#eae0d0] hover:bg-stone-50 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
               title="รีเฟรชข้อมูล"
             >
-              <RefreshCw className={`w-4 h-4 text-[#78716c] ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
 
+            {/* Close */}
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl hover:bg-[#eae0d0]/50 text-[#78716c] hover:text-[#1c1917] transition-colors"
+              className="p-2 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+              title="ปิดหน้าต่าง"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {/* Live Progress Banner when running health check */}
+        {healthCheckState?.is_running && (
+          <div className="bg-[#faf5ee] border-b border-[#eae0d0] px-6 py-2.5 flex items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-2 text-[#1c1917] font-medium">
+              <Loader2 className="w-4 h-4 animate-spin text-[#0f9488]" />
+              <span>
+                กำลังสแกนลิงก์ทั้ง {healthCheckState.total} แห่งพร้อมกัน... (ตรวจแล้ว {healthCheckState.current}/{healthCheckState.total})
+              </span>
+            </div>
+            <div className="flex items-center gap-3 w-48 sm:w-64">
+              <div className="flex-1 h-2 bg-stone-200/70 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#0f9488] to-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${healthCheckState.percent}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-mono font-bold text-[#0f9488] w-10 text-right">
+                {healthCheckState.percent}%
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Message Banner */}
         {message && (
           <div
-            className={`px-6 py-2.5 text-xs font-bold flex items-center gap-2 transition-all ${
+            className={`px-6 py-2 text-xs font-semibold flex items-center gap-2 transition-all ${
               message.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border-b border-emerald-200"
                 : "bg-rose-50 text-rose-800 border-b border-rose-200"
@@ -239,173 +343,232 @@ export function OpecUrlVerificationModal({
           </div>
         )}
 
-        {/* KPI Cards Row */}
-        <div className="p-4 sm:px-8 bg-[#faf5ee]/70 border-b border-[#eae0d0] shrink-0">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <div className="p-3 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
-              <div className="text-[11px] text-[#78716c] font-medium flex items-center justify-between">
-                <span>มีเว็บไซต์ทั้งหมด</span>
-                <Globe className="w-3.5 h-3.5 text-[#25508a]" />
+        {/* 4 Clean Executive Metric Cards */}
+        <div className="px-6 py-4 bg-[#faf5ee]/60 border-b border-[#eae0d0] shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+            {/* Card 1: Total Schools */}
+            <div className="p-4 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
+              <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
+                <span>โรงเรียนทั้งหมด</span>
+                <School className="w-4 h-4 text-stone-400" />
               </div>
-              <div className="text-xl font-black text-[#1c1917] mt-1">
-                {data ? `${data.with_website} / ${data.total}` : "—"}
+              <div className="text-2xl font-black text-[#1c1917] tracking-tight mt-1.5">
+                {data?.total ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
-                {data ? `${Math.round((data.with_website / data.total) * 100)}% ครอบคลุม` : ""}
+              <div className="text-[11px] text-stone-500 mt-1">
+                มีเว็บไซต์ {data?.with_website ?? 0} · ไม่มี {data?.missing_count ?? 0} แห่ง
               </div>
             </div>
 
-            <div className="p-3 bg-white rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-xs">
-              <div className="text-[11px] text-emerald-800 font-medium flex items-center justify-between">
+            {/* Card 2: Verified Official */}
+            <div className="p-4 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
+              <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
                 <span>รับรองทางการแล้ว</span>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <ShieldCheck className="w-4 h-4 text-[#0f9488]" />
               </div>
-              <div className="text-xl font-black text-emerald-700 mt-1">
-                {data?.verified_count ?? 0}
+              <div className="text-2xl font-black text-[#0f9488] tracking-tight mt-1.5">
+                {data?.verified_count ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-                Verified Official
-              </div>
-            </div>
-
-            <div className="p-3 bg-white rounded-2xl border border-amber-200 bg-amber-50/20 shadow-xs">
-              <div className="text-[11px] text-amber-800 font-medium flex items-center justify-between">
-                <span>จากระบบ สช. (OPEC)</span>
-                <Layers className="w-3.5 h-3.5 text-amber-600" />
-              </div>
-              <div className="text-xl font-black text-amber-700 mt-1">
-                {data?.opec_count ?? 0}
-              </div>
-              <div className="text-[10px] text-amber-600 font-semibold mt-0.5">
-                OPEC Profile
+              <div className="text-[11px] text-[#0f9488] font-medium mt-1">
+                Ground Truth ใน Database
               </div>
             </div>
 
-            <div className="p-3 bg-white rounded-2xl border border-blue-200 bg-blue-50/20 shadow-xs">
-              <div className="text-[11px] text-blue-800 font-medium flex items-center justify-between">
-                <span>บอทตรวจพบใหม่</span>
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            {/* Card 3: Healthy Online */}
+            <div className="p-4 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
+              <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
+                <span>สถานะออนไลน์ปกติ</span>
+                <Activity className="w-4 h-4 text-emerald-600" />
               </div>
-              <div className="text-xl font-black text-blue-700 mt-1">
-                {data?.probed_count ?? 0}
+              <div className="text-2xl font-black text-emerald-700 tracking-tight mt-1.5">
+                {data?.healthy_count ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[10px] text-blue-600 font-semibold mt-0.5">
-                AI Probed Live
+              <div className="text-[11px] text-emerald-600 font-medium mt-1">
+                Online / HTTP 200 OK
               </div>
             </div>
 
-            <div className="p-3 bg-white rounded-2xl border border-rose-200 bg-rose-50/20 shadow-xs">
-              <div className="text-[11px] text-rose-800 font-medium flex items-center justify-between">
-                <span>ยังไม่มีเว็บไซต์</span>
-                <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+            {/* Card 4: Issues Detected */}
+            <div
+              onClick={() => setActiveTab("broken")}
+              className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+                (data?.broken_count ?? 0) > 0
+                  ? "bg-rose-50/50 border-rose-200 hover:border-rose-300"
+                  : "bg-white border-[#eae0d0]"
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs font-medium">
+                <span className={(data?.broken_count ?? 0) > 0 ? "text-rose-800" : "text-stone-500"}>
+                  พบปัญหาต้องตรวจสอบ
+                </span>
+                <AlertTriangle
+                  className={`w-4 h-4 ${
+                    (data?.broken_count ?? 0) > 0 ? "text-rose-600" : "text-stone-400"
+                  }`}
+                />
               </div>
-              <div className="text-xl font-black text-rose-700 mt-1">
-                {data?.missing_count ?? 0}
+              <div
+                className={`text-2xl font-black tracking-tight mt-1.5 ${
+                  (data?.broken_count ?? 0) > 0 ? "text-rose-700" : "text-stone-700"
+                }`}
+              >
+                {data?.broken_count ?? 0} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[10px] text-rose-600 font-semibold mt-0.5">
-                รอการค้นพบ
+              <div className="text-[11px] mt-1 flex items-center gap-1 font-medium text-rose-600">
+                {(data?.broken_count ?? 0) > 0 ? (
+                  <>
+                    <span>ดูรายการลิงก์เสีย</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </>
+                ) : (
+                  <span className="text-stone-400">ทุกลิงก์ใช้งานได้ปกติ</span>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Toolbar & Filter Tabs */}
-        <div className="p-4 sm:px-8 bg-white border-b border-[#eae0d0] flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 bg-[#faf5ee] p-1 rounded-2xl border border-[#eae0d0] overflow-x-auto">
+        {/* Toolbar: Segmented Tabs & Search */}
+        <div className="px-6 py-3.5 bg-white border-b border-[#eae0d0] flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center bg-[#faf5ee] p-1 rounded-2xl border border-[#eae0d0] text-xs font-medium">
             <button
               type="button"
               onClick={() => setActiveTab("all")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "all"
-                  ? "bg-white text-[#1c1917] shadow-xs border border-[#eae0d0]"
-                  : "text-[#78716c] hover:text-[#1c1917]"
+                  ? "bg-white text-[#1c1917] font-bold shadow-xs border border-[#eae0d0]"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
             >
-              ทั้งหมด ({data?.total ?? 0})
+              <span>ทั้งหมด</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-stone-200/70 text-stone-700">
+                {data?.total ?? 0}
+              </span>
             </button>
+
             <button
               type="button"
               onClick={() => setActiveTab("verified")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "verified"
-                  ? "bg-emerald-50 text-emerald-800 shadow-xs border border-emerald-200"
-                  : "text-[#78716c] hover:text-emerald-700"
+                  ? "bg-white text-emerald-800 font-bold shadow-xs border border-emerald-200"
+                  : "text-stone-600 hover:text-emerald-800"
               }`}
             >
-              🟢 รับรองแล้ว ({data?.verified_count ?? 0})
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>รับรองแล้ว</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-100 text-emerald-800">
+                {data?.verified_count ?? 0}
+              </span>
             </button>
+
             <button
               type="button"
-              onClick={() => setActiveTab("opec")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "opec"
-                  ? "bg-amber-50 text-amber-800 shadow-xs border border-amber-200"
-                  : "text-[#78716c] hover:text-amber-700"
+              onClick={() => setActiveTab("broken")}
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTab === "broken"
+                  ? "bg-rose-600 text-white font-bold shadow-xs"
+                  : (data?.broken_count ?? 0) > 0
+                  ? "text-rose-700 font-bold hover:bg-rose-100/60"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
             >
-              🟡 จาก สช. ({data?.opec_count ?? 0})
+              <AlertTriangle className={`w-3.5 h-3.5 ${activeTab === "broken" ? "text-white" : "text-rose-600"}`} />
+              <span>พบปัญหา</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                  activeTab === "broken"
+                    ? "bg-white/20 text-white"
+                    : (data?.broken_count ?? 0) > 0
+                    ? "bg-rose-100 text-rose-800 font-bold"
+                    : "bg-stone-200/70 text-stone-700"
+                }`}
+              >
+                {data?.broken_count ?? 0}
+              </span>
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("probed")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "probed"
-                  ? "bg-blue-50 text-blue-800 shadow-xs border border-blue-200"
-                  : "text-[#78716c] hover:text-blue-700"
-              }`}
-            >
-              🔵 บอทตรวจพบ ({data?.probed_count ?? 0})
-            </button>
+
+            {pendingCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTab("pending")}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === "pending"
+                    ? "bg-white text-amber-800 font-bold shadow-xs border border-amber-200"
+                    : "text-stone-600 hover:text-amber-800"
+                }`}
+              >
+                <span>รอรับรอง</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-100 text-amber-800">
+                  {pendingCount}
+                </span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setActiveTab("missing")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "missing"
-                  ? "bg-rose-50 text-rose-800 shadow-xs border border-rose-200"
-                  : "text-[#78716c] hover:text-rose-700"
+                  ? "bg-white text-stone-800 font-bold shadow-xs border border-stone-300"
+                  : "text-stone-600 hover:text-stone-900"
               }`}
             >
-              ⚪ ไม่มีเว็บ ({data?.missing_count ?? 0})
+              <span>ไม่มีเว็บไซต์</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-stone-200/70 text-stone-700">
+                {data?.missing_count ?? 0}
+              </span>
             </button>
           </div>
 
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-[#a8a29e] absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาชื่อโรงเรียน, รหัส, หรือ URL..."
-              className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] text-xs text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#0f9488]/40 placeholder:text-[#a8a29e]"
+              placeholder="ค้นหาชื่อโรงเรียน หรือ URL..."
+              className="w-full pl-9 pr-3.5 py-1.5 rounded-xl bg-white border border-[#eae0d0] text-xs text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#0f9488]/30 placeholder:text-stone-400 shadow-xs"
             />
           </div>
         </div>
 
         {/* Auditable Checklist Table */}
-        <div className="flex-1 overflow-y-auto p-4 sm:px-8">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* Helpful alert when viewing broken tab */}
+          {activeTab === "broken" && (
+            <div className="mb-3.5 px-4 py-3 rounded-2xl bg-rose-50/80 border border-rose-200/70 flex items-center justify-between text-xs text-rose-900 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>
+                  <strong>พบเว็บไซต์ที่เข้าถึงไม่ได้ {data?.broken_count ?? 0} แห่ง</strong> (DNS Error, Server Error, หรือ Connection Timeout) คุณสามารถคลิกไอคอน ✏️ เพื่อแก้ไข URL ใหม่ได้ทันที
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white border border-[#eae0d0] rounded-2xl overflow-hidden shadow-xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-[#faf5ee] border-b border-[#eae0d0] text-[#78716c] font-bold">
-                  <th className="py-3 px-3.5 w-24">รหัส OPEC</th>
-                  <th className="py-3 px-3.5 min-w-[220px]">โรงเรียนนานาชาติ</th>
-                  <th className="py-3 px-3.5 w-28">จังหวัด</th>
-                  <th className="py-3 px-3.5 min-w-[240px]">Official Website URL</th>
-                  <th className="py-3 px-3.5 w-36">สถานะการรับรอง</th>
-                  <th className="py-3 px-3.5 w-44 text-center">การจัดการ</th>
+                <tr className="bg-[#faf5ee] border-b border-[#eae0d0] text-stone-600 font-semibold">
+                  <th className="py-3 px-4 min-w-[240px]">โรงเรียนนานาชาติ</th>
+                  <th className="py-3 px-3 w-28">จังหวัด</th>
+                  <th className="py-3 px-4 min-w-[280px]">Official Website & ลิงก์</th>
+                  <th className="py-3 px-3.5 w-32">การรับรอง</th>
+                  <th className="py-3 px-4 w-28 text-center">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eae0d0]/60">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-16 text-center text-[#78716c]">
+                    <td colSpan={5} className="py-16 text-center text-stone-500">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0f9488] mb-2" />
                       กำลังโหลดข้อมูลทะเบียนเว็บไซต์...
                     </td>
                   </tr>
                 ) : filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-[#78716c]">
+                    <td colSpan={5} className="py-12 text-center text-stone-500">
                       ไม่พบข้อมูลโรงเรียนตามเงื่อนไขที่ค้นหา
                     </td>
                   </tr>
@@ -417,23 +580,38 @@ export function OpecUrlVerificationModal({
                     return (
                       <tr
                         key={item.school_code}
-                        className="hover:bg-[#faf5ee]/50 transition-colors"
+                        className={`transition-colors ${
+                          item.is_broken
+                            ? "bg-rose-50/25 hover:bg-rose-50/50"
+                            : "hover:bg-[#faf5ee]/50"
+                        }`}
                       >
-                        <td className="py-3 px-3.5 font-mono font-bold text-[#78593a]">
-                          {item.school_code}
-                        </td>
-                        <td className="py-3 px-3.5">
-                          <div className="font-bold text-[#1c1917]">
-                            {item.school_name_th}
+                        {/* School Name & Code */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-start gap-2">
+                            <div className="space-y-0.5">
+                              <div className="font-bold text-[#1c1917] leading-snug">
+                                {item.school_name_th}
+                              </div>
+                              <div className="text-[11px] text-stone-500 truncate max-w-sm">
+                                {item.school_name_en || "—"}
+                              </div>
+                              <div className="pt-0.5">
+                                <span className="font-mono text-[10px] text-[#78593a] bg-[#faf5ee] px-1.5 py-0.5 rounded border border-[#eae0d0]">
+                                  {item.school_code}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-[11px] text-[#78716c] truncate max-w-sm">
-                            {item.school_name_en || "—"}
-                          </div>
                         </td>
-                        <td className="py-3 px-3.5 text-[#78716c]">
+
+                        {/* Province */}
+                        <td className="py-3 px-3 text-stone-600 whitespace-nowrap">
                           {item.province || "—"}
                         </td>
-                        <td className="py-3 px-3.5">
+
+                        {/* Website & Health Check Status */}
+                        <td className="py-3 px-4">
                           {isEditing ? (
                             <div className="flex items-center gap-1.5">
                               <input
@@ -441,70 +619,111 @@ export function OpecUrlVerificationModal({
                                 value={editUrlValue}
                                 onChange={(e) => setEditUrlValue(e.target.value)}
                                 placeholder="https://www.example.ac.th"
-                                className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-[#0f9488] bg-white focus:outline-none"
+                                className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-[#0f9488] bg-white focus:outline-none shadow-xs"
                                 autoFocus
                               />
                               <button
                                 type="button"
                                 onClick={() => handleSaveEdit(item.school_code)}
                                 disabled={isActing}
-                                className="px-2.5 py-1 rounded-lg bg-[#0f9488] text-white font-bold hover:bg-[#0d7d72] transition-colors"
+                                className="px-2.5 py-1 rounded-lg bg-[#0f9488] text-white font-semibold hover:bg-[#0d7d72] transition-colors cursor-pointer"
                               >
                                 {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : "บันทึก"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditingCode(null)}
-                                className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                className="px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 cursor-pointer"
                               >
                                 ยกเลิก
                               </button>
                             </div>
                           ) : item.website ? (
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={
-                                  item.website.startsWith("http")
-                                    ? item.website
-                                    : `https://${item.website}`
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#25508a] font-semibold hover:underline inline-flex items-center gap-1 max-w-[260px] truncate"
-                              >
-                                <Globe className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{item.website}</span>
-                              </a>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <a
+                                  href={
+                                    item.website.startsWith("http")
+                                      ? item.website
+                                      : `https://${item.website}`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1.5 font-medium hover:underline max-w-[260px] truncate ${
+                                    item.is_broken
+                                      ? "text-rose-700 font-semibold"
+                                      : "text-[#25508a]"
+                                  }`}
+                                  title="คลิกเพื่อเปิดหน้าเว็บไซต์"
+                                >
+                                  <Globe className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                                  <span className="truncate">{item.website}</span>
+                                </a>
+                              </div>
+
+                              {/* Health Badge */}
+                              <div className="flex items-center gap-1.5">
+                                {item.is_broken ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 font-mono"
+                                    title={`ข้อผิดพลาด: ${item.error_reason || "เปิดไม่ติด"} (ตรวจเมื่อ: ${item.last_checked_at_display || "ล่าสุด"})`}
+                                  >
+                                    <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />
+                                    <span>{item.error_reason || "ลิงก์เข้าถึงไม่ได้"}</span>
+                                  </span>
+                                ) : item.http_status ? (
+                                  <span
+                                    className="inline-flex items-center gap-1.5 text-[10px] font-mono text-emerald-700"
+                                    title={`สถานะ HTTP ${item.http_status} (ตรวจเมื่อ: ${item.last_checked_at_display || "ล่าสุด"})`}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                    <span>200 OK</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-stone-400">ยังไม่ได้ตรวจ</span>
+                                )}
+                              </div>
                             </div>
                           ) : (
-                            <span className="text-[#a8a29e] italic text-[11px]">
-                              ยังไม่มีเว็บไซต์
+                            <span className="text-stone-400 italic text-[11px]">
+                              — ไม่มีเว็บไซต์ —
                             </span>
                           )}
                         </td>
+
+                        {/* Verification Status */}
                         <td className="py-3 px-3.5">
                           {item.status === "verified" ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              Verified Official
-                            </span>
+                            <div>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>รับรองแล้ว</span>
+                              </span>
+                              {item.verified_at_display && (
+                                <div
+                                  className="text-[10px] text-stone-400 mt-0.5"
+                                  title={`รับรองโดย: ${item.verified_by || "Admin"}`}
+                                >
+                                  {item.verified_at_display.split(" ")[0]}
+                                </div>
+                              )}
+                            </div>
                           ) : item.status === "opec" ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                              OPEC Profile
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                              จาก สช.
                             </span>
                           ) : item.status === "probed" ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                              <Sparkles className="w-3 h-3 text-blue-600" />
-                              AI Probed Live
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                              บอทตรวจพบ
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                              Missing
-                            </span>
+                            <span className="text-stone-300">—</span>
                           )}
                         </td>
-                        <td className="py-3 px-3.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+
+                        {/* Actions */}
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1">
                             {item.website && (
                               <a
                                 href={
@@ -514,8 +733,8 @@ export function OpecUrlVerificationModal({
                                 }
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 rounded-lg bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#25508a] transition-all"
-                                title="เปิดทดสอบเว็บไซต์ในแท็บใหม่"
+                                className="p-1.5 rounded-lg text-stone-400 hover:text-[#25508a] hover:bg-stone-100 transition-colors"
+                                title="เปิดเว็บไซต์ในแท็บใหม่"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
@@ -526,7 +745,7 @@ export function OpecUrlVerificationModal({
                                 type="button"
                                 onClick={() => handleVerify(item)}
                                 disabled={isActing}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center gap-1 transition-all"
+                                className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
                                 title="กดยืนยันว่าเป็นเว็บไซต์ทางการที่ถูกต้อง (Verified Official)"
                               >
                                 {isActing ? (
@@ -534,7 +753,7 @@ export function OpecUrlVerificationModal({
                                 ) : (
                                   <Check className="w-3 h-3" />
                                 )}
-                                <span>รับรอง ✓</span>
+                                <span>รับรอง</span>
                               </button>
                             )}
 
@@ -545,7 +764,7 @@ export function OpecUrlVerificationModal({
                                   setEditingCode(item.school_code);
                                   setEditUrlValue(item.website || "");
                                 }}
-                                className="p-1.5 rounded-lg bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#78716c] hover:text-[#1c1917] transition-all"
+                                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer"
                                 title="แก้ไข URL ทางการ"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -562,20 +781,18 @@ export function OpecUrlVerificationModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:px-8 bg-[#faf5ee]/70 border-t border-[#eae0d0] flex items-center justify-between text-xs text-[#78716c] shrink-0">
+        {/* Bottom Footer */}
+        <div className="px-6 py-3.5 bg-[#faf5ee]/70 border-t border-[#eae0d0] flex items-center justify-between text-xs text-stone-500 shrink-0">
           <div>
             แสดง {filteredItems.length} จาก {data?.total ?? 0} โรงเรียน
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-white border border-[#eae0d0] hover:bg-gray-50 text-[#1c1917] font-bold transition-all shadow-xs"
-            >
-              ปิดหน้าต่าง
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-xl bg-white border border-[#eae0d0] hover:bg-stone-50 text-stone-700 font-semibold transition-all shadow-xs cursor-pointer"
+          >
+            ปิดหน้าต่าง
+          </button>
         </div>
       </div>
     </div>
