@@ -37,6 +37,7 @@ dump/
 
 # Local editor / tooling config
 .claude/
+.vscode/
 
 # LaTeX / Project Reports
 report/

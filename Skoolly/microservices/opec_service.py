@@ -8,40 +8,74 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 
-# Add opec directory to sys.path
-OPEC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "opec")
+# Add microservices and opec directories to sys.path
+MICROSERVICES_DIR = os.path.dirname(os.path.abspath(__file__))
+OPEC_DIR = os.path.join(MICROSERVICES_DIR, "opec")
+if MICROSERVICES_DIR not in sys.path:
+    sys.path.insert(0, MICROSERVICES_DIR)
 if OPEC_DIR not in sys.path:
     sys.path.insert(0, OPEC_DIR)
 
-from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools
-from fetch_opec import fetch_opec_schools
-from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code
-from enrich_school_names_en import enrich_all_school_names_en
-from enrich_school_gps import enrich_all_school_gps
-from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
-from supabase_sync import (
-    test_database_connection,
-    save_database_url,
-    initialize_schema_on_supabase,
-    execute_opec_import,
-    get_current_dsn,
-    fetch_supabase_schools,
-    clear_supabase_data,
-    insert_supabase_school,
-    update_supabase_school,
-    delete_supabase_school,
-    update_supabase_school_names_en,
-    update_supabase_school_gps,
-    update_supabase_school_websites,
-    sync_single_school_to_supabase,
-)
-from website_registry import (
-    get_full_registry_status,
-    verify_or_update_school_url,
-    bulk_sync_from_reference_txt,
-    run_bulk_health_check,
-    get_health_state,
-)
+try:
+    from opec.data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools
+    from opec.fetch_opec import fetch_opec_schools
+    from opec.fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code
+    from opec.enrich_school_names_en import enrich_all_school_names_en
+    from opec.enrich_school_gps import enrich_all_school_gps
+    from opec.enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
+    from opec.supabase_sync import (
+        test_database_connection,
+        save_database_url,
+        initialize_schema_on_supabase,
+        execute_opec_import,
+        get_current_dsn,
+        fetch_supabase_schools,
+        clear_supabase_data,
+        insert_supabase_school,
+        update_supabase_school,
+        delete_supabase_school,
+        update_supabase_school_names_en,
+        update_supabase_school_gps,
+        update_supabase_school_websites,
+        sync_single_school_to_supabase,
+    )
+    from opec.website_registry import (
+        get_full_registry_status,
+        verify_or_update_school_url,
+        bulk_sync_from_reference_txt,
+        run_bulk_health_check,
+        get_health_state,
+    )
+except ImportError:
+    from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools  # type: ignore
+    from fetch_opec import fetch_opec_schools  # type: ignore
+    from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
+    from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
+    from enrich_school_gps import enrich_all_school_gps  # type: ignore
+    from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data  # type: ignore
+    from supabase_sync import (  # type: ignore
+        test_database_connection,
+        save_database_url,
+        initialize_schema_on_supabase,
+        execute_opec_import,
+        get_current_dsn,
+        fetch_supabase_schools,
+        clear_supabase_data,
+        insert_supabase_school,
+        update_supabase_school,
+        delete_supabase_school,
+        update_supabase_school_names_en,
+        update_supabase_school_gps,
+        update_supabase_school_websites,
+        sync_single_school_to_supabase,
+    )
+    from website_registry import (  # type: ignore
+        get_full_registry_status,
+        verify_or_update_school_url,
+        bulk_sync_from_reference_txt,
+        run_bulk_health_check,
+        get_health_state,
+    )
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
