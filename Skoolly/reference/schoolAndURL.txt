@@ -53,7 +53,7 @@
 [53 - 1110700063] BANGKOK INTERNATIONAL PREPARATORY AND SECONDARY SCHOOL (นานาชาติบางกอก พรีแพราธอรี แอนด์ เซ็กเคินเดอรี) - https://www.bangkokprep.ac.th
 [54 - 1110700064] EKAMAI INTERNATIONAL SCHOOL (นานาชาติเอกมัย) - https://www.eis.ac.th
 [55 - 1110700065] SINGAPORE INTERNATIONAL SCHOOL OF BANGKOK (นานาชาติสิงคโปร์กรุงเทพฯ) - https://sisb.ac.th
-[56 - 1110700066] St Andrews International School Bangkok (นานาชาติเซนต์แอนดรูว์สกรุงเทพฯ) - https://www.standrewssukhumvit.com/
+[56 - 1110700066] St Andrews International School Bangkok (นานาชาติเซนต์แอนดรูว์สกรุงเทพฯ) - https://www.nordangliaeducation.com/sta-bangkok
 [57 - 1110700067] SABAI-JAI INTERNATIONAL SCHOOL (อนุบาลนานาชาติสบายใจ) - https://www.sbi.ac.th/
 [58 - 1110700068] LYCEE FRANCAIS INTERNATIONAL DE BANGKOK (ฝรั่งเศสนานาชาติ กรุงเทพ) - https://lfib.ac.th
 [59 - 1110700069] Bangkok Grace International School (นานาชาติพระคุณกรุงเทพ) - https://www.grace.ac.th/bgis-10/

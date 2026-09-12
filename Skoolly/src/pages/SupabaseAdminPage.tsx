@@ -2,10 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Layers,
   CloudDownload,
-  Languages,
-  MapPin,
-  Globe,
-  Wand2,
   Trash2,
   Download,
   LayoutDashboard,
@@ -19,17 +15,22 @@ import {
   ArrowLeft,
   Loader2,
   Database,
+  MapPin,
+  Globe,
+  Wand2,
+  Languages,
 } from "lucide-react";
 import type { OpecSchoolRecord, ScraperProgressState } from "@/types/opec";
 import {
-  getOpecSchools,
+  getSupabaseSchools,
+  clearSupabaseData,
+  syncOpecToSupabase,
   getScraperProgress,
   postAction,
   updateSchoolWebsite,
   resolveSchoolWebsite,
   enrichSchoolData,
   getSupabaseStatus,
-  syncOpecToSupabase,
   type SupabaseStatusResponse,
 } from "@/api/opecApi";
 import { OpecDashboard } from "@/components/admin/OpecDashboard";
@@ -42,20 +43,22 @@ import { OpecSupabaseModal } from "@/components/admin/OpecSupabaseModal";
 import { OpecUrlVerificationModal } from "@/components/admin/OpecUrlVerificationModal";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 
-interface OpecAdminPageProps {
+interface SupabaseAdminPageProps {
   onBack: () => void;
-  onNavigateToSupabaseAdmin?: () => void;
+  onNavigateToLocalAdmin?: () => void;
 }
 
 type AdminTab = "dashboard" | "schools" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
 
-export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPageProps) {
+export function SupabaseAdminPage({
+  onBack,
+  onNavigateToLocalAdmin,
+}: SupabaseAdminPageProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [schools, setSchools] = useState<OpecSchoolRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<ScraperProgressState | null>(null);
   const [actionLoadingCode, setActionLoadingCode] = useState<string | null>(null);
-  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState<boolean>(false);
 
   // Modals state
   const [selectedSchool, setSelectedSchool] = useState<OpecSchoolRecord | null>(null);
@@ -71,11 +74,14 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
     subtitle: "",
     schools: [],
   });
-  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatusResponse | null>(null);
-  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
-  const [isUrlVerificationModalOpen, setIsUrlVerificationModalOpen] = useState<boolean>(false);
 
-  // Toast state — a single reusable timer instead of one orphaned timeout per toast
+  // Confirmation Modals
+  const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [isUrlVerificationModalOpen, setIsUrlVerificationModalOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Toast
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const showToast = useCallback((msg: string) => {
@@ -89,29 +95,55 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
   const pollTimerRef = useRef<number | null>(null);
   const isMountedRef = useRef<boolean>(true);
 
-  // Fetch schools
+  // Fetch schools from Supabase
   const loadSchoolsData = useCallback(async () => {
     try {
-      const data = await getOpecSchools();
-      setSchools(data);
+      const res = await getSupabaseSchools({ limit: 1000 });
+      // Map Supabase rows to OpecSchoolRecord format
+      const mapped: OpecSchoolRecord[] = (res.schools as any[]).map((s, idx) => ({
+        no: idx + 1,
+        school_code: s.school_code || s.opec_school_code || String(s.school_id || ""),
+        school_name_th: s.school_name_th || s.name_th || "",
+        school_name_en: s.school_name_en || s.name_en || "",
+        province: s.province || "",
+        district: s.district || "",
+        subdistrict: s.subdistrict || "",
+        address: s.address || "",
+        website: s.website || s.official_website_url || "",
+        website_source: s.website_source || "Supabase DB",
+        opec_profile_url: s.opec_profile_url || "",
+        telephone: s.telephone || s.official_phone || "",
+        mobile: s.mobile || s.official_mobile || "",
+        email: s.email || s.official_email || "",
+        facebook: s.facebook || s.facebook_url || "",
+        line_id: s.line_id || "",
+        instagram: s.instagram || s.instagram_url || "",
+        youtube: s.youtube || s.youtube_url || "",
+        latitude: s.latitude ?? undefined,
+        longitude: s.longitude ?? undefined,
+        gps_source: s.gps_source || "Supabase PostGIS",
+        gps_precision: s.gps_precision || (s.latitude ? "Exact" : "None"),
+        levels_offered: s.levels_offered || [],
+        level_range: s.level_range || "",
+        curriculums: s.curriculums || [],
+        student_count: s.student_count ?? 0,
+        teacher_count: s.teacher_count ?? 0,
+        licensee_name: s.licensee_name || "",
+        director_name: s.director_name || "",
+        manager_name: s.manager_name || "",
+        government_support: s.government_support || "",
+        school_logo_url: s.school_logo_url || s.logo_url || "",
+        last_updated: s.last_updated || s.updated_at || s.created_at || "",
+      }));
+      setSchools(mapped);
     } catch (err) {
-      console.error("[OpecAdminPage] Failed to load schools:", err);
+      console.error("[SupabaseAdminPage] Failed to load schools:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Fetch Supabase status
-  const loadSupabaseStatus = useCallback(async () => {
-    try {
-      const s = await getSupabaseStatus();
-      setSupabaseStatus(s);
-    } catch (err) {
-      console.debug("[OpecAdminPage] Failed to load Supabase status:", err);
-    }
-  }, []);
-
-  // Poll progress — self-rescheduling only while a job runs and the page is mounted
+  // Poll progress
   const pollProgress = useCallback(async () => {
     if (isPollingRef.current || !isMountedRef.current) return;
     isPollingRef.current = true;
@@ -130,66 +162,76 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
         }, 1200);
       } else if (state && state.percent >= 100) {
         loadSchoolsData();
-        loadSupabaseStatus();
       }
     } catch {
-      // Backend service not running — stop polling until the next user action
+      // Backend service idle
     } finally {
       if (!rescheduled) isPollingRef.current = false;
     }
-  }, [loadSchoolsData, loadSupabaseStatus]);
+  }, [loadSchoolsData]);
 
   useEffect(() => {
     isMountedRef.current = true;
     loadSchoolsData();
-    loadSupabaseStatus();
     pollProgress();
     return () => {
       isMountedRef.current = false;
       if (pollTimerRef.current !== null) window.clearTimeout(pollTimerRef.current);
       if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     };
-  }, [loadSchoolsData, loadSupabaseStatus, pollProgress]);
+  }, [loadSchoolsData, pollProgress]);
 
-  // Actions
-  const handleTriggerAction = async (endpoint: string, label: string) => {
+  // Action: Trigger OPEC scrape directly into Supabase
+  const handleConfirmSyncOpec = async () => {
+    setIsSyncConfirmOpen(false);
+    setActionLoading(true);
     try {
-      showToast(`กำลังเริ่ม ${label}...`);
-      await postAction(endpoint);
+      showToast("กำลังเริ่มดึงข้อมูลสดจากระบบ OPEC สช. เข้าสู่ Supabase...");
+      await syncOpecToSupabase({ fetchFresh: true, publishInitial: true });
       pollProgress();
     } catch (err: any) {
-      showToast(`ผิดพลาด: ${err.message || "ไม่สามารถดำเนินการได้"}`);
+      showToast(`ดึงข้อมูล OPEC ไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleSyncToSupabase = async (fetchFresh: boolean = false) => {
-    if (!supabaseStatus?.connected) {
-      setIsSupabaseModalOpen(true);
-      showToast("กรุณาตั้งค่าการเชื่อมต่อ Supabase ก่อนเริ่มนำเข้าข้อมูล");
-      return;
-    }
+  // Supabase Status & Modal
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatusResponse | null>(null);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+
+  const fetchSupabaseStatus = useCallback(async () => {
     try {
-      showToast(
-        fetchFresh
-          ? "กำลังเริ่มดึงข้อมูลสดจาก OPEC และนำเข้าสู่ Supabase..."
-          : "กำลังเริ่มนำเข้าข้อมูล 291 โรงเรียนเข้าสู่ Supabase..."
-      );
-      await syncOpecToSupabase({ fetchFresh, publishInitial: true });
-      pollProgress();
-    } catch (err: any) {
-      showToast(`นำเข้า Supabase ผิดพลาด: ${err.message || "ไม่สามารถดำเนินการได้"}`);
+      const s = await getSupabaseStatus();
+      setSupabaseStatus(s);
+    } catch {
+      // ignore
     }
+  }, []);
+
+  const handleOpenSupabaseModal = async () => {
+    await fetchSupabaseStatus();
+    setIsSupabaseModalOpen(true);
   };
 
-  const handleClearData = async () => {
+  // Action: Clear Supabase database
+  const handleConfirmClearData = async () => {
     setIsClearConfirmOpen(false);
+    setActionLoading(true);
     try {
-      await postAction("/api/clear-data");
-      setSchools([]);
-      setProgress(null);
-      showToast("ล้างข้อมูลเรียบร้อยแล้ว");
+      const res = await clearSupabaseData();
+      if (res.status === "success" || res.status === "cleared") {
+        setSchools([]);
+        setProgress(null);
+        showToast(res.message || "ลบล้างข้อมูลใน Supabase Database ทั้งหมดเรียบร้อยแล้ว");
+        await loadSchoolsData();
+      } else {
+        showToast(`ลบล้างข้อมูลไม่สำเร็จ: ${res.message || "เกิดข้อผิดพลาด"}`);
+      }
     } catch (err: any) {
-      showToast(`ล้างข้อมูลไม่สำเร็จ: ${err.message}`);
+      showToast(`ลบล้างข้อมูลไม่สำเร็จ: ${err.message}`);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -229,16 +271,16 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
   const handleResolveSingleWebsite = async (code: string) => {
     setActionLoadingCode(code);
     try {
-      showToast(`กำลังค้นหา Official Website สำหรับรหัส ${code}...`);
+      showToast(`กำลังค้นหา Official Website สำหรับโรงเรียน ${code}...`);
       const updated = await resolveSchoolWebsite(code);
-      if (updated) {
-        setSchools((prev) => prev.map((s) => (s.school_code === code ? updated : s)));
-        showToast(`อัปเดตเว็บไซต์สำหรับ ${updated.school_name_th} สำเร็จ`);
+      if (updated && updated.website) {
+        showToast(`ค้นพบเว็บไซต์: ${updated.website}`);
+        await loadSchoolsData();
       } else {
-        showToast("ไม่พบเว็บไซต์ที่ตรงกัน");
+        showToast("ไม่พบเว็บไซต์ทางการเพิ่มเติมสำหรับโรงเรียนนี้");
       }
     } catch (err: any) {
-      showToast(`ค้นหาเว็บไซต์ไม่สำเร็จ: ${err.message}`);
+      showToast(`เกิดข้อผิดพลาด: ${err.message}`);
     } finally {
       setActionLoadingCode(null);
     }
@@ -247,17 +289,100 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
   const handleEnrichSingleSchool = async (code: string) => {
     setActionLoadingCode(code);
     try {
-      showToast(`กำลังปักหมุด GPS และเติมชื่อ EN สำหรับรหัส ${code}...`);
+      showToast(`กำลังเติมข้อมูลสำหรับโรงเรียน ${code}...`);
       const res = await enrichSchoolData(code);
-      if (res && res.school) {
-        setSchools((prev) => prev.map((s) => (s.school_code === code ? res.school : s)));
-        showToast(`เติมเต็มข้อมูล ${res.school.school_name_th} สำเร็จ`);
+      if (res) {
+        showToast(`เติมข้อมูลสำเร็จ: ${res.changes.length > 0 ? res.changes.join(", ") : "ข้อมูลครบถ้วนอยู่แล้ว"}`);
+        await loadSchoolsData();
       }
     } catch (err: any) {
-      showToast(`เติมข้อมูลไม่สำเร็จ: ${err.message}`);
+      showToast(`เกิดข้อผิดพลาด: ${err.message}`);
     } finally {
       setActionLoadingCode(null);
     }
+  };
+
+  const handleEnrichNamesEn = async () => {
+    setActionLoading(true);
+    try {
+      showToast("ขั้นตอนที่ 2: กำลังดึงและเติมชื่อภาษาอังกฤษ (Official English Name) สู่ Supabase...");
+      await postAction("/api/enrich-names-en");
+      pollProgress();
+    } catch (err: any) {
+      showToast(`เติมชื่อภาษาอังกฤษไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEnrichGps = async () => {
+    setActionLoading(true);
+    try {
+      showToast("ขั้นตอนที่ 3: กำลังค้นหาและปักหมุดพิกัด GPS ความแม่นยำสูงสู่ Supabase...");
+      await postAction("/api/enrich-gps");
+      pollProgress();
+    } catch (err: any) {
+      showToast(`ปักหมุด GPS ไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEnrichWebsites = async () => {
+    setActionLoading(true);
+    try {
+      showToast("ขั้นตอนที่ 4: กำลังค้นหาและตรวจสอบ Official Website สู่ Supabase...");
+      await postAction("/api/fetch-official-websites");
+      pollProgress();
+    } catch (err: any) {
+      showToast(`ค้นหาเว็บไซต์ไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAutoEnrichAll = async () => {
+    setActionLoading(true);
+    try {
+      showToast("ระบบ Auto-Enrich: กำลังประมวลผล Pipeline ข้อมูลแบบครบวงจร...");
+      await postAction("/api/enrich-data");
+      pollProgress();
+    } catch (err: any) {
+      showToast(`Auto-Enrich ไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (schools.length === 0) {
+      showToast("ไม่มีข้อมูลโรงเรียนสำหรับส่งออก");
+      return;
+    }
+    const headers = ["school_code", "school_name_th", "school_name_en", "province", "district", "website", "levels_offered", "curriculums", "student_count", "teacher_count"];
+    const rows = schools.map((s) => [
+      s.school_code,
+      `"${(s.school_name_th || "").replace(/"/g, '""')}"`,
+      `"${(s.school_name_en || "").replace(/"/g, '""')}"`,
+      s.province || "",
+      s.district || "",
+      s.website || "",
+      `"${(s.levels_offered || []).join(", ")}"`,
+      `"${(s.curriculums || []).join(", ")}"`,
+      s.student_count ?? 0,
+      s.teacher_count ?? 0,
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `international_schools_supabase_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast("ส่งออกไฟล์ CSV เรียบร้อยแล้ว");
   };
 
   const openDrillDown = (title: string, subtitle: string, list: OpecSchoolRecord[]) => {
@@ -314,8 +439,15 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           <div className="flex items-center bg-[#eae0d0]/50 p-1 rounded-2xl border border-[#eae0d0]">
             <button
               type="button"
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-[#1c1917] shadow-xs border border-[#eae0d0] flex items-center gap-1.5 transition-all"
-              title="หน้าข้อมูล Local JSON ปัจจุบัน"
+              onClick={() => {
+                if (onNavigateToLocalAdmin) {
+                  onNavigateToLocalAdmin();
+                } else {
+                  window.location.hash = "admin";
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-[#1c1917]/70 hover:text-[#1c1917] hover:bg-white/60 transition-all flex items-center gap-1.5"
+              title="สลับไปยังหน้าจัดการไฟล์ Local JSON"
             >
               <Layers className="w-3.5 h-3.5 text-[#ab8e72]" />
               <span>📁 ข้อมูล Local (JSON)</span>
@@ -323,15 +455,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
 
             <button
               type="button"
-              onClick={() => {
-                if (onNavigateToSupabaseAdmin) {
-                  onNavigateToSupabaseAdmin();
-                } else {
-                  window.location.hash = "supabase-admin";
-                }
-              }}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#1c1917]/70 hover:text-[#0f9488] hover:bg-white/60 transition-all flex items-center gap-1.5"
-              title="สลับไปยังหน้าจัดการฐานข้อมูล Supabase PostgreSQL Cloud"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-[#0f9488] shadow-xs border border-[#eae0d0] flex items-center gap-1.5 transition-all"
+              title="หน้าฐานข้อมูล Supabase PostgreSQL ปัจจุบัน"
             >
               <Database className="w-3.5 h-3.5 text-[#0f9488]" />
               <span>⚡ Supabase Database</span>
@@ -345,10 +470,10 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* 1. ดึงข้อมูล OPEC */}
           <button
             type="button"
-            onClick={() => handleTriggerAction("/api/fetch-opec", "ดึงข้อมูล OPEC")}
-            disabled={isRunning}
+            onClick={() => setIsSyncConfirmOpen(true)}
+            disabled={isRunning || actionLoading}
             className="px-4 py-2 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-            title="ดึงข้อมูลโรงเรียนนานาชาติจากระบบ OPEC สช. (บันทึกลง Local Cache)"
+            title="ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database"
           >
             <CloudDownload className="w-4 h-4" />
             <span>1. ดึงข้อมูล OPEC</span>
@@ -357,15 +482,9 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* จัดการ Supabase DB */}
           <button
             type="button"
-            onClick={() => {
-              if (onNavigateToSupabaseAdmin) {
-                onNavigateToSupabaseAdmin();
-              } else {
-                window.location.hash = "supabase-admin";
-              }
-            }}
+            onClick={handleOpenSupabaseModal}
             className="px-3.5 py-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] hover:bg-[#d1fae5] text-[#059669] text-xs font-bold shadow-xs transition-all flex items-center gap-2"
-            title="เปิดหน้าจัดการฐานข้อมูล Supabase Database จริง"
+            title="ตรวจสอบการเชื่อมต่อและโครงสร้างตาราง Supabase Database"
           >
             <Database className="w-4 h-4" />
             <span>จัดการ Supabase DB</span>
@@ -375,8 +494,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* 2. เติมชื่อ EN */}
           <button
             type="button"
-            onClick={() => handleTriggerAction("/api/enrich-names-en", "เติมชื่อ EN")}
-            disabled={isRunning}
+            onClick={handleEnrichNamesEn}
+            disabled={isRunning || actionLoading}
             className="px-3.5 py-2 rounded-xl bg-[#ab8e72] hover:bg-[#96775d] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
             title="ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ"
           >
@@ -387,8 +506,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* 3. ปักหมุด GPS */}
           <button
             type="button"
-            onClick={() => handleTriggerAction("/api/enrich-gps", "ปักหมุด GPS")}
-            disabled={isRunning}
+            onClick={handleEnrichGps}
+            disabled={isRunning || actionLoading}
             className="px-3.5 py-2 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
             title="ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริงและข้อมูล Google Places"
           >
@@ -399,8 +518,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* 4. ค้นหา Website */}
           <button
             type="button"
-            onClick={() => handleTriggerAction("/api/fetch-official-websites", "ค้นหา Website")}
-            disabled={isRunning}
+            onClick={handleEnrichWebsites}
+            disabled={isRunning || actionLoading}
             className="px-3.5 py-2 rounded-xl bg-[#25508a] hover:bg-[#1d4070] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
             title="ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification"
           >
@@ -422,8 +541,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* Auto-Enrich */}
           <button
             type="button"
-            onClick={() => handleTriggerAction("/api/enrich-data", "Auto-Enrich ทั้งหมด")}
-            disabled={isRunning}
+            onClick={handleAutoEnrichAll}
+            disabled={isRunning || actionLoading}
             className="px-3.5 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/60 text-[#78593a] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
             title="รันระบบอัตโนมัติครบทุกขั้นตอน: เติมชื่อ EN -> GPS -> Website"
           >
@@ -434,27 +553,20 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* Export CSV */}
           <button
             type="button"
-            onClick={() => {
-              const link = document.createElement("a");
-              link.href = "/api/export/csv";
-              link.setAttribute("download", "international_schools_opec.csv");
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
+            onClick={handleExportCsv}
             className="p-2.5 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#1c1917] transition-all shadow-xs"
             title="ส่งออกไฟล์ CSV"
           >
             <Download className="w-4 h-4" />
           </button>
 
-          {/* Clear Database/Cache button */}
+          {/* Clear Database button */}
           <button
             type="button"
             onClick={() => setIsClearConfirmOpen(true)}
-            disabled={isRunning}
+            disabled={isRunning || actionLoading}
             className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 transition-all shadow-xs disabled:opacity-50"
-            title="ล้างข้อมูลทั้งหมด"
+            title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -577,8 +689,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
           {/* Loading Indicator */}
           {loading ? (
             <div className="py-24 text-center">
-              <Loader2 className="w-8 h-8 text-[#ab8e72] animate-spin mx-auto mb-3" />
-              <p className="text-xs text-[#1c1917]/60">กำลังโหลดฐานข้อมูลโรงเรียนนานาชาติ สช....</p>
+              <Loader2 className="w-8 h-8 text-[#0f9488] animate-spin mx-auto mb-3" />
+              <p className="text-xs text-[#1c1917]/60">กำลังโหลดฐานข้อมูลโรงเรียนนานาชาติจาก Supabase...</p>
             </div>
           ) : (
             <>
@@ -593,8 +705,8 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
               {activeTab === "schools" && (
                 <OpecSchoolsTable
                   schools={schools}
-                  onSelectSchool={setSelectedSchool}
-                  onEditWebsite={setEditingWebsiteSchool}
+                  onSelectSchool={(s) => setSelectedSchool(s)}
+                  onEditWebsite={(s) => setEditingWebsiteSchool(s)}
                   onResolveSchoolWebsite={handleResolveSingleWebsite}
                   onEnrichSchool={handleEnrichSingleSchool}
                   onRefresh={loadSchoolsData}
@@ -603,7 +715,7 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
               )}
 
               {activeTab === "verify" && (
-                <div className="bg-[#faf5ee] border border-[#eae0d0] rounded-[2rem] p-8 sm:p-10 shadow-xs space-y-6">
+                <div className="bg-white border border-[#eae0d0] rounded-3xl p-8 sm:p-10 shadow-xs space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#eae0d0] pb-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center">
@@ -614,7 +726,7 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
                           ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Verification Center)
                         </h2>
                         <p className="text-xs text-[#78716c] mt-0.5">
-                          ตรวจสอบความถูกต้องของ Official Website ทุกโรงเรียน พร้อมการซิงค์แบบสองทิศทางกับ reference/schoolAndURL.txt และไฟล์แคช Local
+                          ตรวจสอบความถูกต้องของ Official Website ทุกโรงเรียน พร้อมการซิงค์แบบสองทิศทางกับ reference/schoolAndURL.txt และ Supabase Database
                         </p>
                       </div>
                     </div>
@@ -629,19 +741,19 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-2xl bg-white border border-[#eae0d0]">
+                    <div className="p-4 rounded-2xl bg-[#faf5ee] border border-[#eae0d0]">
                       <span className="text-[11px] font-bold text-[#78593a]">การตรวจสอบอัตโนมัติ</span>
                       <p className="text-xs text-[#1c1917]/70 mt-1">
                         บอทตรวจสอบสถาปัตยกรรมโดเมน (.ac.th, .sch.id, .edu) และ SSL/TLS ป้องกันลิงก์ปลอมหรือโดเมนหมดอายุ
                       </p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white border border-[#eae0d0]">
+                    <div className="p-4 rounded-2xl bg-[#faf5ee] border border-[#eae0d0]">
                       <span className="text-[11px] font-bold text-[#78593a]">2-Way Synced Registry</span>
                       <p className="text-xs text-[#1c1917]/70 mt-1">
-                        ข้อมูลที่ได้รับการรับรองจะถูกบันทึกลงแคชและซิงค์กลับสู่ schoolAndURL.txt อัตโนมัติ
+                        ข้อมูลที่ได้รับการรับรองจะถูกบันทึกสู่ Supabase Cloud และซิงค์กลับสู่ schoolAndURL.txt อัตโนมัติ
                       </p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white border border-[#eae0d0]">
+                    <div className="p-4 rounded-2xl bg-[#faf5ee] border border-[#eae0d0]">
                       <span className="text-[11px] font-bold text-[#78593a]">Human-in-the-loop</span>
                       <p className="text-xs text-[#1c1917]/70 mt-1">
                         แอดมินสามารถคลิกทดสอบเปิดลิงก์สด แก้ไข URL ได้ทันที และกดปุ่มรับรอง (Verify) ด้วยตนเอง
@@ -652,23 +764,16 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
               )}
 
               {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "verify" && (
-                <div className="bg-[#faf5ee] border border-[#eae0d0] rounded-[2rem] p-12 text-center space-y-3 shadow-xs">
-                  <div className="w-12 h-12 rounded-2xl bg-[#ab8e72]/15 text-[#ab8e72] flex items-center justify-center mx-auto">
+                <div className="bg-white border border-[#eae0d0] rounded-3xl p-12 text-center shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] text-[#ab8e72] flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#1c1917] capitalize">
-                    {activeTab.replace("-", " ")} System
+                  <h3 className="text-sm font-bold text-[#1c1917] capitalize">
+                    {activeTab} Management Module
                   </h3>
-                  <p className="text-xs text-[#1c1917]/60 max-w-md mx-auto">
-                    ระบบโมดูลนี้พร้อมสำหรับการเชื่อมต่อ API ฐานข้อมูลในขั้นตอนต่อไป
+                  <p className="text-xs text-[#1c1917]/60 mt-1 max-w-sm mx-auto">
+                    เชื่อมต่อกับฐานข้อมูล Supabase PostgreSQL (Cloud Database) เรียบร้อยแล้ว
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("schools")}
-                    className="px-5 py-2.5 bg-[#1c1917] hover:bg-[#1c1917]/85 text-white rounded-xl text-xs font-bold shadow-sm"
-                  >
-                    กลับสู่หน้าตารางโรงเรียน
-                  </button>
                 </div>
               )}
             </>
@@ -705,27 +810,45 @@ export function OpecAdminPage({ onBack, onNavigateToSupabaseAdmin }: OpecAdminPa
         }}
       />
 
-      {/* Supabase Connection & Sync Modal */}
-      <OpecSupabaseModal
-        isOpen={isSupabaseModalOpen}
-        status={supabaseStatus}
-        onClose={() => setIsSupabaseModalOpen(false)}
-        onRefreshStatus={loadSupabaseStatus}
-        onStartSync={(fetchFresh) => handleSyncToSupabase(fetchFresh)}
-        isSyncing={isRunning}
+      {/* OPEC Sync Confirmation Modal */}
+      <ConfirmActionModal
+        isOpen={isSyncConfirmOpen}
+        onClose={() => setIsSyncConfirmOpen(false)}
+        onConfirm={handleConfirmSyncOpec}
+        title="ยืนยันการดึงข้อมูลสดจาก OPEC เข้าสู่ Supabase"
+        description="ระบบจะทำการดึงข้อมูลโรงเรียนนานาชาติจากระบบ OPEC สช. (school.opec.go.th) ทั้งหมด และบันทึกข้อมูลเข้า Supabase PostgreSQL Cloud โดยตรง&#10;&#10;คุณต้องการเริ่มดำเนินการหรือไม่?"
+        confirmText="เริ่มดึงข้อมูลทันที"
+        cancelText="ยกเลิก"
+        variant="primary"
+        iconType="database"
+        isLoading={actionLoading}
       />
 
       {/* Clear Data Confirmation Modal */}
       <ConfirmActionModal
         isOpen={isClearConfirmOpen}
         onClose={() => setIsClearConfirmOpen(false)}
-        onConfirm={handleClearData}
-        title="ยืนยันการล้างข้อมูล Local Cache"
-        description="คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลโรงเรียนและ Logs ในระบบ Local ทั้งหมด?"
-        confirmText="ยืนยันการล้างข้อมูล"
+        onConfirm={handleConfirmClearData}
+        title="ยืนยันการลบล้างข้อมูลใน Supabase ทั้งหมด"
+        description="⚠️ การกระทำนี้จะลบข้อมูลโรงเรียนและ Scrape Logs ในฐานข้อมูล Supabase PostgreSQL ทั้งหมด&#10;&#10;คุณสามารถกดปุ่ม 'ดึงข้อมูล OPEC' เพื่อนำเข้าข้อมูลใหม่อีกครั้งได้ทุกเมื่อ คุณแน่ใจหรือไม่ว่าต้องการดำเนินการ?"
+        confirmText="ยืนยันการลบล้างข้อมูลทั้งหมด"
         cancelText="ยกเลิก"
         variant="danger"
         iconType="trash"
+        isLoading={actionLoading}
+      />
+
+      {/* Supabase Database Status & Management Modal */}
+      <OpecSupabaseModal
+        isOpen={isSupabaseModalOpen}
+        status={supabaseStatus}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        onRefreshStatus={fetchSupabaseStatus}
+        onStartSync={() => {
+          setIsSupabaseModalOpen(false);
+          setIsSyncConfirmOpen(true);
+        }}
+        isSyncing={isRunning || actionLoading}
       />
 
       {/* Official URL Verification & Registry Modal */}

@@ -25,6 +25,21 @@ from supabase_sync import (
     initialize_schema_on_supabase,
     execute_opec_import,
     get_current_dsn,
+    fetch_supabase_schools,
+    clear_supabase_data,
+    insert_supabase_school,
+    update_supabase_school,
+    delete_supabase_school,
+    update_supabase_school_names_en,
+    update_supabase_school_gps,
+    update_supabase_school_websites,
+    sync_single_school_to_supabase,
+    slugify,
+)
+from website_registry import (
+    get_full_registry_status,
+    verify_or_update_school_url,
+    bulk_sync_from_reference_txt,
 )
 
 app = FastAPI(
@@ -125,6 +140,13 @@ def run_enrich_gps_worker():
         result = enrich_all_school_gps(update_progress, on_save_callback=on_save)
         if result:
             set_current_schools(result)
+            try:
+                if get_current_dsn():
+                    update_progress("กำลังซิงค์พิกัด GPS สู่ Supabase...", 100, 100, "กำลังบันทึกพิกัด GPS ลงตาราง school_data.schools ใน Supabase...")
+                    synced = update_supabase_school_gps(result, update_progress)
+                    update_progress("ซิงค์ GPS สู่ Supabase สำเร็จ", 100, 100, f"บันทึกพิกัด GPS สู่ Supabase สำเร็จ ({synced} แห่ง)")
+            except Exception as e_sb:
+                print("[GPS Supabase Sync Error]", e_sb)
     except Exception as e:
         print("[OPEC Service] Error in GPS Enrichment:", e)
         update_progress("เกิดข้อผิดพลาดในการค้นหาพิกัด GPS", 100, 100, f"Error: {e}")
@@ -139,6 +161,13 @@ def run_fetch_websites_worker():
         result = resolve_all_official_websites(update_progress, on_save_callback=on_save)
         if result:
             set_current_schools(result)
+            try:
+                if get_current_dsn():
+                    update_progress("กำลังซิงค์ Official Website สู่ Supabase...", 100, 100, "กำลังบันทึกเว็บไซต์ลงตาราง school_data.schools ใน Supabase...")
+                    synced = update_supabase_school_websites(result, update_progress)
+                    update_progress("ซิงค์ Website สู่ Supabase สำเร็จ", 100, 100, f"บันทึกเว็บไซต์ทางการสู่ Supabase สำเร็จ ({synced} แห่ง)")
+            except Exception as e_sb:
+                print("[Websites Supabase Sync Error]", e_sb)
     except Exception as e:
         print("[OPEC Service] Error in Website fetch:", e)
         update_progress("เกิดข้อผิดพลาดในการดึง Official Website", 100, 100, f"Error: {e}")
@@ -153,6 +182,14 @@ def run_enrich_data_worker():
         result = enrich_all_missing_school_data(update_progress, on_save_callback=on_save)
         if result:
             set_current_schools(result)
+            try:
+                if get_current_dsn():
+                    update_progress("กำลังซิงค์ข้อมูล Auto-Enrich สู่ Supabase...", 100, 100, "กำลังบันทึกข้อมูลสมบูรณ์ลงตาราง school_data.schools ใน Supabase...")
+                    s_en = update_supabase_school_names_en(result, update_progress)
+                    s_gps = update_supabase_school_gps(result, update_progress)
+                    update_progress("ซิงค์ข้อมูลสู่ Supabase สำเร็จ", 100, 100, f"บันทึก Supabase สมบูรณ์: ชื่อ EN ({s_en} แห่ง), พิกัด GPS ({s_gps} แห่ง)")
+            except Exception as e_sb:
+                print("[Auto-Enrich Supabase Sync Error]", e_sb)
     except Exception as e:
         print("[OPEC Service] Error in Data Enrichment:", e)
         update_progress("เกิดข้อผิดพลาดในการเติมข้อมูล", 100, 100, f"Error: {e}")
@@ -213,6 +250,13 @@ def get_progress():
             "logs": list(scraper_state["logs"])
         }
     return snapshot
+
+@app.post("/api/clear-logs")
+def clear_logs():
+    with state_lock:
+        scraper_state["logs"] = []
+        scraper_state["log"] = ""
+    return {"status": "cleared"}
 
 @app.post("/api/fetch-opec")
 def trigger_fetch_opec():
@@ -294,6 +338,24 @@ def trigger_enrich_data():
     threading.Thread(target=run_enrich_data_worker, daemon=True).start()
     return {"status": "started"}
 
+# Website Registry & Audit Endpoints
+@app.get("/api/websites/registry")
+def api_get_website_registry():
+    return get_full_registry_status()
+
+class VerifyWebsitePayload(BaseModel):
+    school_code: str
+    website: str
+    is_verified: Optional[bool] = True
+
+@app.post("/api/websites/verify")
+def api_verify_website(payload: VerifyWebsitePayload):
+    return verify_or_update_school_url(payload.school_code, payload.website, payload.is_verified)
+
+@app.post("/api/websites/sync-registry")
+def api_sync_registry():
+    return bulk_sync_from_reference_txt()
+
 class SupabaseConfigPayload(BaseModel):
     database_url: str
 
@@ -332,10 +394,83 @@ def trigger_sync_to_supabase(payload: Optional[SyncSupabasePayload] = None):
         scraper_state["log"] = "เริ่มต้นการนำเข้าข้อมูลสู่ Supabase Database..."
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการเชื่อมต่อ Supabase..."]
 
-    fetch_fresh = payload.fetch_fresh if payload else False
-    publish_initial = payload.publish_initial if payload and payload.publish_initial is not None else True
+    fetch_fresh = payload.fetch_fresh if (payload and payload.fetch_fresh is not None) else True
+    publish_initial = payload.publish_initial if (payload and payload.publish_initial is not None) else True
     threading.Thread(target=run_sync_supabase_worker, args=(fetch_fresh, publish_initial), daemon=True).start()
     return {"status": "started"}
+
+@app.get("/api/supabase/schools")
+def get_supabase_schools_endpoint(
+    search: Optional[str] = None,
+    province: Optional[str] = None,
+    curriculum: Optional[str] = None,
+    level: Optional[str] = None,
+    limit: int = 1000,
+    offset: int = 0,
+):
+    try:
+        return fetch_supabase_schools(
+            search=search,
+            province=province,
+            curriculum=curriculum,
+            level=level,
+            limit=limit,
+            offset=offset,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/supabase/clear-data")
+def post_clear_supabase_data():
+    try:
+        return clear_supabase_data()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class CreateSupabaseSchoolPayload(BaseModel):
+    name_th: str
+    name_en: Optional[str] = None
+    province: Optional[str] = "กรุงเทพมหานคร"
+    district: Optional[str] = None
+    subdistrict: Optional[str] = None
+    address: Optional[str] = None
+    official_website_url: Optional[str] = None
+    official_phone: Optional[str] = None
+    official_mobile: Optional[str] = None
+    official_email: Optional[str] = None
+    facebook_url: Optional[str] = None
+    line_id: Optional[str] = None
+    instagram_url: Optional[str] = None
+    youtube_url: Optional[str] = None
+    curriculums: Optional[List[str]] = []
+    levels_offered: Optional[List[str]] = []
+    level_range: Optional[str] = None
+    student_count: Optional[int] = None
+    teacher_count: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    gps_precision: Optional[str] = "Approximate"
+
+@app.post("/api/supabase/schools")
+def post_create_supabase_school(payload: CreateSupabaseSchoolPayload):
+    try:
+        return insert_supabase_school(payload.dict())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/supabase/schools/{school_id}")
+def put_update_supabase_school(school_id: str, payload: Dict[str, Any]):
+    try:
+        return update_supabase_school(school_id, payload)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/supabase/schools/{school_id}")
+def delete_supabase_school_endpoint(school_id: str):
+    try:
+        return delete_supabase_school(school_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/clear-data")
 def clear_all_data():
@@ -369,16 +504,20 @@ def update_school(school_code: str, payload: UpdateSchoolPayload):
     schools = get_current_schools()
     found = False
     new_website = payload.website or payload.official_website or ""
+    matched_school = None
     for s in schools:
         if s.get("school_code") == school_code:
             s["website"] = new_website
             s["website_source"] = payload.website_source or "Manual Edit"
             s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            matched_school = s
             found = True
             break
     if found:
         set_current_schools(schools)
         save_schools(schools)
+        if matched_school:
+            sync_single_school_to_supabase(matched_school)
         return {"status": "updated"}
     raise HTTPException(status_code=404, detail="School not found")
 
@@ -394,6 +533,7 @@ def resolve_one_school(school_code: str):
                 break
         set_current_schools(schools)
         save_schools(schools)
+        sync_single_school_to_supabase(updated)
         return updated
     raise HTTPException(status_code=404, detail="School not found or website unresolved")
 
@@ -413,6 +553,7 @@ def enrich_one_school(school_code: str):
         schools[target_idx] = enriched_s
         set_current_schools(schools)
         save_schools(schools)
+        sync_single_school_to_supabase(enriched_s)
         return {"school": enriched_s, "changes": changes}
     raise HTTPException(status_code=404, detail="School not found")
 

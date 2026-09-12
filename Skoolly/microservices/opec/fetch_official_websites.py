@@ -510,6 +510,8 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
                 log_msg
             )
 
+        time.sleep(0.02)
+
         if completed_count % 25 == 0:
             save_schools(schools)
             if on_save_callback:

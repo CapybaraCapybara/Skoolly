@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Database,
   X,
   CheckCircle2,
   AlertTriangle,
   Layers,
-  Key,
-  Eye,
-  EyeOff,
   RefreshCw,
   ExternalLink,
   Wand2,
   ShieldAlert,
-  Server,
   Loader2,
+  ArrowRight,
+  Server,
 } from "lucide-react";
 import type { SupabaseStatusResponse } from "@/api/opecApi";
-import { saveSupabaseConfig, initSupabaseSchema } from "@/api/opecApi";
+import { initSupabaseSchema } from "@/api/opecApi";
 
 interface OpecSupabaseModalProps {
   isOpen: boolean;
@@ -35,9 +33,6 @@ export function OpecSupabaseModal({
   onStartSync,
   isSyncing,
 }: OpecSupabaseModalProps) {
-  const [databaseUrl, setDatabaseUrl] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [initializingSchema, setInitializingSchema] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -55,36 +50,12 @@ export function OpecSupabaseModal({
 
   if (!isOpen) return null;
 
-  const handleSaveAndTest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!databaseUrl.trim()) return;
-
-    setSaving(true);
-    setActionMessage(null);
-    try {
-      const res = await saveSupabaseConfig(databaseUrl.trim());
-      await onRefreshStatus();
-      if (res.connection.connected) {
-        setActionMessage({
-          type: "success",
-          text: `เชื่อมต่อ Supabase สำเร็จ! (Latency: ${res.connection.latency_ms}ms, พบ ${res.connection.school_count || 0} โรงเรียน)`,
-        });
-        setDatabaseUrl("");
-      } else {
-        setActionMessage({
-          type: "error",
-          text: `บันทึกแล้ว แต่ไม่สามารถเชื่อมต่อได้: ${res.connection.error || "ตรวจสอบรหัสผ่านหรือ Connection String"}`,
-        });
-      }
-    } catch (err: any) {
-      setActionMessage({ type: "error", text: err.message || "เกิดข้อผิดพลาดในการบันทึก" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleInitSchema = async () => {
-    if (!window.confirm("คุณต้องการรัน db/schema.sql เพื่อสร้าง Schemas (school_data, community ฯลฯ) และ Tables บน Supabase ใช่หรือไม่?")) {
+    if (
+      !window.confirm(
+        "คุณต้องการรัน db/schema.sql เพื่อสร้าง Schemas (school_data, community ฯลฯ) และ Tables บน Supabase ใช่หรือไม่?"
+      )
+    ) {
       return;
     }
 
@@ -93,7 +64,10 @@ export function OpecSupabaseModal({
     try {
       const res = await initSupabaseSchema();
       await onRefreshStatus();
-      setActionMessage({ type: "success", text: res.message || "สร้าง Schema และ Tables บน Supabase เรียบร้อยแล้ว!" });
+      setActionMessage({
+        type: "success",
+        text: res.message || "สร้าง Schema และ Tables บน Supabase เรียบร้อยแล้ว!",
+      });
     } catch (err: any) {
       setActionMessage({ type: "error", text: `สร้าง Schema ไม่สำเร็จ: ${err.message}` });
     } finally {
@@ -110,7 +84,7 @@ export function OpecSupabaseModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#faf8f5] border border-[#eae0d0] text-[#1c1917] rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-scaleUp flex flex-col max-h-[92vh]"
+        className="bg-[#faf8f5] border border-[#eae0d0] text-[#1c1917] rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl animate-scaleUp flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -121,19 +95,19 @@ export function OpecSupabaseModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-[#1c1917]">ตั้งค่าเชื่อมต่อ Supabase Database</h2>
+                <h2 className="text-base font-bold text-[#1c1917]">สถานะฐานข้อมูล Supabase</h2>
                 <span
                   className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${
                     isConnected
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      : "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-rose-50 text-rose-700 border-rose-200"
                   }`}
                 >
                   {isConnected ? "● Connected" : "○ Disconnected"}
                 </span>
               </div>
               <p className="text-xs text-[#1c1917]/60">
-                ซิงค์ข้อมูลโรงเรียนนานาชาติเข้าสู่ PostgreSQL Database จริงของ Supabase
+                ระบบจัดการและนำเข้าข้อมูลโรงเรียนนานาชาติสู่ PostgreSQL Database จริง
               </p>
             </div>
           </div>
@@ -148,48 +122,74 @@ export function OpecSupabaseModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
           {/* Status Box */}
           <div
             className={`p-4 rounded-2xl border ${
               isConnected
-                ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-900"
-                : "bg-amber-50/70 border-amber-200/80 text-amber-900"
+                ? "bg-emerald-50/70 border-emerald-200/80 text-emerald-950"
+                : "bg-amber-50/70 border-amber-200/80 text-amber-950"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5">
+              <div className="flex items-start gap-3">
                 {isConnected ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
                 ) : (
                   <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
                 )}
-                <div>
+                <div className="space-y-1">
                   <div className="font-bold text-sm">
                     {isConnected
                       ? "เชื่อมต่อฐานข้อมูล Supabase สำเร็จ"
-                      : "ยังไม่ได้เชื่อมต่อหรือยังไม่พบ DATABASE_URL"}
+                      : "ไม่สามารถเชื่อมต่อฐานข้อมูลได้"}
                   </div>
+
                   {isConnected ? (
-                    <div className="mt-1 text-[11px] space-y-0.5 opacity-90">
-                      <div>
-                        • Connection: <span className="font-mono">{status?.masked_url}</span>
+                    <div className="text-[11px] space-y-1 opacity-90 pt-1">
+                      <div className="flex items-center gap-2">
+                        <Server className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                        <span>Host:</span>
+                        <code className="font-mono bg-white/70 px-1.5 py-0.5 rounded text-[10px]">
+                          {status?.masked_url}
+                        </code>
                       </div>
-                      <div>
-                        • Latency: <span className="font-bold">{status?.latency_ms} ms</span> | โรงเรียนในตาราง:{" "}
-                        <span className="font-bold text-emerald-700">{status?.school_count || 0} แห่ง</span>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div className="bg-white/60 p-2 rounded-xl border border-emerald-200/60">
+                          <div className="text-[10px] text-emerald-800/70 font-medium">ความเร็ว Ping</div>
+                          <div className="font-bold text-emerald-900 text-xs">
+                            {status?.latency_ms ? `${status.latency_ms} ms` : "-"}
+                          </div>
+                        </div>
+                        <div className="bg-white/60 p-2 rounded-xl border border-emerald-200/60">
+                          <div className="text-[10px] text-emerald-800/70 font-medium">โรงเรียนใน Supabase</div>
+                          <div className="font-bold text-emerald-900 text-xs">
+                            {status?.school_count ?? 0} แห่ง
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        • สถานะ Schema:{" "}
-                        <span className="font-bold">
-                          {hasSchema ? "พร้อมใช้งาน (school_data.schools มีอยู่แล้ว)" : "ยังไม่มีตาราง (ต้องรัน Schema)"}
+                      <div className="pt-1 flex items-center gap-1.5 text-[11px]">
+                        <span className="font-medium">สถานะ Schema:</span>
+                        <span
+                          className={`font-bold ${
+                            hasSchema ? "text-emerald-700" : "text-amber-700"
+                          }`}
+                        >
+                          {hasSchema
+                            ? "✓ พร้อมใช้งาน (school_data.schools พร้อมรับข้อมูล)"
+                            : "⚠️ ยังไม่พบตาราง school_data (ต้องรัน schema.sql ก่อน)"}
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-1 text-[11px] text-amber-800">
-                      {status?.error || "กรุณาใส่ Supabase Connection String เพื่อให้ระบบสามารถบันทึกข้อมูลเข้าฐานข้อมูลจริง"}
-                    </p>
+                    <div className="space-y-1.5 pt-1 text-[11px] text-amber-900">
+                      <p className="font-medium">
+                        {status?.error || "กรุณาตรวจสอบการตั้งค่า DATABASE_URL ในไฟล์ .env ของเซิร์ฟเวอร์"}
+                      </p>
+                      <p className="text-[10px] opacity-75">
+                        ระบบอ่านค่าการเชื่อมต่อจากไฟล์ <code className="font-mono bg-white/80 px-1 py-0.5 rounded">.env</code> ฝั่งเซิร์ฟเวอร์โดยตรงเพื่อความปลอดภัยสูงสุด
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -197,7 +197,7 @@ export function OpecSupabaseModal({
               <button
                 type="button"
                 onClick={() => onRefreshStatus()}
-                className="p-1.5 rounded-lg bg-white/80 border border-current/20 hover:bg-white text-xs font-bold transition-all flex items-center gap-1 shrink-0 shadow-xs"
+                className="p-2 rounded-xl bg-white/90 border border-current/20 hover:bg-white text-xs font-bold transition-all flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
                 title="ทดสอบและรีเฟรชสถานะ"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -224,90 +224,27 @@ export function OpecSupabaseModal({
             </div>
           )}
 
-          {/* Database URL Form */}
-          <form onSubmit={handleSaveAndTest} className="space-y-3 bg-[#faf5ee] p-4 rounded-2xl border border-[#eae0d0]">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#1c1917] flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-[#ab8e72]" />
-                <span>Supabase Connection String (DATABASE_URL)</span>
-              </label>
-              <a
-                href="https://supabase.com/dashboard"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[11px] text-[#0f9488] hover:underline flex items-center gap-1 font-medium"
-              >
-                <span>Supabase Dashboard</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
+          {/* Actions Section */}
+          <div className="space-y-3">
+            <h3 className="font-bold text-xs text-[#1c1917] flex items-center gap-1.5">
+              <span>คำสั่งนำเข้าและซิงค์ข้อมูล (Database Actions)</span>
+            </h3>
 
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={databaseUrl}
-                onChange={(e) => setDatabaseUrl(e.target.value)}
-                placeholder="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"
-                className="w-full bg-white border border-[#eae0d0] rounded-xl px-3.5 py-2.5 pr-10 text-xs font-mono text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#0f9488]/40 focus:border-[#0f9488]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#1c1917]/40 hover:text-[#1c1917]"
-                title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <p className="text-[10px] text-[#1c1917]/60">
-                ระบบจะบันทึกลงในไฟล์ <code className="bg-[#eae0d0]/50 px-1 py-0.5 rounded font-mono">.env</code> อัตโนมัติ (ปลอดภัยและถูก gitignore)
-              </p>
-
-              <button
-                type="submit"
-                disabled={saving || !databaseUrl.trim()}
-                className="px-4 py-2 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Server className="w-3.5 h-3.5" />}
-                <span>{saving ? "กำลังทดสอบ..." : "บันทึกและเชื่อมต่อ"}</span>
-              </button>
-            </div>
-          </form>
-
-          {/* Quick Actions & Helpers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Initialize Schema Card */}
-            <div className="bg-[#faf5ee] border border-[#eae0d0] p-4 rounded-2xl space-y-2">
-              <div className="flex items-center gap-2 font-bold text-xs text-[#1c1917]">
-                <Layers className="w-4 h-4 text-[#ab8e72]" />
-                <span>สร้าง Schema & Tables อัตโนมัติ</span>
+            {/* Sync Card */}
+            <div className="bg-[#faf5ee] border border-[#eae0d0] p-4 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-xs text-[#1c1917]">ซิงค์ข้อมูลโรงเรียนนานาชาติสู่ Supabase</div>
+                  <div className="text-[11px] text-[#1c1917]/60">
+                    นำเข้าข้อมูล 291 โรงเรียน (พร้อมชื่อ EN, พิกัด GPS, Official Website, และการ Map หลักสูตร)
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0f9488]/15 text-[#0f9488] font-bold">
+                  Idempotent
+                </span>
               </div>
-              <p className="text-[11px] text-[#1c1917]/60">
-                รันคำสั่ง DDL จาก <code className="font-mono">db/schema.sql</code> เพื่อสร้าง Schema (school_data ฯลฯ) พร้อม Seeds ข้อมูลหลักสูตรและระดับชั้น
-              </p>
-              <button
-                type="button"
-                onClick={handleInitSchema}
-                disabled={initializingSchema || !isConnected}
-                className="w-full mt-1 px-3 py-2 rounded-xl bg-white border border-[#eae0d0] hover:bg-[#eae0d0]/40 text-[#1c1917] text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-xs"
-              >
-                {initializingSchema ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 text-[#ab8e72]" />}
-                <span>{initializingSchema ? "กำลังสร้าง Tables..." : "รัน db/schema.sql"}</span>
-              </button>
-            </div>
 
-            {/* Sync Options Card */}
-            <div className="bg-[#faf5ee] border border-[#eae0d0] p-4 rounded-2xl space-y-2">
-              <div className="flex items-center gap-2 font-bold text-xs text-[#1c1917]">
-                <Database className="w-4 h-4 text-[#0f9488]" />
-                <span>คำสั่งนำเข้าสู่ Supabase</span>
-              </div>
-              <p className="text-[11px] text-[#1c1917]/60">
-                เลือกรูปแบบการนำเข้าข้อมูลเข้าสู่ Supabase Database พร้อมรายงาน Progress สด
-              </p>
-              <div className="flex gap-2 pt-1">
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -315,11 +252,14 @@ export function OpecSupabaseModal({
                     onStartSync(false);
                   }}
                   disabled={!isConnected || isSyncing}
-                  className="flex-1 px-3 py-2 rounded-xl bg-[#1c1917] hover:bg-[#1c1917]/90 text-white text-[11px] font-bold transition-all shadow-xs disabled:opacity-50"
+                  className="flex-1 px-4 py-3 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   title="นำเข้าข้อมูลที่มีอยู่ 291 โรงเรียนเข้าสู่ Supabase ทันที"
                 >
-                  นำเข้า 291 รร. ทันที
+                  <Database className="w-4 h-4" />
+                  <span>นำเข้า 291 รร. สู่ Supabase ทันที</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -327,37 +267,59 @@ export function OpecSupabaseModal({
                     onStartSync(true);
                   }}
                   disabled={!isConnected || isSyncing}
-                  className="flex-1 px-3 py-2 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-[11px] font-bold transition-all shadow-xs disabled:opacity-50"
-                  title="ดึงจาก API OPEC สช. สดๆ แล้วบันทึกเข้า Supabase"
+                  className="px-4 py-3 rounded-xl bg-white border border-[#eae0d0] hover:bg-[#eae0d0]/40 text-[#1c1917] text-xs font-bold transition-all shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="ดึงข้อมูลสดจาก API OPEC สช. แล้วนำเข้าสู่ Supabase"
                 >
-                  ดึงสด + นำเข้า
+                  <RefreshCw className="w-3.5 h-3.5 text-[#ab8e72]" />
+                  <span>ดึงสดจาก สช. + นำเข้า</span>
                 </button>
               </div>
             </div>
+
+            {/* Run Schema Card (if schema is missing or for re-init) */}
+            {!hasSchema && isConnected && (
+              <div className="bg-amber-50/70 border border-amber-200/80 p-4 rounded-2xl space-y-2">
+                <div className="flex items-center gap-2 font-bold text-xs text-amber-950">
+                  <Layers className="w-4 h-4 text-amber-700" />
+                  <span>ยังไม่พบตารางใน Supabase</span>
+                </div>
+                <p className="text-[11px] text-amber-900/80">
+                  ต้องการสร้าง Schemas และ Tables บนฐานข้อมูล Supabase ก่อนเริ่มนำเข้าข้อมูล
+                </p>
+                <button
+                  type="button"
+                  onClick={handleInitSchema}
+                  disabled={initializingSchema}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[#1c1917] hover:bg-[#1c1917]/90 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  {initializingSchema ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4 text-[#ab8e72]" />
+                  )}
+                  <span>{initializingSchema ? "กำลังสร้าง Tables..." : "รัน db/schema.sql อัตโนมัติ"}</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Guide / How to find connection string */}
-          <div className="bg-[#faf5ee]/60 border border-[#eae0d0]/60 p-3.5 rounded-xl space-y-1.5 text-[11px] text-[#1c1917]/70">
-            <div className="font-bold text-[#1c1917] flex items-center gap-1.5">
-              <span>💡 วิธีคัดลอก Connection String จาก Supabase:</span>
+          {/* Architecture Note */}
+          <div className="bg-[#faf5ee]/60 border border-[#eae0d0]/60 p-3.5 rounded-xl space-y-1 text-[11px] text-[#1c1917]/70">
+            <div className="font-bold text-[#1c1917] flex items-center justify-between">
+              <span>🔒 ความปลอดภัยของระบบ (Production Architecture):</span>
+              <a
+                href="https://supabase.com/dashboard"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-[#0f9488] hover:underline flex items-center gap-1 font-medium"
+              >
+                <span>เปิด Supabase Dashboard</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
-            <ol className="list-decimal list-inside space-y-1 pl-1">
-              <li>
-                เปิด <strong>Supabase Dashboard</strong> ของโปรเจกต์คุณ
-              </li>
-              <li>
-                ไปที่เมนู <strong>Project Settings</strong> (ไอคอนเฟืองล่างซ้าย) &gt; <strong>Database</strong>
-              </li>
-              <li>
-                เลื่อนลงมาที่หัวข้อ <strong>Connection string</strong> &gt; เลือกแท็บ <strong>URI</strong>
-              </li>
-              <li>
-                เลือกโหมด <strong>Session pooler (พอร์ต 6543)</strong> หรือ <strong>Direct (พอร์ต 5432)</strong>
-              </li>
-              <li>
-                คัดลอก Connection String แล้วแทนที่ <code className="font-mono text-rose-600">[YOUR-PASSWORD]</code> ด้วยรหัสผ่านฐานข้อมูลของคุณ
-              </li>
-            </ol>
+            <p>
+              รหัสผ่านและการเชื่อมต่อถูกจัดการผ่านไฟล์ <code className="font-mono bg-[#eae0d0]/50 px-1 py-0.5 rounded text-[10px]">.env</code> ของเซิร์ฟเวอร์โดยตรง โดยไม่เปิดให้แก้ไขผ่านหน้าเว็บ เพื่อความปลอดภัยสูงสุดตามมาตรฐานสากล
+            </p>
           </div>
         </div>
 
@@ -369,7 +331,7 @@ export function OpecSupabaseModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-[#eae0d0]/70 hover:bg-[#eae0d0] text-[#1c1917] text-xs font-bold transition-all"
+            className="px-5 py-2 rounded-xl bg-[#eae0d0]/70 hover:bg-[#eae0d0] text-[#1c1917] text-xs font-bold transition-all cursor-pointer"
           >
             ปิดหน้าต่าง
           </button>

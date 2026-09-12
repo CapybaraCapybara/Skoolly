@@ -9,15 +9,18 @@ import { CompareBar } from "@/components/schools/CompareBar";
 import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 
-// Admin console is a large, staff-only bundle — keep it out of the public entry chunk.
 const OpecAdminPage = lazy(() =>
   import("@/pages/OpecAdminPage").then((m) => ({ default: m.OpecAdminPage }))
+);
+const SupabaseAdminPage = lazy(() =>
+  import("@/pages/SupabaseAdminPage").then((m) => ({ default: m.SupabaseAdminPage }))
 );
 
 function parseHashView(): View {
   if (typeof window === "undefined") return "home";
   const hash = window.location.hash.replace(/^#\/?/, "");
   if (hash === "admin" || hash === "scrape" || hash === "scraper") return "admin";
+  if (hash === "supabase-admin" || hash === "database" || hash === "supabase" || hash === "db") return "supabase-admin";
   if (hash === "forum") return "forum";
   if (hash === "calculator") return "calculator";
   if (hash.startsWith("school/")) {
@@ -80,6 +83,12 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  const goSupabaseAdmin = useCallback(() => {
+    setView("supabase-admin");
+    window.location.hash = "supabase-admin";
+    window.scrollTo(0, 0);
+  }, []);
+
   const showAuth = useCallback((reason: string) => setAuthModal(reason), []);
 
   function toggleCompare(id: number) {
@@ -97,17 +106,32 @@ export default function App() {
     });
   }
 
-  // If in admin view, render OpecAdminPage in full screen
+  // If in local admin view, render OpecAdminPage in full screen
   if (view === "admin") {
     return (
       <Suspense
         fallback={
           <div className="min-h-screen grid place-items-center bg-[#faf8f5] text-xs text-[#1c1917]/60">
-            กำลังโหลดระบบผู้ดูแล...
+            กำลังโหลดระบบผู้ดูแล (Local Data)...
           </div>
         }
       >
-        <OpecAdminPage onBack={goHome} />
+        <OpecAdminPage onBack={goHome} onNavigateToSupabaseAdmin={goSupabaseAdmin} />
+      </Suspense>
+    );
+  }
+
+  // If in Supabase DB admin view, render SupabaseAdminPage in full screen
+  if (view === "supabase-admin") {
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-screen grid place-items-center bg-[#faf8f5] text-xs text-[#1c1917]/60">
+            กำลังโหลดระบบฐานข้อมูล Supabase Database...
+          </div>
+        }
+      >
+        <SupabaseAdminPage onBack={goHome} onNavigateToLocalAdmin={goAdmin} />
       </Suspense>
     );
   }

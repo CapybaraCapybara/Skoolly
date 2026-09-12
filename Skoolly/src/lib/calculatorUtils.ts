@@ -42,10 +42,12 @@ export interface CalculatorState {
   // Child / Sibling status
   childTier: "first_child" | "second_child" | "alumni";
   customSiblingDiscountPercent: number; // 0, 5, 10, 15
-  currency: "THB" | "USD" | "GBP" | "EUR" | "SGD" | "CNY";
+  currency: CurrencyCode;
 }
 
-export const CURRENCY_RATES: Record<string, { rate: number; symbol: string; label: string }> = {
+export type CurrencyCode = "THB" | "USD" | "GBP" | "EUR" | "SGD" | "CNY";
+
+export const CURRENCY_RATES: Record<CurrencyCode, { rate: number; symbol: string; label: string }> = {
   THB: { rate: 1, symbol: "฿", label: "Thai Baht (THB)" },
   USD: { rate: 0.029, symbol: "$", label: "US Dollar (USD)" },
   GBP: { rate: 0.023, symbol: "£", label: "British Pound (GBP)" },
@@ -89,8 +91,8 @@ export interface CalculationResult {
 /**
  * Format currency amount with symbol safely
  */
-export function formatCurrency(amountTHB: number, currency: string = "THB"): string {
-  const conf = CURRENCY_RATES[currency] || CURRENCY_RATES.THB;
+export function formatCurrency(amountTHB: number, currency: CurrencyCode | string = "THB"): string {
+  const conf = CURRENCY_RATES[currency as CurrencyCode] || CURRENCY_RATES.THB;
   const num = typeof amountTHB === "number" && !isNaN(amountTHB) ? amountTHB : 0;
   const converted = num * conf.rate;
   
@@ -235,8 +237,8 @@ export function calculateSchoolCosts(
     );
   }
 
-  const hasRegFee = regFeeObj && typeof regFeeObj.amount_thb === "number";
-  let regFee = hasRegFee ? regFeeObj.amount_thb : 0;
+  const hasRegFee = Boolean(regFeeObj && typeof regFeeObj.amount_thb === "number");
+  let regFee = (regFeeObj && typeof regFeeObj.amount_thb === "number") ? regFeeObj.amount_thb : 0;
   // If alumni discount applies (e.g. Harrow THB 100,000 discount)
   if (hasRegFee && state.childTier === "alumni" && /harrow/i.test(safeSchool.school_name)) {
     regFee = Math.max(0, regFee - 100000);
@@ -249,7 +251,7 @@ export function calculateSchoolCosts(
     unitAmountTHB: regFee,
     totalAmountTHB: regFee,
     isOneTime: true,
-    notes: hasRegFee
+    notes: regFeeObj
       ? (regFeeObj.notes || "Non-refundable one-time enrollment admission fee")
       : "ติดต่อโรงเรียน (ไม่มีระบุในเอกสารทางการ)",
   });

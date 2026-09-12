@@ -74,6 +74,19 @@ export function OpecSchoolDetailModal({
   ];
   const activeLevels = Array.isArray(school.levels_offered) ? school.levels_offered : [];
 
+  const LEVEL_ALIASES: Record<string, string[]> = {
+    "ก่อนอนุบาล": ["ก่อนอนุบาล", "เตรียมอนุบาล", "PRE_K", "Pre-K", "NURSERY", "Nursery"],
+    "อนุบาล": ["อนุบาล", "KINDERGARTEN", "Kindergarten", "EYFS"],
+    "ประถมศึกษา": ["ประถมศึกษา", "PRIMARY", "Primary", "ELEMENTARY", "Elementary"],
+    "มัธยมศึกษาตอนต้น": ["มัธยมศึกษาตอนต้น", "LOWER_SEC", "Lower Secondary", "MIDDLE", "Middle School"],
+    "มัธยมศึกษาตอนปลาย": ["มัธยมศึกษาตอนปลาย", "UPPER_SEC", "Upper Secondary", "HIGH_SCHOOL", "High School"],
+  };
+
+  const isLevelActive = (lvl: string) => {
+    const aliases = LEVEL_ALIASES[lvl] || [lvl];
+    return activeLevels.some((al) => aliases.some((alias) => al.trim().toLowerCase() === alias.trim().toLowerCase()));
+  };
+
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(school, null, 2));
     setCopiedJson(true);
@@ -199,7 +212,7 @@ export function OpecSchoolDetailModal({
                   </span>
                   <div className="flex flex-wrap justify-end gap-1.5 flex-1">
                     {allPossibleLevels.map((lvl) => {
-                      const isActive = activeLevels.includes(lvl);
+                      const isActive = isLevelActive(lvl);
                       return (
                         <span
                           key={lvl}

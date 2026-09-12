@@ -53,35 +53,57 @@ DATA_FILE = BASE_DIR / "data" / "international_schools_thailand_opec.json"
 # English curriculum — without the guard, every school that lists its teaching languages
 # would be filed under BRITISH and the UC-G01 filter would return nonsense.
 CURRICULUM_PATTERNS: list[tuple[str, str]] = [
-    ("BRITISH", r"สหราชอาณาจักร|(?<!ภาษา)อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
-                r"|IGCSE|GCSE|A\s*&?\s*AS\s*Level|A[\s-]?Level|Cambridge|Oxford\s*International"
-                r"|Early\s*Years?\s*Foundation|EYFS|Edexcel|BTEC|Pearson|Key\s*Stage"
-                r"|English\s*National\s*Curric|\bENC\b"),
-    ("AMERICAN", r"สหรัฐอเมริก|อเมริกัน|แคลิฟอร์เนีย|อะลาบามา|American|California|Massachusetts"
-                 r"|\bAERO\b|High\s*School\s*Diploma|Common\s*Core|Advanced\s*Placement"
-                 r"|\bU\.?S\.?\b|New\s*Jersey|Pennsylvania|District\s*of\s*Columbia|Chicago"
-                 r"|Accelerated\s*Christian|School\s*of\s*Tomorrow|\bWASC\b|BASIS\s*Education"),
-    ("IB", r"International\s*Baccalaureate|\bIB\b|\bIBDP\b|\bPYP\b|\bMYP\b|Diploma\s*Programme"),
-    ("SINGAPORE", r"สิงคโปร์|Singapore|Nurturing\s?Early\s?Learners"),
-    ("THAI_MOE", r"วัฒนธรรมไทย|ประวัติศาสตร์ไทย|แกนกลางการศึกษาขั้นพื้นฐาน"),
-    ("CANADIAN", r"แคนาดา|บริติชโคลัมเบีย|Canad|Ontario|Quebec"),
-    ("AUSTRALIAN", r"ออสเตรเลีย|Australia|\bACARA\b"),
-    ("CHINESE", r"(?<!ภาษา)จีน|Chinese|Mandarin"),
-    ("JAPANESE", r"(?<!ภาษา)ญี่ปุ่น|Japan"),
-    ("INDIAN", r"อินเดีย|India|CBSE|Central\s*Board\s*of\s*Secondary"),
-    ("FRENCH", r"ฝรั่งเศส|French|France|Lyc[eé]e"),
-    ("GERMAN", r"(?<!ภาษา)เยอรมัน|German"),
-    ("KOREAN", r"เกาหลี|Korea"),
-    # Montessori เป็น "แนวการสอน" ไม่ใช่หลักสูตรประจำชาติ แต่แยกรหัสไว้เพราะผู้ปกครองค้นหาคำนี้จริง
-    # และโรงเรียนหลายแห่งในข้อมูลระบุไว้เป็นหลักสูตรของตัวเอง (จับคู่กับรหัสอื่นพร้อมกันได้)
-    ("MONTESSORI", r"Montessori|มอนเตสซอรี"),
+    ("สหราชอาณาจักร (British)", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
+                                r"|IGCSE|GCSE|AS\s*(&|and)?\s*A\s*Level|A[\s-]?Level|Cambridge|เคมบริดจ์|แคมบริ"
+                                r"|Oxford|Early\s*Years?\s*Foundation|EYFS|Edexcel|BTEC|Pearson|Key\s*Stage"
+                                r"|English\s*National\s*Curric|\bENC\b|Wellington|เวลลิงตัน|AICE|St\s*Andrews"),
+    ("สหรัฐอเมริกา (American)", r"สหรัฐอเมริกา|สหรัฐอเมริก|อเมริกัน|อเมริกา|แคลิฟอร์เนีย|แมสซาชูเซตส์|มิสซิสซิปปี"
+                                r"|เวอร์จีเนีย|เพนซิลเวเนีย|Pennsylvania|นิวเจอร์ซีย์|New\s*Jersey|อะลาบามา"
+                                r"|American|California|\bCDE\b|Massachusetts|\bAERO\b|High\s*School\s*Diploma"
+                                r"|Common\s*Core|\bCCSS\b|Advanced\s*Placement|\bAP\b|\bU\.?S\.?\b"
+                                r"|District\s*of\s*Columbia|Chicago|Accelerated\s*Christian|School\s*of\s*Tomorrow"
+                                r"|\bWASC\b|BASIS|North\s*American\s*Division|\bNAD\b|Carson|Calvert|High\s*Reach"
+                                r"|ริเวอร์ไซด์|แอ๊ดเวนตีส|เอกมัย|ประชาคมนานาชาติ"),
+    ("นานาชาติ IB (International Baccalaureate)", r"International\s*Baccalaureate|\bIB\b|\bIBDP\b|\bPYP\b|\bMYP\b"
+                                                 r"|\bIB-CP\b|Diploma\s*Programme|\bIBO\b|Reignwood|เคไอเอส|KIS"),
+    ("สิงคโปร์ (Singapore)", r"สิงคโปร์|สิงค์โปร์|Singapore|Nurturing\s*Early\s*Learners|SISB|แองโกล"
+                             r"|Pre-School\s*Education\s*Unit|Primary\s*School\s*Curriculum"
+                             r"|National\s*Curriculum\s*for\s*Primary\s*School"),
+    ("ออสเตรเลีย (Australian)", r"ออสเตรเลีย|Australia|\bACARA\b|Western\s*Australian"),
+    ("แคนาดา (Canadian)", r"แคนาดา|แคนนาดา|Canad|บริติชโคลัมเบีย|British\s*Columbia|Ontario|Quebec"),
+    ("ฝรั่งเศส (French)", r"ฝรั่งเศส|French|France|Lyc[eé]e"),
+    ("เยอรมัน (German)", r"เยอรมัน|German|ทูริงเง่น|Thuringia"),
+    ("ญี่ปุ่น (Japanese)", r"ญี่ปุ่น|Japan|Culture,\s*Sports,\s*Science\s*and\s*Technology"),
+    ("จีน (Chinese)", r"จีน|Chinese|Mandarin|แมนดาริน"),
+    ("เกาหลี (Korean)", r"เกาหลี|Korea"),
+    ("อินเดีย (Indian)", r"อินเดีย|India|\bCBSE\b|ซิลเวอร์ไลน์|Central\s*Board\s*of\s*Secondary"),
+    ("มอนเตสซอรี (Montessori)", r"Montessori|มอนเตสซอรี|มอนเทสซอรี่|Hershey"),
+    ("ฟินแลนด์ (Finnish)", r"Finish|Finnish|FGES"),
+    ("ปฐมวัยสากล (Early Childhood / IPC)", r"International\s*Preschool|International\s*Primary|\bIPC\b|\bIMYC\b"
+                                           r"|HighScope|Creative\s*Curriculum|Child-Centered|ASDAN|Early\s*child"
+                                           r"|Early\s*Years\s*Development|ปฐมวัย|A\s*Child\'s\s*World"
+                                           r"|Kindergarten\s*Curriculum"),
+    ("ไทย (กระทรวงศึกษาธิการ)", r"วัฒนธรรมไทย|ประวัติศาสตร์ไทย|แกนกลางการศึกษาขั้นพื้นฐาน|ภาษาไทย"),
+    ("หลักสูตรเฉพาะของโรงเรียน", r"หลักสูตรของทางโรงเรียน|หลักสูตรนานาชาติ|หลักสูตรอินเตอร์"
+                                  r"|International\s*Curriculum|ประกาศนียบัตรนานาชาติ|ซีสเต็มส์"
+                                  r"|ดาเนียล|อริสตา|มัธยมศึกษาตอนปลาย"),
 ]
 COMPILED_PATTERNS = [(code, re.compile(pattern, re.IGNORECASE)) for code, pattern in CURRICULUM_PATTERNS]
+
+GRADE_LEVEL_MAP: dict[str, str] = {
+    "ก่อนอนุบาล": "ก่อนอนุบาล",
+    "เตรียมอนุบาล": "ก่อนอนุบาล",
+    "อนุบาล": "อนุบาล",
+    "ประถมศึกษา": "ประถมศึกษา",
+    "มัธยมศึกษาตอนต้น": "มัธยมศึกษาตอนต้น",
+    "มัธยมศึกษาตอนปลาย": "มัธยมศึกษาตอนปลาย",
+}
 
 
 def match_curriculums(raw: str) -> set[str]:
     """Every canonical code whose keywords appear in this free-text value."""
-    return {code for code, pattern in COMPILED_PATTERNS if pattern.search(raw)}
+    res = {code for code, pattern in COMPILED_PATTERNS if pattern.search(raw)}
+    return res or {"หลักสูตรเฉพาะของโรงเรียน"}
 
 
 def load_env() -> None:
@@ -160,13 +182,6 @@ def main() -> int:
     # the script work whichever connection string was pasted into .env.
     with psycopg.connect(dsn, row_factory=dict_row, prepare_threshold=None) as conn:
         with conn.cursor() as cur:
-            # Load the alias tables once; the mapping happens in Python so unmapped values
-            # can be reported instead of silently vanishing from the filters.
-            cur.execute("select raw_text, curriculum_code from school_data.curriculum_aliases")
-            curriculum_map = {r["raw_text"]: r["curriculum_code"] for r in cur.fetchall()}
-            cur.execute("select raw_text, level_code from school_data.grade_level_aliases")
-            level_map = {r["raw_text"]: r["level_code"] for r in cur.fetchall()}
-
             cur.execute("select slug from school_data.schools")
             used_slugs = {r["slug"] for r in cur.fetchall()}
 
@@ -187,6 +202,32 @@ def main() -> int:
                 lat = to_float(record.get("latitude"))
                 lng = to_float(record.get("longitude"))
 
+                # ── curriculums ──────────────────────────────────────────────────
+                codes = set()
+                for raw in record.get("curriculums") or []:
+                    raw = clean(raw)
+                    if not raw:
+                        continue
+                    derived = match_curriculums(raw)
+                    if derived:
+                        codes |= derived
+                        auto_mapped[raw] = sorted(derived)
+                    else:
+                        unmapped_curriculums[raw] += 1
+                        codes.add("OTHER")
+
+                # ── grade levels ─────────────────────────────────────────────────
+                level_codes = set()
+                for raw in record.get("levels_offered") or []:
+                    raw = clean(raw)
+                    if not raw:
+                        continue
+                    code = GRADE_LEVEL_MAP.get(raw, raw)
+                    level_codes.add(code)
+
+                curriculums_list = sorted(list(codes))
+                levels_offered_list = sorted(list(level_codes))
+
                 cur.execute(
                     """
                     insert into school_data.schools (
@@ -196,17 +237,21 @@ def main() -> int:
                         facebook_url, line_id, instagram_url, youtube_url,
                         province, district, subdistrict, address,
                         geom, gps_precision, gps_source,
-                        logo_url, level_range, student_count, teacher_count
+                        logo_url, level_range, levels_offered, curriculums,
+                        student_count, teacher_count,
+                        licensee_name, director_name, manager_name, government_support
                     ) values (
                         %(opec_code)s, %(slug)s, %(name_th)s, %(name_en)s,
                         %(website)s, %(website_source)s, %(profile_url)s,
                         %(phone)s, %(mobile)s, %(email)s,
                         %(facebook)s, %(line_id)s, %(instagram)s, %(youtube)s,
                         %(province)s, %(district)s, %(subdistrict)s, %(address)s,
-                        case when %(lng)s is null or %(lat)s is null then null
-                             else st_setsrid(st_makepoint(%(lng)s, %(lat)s), 4326)::geography end,
+                        case when %(lng)s::double precision is null or %(lat)s::double precision is null then null
+                             else st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography end,
                         %(gps_precision)s, %(gps_source)s,
-                        %(logo)s, %(level_range)s, %(students)s, %(teachers)s
+                        %(logo)s, %(level_range)s, %(levels_offered)s, %(curriculums)s,
+                        %(students)s, %(teachers)s,
+                        %(licensee_name)s, %(director_name)s, %(manager_name)s, %(government_support)s
                     )
                     on conflict (opec_school_code) do update set
                         name_th = excluded.name_th,
@@ -225,8 +270,14 @@ def main() -> int:
                         gps_source = excluded.gps_source,
                         logo_url = excluded.logo_url,
                         level_range = excluded.level_range,
+                        levels_offered = excluded.levels_offered,
+                        curriculums = excluded.curriculums,
                         student_count = excluded.student_count,
                         teacher_count = excluded.teacher_count,
+                        licensee_name = excluded.licensee_name,
+                        director_name = excluded.director_name,
+                        manager_name = excluded.manager_name,
+                        government_support = excluded.government_support,
                         updated_at = now()
                     returning school_id, (xmax = 0) as is_insert
                     """,
@@ -255,8 +306,14 @@ def main() -> int:
                         "gps_source": clean(record.get("gps_source")),
                         "logo": clean(record.get("school_logo_url")),
                         "level_range": clean(record.get("level_range")),
+                        "levels_offered": levels_offered_list,
+                        "curriculums": curriculums_list,
                         "students": to_int(record.get("student_count")),
                         "teachers": to_int(record.get("teacher_count")),
+                        "licensee_name": clean(record.get("licensee_name")),
+                        "director_name": clean(record.get("director_name")),
+                        "manager_name": clean(record.get("manager_name")),
+                        "government_support": clean(record.get("government_support")),
                     },
                 )
                 row = cur.fetchone()
@@ -265,71 +322,6 @@ def main() -> int:
                     inserted += 1
                 else:
                     updated += 1
-
-                # ── curriculums ──────────────────────────────────────────────────
-                codes = set()
-                for raw in record.get("curriculums") or []:
-                    raw = clean(raw)
-                    if not raw:
-                        continue
-                    code = curriculum_map.get(raw)
-                    if code:
-                        codes.add(code)
-                        continue
-
-                    # No exact alias: fall back to keyword matching, then persist whatever
-                    # it derived into curriculum_aliases so the mapping is reviewable and
-                    # an admin can correct it once instead of it being re-guessed forever.
-                    derived = match_curriculums(raw)
-                    if derived:
-                        codes |= derived
-                        for derived_code in derived:
-                            cur.execute(
-                                "insert into school_data.curriculum_aliases (raw_text, curriculum_code)"
-                                " values (%s, %s) on conflict (raw_text) do nothing",
-                                (raw, derived_code),
-                            )
-                        # Only the first derived code can be stored per raw_text (raw_text is
-                        # the PK), so remember the rest for the report rather than losing them.
-                        curriculum_map[raw] = sorted(derived)[0]
-                        auto_mapped[raw] = sorted(derived)
-                    else:
-                        # Nothing matched: file under OTHER so the school still appears, and
-                        # report it so a human can add a real alias (Use Case doc 7.16).
-                        unmapped_curriculums[raw] += 1
-                        codes.add("OTHER")
-                if codes:
-                    cur.execute(
-                        "delete from school_data.school_curriculums where school_id = %s",
-                        (school_id,),
-                    )
-                    cur.executemany(
-                        "insert into school_data.school_curriculums (school_id, curriculum_code)"
-                        " values (%s, %s) on conflict do nothing",
-                        [(school_id, code) for code in sorted(codes)],
-                    )
-
-                # ── grade levels ─────────────────────────────────────────────────
-                level_codes = set()
-                for raw in record.get("levels_offered") or []:
-                    raw = clean(raw)
-                    if not raw:
-                        continue
-                    code = level_map.get(raw)
-                    if code:
-                        level_codes.add(code)
-                    else:
-                        unmapped_levels[raw] += 1
-                if level_codes:
-                    cur.execute(
-                        "delete from school_data.school_levels where school_id = %s",
-                        (school_id,),
-                    )
-                    cur.executemany(
-                        "insert into school_data.school_levels (school_id, level_code)"
-                        " values (%s, %s) on conflict do nothing",
-                        [(school_id, code) for code in sorted(level_codes)],
-                    )
 
                 # ── optional: initial published version (UC-A02 step 5) ──────────
                 if args.publish_initial:

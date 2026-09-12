@@ -115,28 +115,7 @@ create table if not exists school_data.curriculums (
   sort_order     int  not null default 100
 );
 
--- map ข้อความดิบจาก OPEC → รหัสหลักสูตรมาตรฐาน (เติมได้เรื่อยๆ เมื่อเจอรูปแบบใหม่)
-create table if not exists school_data.curriculum_aliases (
-  raw_text        text primary key,
-  curriculum_code text not null references school_data.curriculums(code),
-  created_at      timestamptz not null default now()
-);
-
--- ── 3.2 Lookup: ระดับชั้น ─────────────────────────────────────────────────────
--- OPEC เก็บเป็น array ไทย: เตรียมอนุบาล / อนุบาล / ประถมศึกษา / มัธยมศึกษาตอนต้น / ตอนปลาย
-create table if not exists school_data.grade_levels (
-  code        text primary key,   -- PRE_K / KINDERGARTEN / PRIMARY / LOWER_SEC / UPPER_SEC
-  name_th     text not null,
-  name_en     text not null,
-  sort_order  int  not null
-);
-
-create table if not exists school_data.grade_level_aliases (
-  raw_text   text primary key,
-  level_code text not null references school_data.grade_levels(code)
-);
-
--- ── 3.3 schools — pointer เบาๆ + read model สำหรับหน้าค้นหา ────────────────────
+-- ── 3.2 schools — ข้อมูลหลักของโรงเรียน ─────────────────────────────────────────
 create table if not exists school_data.schools (
   school_id                     uuid primary key default gen_random_uuid(),
 
@@ -177,8 +156,16 @@ create table if not exists school_data.schools (
 
   logo_url                      text,
   level_range                   text,                       -- ข้อความสรุป เช่น "อนุบาล - ประถมศึกษา"
+  levels_offered                text[] not null default '{}',-- อาร์เรย์ระดับชั้น เช่น {'PRE_K', 'KINDERGARTEN', 'PRIMARY'}
+  curriculums                   text[] not null default '{}',-- อาร์เรย์รหัสหลักสูตร เช่น {'BRITISH', 'IB'}
   student_count                 int,
   teacher_count                 int,
+
+  -- ผู้บริหาร & ข้อมูลรับเงินอุดหนุน (สช. OPEC)
+  licensee_name                 text,                       -- ผู้รับใบอนุญาต
+  director_name                 text,                       -- ผู้อำนวยการ
+  manager_name                  text,                       -- ผู้จัดการ
+  government_support            text,                       -- เช่น "ไม่รับเงินอุดหนุน" / "รับเงินอุดหนุน"
 
   -- ── Read model: projection จากเวอร์ชันที่ published อยู่ ─────────────────────
   -- อัปเดตใน transaction เดียวกับตอน publish (Architecture หัวข้อ 8.5)
@@ -197,17 +184,12 @@ create table if not exists school_data.schools (
   updated_at                    timestamptz not null default now()
 );
 
-create table if not exists school_data.school_curriculums (
-  school_id       uuid not null references school_data.schools(school_id) on delete cascade,
-  curriculum_code text not null references school_data.curriculums(code),
-  primary key (school_id, curriculum_code)
-);
+-- ── 3.3 Views สำหรับ Backward Compatibility (คิวรีแบบ Table เดิมได้ ไม่พัง) ────────
+create or replace view school_data.school_curriculums as
+  select school_id, unnest(curriculums) as curriculum_code from school_data.schools;
 
-create table if not exists school_data.school_levels (
-  school_id  uuid not null references school_data.schools(school_id) on delete cascade,
-  level_code text not null references school_data.grade_levels(code),
-  primary key (school_id, level_code)
-);
+create or replace view school_data.school_levels as
+  select school_id, unnest(levels_offered) as level_code from school_data.schools;
 
 -- ── 3.4 school_versions — log แบบ full snapshot ต่อเวอร์ชัน ────────────────────
 create table if not exists school_data.school_versions (
@@ -246,7 +228,7 @@ create table if not exists school_data.version_fees (
   version_id          uuid not null references school_data.school_versions(version_id) on delete cascade,
 
   grade_label         text not null,          -- ข้อความดิบจากเว็บ เช่น "Year 7 - Year 9"
-  level_code          text references school_data.grade_levels(code),  -- map แล้ว (nullable)
+  level_code          text,                   -- รหัสระดับชั้น เช่น 'PRIMARY', 'KINDERGARTEN' (nullable)
 
   annual_thb          numeric(12,2),
   semester_thb        numeric(12,2),
@@ -590,8 +572,8 @@ create index if not exists schools_visible_idx
 
 create index if not exists schools_geom_gix on school_data.schools using gist (geom);
 create index if not exists schools_tuition_idx on school_data.schools (pub_tuition_min_thb, pub_tuition_max_thb);
-create index if not exists school_curriculums_code_idx on school_data.school_curriculums (curriculum_code);
-create index if not exists school_levels_code_idx on school_data.school_levels (level_code);
+create index if not exists schools_curriculums_idx on school_data.schools using gin (curriculums);
+create index if not exists schools_levels_offered_idx on school_data.schools using gin (levels_offered);
 
 -- ── versioning / คิวรออนุมัติ (UC-A04) ────────────────────────────────────────
 create index if not exists versions_school_idx on school_data.school_versions (school_id, version_number desc);
@@ -695,7 +677,7 @@ grant usage on schema school_data, community, user_data, ai, ops to anon, authen
 grant select on
   school_data.schools, school_data.school_versions,
   school_data.version_fees, school_data.version_extra_fees, school_data.version_safety,
-  school_data.curriculums, school_data.grade_levels,
+  school_data.curriculums,
   school_data.school_curriculums, school_data.school_levels,
   community.reviews, community.forum_posts, community.forum_comments
 to anon, authenticated;
@@ -715,7 +697,7 @@ grant select, insert on community.report_submissions, community.forum_reports to
 -- Admin ใช้ role `authenticated` ตัวเดียวกับผู้ใช้ทั่วไป — แยกสิทธิ์ด้วย RLS (`user_data.is_admin()`)
 -- ไม่ใช่ด้วย database role เพราะ Supabase Auth ออก JWT เป็น authenticated ให้ทุกคนที่ล็อกอิน
 grant select on
-  school_data.school_scrape_log, school_data.curriculum_aliases, school_data.grade_level_aliases,
+  school_data.school_scrape_log,
   ops.audit_log, ops.failed_jobs
 to authenticated;
 grant insert on ops.audit_log to authenticated;
@@ -752,11 +734,6 @@ alter table school_data.version_extra_fees    enable row level security;
 alter table school_data.version_safety        enable row level security;
 alter table school_data.school_scrape_log     enable row level security;
 alter table school_data.curriculums           enable row level security;
-alter table school_data.curriculum_aliases    enable row level security;
-alter table school_data.grade_levels          enable row level security;
-alter table school_data.grade_level_aliases   enable row level security;
-alter table school_data.school_curriculums    enable row level security;
-alter table school_data.school_levels         enable row level security;
 alter table community.report_submissions      enable row level security;
 alter table ai.school_embeddings              enable row level security;
 alter table ops.failed_jobs                   enable row level security;
@@ -906,16 +883,6 @@ create policy safety_published_read on school_data.version_safety
 -- ตาราง lookup: อ่านสาธารณะได้หมด (ไม่มีอะไรอ่อนไหว และ Frontend ต้องใช้ทำ dropdown ตัวกรอง)
 drop policy if exists curriculums_read on school_data.curriculums;
 create policy curriculums_read on school_data.curriculums for select using (true);
-drop policy if exists curriculum_aliases_read on school_data.curriculum_aliases;
-create policy curriculum_aliases_read on school_data.curriculum_aliases for select using (user_data.is_admin());
-drop policy if exists grade_levels_read on school_data.grade_levels;
-create policy grade_levels_read on school_data.grade_levels for select using (true);
-drop policy if exists grade_level_aliases_read on school_data.grade_level_aliases;
-create policy grade_level_aliases_read on school_data.grade_level_aliases for select using (user_data.is_admin());
-drop policy if exists school_curriculums_read on school_data.school_curriculums;
-create policy school_curriculums_read on school_data.school_curriculums for select using (true);
-drop policy if exists school_levels_read on school_data.school_levels;
-create policy school_levels_read on school_data.school_levels for select using (true);
 
 -- log การทำงานของ pipeline: ข้อมูลภายใน ไม่เปิดสาธารณะ
 drop policy if exists scrape_log_admin_read on school_data.school_scrape_log;
@@ -1104,67 +1071,3 @@ insert into school_data.curriculums (code, name_th, name_en, sort_order) values
   ('THAI_MOE',  'หลักสูตรกระทรวงศึกษาธิการ','Thai MOE',          95),
   ('OTHER',     'อื่นๆ',                 'Other',             999)
 on conflict (code) do nothing;
-
-insert into school_data.grade_levels (code, name_th, name_en, sort_order) values
-  ('PRE_K',        'เตรียมอนุบาล',        'Pre-Kindergarten', 10),
-  ('KINDERGARTEN', 'อนุบาล',             'Kindergarten',     20),
-  ('PRIMARY',      'ประถมศึกษา',          'Primary',          30),
-  ('LOWER_SEC',    'มัธยมศึกษาตอนต้น',    'Lower Secondary',  40),
-  ('UPPER_SEC',    'มัธยมศึกษาตอนปลาย',   'Upper Secondary',  50)
-on conflict (code) do nothing;
-
--- ค่าที่พบจริงในข้อมูล OPEC ทั้ง 5 ค่า (ตรวจนับแล้วครอบคลุม 100% ของ levels_offered)
-insert into school_data.grade_level_aliases (raw_text, level_code) values
-  ('ก่อนอนุบาล', 'PRE_K'),
-  ('เตรียมอนุบาล', 'PRE_K'),
-  ('อนุบาล', 'KINDERGARTEN'),
-  ('ประถมศึกษา', 'PRIMARY'),
-  ('มัธยมศึกษาตอนต้น', 'LOWER_SEC'),
-  ('มัธยมศึกษาตอนปลาย', 'UPPER_SEC')
-on conflict (raw_text) do nothing;
-
--- alias ตั้งต้น = ค่าที่พบบ่อยที่สุดจริงในไฟล์ data/international_schools_thailand_opec.json
--- (ไฟล์นั้นมีข้อความหลักสูตรที่ไม่ซ้ำกันถึง 268 ค่า จึงเป็นไปไม่ได้ที่จะ seed ให้ครบด้วยมือ —
---  ส่วนที่เหลือ `db/import_opec.py` จะ map ด้วย keyword แล้วเขียน alias ที่ได้กลับเข้าตารางนี้
---  ให้ Admin ตรวจทาน/แก้ทีหลังได้ ดู Use Case doc หัวข้อ 7.16)
-insert into school_data.curriculum_aliases (raw_text, curriculum_code) values
-  ('หลักสูตรสหราชอาณาจักร', 'BRITISH'),
-  ('หลักสูตรประเทศอังกฤษ', 'BRITISH'),
-  ('หลักสูตรกลางของประเทศอังกฤษ', 'BRITISH'),
-  ('The national Curriculum in England', 'BRITISH'),
-  ('National Curriculum in England', 'BRITISH'),
-  ('UK National Curriculum', 'BRITISH'),
-  ('British National Curriculum', 'BRITISH'),
-  ('British Curriculum', 'BRITISH'),
-  ('National Curriculum for England and Wales', 'BRITISH'),
-  ('The Early Years Foundation Stage', 'BRITISH'),
-  ('Early years foundation stage statutory framework', 'BRITISH'),
-  ('Early Years Foundation Stage (EYFS)', 'BRITISH'),
-  ('The Early Years Foundation Stage (EYFS)', 'BRITISH'),
-  ('Cambridge International Curriculum', 'BRITISH'),
-  ('Cambridge IGCSE', 'BRITISH'),
-  ('Cambridge International A & AS Level', 'BRITISH'),
-  ('หลักสูตร General Certificate of Secondary Education (GCSE)', 'BRITISH'),
-  ('หลักสูตรเวลส์', 'BRITISH'),
-  ('หลักสูตรสหรัฐอเมริกัน', 'AMERICAN'),
-  ('หลักสูตรอเมริกัน', 'AMERICAN'),
-  ('American Curriculum', 'AMERICAN'),
-  ('Massachusetts Curriculum Frameworks', 'AMERICAN'),
-  ('California Department of Education', 'AMERICAN'),
-  ('หลักสูตรแคลิฟอร์เนีย', 'AMERICAN'),
-  ('American Education Reaches Out (AERO)', 'AMERICAN'),
-  ('หลักสูตร High School Diploma', 'AMERICAN'),
-  ('หลักสูตร International Baccalaureate (IB)', 'IB'),
-  ('International Baccalaureate (IB)', 'IB'),
-  ('IB - International Baccalaureate Organization', 'IB'),
-  ('International Baccalaureate (IB) Primary Year Programe (PYP)', 'IB'),
-  ('International Baccalaureate Career-related Programme (IB-CP)', 'IB'),
-  ('IB', 'IB'),
-  ('หลักสูตรสิงคโปร์', 'SINGAPORE'),
-  ('หลักสูตรญี่ปุ่น', 'JAPANESE'),
-  ('หลักสูตรจีน', 'CHINESE'),
-  ('หลักสูตรฝรั่งเศส', 'FRENCH'),
-  ('หลักสูตรภาษาไทย วัฒนธรรมไทยและประวัติศาสตร์ไทย', 'THAI_MOE'),
-  ('หลักสูตรวิชา ภาษาไทย วัฒนธรรมไทยและประวัติศาสตร์ไทย', 'THAI_MOE'),
-  ('International Preschool Curriculum (IPC)', 'OTHER')
-on conflict (raw_text) do nothing;

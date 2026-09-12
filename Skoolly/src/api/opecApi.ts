@@ -1,4 +1,13 @@
-import type { OpecSchoolRecord, ScraperProgressState } from "@/types/opec";
+import type {
+  OpecSchoolRecord,
+  ScraperProgressState,
+  SupabaseSchoolRecord,
+  SupabaseSchoolsResponse,
+  SupabaseSchoolsFilterParams,
+  CreateSupabaseSchoolInput,
+  WebsiteRegistryItem,
+  WebsiteRegistryResponse,
+} from "@/types/opec";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
 
@@ -371,7 +380,7 @@ export async function syncOpecToSupabase(options?: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      fetch_fresh: options?.fetchFresh ?? false,
+      fetch_fresh: options?.fetchFresh ?? true,
       publish_initial: options?.publishInitial ?? true,
     }),
   });
@@ -381,4 +390,119 @@ export async function syncOpecToSupabase(options?: {
   }
   return await res.json();
 }
+
+export async function getSupabaseSchools(params?: SupabaseSchoolsFilterParams): Promise<SupabaseSchoolsResponse> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.province && params.province !== "all") query.set("province", params.province);
+  if (params?.curriculum && params.curriculum !== "all") query.set("curriculum", params.curriculum);
+  if (params?.level && params.level !== "all") query.set("level", params.level);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+
+  const qs = query.toString();
+  const url = `${API_BASE}/api/supabase/schools${qs ? `?${qs}` : ""}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถดึงข้อมูลจาก Supabase ได้" }));
+    throw new Error(err.detail || "เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Supabase");
+  }
+  return await res.json();
+}
+
+export async function clearSupabaseData(): Promise<{ status: string; deleted_count: number; message: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/clear-data`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถล้างข้อมูลใน Supabase ได้" }));
+    throw new Error(err.detail || "ล้างข้อมูล Supabase ไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function createSupabaseSchool(
+  input: CreateSupabaseSchoolInput
+): Promise<{ status: string; school_id: string; name_th: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/schools`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถเพิ่มโรงเรียนลง Supabase ได้" }));
+    throw new Error(err.detail || "เพิ่มโรงเรียนไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function updateSupabaseSchool(
+  schoolId: string,
+  data: Partial<CreateSupabaseSchoolInput>
+): Promise<{ status: string; school_id: string; name_th: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/schools/${schoolId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถแก้ไขโรงเรียนได้" }));
+    throw new Error(err.detail || "แก้ไขโรงเรียนไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function deleteSupabaseSchool(
+  schoolId: string
+): Promise<{ status: string; school_id: string; name_th: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/schools/${schoolId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถลบโรงเรียนได้" }));
+    throw new Error(err.detail || "ลบโรงเรียนไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function getWebsiteRegistry(): Promise<WebsiteRegistryResponse> {
+  const res = await fetch(`${API_BASE}/api/websites/registry?t=${Date.now()}`, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถดึงข้อมูลทะเบียนเว็บไซต์ทางการได้");
+  }
+  return await res.json();
+}
+
+export async function verifySchoolWebsite(
+  schoolCode: string,
+  website: string,
+  isVerified: boolean = true
+): Promise<{ status: string; website: string; website_source: string }> {
+  const res = await fetch(`${API_BASE}/api/websites/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ school_code: schoolCode, website, is_verified: isVerified }),
+  });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถบันทึกการรับรองเว็บไซต์ได้");
+  }
+  return await res.json();
+}
+
+export async function syncWebsiteRegistryFromText(): Promise<{
+  status: string;
+  synced_local: number;
+  synced_supabase: number;
+  total_in_file: number;
+}> {
+  const res = await fetch(`${API_BASE}/api/websites/sync-registry`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถซิงค์ข้อมูลจาก schoolAndURL.txt ได้");
+  }
+  return await res.json();
+}
+
+
 

@@ -89,3 +89,113 @@ export interface TopSchool {
   student_count: number;
   ratio: string;
 }
+
+export interface SupabaseSchoolRecord {
+  school_id: string;
+  opec_school_code?: string | null;
+  slug: string;
+  name_th: string;
+  name_en?: string | null;
+  status: "active" | "archived";
+  official_website_url?: string | null;
+  website_source?: string | null;
+  official_phone?: string | null;
+  official_mobile?: string | null;
+  official_email?: string | null;
+  facebook_url?: string | null;
+  line_id?: string | null;
+  instagram_url?: string | null;
+  youtube_url?: string | null;
+  province: string;
+  district?: string | null;
+  subdistrict?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  gps_precision?: string | null;
+  gps_source?: string | null;
+  logo_url?: string | null;
+  level_range?: string | null;
+  levels_offered: string[];
+  curriculums: string[];
+  student_count?: number | null;
+  teacher_count?: number | null;
+  pub_tuition_min_thb?: number | null;
+  pub_tuition_max_thb?: number | null;
+  pub_has_safeguarding_policy?: boolean | null;
+  pub_data_updated_at?: string | null;
+  rating_avg?: number | null;
+  review_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SupabaseSchoolsResponse {
+  schools: SupabaseSchoolRecord[];
+  total: number;
+  kpis: {
+    total_schools: number;
+    total_provinces: number;
+    total_students: number;
+    with_website: number;
+  };
+}
+
+export interface SupabaseSchoolsFilterParams {
+  search?: string;
+  province?: string;
+  curriculum?: string;
+  level?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface CreateSupabaseSchoolInput {
+  opec_school_code?: string;
+  name_th: string;
+  name_en?: string;
+  province?: string;
+  district?: string;
+  subdistrict?: string;
+  address?: string;
+  official_website_url?: string;
+  official_phone?: string;
+  official_mobile?: string;
+  official_email?: string;
+  facebook_url?: string;
+  line_id?: string;
+  instagram_url?: string;
+  youtube_url?: string;
+  curriculums?: string[];
+  levels_offered?: string[];
+  level_range?: string;
+  student_count?: number;
+  teacher_count?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  gps_precision?: string;
+}
+
+export interface WebsiteRegistryItem {
+  school_code: string;
+  school_name_th: string;
+  school_name_en?: string;
+  province?: string;
+  website: string;
+  website_source: string;
+  is_verified: boolean;
+  status: "verified" | "opec" | "probed" | "missing";
+  ref_url?: string;
+}
+
+export interface WebsiteRegistryResponse {
+  total: number;
+  with_website: number;
+  verified_count: number;
+  opec_count: number;
+  probed_count: number;
+  missing_count: number;
+  items: WebsiteRegistryItem[];
+}
+
+
