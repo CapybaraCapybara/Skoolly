@@ -588,10 +588,23 @@ def scrape_endpoint(req: ScrapeRequest):
 
             add_log("navigate", "opening homepage", req.homepage_url)
             page.goto(req.homepage_url, timeout=20000, wait_until="domcontentloaded")
-            page.wait_for_timeout(2500)
+            try:
+                page.wait_for_load_state("networkidle", timeout=8000)
+            except Exception:
+                pass
 
             # 1. Discover both Fee & Safety / Policy candidate links
             fee_candidates, safety_candidates = get_candidate_links(page)
+            if not fee_candidates and not safety_candidates:
+                add_log(
+                    "link_discovery_retry",
+                    "retrying candidate link extraction after 4000ms wait",
+                    url=req.homepage_url,
+                    reasoning="Initial scan returned 0 fee candidates and 0 safety candidates; waiting for delayed JS render",
+                    status="warning"
+                )
+                page.wait_for_timeout(4000)
+                fee_candidates, safety_candidates = get_candidate_links(page)
             
             # Choose fee page
             fee_idx, fee_reasoning = call_with_retry(client, ai_choose_link, client, req.school_name, fee_candidates, log_fn=add_log)
