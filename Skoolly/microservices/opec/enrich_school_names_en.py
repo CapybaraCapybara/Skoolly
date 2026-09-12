@@ -19,13 +19,11 @@ enrich_school_names_en.py
 3. จัดมาตรฐาน Casing และตัวย่อสากล (Standard Casing & Acronyms เช่น KIS, NIST, SISB, DBS)
 """
 
-import os
 import re
 import json
 import time
 import requests
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from data_manager import load_schools, save_schools
 
 # Disable SSL warnings

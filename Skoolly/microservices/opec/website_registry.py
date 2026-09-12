@@ -9,7 +9,7 @@ Module for managing the Verified Official Website Registry:
 import os
 import re
 import time
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import urllib3

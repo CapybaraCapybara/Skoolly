@@ -150,32 +150,6 @@ export interface SupabaseSchoolsFilterParams {
   offset?: number;
 }
 
-export interface CreateSupabaseSchoolInput {
-  opec_school_code?: string;
-  name_th: string;
-  name_en?: string;
-  province?: string;
-  district?: string;
-  subdistrict?: string;
-  address?: string;
-  official_website_url?: string;
-  official_phone?: string;
-  official_mobile?: string;
-  official_email?: string;
-  facebook_url?: string;
-  line_id?: string;
-  instagram_url?: string;
-  youtube_url?: string;
-  curriculums?: string[];
-  levels_offered?: string[];
-  level_range?: string;
-  student_count?: number;
-  teacher_count?: number;
-  latitude?: number | null;
-  longitude?: number | null;
-  gps_precision?: string;
-}
-
 export interface WebsiteHealthState {
   is_running: boolean;
   current: number;

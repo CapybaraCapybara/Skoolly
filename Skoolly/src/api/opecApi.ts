@@ -4,42 +4,12 @@ import type {
   SupabaseSchoolRecord,
   SupabaseSchoolsResponse,
   SupabaseSchoolsFilterParams,
-  CreateSupabaseSchoolInput,
   WebsiteRegistryItem,
   WebsiteRegistryResponse,
   WebsiteHealthState,
 } from "@/types/opec";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
-
-export async function getOpecSchools(): Promise<OpecSchoolRecord[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/schools?t=${Date.now()}`, { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    }
-  } catch (err) {
-    console.debug("[opecApi] /api/schools failed, trying fallback:", err);
-  }
-
-  // Fallback to static JSON if backend microservice isn't currently up
-  try {
-    const fallbackRes = await fetch("/data/international_schools_thailand_opec.json");
-    if (fallbackRes.ok) {
-      const data = await fallbackRes.json();
-      if (Array.isArray(data)) {
-        return data;
-      }
-    }
-  } catch (err) {
-    console.error("[opecApi] Fallback load error:", err);
-  }
-
-  return [];
-}
 
 export async function getScraperProgress(): Promise<ScraperProgressState | null> {
   try {
@@ -418,50 +388,6 @@ export async function clearSupabaseData(): Promise<{ status: string; deleted_cou
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "ไม่สามารถล้างข้อมูลใน Supabase ได้" }));
     throw new Error(err.detail || "ล้างข้อมูล Supabase ไม่สำเร็จ");
-  }
-  return await res.json();
-}
-
-export async function createSupabaseSchool(
-  input: CreateSupabaseSchoolInput
-): Promise<{ status: string; school_id: string; name_th: string }> {
-  const res = await fetch(`${API_BASE}/api/supabase/schools`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "ไม่สามารถเพิ่มโรงเรียนลง Supabase ได้" }));
-    throw new Error(err.detail || "เพิ่มโรงเรียนไม่สำเร็จ");
-  }
-  return await res.json();
-}
-
-export async function updateSupabaseSchool(
-  schoolId: string,
-  data: Partial<CreateSupabaseSchoolInput>
-): Promise<{ status: string; school_id: string; name_th: string }> {
-  const res = await fetch(`${API_BASE}/api/supabase/schools/${schoolId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "ไม่สามารถแก้ไขโรงเรียนได้" }));
-    throw new Error(err.detail || "แก้ไขโรงเรียนไม่สำเร็จ");
-  }
-  return await res.json();
-}
-
-export async function deleteSupabaseSchool(
-  schoolId: string
-): Promise<{ status: string; school_id: string; name_th: string }> {
-  const res = await fetch(`${API_BASE}/api/supabase/schools/${schoolId}`, {
-    method: "DELETE",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "ไม่สามารถลบโรงเรียนได้" }));
-    throw new Error(err.detail || "ลบโรงเรียนไม่สำเร็จ");
   }
   return await res.json();
 }

@@ -3,7 +3,7 @@ import json
 import shutil
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 app = FastAPI(title="Database Service", description="Handles results and log persistence with rollbacks")
 

@@ -8,8 +8,6 @@ fetch_opec.py
 - ดึงที่อยู่, ผู้รับใบอนุญาต, ผู้อำนวยการ, ผู้จัดการ, ประวัติโรงเรียน, พิกัด OPEC และเว็บไซต์จากโปรไฟล์ OPEC (ถ้ามี)
 """
 
-import re
-import os
 import json
 import time
 import requests

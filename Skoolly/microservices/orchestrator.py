@@ -1,9 +1,9 @@
 import json
 import urllib.request
 import urllib.error
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 app = FastAPI(title="Saga Orchestrator Service", description="Orchestrates distributed school scraping transactions with rollbacks")
 

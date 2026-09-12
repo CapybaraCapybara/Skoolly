@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 app = FastAPI(title="Validation Service", description="Validates scraped school data schema and business rules")
 

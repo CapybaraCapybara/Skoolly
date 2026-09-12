@@ -3,7 +3,7 @@ import sys
 import time
 import threading
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
@@ -16,8 +16,8 @@ if OPEC_DIR not in sys.path:
 from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools
 from fetch_opec import fetch_opec_schools
 from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code
-from enrich_school_names_en import enrich_all_school_names_en, enrich_single_school_name_en
-from enrich_school_gps import enrich_all_school_gps, enrich_single_school_gps
+from enrich_school_names_en import enrich_all_school_names_en
+from enrich_school_gps import enrich_all_school_gps
 from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
 from supabase_sync import (
     test_database_connection,
@@ -34,7 +34,6 @@ from supabase_sync import (
     update_supabase_school_gps,
     update_supabase_school_websites,
     sync_single_school_to_supabase,
-    slugify,
 )
 from website_registry import (
     get_full_registry_status,

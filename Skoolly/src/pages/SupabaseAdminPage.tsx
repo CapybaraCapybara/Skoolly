@@ -45,14 +45,12 @@ import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 
 interface SupabaseAdminPageProps {
   onBack: () => void;
-  onNavigateToLocalAdmin?: () => void;
 }
 
 type AdminTab = "dashboard" | "schools" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
 
 export function SupabaseAdminPage({
   onBack,
-  onNavigateToLocalAdmin,
 }: SupabaseAdminPageProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [schools, setSchools] = useState<OpecSchoolRecord[]>([]);
@@ -435,33 +433,18 @@ export function SupabaseAdminPage({
             </div>
           </div>
 
-          {/* Mode Switcher Tabs */}
-          <div className="flex items-center bg-[#eae0d0]/50 p-1 rounded-2xl border border-[#eae0d0]">
-            <button
-              type="button"
-              onClick={() => {
-                if (onNavigateToLocalAdmin) {
-                  onNavigateToLocalAdmin();
-                } else {
-                  window.location.hash = "admin";
-                }
-              }}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-[#1c1917]/70 hover:text-[#1c1917] hover:bg-white/60 transition-all flex items-center gap-1.5"
-              title="สลับไปยังหน้าจัดการไฟล์ Local JSON"
-            >
-              <Layers className="w-3.5 h-3.5 text-[#ab8e72]" />
-              <span>📁 ข้อมูล Local (JSON)</span>
-            </button>
-
-            <button
-              type="button"
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white text-[#0f9488] shadow-xs border border-[#eae0d0] flex items-center gap-1.5 transition-all"
-              title="หน้าฐานข้อมูล Supabase PostgreSQL ปัจจุบัน"
-            >
-              <Database className="w-3.5 h-3.5 text-[#0f9488]" />
-              <span>⚡ Supabase Database</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </button>
+          {/* Supabase Database Active Status Badge */}
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white border border-[#eae0d0] shadow-xs">
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Database className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#1c1917]">Supabase Cloud DB</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <span className="text-[10px] text-emerald-700 font-semibold font-mono">Direct PostgreSQL</span>
+            </div>
           </div>
         </div>
 

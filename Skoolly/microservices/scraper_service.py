@@ -5,8 +5,7 @@ import json
 import time
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from typing import Optional
 from datetime import datetime, timezone
 import pdfplumber
 from bs4 import BeautifulSoup

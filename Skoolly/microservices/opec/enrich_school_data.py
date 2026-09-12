@@ -8,22 +8,13 @@ Facade module importing from separated dedicated modules:
 from enrich_school_names_en import (
     enrich_all_school_names_en,
     enrich_single_school_name_en,
-    dynamic_resolve_school_en_name,
-    clean_school_en_name,
-    is_garbled_name,
-    transliterate_thai_school_to_en
 )
 
 from enrich_school_gps import (
     enrich_all_school_gps,
     enrich_single_school_gps,
-    geocode_arcgis_precision,
-    is_imprecise_centroid,
-    is_coords_in_province,
-    format_full_thai_address
 )
 
-from data_manager import load_schools, save_schools
 
 def enrich_single_school_data(school):
     """Enriches both English name and GPS coordinates for a single school"""
@@ -33,6 +24,7 @@ def enrich_single_school_data(school):
     s2, c_gps = enrich_single_school_gps(s1)
     changes.update(c_gps)
     return s2, changes
+
 
 def enrich_all_missing_school_data(update_progress, on_save_callback=None):
     """Enriches both EN names and GPS coordinates (backward compatibility)"""

@@ -21,11 +21,9 @@ enrich_school_gps.py
 ถ้าไม่มั่นใจว่าเป็นพิกัดเฉพาะของโรงเรียนจริง จะติดป้าย Approximate เสมอ
 """
 
-import os
 import re
 import json
 import time
-import urllib.parse
 import requests
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed

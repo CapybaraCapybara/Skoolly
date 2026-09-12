@@ -32,14 +32,12 @@ PROJECT_DISCUSSION_LOG.md
 *_SUMMARY*.md
 *DISCUSSION_LOG*.md
 
-# Kept locally, not published: stale dataset backups, one-off maintenance
-# scripts and the ad-hoc OPEC benchmark/probe scripts.
+# Kept locally, not published: stale dataset backups, one-off maintenance scripts
 dump/
-microservices/opec/test/
-microservices/opec/run_strict_enrich_update.py
 
 # Local editor / tooling config
 .claude/
 
 # LaTeX / Project Reports
 report/
+report*.zip

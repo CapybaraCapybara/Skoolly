@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   X,
   Globe,
@@ -12,12 +12,10 @@ import {
   Edit2,
   ShieldCheck,
   Loader2,
-  Clock,
   Activity,
   AlertTriangle,
   School,
   ArrowRight,
-  HelpCircle,
 } from "lucide-react";
 import type { WebsiteRegistryItem, WebsiteRegistryResponse, WebsiteHealthState } from "@/types/opec";
 import {
