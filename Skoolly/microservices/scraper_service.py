@@ -344,6 +344,73 @@ Respond only via the provided JSON schema."""
     data = json.loads(resp.text)
     return data["chosen_index"], data["reasoning"]
 
+GENERIC_SCHOOL_NAME_TERMS = {
+    # English generic school tokens
+    "international", "internation", "school", "schools", "kindergarten",
+    "preschool", "pre-school", "academy", "college", "campus", "bangkok",
+    "thailand", "of", "and", "the", "early", "years", "primary",
+    "secondary", "nursery", "learning", "centre", "center", "bilingual",
+    "prep", "community", "education", "foundation",
+    # Thai generic school tokens
+    "โรงเรียน", "นานาชาติ", "อนุบาล", "ประถม", "มัธยม", "วิเทศศึกษา",
+    "สาขา", "วิทยา", "วิทยาลัย", "กรุงเทพ", "กรุงเทพฯ", "ประเทศไทย",
+    "อินเตอร์เนชั่นแนล", "สคูล", "อินเตอร์", "แห่งประเทศไทย"
+}
+
+def extract_brand_tokens(school_name: str) -> list[str]:
+    """Extracts distinctive brand tokens by removing common generic school terms."""
+    raw_tokens = re.findall(r"[\w\u0E00-\u0E7F]+", school_name.lower())
+    tokens = []
+    for t in raw_tokens:
+        t = t.strip()
+        if len(t) < 2 or t.isdigit():
+            continue
+        if t in GENERIC_SCHOOL_NAME_TERMS:
+            continue
+        tokens.append(t)
+    return tokens
+
+def verify_school_identity(school_name: str, combined_text: str) -> tuple[bool, list[str]]:
+    """Checks whether key brand tokens of the school appear in the scraped content."""
+    brand_tokens = extract_brand_tokens(school_name)
+    if not brand_tokens:
+        return True, []
+    text_lower = combined_text.lower()
+    matched = [token for token in brand_tokens if token in text_lower]
+    return len(matched) > 0, brand_tokens
+
+def apply_confidence_caps(
+    extraction: dict,
+    fee_page_discovery: str,
+    identity_verified: bool
+) -> dict:
+    """
+    Enforces business integrity caps on AI confidence score:
+    - If school identity is not verified: cap at 0.3
+    - Else if fee page was fallback or no candidates found: cap at 0.4
+    """
+    orig_conf = extraction.get("confidence")
+    if orig_conf is None:
+        return extraction
+
+    cap_limit = None
+    reasons = []
+
+    if not identity_verified:
+        cap_limit = 0.3
+        reasons.append("identity_verified is False (school brand tokens missing in scraped text)")
+    elif fee_page_discovery in ("fallback_homepage", "no_candidates"):
+        cap_limit = 0.4
+        reasons.append(f"fee_page_discovery is '{fee_page_discovery}'")
+
+    if cap_limit is not None and orig_conf > cap_limit:
+        extraction["confidence"] = cap_limit
+        orig_reason = extraction.get("confidence_reasoning", "")
+        cap_note = f"(Capped confidence to {cap_limit} because: {', '.join(reasons)})"
+        extraction["confidence_reasoning"] = f"{orig_reason} {cap_note}".strip()
+
+    return extraction
+
 def clean_page_text(html, max_chars=9000):
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header", "svg", "noscript"]):
@@ -680,18 +747,22 @@ def scrape_endpoint(req: ScrapeRequest):
                 except Exception as ex:
                     add_log("safety_scrape_warning", f"failed to load safety page: {ex}", safety_url, status="warning")
 
-            # 4. Extract structured fee & safety data with Gemini
+            # 4. Verify school identity against scraped content
+            identity_verified, brand_tokens = verify_school_identity(req.school_name, combined_text)
+            if not identity_verified:
+                add_log(
+                    "identity_mismatch_warning",
+                    f"school identity mismatch: none of brand tokens {brand_tokens} found in scraped text",
+                    url=target_fee_url,
+                    reasoning=f"Checked brand tokens: {brand_tokens}",
+                    status="warning"
+                )
+
+            # 5. Extract structured fee & safety data with Gemini
             extraction = call_with_retry(client, ai_extract, client, req.school_name, combined_text, log_fn=add_log)
 
-            # Cap confidence if fee page was not explicitly found
-            if fee_page_discovery in ("fallback_homepage", "no_candidates"):
-                orig_conf = extraction.get("confidence")
-                if orig_conf is not None and orig_conf > 0.4:
-                    extraction["confidence"] = 0.4
-                    orig_reason = extraction.get("confidence_reasoning", "")
-                    extraction["confidence_reasoning"] = (
-                        f"{orig_reason} (Capped confidence to 0.4 because fee_page_discovery='{fee_page_discovery}')"
-                    ).strip()
+            # Apply centralized confidence capping (identity mismatch <= 0.3, fee discovery fallback <= 0.4)
+            extraction = apply_confidence_caps(extraction, fee_page_discovery, identity_verified)
 
             add_log(
                 "extract", "extraction complete",
@@ -716,6 +787,7 @@ def scrape_endpoint(req: ScrapeRequest):
             result.update({
                 "page_scraped": target_fee_url,
                 "fee_page_discovery": fee_page_discovery,
+                "identity_verified": identity_verified,
                 "elapsed_sec": round(time.time() - t0, 1),
                 **extraction,
             })
