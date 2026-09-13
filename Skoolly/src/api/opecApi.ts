@@ -451,5 +451,18 @@ export async function getWebsiteHealthCheckStatus(): Promise<WebsiteHealthState>
   return await res.json();
 }
 
-
-
+export async function enrichWithIsat(): Promise<{
+  isat_total: number;
+  matched_count: number;
+  db_updated: number;
+  samples: any[];
+}> {
+  const res = await fetch(`${API_BASE}/api/enrich/isat`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "การเชื่อมต่อล้มเหลว" }));
+    throw new Error(err.detail || "ไม่สามารถดึงข้อมูลจาก ISAT ได้");
+  }
+  return await res.json();
+}

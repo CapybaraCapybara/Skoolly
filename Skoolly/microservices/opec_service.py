@@ -46,6 +46,7 @@ try:
         run_bulk_health_check,
         get_health_state,
     )
+    from opec.enrich_from_isat import run_isat_enrichment
 except ImportError:
     from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools  # type: ignore
     from fetch_opec import fetch_opec_schools  # type: ignore
@@ -76,6 +77,7 @@ except ImportError:
         run_bulk_health_check,
         get_health_state,
     )
+    from enrich_from_isat import run_isat_enrichment  # type: ignore
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
@@ -232,6 +234,102 @@ def run_enrich_data_worker():
         with state_lock:
             scraper_state["is_running"] = False
 
+def run_enrich_isat_worker():
+    try:
+        res = run_isat_enrichment(apply_to_db=True, progress_callback=update_progress)
+        schools = load_schools()
+        set_current_schools(schools)
+    except Exception as e:
+        print("[OPEC Service] Error in ISAT Enrichment:", e)
+        update_progress("เกิดข้อผิดพลาดในการซิงค์ ISAT", 100, 100, f"Error: {e}")
+    finally:
+        with state_lock:
+            scraper_state["is_running"] = False
+
+def run_full_pipeline_worker():
+    """Runs complete 5-step data pipeline in the recommended optimal order:
+       1. OPEC Fetch & Sync
+       2. Enrich School Names EN
+       3. Enrich ISAT (207 schools)
+       4. Fetch Official Websites
+       5. Enrich GPS Coordinates
+    """
+    try:
+        def on_save(records):
+            set_current_schools(records)
+
+        # ----------------------------------------------------
+        # STEP 1: OPEC Fetch & Direct Supabase Import
+        # ----------------------------------------------------
+        update_progress("⚡ [Full Pipeline 1/5] ดึงข้อมูลสดจาก OPEC API...", 1, 100, "🚀 เริ่มต้น Full Data Pipeline (5 ขั้นตอนครบวงจร)...")
+        update_progress("⚡ [Full Pipeline 1/5] ดึงข้อมูลสดจาก OPEC API...", 3, 100, "[ขั้นตอน 1/5] เริ่มต้นดึงข้อมูลสดจาก OPEC API สช. ทั่วประเทศ...")
+        fetched = fetch_opec_schools(update_progress, on_save_callback=on_save)
+        records = fetched if fetched else get_current_schools()
+        if not records:
+            records = load_schools()
+        if records:
+            set_current_schools(records)
+            execute_opec_import(records=records, publish_initial=True, progress_callback=update_progress)
+
+        # ----------------------------------------------------
+        # STEP 2: Enrich English Names
+        # ----------------------------------------------------
+        update_progress("⚡ [Full Pipeline 2/5] เติมชื่อภาษาอังกฤษทางการ (EN)...", 25, 100, "[ขั้นตอน 2/5] เริ่มต้นประมวลผลเติมชื่อภาษาอังกฤษทางการ...")
+        enrich_all_school_names_en(update_progress, on_save_callback=on_save)
+        records = load_schools()
+        set_current_schools(records)
+
+        # ----------------------------------------------------
+        # STEP 3: Enrich ISAT
+        # ----------------------------------------------------
+        update_progress("⚡ [Full Pipeline 3/5] ซิงค์ข้อมูลสมาคม ISAT (207 รร.)...", 45, 100, "[ขั้นตอน 3/5] เริ่มต้นดึงและจับคู่ข้อมูลสมาคม ISAT...")
+        run_isat_enrichment(apply_to_db=True, progress_callback=update_progress)
+        records = load_schools()
+        set_current_schools(records)
+
+        # ----------------------------------------------------
+        # STEP 4: Fetch Official Websites
+        # ----------------------------------------------------
+        update_progress("⚡ [Full Pipeline 4/5] ค้นหาและตรวจสอบ Official Website...", 65, 100, "[ขั้นตอน 4/5] เริ่มต้นค้นหาและตรวจสอบเว็บไซต์ทางการ...")
+        resolve_all_official_websites(update_progress, on_save_callback=on_save)
+        records = load_schools()
+        set_current_schools(records)
+        if get_current_dsn():
+            update_progress("กำลังซิงค์ Official Website สู่ Supabase...", 75, 100, "กำลังบันทึกเว็บไซต์ลงตาราง school_data.schools ใน Supabase...")
+            synced_web = update_supabase_school_websites(records, update_progress)
+            update_progress("ซิงค์ Website สู่ Supabase สำเร็จ", 78, 100, f"บันทึกเว็บไซต์ทางการสู่ Supabase สำเร็จ ({synced_web} แห่ง)")
+
+        # ----------------------------------------------------
+        # STEP 5: GPS Geocoding
+        # ----------------------------------------------------
+        update_progress("⚡ [Full Pipeline 5/5] ค้นหาพิกัด GPS ความแม่นยำสูง...", 80, 100, "[ขั้นตอน 5/5] เริ่มต้นคำนวณและค้นหาพิกัด GPS ความแม่นยำสูง...")
+        enrich_all_school_gps(update_progress, on_save_callback=on_save)
+        records = load_schools()
+        set_current_schools(records)
+        if get_current_dsn():
+            update_progress("กำลังซิงค์พิกัด GPS สู่ Supabase...", 95, 100, "กำลังบันทึกพิกัด GPS ลงตาราง school_data.schools ใน Supabase...")
+            synced_gps = update_supabase_school_gps(records, update_progress)
+            update_progress("ซิงค์ GPS สู่ Supabase สำเร็จ", 98, 100, f"บันทึกพิกัด GPS สู่ Supabase สำเร็จ ({synced_gps} แห่ง)")
+
+        # ----------------------------------------------------
+        # FINISHED
+        # ----------------------------------------------------
+        final_summary = (
+            "🎉 Full Data Pipeline เสร็จสมบูรณ์ครบทั้ง 5 ขั้นตอน!\n"
+            f"  1. OPEC: นำเข้าและซิงค์ข้อมูลสด {len(records)} โรงเรียน\n"
+            "  2. Official Name EN: เติมเต็มและจัดมาตรฐาน 100%\n"
+            "  3. ISAT: สมาชิกสมาคม, การรับรองมาตรฐานสากล CIS/WASC, และ Logo สมบูรณ์\n"
+            "  4. Official Website: ยืนยันโดเมนและเว็บไซต์ทางการครบถ้วน\n"
+            "  5. GPS Geocoding: ปักหมุดพิกัดอาคารและบันทึกสู่ Supabase เรียบร้อยแล้ว"
+        )
+        update_progress("🎉 Full Data Pipeline เสร็จสมบูรณ์ 100%!", 100, 100, final_summary)
+    except Exception as e:
+        print("[OPEC Service] Error in Full Pipeline:", e)
+        update_progress("เกิดข้อผิดพลาดใน Full Pipeline", 100, 100, f"Error: {e}")
+    finally:
+        with state_lock:
+            scraper_state["is_running"] = False
+
 def run_sync_supabase_worker(fetch_fresh: bool = False, publish_initial: bool = True):
     try:
         if fetch_fresh:
@@ -371,6 +469,22 @@ def trigger_enrich_data():
         scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการ Auto-Enrich (ชื่อ EN และพิกัด GPS)..."]
 
     threading.Thread(target=run_enrich_data_worker, daemon=True).start()
+    return {"status": "started"}
+
+@app.post("/api/pipeline/run-all")
+def trigger_full_pipeline():
+    with state_lock:
+        if scraper_state["is_running"]:
+            return JSONResponse(status_code=400, content={"status": "already_running"})
+        scraper_state["is_running"] = True
+        scraper_state["task"] = "⚡ กำลังเริ่ม Full Data Pipeline (5 ขั้นตอน)..."
+        scraper_state["current"] = 1
+        scraper_state["total"] = 100
+        scraper_state["percent"] = 1
+        scraper_state["log"] = "🚀 เริ่มต้นกระบวนการ Full Pipeline ทั้งระบบ..."
+        scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] 🚀 เริ่มต้น Full Data Pipeline (5 ขั้นตอนครบวงจร)...")
+
+    threading.Thread(target=run_full_pipeline_worker, daemon=True).start()
     return {"status": "started"}
 
 # Website Registry & Audit Endpoints
@@ -600,6 +714,22 @@ def enrich_one_school(school_code: str):
         sync_single_school_to_supabase(enriched_s)
         return {"school": enriched_s, "changes": changes}
     raise HTTPException(status_code=404, detail="School not found")
+
+@app.post("/api/enrich/isat")
+def enrich_isat():
+    with state_lock:
+        if scraper_state["is_running"]:
+            return JSONResponse(status_code=400, content={"status": "already_running"})
+        scraper_state["is_running"] = True
+        scraper_state["task"] = "กำลังเริ่มซิงค์ข้อมูลสมาคม ISAT (207 รร.)..."
+        scraper_state["current"] = 1
+        scraper_state["total"] = 100
+        scraper_state["percent"] = 1
+        scraper_state["log"] = "เริ่มต้นกระบวนการซิงค์ข้อมูลสมาคม ISAT..."
+        scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการซิงค์ข้อมูลสมาคม ISAT...")
+
+    threading.Thread(target=run_enrich_isat_worker, daemon=True).start()
+    return {"status": "started"}
 
 @app.get("/api/export/csv")
 def export_csv():

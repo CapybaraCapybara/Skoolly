@@ -14,6 +14,9 @@ import {
   Satellite,
   ChevronRight,
   TrendingUp,
+  ShieldCheck,
+  Bed,
+  Sparkles,
 } from "lucide-react";
 import type { OpecSchoolRecord, ProvinceStat, TopSchool } from "@/types/opec";
 import { normalizeCurriculum } from "@/api/opecApi";
@@ -235,6 +238,39 @@ export function OpecDashboard({ schools, onOpenDrillDown, onGoToSchoolsTable }: 
       if (s.website && s.website.trim()) webLive++;
     });
     return { exact, approx, webLive };
+  }, [schools]);
+
+  // ISAT Membership & Global Accreditations Stats
+  const isatStats = useMemo(() => {
+    const total = schools.length || 1;
+    let isatCount = 0;
+    let boardingCount = 0;
+    const accredMap: Record<string, number> = {};
+
+    schools.forEach((s) => {
+      if (s.is_isat_member) isatCount++;
+      if (s.is_boarding) boardingCount++;
+      (s.accreditations || []).forEach((acc) => {
+        const key = acc.trim();
+        if (key) accredMap[key] = (accredMap[key] || 0) + 1;
+      });
+    });
+
+    const topAccreditations = Object.entries(accredMap)
+      .map(([name, count]) => ({
+        name,
+        count,
+        pct: Math.round((count / total) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      isatCount,
+      isatPct: Math.round((isatCount / total) * 100),
+      boardingCount,
+      boardingPct: Math.round((boardingCount / total) * 100),
+      topAccreditations,
+    };
   }, [schools]);
 
   return (
@@ -951,6 +987,148 @@ export function OpecDashboard({ schools, onOpenDrillDown, onGoToSchoolsTable }: 
                 {spatialStats.webLive} แห่ง
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: ISAT Membership, Boarding Schools & Global Accreditations (CIS / WASC / ONESQA) */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* ISAT Membership & Boarding Schools Highlight */}
+        <div className="p-6 rounded-3xl bg-white border border-[#eae0d0] shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-[#1e3a8a]" />
+                <h3 className="font-bold text-[#1c1917] text-sm md:text-base">
+                  สถานะสมาคม ISAT และโรงเรียนประจำ (ISAT & Boarding)
+                </h3>
+              </div>
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#1e3a8a]/10 text-[#1e3a8a] border border-[#1e3a8a]/20">
+                สมาคม ISAT
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5 mb-4">
+              {/* ISAT Member Card */}
+              <div
+                onClick={() =>
+                  onOpenDrillDown(
+                    "สมาชิกสมาคมโรงเรียนนานาชาติ (ISAT Members)",
+                    "โรงเรียนที่เป็นสมาชิกสมาคม ISAT แห่งประเทศไทย",
+                    schools.filter((s) => s.is_isat_member)
+                  )
+                }
+                className="p-4 rounded-2xl bg-gradient-to-br from-[#eff6ff] to-[#dbeafe]/50 border border-[#bfdbfe] hover:border-[#1e3a8a] cursor-pointer hover:shadow-xs transition-all"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="text-2xl lg:text-3xl font-black text-[#1e3a8a]">
+                    {isatStats.isatCount}
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-[#1e3a8a]/10 text-[#1e3a8a] flex items-center justify-center">
+                    <Award className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xs font-bold text-[#1c1917]">
+                  สมาชิกสมาคม ISAT
+                </div>
+                <div className="text-[11px] text-[#1e3a8a] mt-0.5 font-bold">
+                  {isatStats.isatPct}% ของโรงเรียนทั้งหมด
+                </div>
+              </div>
+
+              {/* Boarding School Card */}
+              <div
+                onClick={() =>
+                  onOpenDrillDown(
+                    "โรงเรียนประจำ (Boarding Schools)",
+                    "โรงเรียนนานาชาติที่มีหอพักประจำสำหรับนักเรียน",
+                    schools.filter((s) => s.is_boarding)
+                  )
+                }
+                className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100/50 border border-amber-200 hover:border-amber-500 cursor-pointer hover:shadow-xs transition-all"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="text-2xl lg:text-3xl font-black text-amber-800">
+                    {isatStats.boardingCount}
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-800 flex items-center justify-center">
+                    <Bed className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xs font-bold text-[#1c1917]">
+                  โรงเรียนประจำ (Boarding)
+                </div>
+                <div className="text-[11px] text-amber-800 mt-0.5 font-bold">
+                  {isatStats.boardingPct}% มีหอพักนักเรียน
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-[#faf8f5] border border-[#eae0d0]/80 text-xs text-[#78716c] flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              ข้อมูลสมาชิก ISAT และสิ่งอำนวยความสะดวกหอพักเชื่อมโยงสดจากฐานข้อมูลสมาคมโรงเรียนนานาชาติแห่งประเทศไทย (ISAT Directory)
+            </span>
+          </div>
+        </div>
+
+        {/* Global Accreditations Breakdown */}
+        <div className="p-6 rounded-3xl bg-white border border-[#eae0d0] shadow-xs flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <Award className="w-5 h-5 text-teal-700" />
+              <h3 className="font-bold text-[#1c1917] text-sm md:text-base">
+                มาตรฐานสากลและการรับรอง (Accreditations)
+              </h3>
+            </div>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+              {isatStats.topAccreditations.length} องค์กร
+            </span>
+          </div>
+
+          <p className="text-xs text-[#78716c] mb-3">
+            สถิติการรับรองมาตรฐานคุณภาพการศึกษาจากองค์กรสากลระดับโลก เช่น ONESQA (สมศ.), WASC, CIS, EDT, NEASC
+          </p>
+
+          <div className="space-y-2 overflow-y-auto max-h-72 pr-1 scrollbar-thin">
+            {isatStats.topAccreditations.map((acc) => (
+              <div
+                key={acc.name}
+                onClick={() =>
+                  onOpenDrillDown(
+                    `มาตรฐาน: ${acc.name}`,
+                    `โรงเรียนที่ได้รับการรับรองจาก ${acc.name}`,
+                    schools.filter((s) => (s.accreditations || []).includes(acc.name))
+                  )
+                }
+                className="p-3 rounded-2xl bg-[#faf8f5] hover:bg-teal-50/40 border border-[#eae0d0]/60 hover:border-teal-300 cursor-pointer transition-all flex items-center justify-between group"
+              >
+                <div className="min-w-0 flex-1 pr-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-[#1c1917] truncate">
+                      {acc.name}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#eae0d0]/70 rounded-full mt-1.5 overflow-hidden">
+                    <div
+                      className="h-full bg-teal-600 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.max(acc.pct, 4)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs text-teal-900">
+                    {acc.count} แห่ง
+                  </span>
+                  <span className="text-[11px] font-mono text-[#78716c]">
+                    ({acc.pct}%)
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-[#a8a29e] group-hover:text-teal-700 transition-colors" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -24,6 +24,8 @@ enrich_school_gps.py
 import re
 import json
 import time
+import urllib
+import urllib.parse
 import requests
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed

@@ -19,6 +19,8 @@ import {
   Globe,
   Wand2,
   Languages,
+  Award,
+  Zap,
 } from "lucide-react";
 import type { OpecSchoolRecord, ScraperProgressState } from "@/types/opec";
 import {
@@ -31,6 +33,7 @@ import {
   resolveSchoolWebsite,
   enrichSchoolData,
   getSupabaseStatus,
+  enrichWithIsat,
   type SupabaseStatusResponse,
 } from "@/api/opecApi";
 import { OpecDashboard } from "@/components/admin/OpecDashboard";
@@ -131,6 +134,12 @@ export function SupabaseAdminPage({
         manager_name: s.manager_name || "",
         government_support: s.government_support || "",
         school_logo_url: s.school_logo_url || s.logo_url || "",
+        is_isat_member: Boolean(s.is_isat_member),
+        is_boarding: Boolean(s.is_boarding),
+        year_established: s.year_established || undefined,
+        accreditations: s.accreditations || [],
+        isat_school_name: s.isat_school_name || "",
+        fetched_at: s.fetched_at || s.created_at || "",
         last_updated: s.last_updated || s.updated_at || s.created_at || "",
       }));
       setSchools(mapped);
@@ -352,6 +361,32 @@ export function SupabaseAdminPage({
     }
   };
 
+  const handleEnrichIsat = async () => {
+    setActionLoading(true);
+    try {
+      showToast("กำลังดึงและซิงค์ข้อมูลสมาคม ISAT (207 โรงเรียน) สู่ระบบ...");
+      await postAction("/api/enrich/isat");
+      pollProgress();
+    } catch (err: any) {
+      showToast(`ซิงค์ ISAT ไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRunFullPipeline = async () => {
+    setActionLoading(true);
+    try {
+      showToast("🚀 เริ่มต้น Full Data Pipeline ครบ 5 ขั้นตอน (OPEC -> EN -> ISAT -> Web -> GPS)...");
+      await postAction("/api/pipeline/run-all");
+      pollProgress();
+    } catch (err: any) {
+      showToast(`รัน Full Pipeline ไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleExportCsv = () => {
     if (schools.length === 0) {
       showToast("ไม่มีข้อมูลโรงเรียนสำหรับส่งออก");
@@ -397,7 +432,7 @@ export function SupabaseAdminPage({
   return (
     <div className="min-h-screen bg-[#faf8f5] text-[#1c1917] font-sans flex flex-col antialiased">
       {/* Top Banner Header */}
-      <header className="sticky top-0 z-40 bg-[#faf8f5]/95 backdrop-blur-md border-b border-[#eae0d0]/80 px-4 sm:px-6 lg:px-10 py-3 shadow-xs space-y-2.5">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#e2d8c7] px-4 sm:px-6 lg:px-10 py-3 shadow-[0_2px_10px_rgba(28,25,23,0.04)] space-y-2.5">
         {/* Row 1: Brand & Back Button & Mode Tabs */}
         <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -433,145 +468,181 @@ export function SupabaseAdminPage({
             </div>
           </div>
 
-          {/* Supabase Database Active Status Badge */}
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white border border-[#eae0d0] shadow-xs">
-            <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <Database className="w-3.5 h-3.5" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-[#1c1917]">Supabase Cloud DB</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <span className="text-[10px] text-emerald-700 font-semibold font-mono">Direct PostgreSQL</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2: Action Buttons Toolbar (Matching Reference Image) */}
-        <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center gap-2 pt-1 border-t border-[#eae0d0]/50">
-          {/* 1. ดึงข้อมูล OPEC */}
-          <button
-            type="button"
-            onClick={() => setIsSyncConfirmOpen(true)}
-            disabled={isRunning || actionLoading}
-            className="px-4 py-2 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-            title="ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database"
-          >
-            <CloudDownload className="w-4 h-4" />
-            <span>1. ดึงข้อมูล OPEC</span>
-          </button>
-
-          {/* จัดการ Supabase DB */}
+          {/* Supabase Database Active Status Badge & Management Trigger */}
           <button
             type="button"
             onClick={handleOpenSupabaseModal}
-            className="px-3.5 py-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] hover:bg-[#d1fae5] text-[#059669] text-xs font-bold shadow-xs transition-all flex items-center gap-2"
-            title="ตรวจสอบการเชื่อมต่อและโครงสร้างตาราง Supabase Database"
+            className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-[#eae0d0] hover:border-emerald-300 hover:bg-emerald-50/40 text-left transition-all shadow-xs hover:shadow-sm cursor-pointer group"
+            title="คลิกเพื่อจัดการและตรวจสอบการเชื่อมต่อ Supabase Database"
           >
-            <Database className="w-4 h-4" />
-            <span>จัดการ Supabase DB</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="w-7 h-7 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Database className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#1c1917] group-hover:text-emerald-900 transition-colors">Supabase Cloud DB</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-emerald-700 font-medium">จัดการฐานข้อมูล</span>
+                <span className="text-[10px] text-emerald-600">⚙️</span>
+              </div>
+            </div>
           </button>
+        </div>
 
-          {/* 2. เติมชื่อ EN */}
-          <button
-            type="button"
-            onClick={handleEnrichNamesEn}
-            disabled={isRunning || actionLoading}
-            className="px-3.5 py-2 rounded-xl bg-[#ab8e72] hover:bg-[#96775d] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-            title="ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ"
-          >
-            <Languages className="w-4 h-4" />
-            <span>2. เติมชื่อ EN</span>
-          </button>
+        {/* Row 2: Action Pipeline & Utility Toolbar */}
+        <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-[#e8dfd2]">
+          {/* Pipeline Group: Steps 1-4 */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold text-[#78716c] uppercase tracking-wider mr-1 hidden sm:inline">
+              Data Pipeline:
+            </span>
 
-          {/* 3. ปักหมุด GPS */}
-          <button
-            type="button"
-            onClick={handleEnrichGps}
-            disabled={isRunning || actionLoading}
-            className="px-3.5 py-2 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-            title="ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริงและข้อมูล Google Places"
-          >
-            <MapPin className="w-4 h-4" />
-            <span>3. ปักหมุด GPS</span>
-          </button>
+            {/* 1. ดึงข้อมูล OPEC */}
+            <button
+              type="button"
+              onClick={() => setIsSyncConfirmOpen(true)}
+              disabled={isRunning || actionLoading}
+              className="px-3.5 py-2 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
+              title="ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database"
+            >
+              <CloudDownload className="w-4 h-4" />
+              <span>1. ดึงข้อมูล OPEC</span>
+            </button>
 
-          {/* 4. ค้นหา Website */}
-          <button
-            type="button"
-            onClick={handleEnrichWebsites}
-            disabled={isRunning || actionLoading}
-            className="px-3.5 py-2 rounded-xl bg-[#25508a] hover:bg-[#1d4070] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-            title="ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification"
-          >
-            <Globe className="w-4 h-4" />
-            <span>4. ค้นหา Website</span>
-          </button>
+            {/* 2. เติมชื่อ EN */}
+            <button
+              type="button"
+              onClick={handleEnrichNamesEn}
+              disabled={isRunning || actionLoading}
+              className="px-3.5 py-2 rounded-xl bg-[#ab8e72] hover:bg-[#96775d] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
+              title="ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ"
+            >
+              <Languages className="w-4 h-4" />
+              <span>2. เติมชื่อ EN</span>
+            </button>
 
-          {/* ตรวจรับรอง URL */}
-          <button
-            type="button"
-            onClick={() => setIsUrlVerificationModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-800 text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
-          >
-            <ShieldCheck className="w-4 h-4 text-teal-600" />
-            <span>ตรวจรับรอง URL</span>
-          </button>
+            {/* 3. ปักหมุด GPS */}
+            <button
+              type="button"
+              onClick={handleEnrichGps}
+              disabled={isRunning || actionLoading}
+              className="px-3.5 py-2 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
+              title="ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริงและข้อมูล Google Places"
+            >
+              <MapPin className="w-4 h-4" />
+              <span>3. ปักหมุด GPS</span>
+            </button>
 
-          {/* Auto-Enrich */}
-          <button
-            type="button"
-            onClick={handleAutoEnrichAll}
-            disabled={isRunning || actionLoading}
-            className="px-3.5 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/60 text-[#78593a] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
-            title="รันระบบอัตโนมัติครบทุกขั้นตอน: เติมชื่อ EN -> GPS -> Website"
-          >
-            <Wand2 className="w-4 h-4" />
-            <span>Auto-Enrich</span>
-          </button>
+            {/* 4. ค้นหา Website */}
+            <button
+              type="button"
+              onClick={handleEnrichWebsites}
+              disabled={isRunning || actionLoading}
+              className="px-3.5 py-2 rounded-xl bg-[#25508a] hover:bg-[#1d4070] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
+              title="ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification"
+            >
+              <Globe className="w-4 h-4" />
+              <span>4. ค้นหา Website</span>
+            </button>
 
-          {/* Export CSV */}
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            className="p-2.5 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#1c1917] transition-all shadow-xs"
-            title="ส่งออกไฟล์ CSV"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+            {/* ตรวจรับรอง URL */}
+            <button
+              type="button"
+              onClick={() => setIsUrlVerificationModalOpen(true)}
+              className="px-3 py-2 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-800 text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+              title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
+            >
+              <ShieldCheck className="w-4 h-4 text-teal-600" />
+              <span>ตรวจรับรอง URL</span>
+            </button>
 
-          {/* Clear Database button */}
-          <button
-            type="button"
-            onClick={() => setIsClearConfirmOpen(true)}
-            disabled={isRunning || actionLoading}
-            className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 transition-all shadow-xs disabled:opacity-50"
-            title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            {/* ซิงค์สมาคม ISAT */}
+            <button
+              type="button"
+              onClick={handleEnrichIsat}
+              disabled={isRunning || actionLoading}
+              className="px-3 py-2 rounded-xl bg-[#1e3a8a]/10 border border-[#1e3a8a]/30 hover:bg-[#1e3a8a]/20 text-[#1e3a8a] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+              title="ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT 207 โรงเรียน): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ"
+            >
+              <Award className="w-4 h-4 text-[#1e3a8a]" />
+              <span>ซิงค์ ISAT (207 รร.)</span>
+            </button>
+          </div>
+
+          {/* Utility Group: Auto-Enrich, Export, Danger */}
+          <div className="flex items-center gap-2">
+            {/* Auto-Enrich */}
+            <button
+              type="button"
+              onClick={handleAutoEnrichAll}
+              disabled={isRunning || actionLoading}
+              className="px-3 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/60 text-[#78593a] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+              title="รันระบบอัตโนมัติครบทุกขั้นตอน: เติมชื่อ EN -> GPS -> Website"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span>Auto-Enrich</span>
+            </button>
+
+            <div className="h-5 w-px bg-[#eae0d0]" />
+
+            {/* Export CSV */}
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="p-2 rounded-xl bg-white border border-[#eae0d0] hover:bg-[#faf5ee] text-[#1c1917] transition-all shadow-xs"
+              title="ส่งออกไฟล์ CSV"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+
+            {/* Run Full Pipeline Button */}
+            <button
+              type="button"
+              onClick={handleRunFullPipeline}
+              disabled={isRunning || actionLoading}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white text-xs font-black shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
+              title="รัน Data Pipeline ครบทุกขั้นตอนในปุ่มเดียว: OPEC -> เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS"
+            >
+              <Zap className={`w-4 h-4 ${isRunning ? "animate-bounce" : "fill-current"}`} />
+              <span>รันครบทุกขั้นตอน (Full Pipeline)</span>
+            </button>
+
+            {/* Clear Database button */}
+            <button
+              type="button"
+              onClick={() => setIsClearConfirmOpen(true)}
+              disabled={isRunning || actionLoading}
+              className="p-2 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 transition-all shadow-xs disabled:opacity-50"
+              title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Layout: Wide Fluid Container */}
       <div className="flex-1 flex w-full max-w-[1720px] mx-auto p-4 sm:p-6 lg:p-10 gap-6">
         {/* Sidebar Nav */}
-        <aside className="w-60 hidden md:flex flex-col gap-2 flex-shrink-0">
-          <div className="bg-[#faf5ee] border border-[#eae0d0] rounded-[2rem] p-3 shadow-xs space-y-1">
+        <aside className="w-64 hidden md:flex flex-col gap-3 flex-shrink-0">
+          <div className="bg-white border border-[#e5dcce] rounded-3xl p-3.5 shadow-sm space-y-1.5 sticky top-36">
+            <div className="px-3 py-1.5 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">เมนูหลัก (Navigation)</span>
+            </div>
+
             <button
               type="button"
               onClick={() => setActiveTab("dashboard")}
               className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-3 ${
                 activeTab === "dashboard"
-                  ? "bg-[#1c1917] text-white shadow-md"
-                  : "text-[#1c1917]/70 hover:bg-[#eae0d0]/40 hover:text-[#1c1917]"
+                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
+              <LayoutDashboard className={`w-4 h-4 ${activeTab === "dashboard" ? "text-amber-400" : "text-[#a8a29e]"}`} />
+              <span>Executive Dashboard</span>
             </button>
 
             <button
@@ -579,87 +650,101 @@ export function SupabaseAdminPage({
               onClick={() => setActiveTab("schools")}
               className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between ${
                 activeTab === "schools"
-                  ? "bg-[#1c1917] text-white shadow-md"
-                  : "text-[#1c1917]/70 hover:bg-[#eae0d0]/40 hover:text-[#1c1917]"
+                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
               <div className="flex items-center gap-3">
-                <School className="w-4 h-4" />
-                <span>Schools</span>
+                <School className={`w-4 h-4 ${activeTab === "schools" ? "text-amber-400" : "text-[#a8a29e]"}`} />
+                <span>รายชื่อโรงเรียน</span>
               </div>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                activeTab === "schools" ? "bg-white/20 text-white" : "bg-[#eae0d0] text-[#1c1917]"
+                activeTab === "schools" ? "bg-white/20 text-white" : "bg-[#f5efe6] text-[#78716c]"
               }`}>
                 {schools.length}
               </span>
             </button>
 
-            <div className="my-2 border-t border-[#eae0d0]/80" />
+            <div className="pt-2 pb-1 px-3">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">ระบบจัดการ (Operations)</span>
+            </div>
 
             <button
               type="button"
               onClick={() => setActiveTab("verify")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "verify" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "verify" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <CheckCircle2 className="w-4 h-4 text-[#0f9488]" />
-              <span>Verification</span>
+              <CheckCircle2 className="w-4 h-4 text-teal-600" />
+              <span>ตรวจรับรอง URL</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("reviews")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "reviews" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "reviews" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <MessageSquare className="w-4 h-4 text-[#ab8e72]" />
-              <span>Reviews</span>
+              <MessageSquare className="w-4 h-4 text-amber-600" />
+              <span>รีวิวผู้ปกครอง (Reviews)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("tickets")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "tickets" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "tickets" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <Ticket className="w-4 h-4 text-amber-600" />
-              <span>Tickets</span>
+              <Ticket className="w-4 h-4 text-orange-600" />
+              <span>แจ้งปัญหา (Tickets)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("ai-logs")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "ai-logs" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "ai-logs" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <Bot className="w-4 h-4 text-[#25508a]" />
-              <span>AI / Scraper Logs</span>
+              <Bot className="w-4 h-4 text-blue-600" />
+              <span>AI & Scraper Logs</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("audit-log")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "audit-log" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "audit-log" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Audit Log</span>
+              <span>ประวัติการแก้ไข (Audit)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("users")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "users" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "users" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
               <Users className="w-4 h-4 text-indigo-600" />
-              <span>Users</span>
+              <span>ผู้ใช้งาน (Users)</span>
             </button>
           </div>
         </aside>
@@ -689,11 +774,7 @@ export function SupabaseAdminPage({
                 <OpecSchoolsTable
                   schools={schools}
                   onSelectSchool={(s) => setSelectedSchool(s)}
-                  onEditWebsite={(s) => setEditingWebsiteSchool(s)}
-                  onResolveSchoolWebsite={handleResolveSingleWebsite}
-                  onEnrichSchool={handleEnrichSingleSchool}
                   onRefresh={loadSchoolsData}
-                  actionLoadingCode={actionLoadingCode}
                 />
               )}
 

@@ -46,8 +46,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:03"
+    "fetched_at": "2026-09-13 17:48:29",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 2,
@@ -98,8 +104,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:03",
-    "last_updated": "2026-09-12 23:44:03"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2001
   },
   {
     "no": 3,
@@ -147,8 +156,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:03"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27"
   },
   {
     "no": 4,
@@ -196,8 +205,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:03"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 5,
@@ -251,8 +266,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:03"
+    "fetched_at": "2026-09-13 17:48:30",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2004,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 6,
@@ -305,8 +327,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:03"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27"
   },
   {
     "no": 7,
@@ -360,8 +382,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:04",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2004,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 8,
@@ -416,8 +444,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27"
   },
   {
     "no": 9,
@@ -468,8 +496,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1999,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 10,
@@ -519,8 +554,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 11,
@@ -572,8 +614,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:04",
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:51",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ],
     "gps_verified": true
   },
   {
@@ -624,8 +673,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:27",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "NDNA"
+    ]
   },
   {
     "no": 13,
@@ -675,8 +730,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:29",
+    "last_updated": "2026-09-13 17:50:27"
   },
   {
     "no": 14,
@@ -724,8 +779,8 @@
     "instagram": "https://www.instagram.com/kidskingdombangkok/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:29",
+    "last_updated": "2026-09-13 17:50:27"
   },
   {
     "no": 15,
@@ -774,8 +829,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 16,
@@ -824,8 +879,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "https://www.youtube.com/@kidzvillageinternational",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2012
   },
   {
     "no": 17,
@@ -877,8 +935,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1991,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 18,
@@ -931,8 +995,16 @@
     "instagram": "https://www.instagram.com/rais_official/?hl=en",
     "tiktok": "https://www.tiktok.com/@rais.school",
     "youtube": "https://www.youtube.com/@rais.school",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:30",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1999,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "ISO"
+    ]
   },
   {
     "no": 19,
@@ -986,8 +1058,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1966,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 20,
@@ -1037,8 +1116,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:06",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1998
   },
   {
     "no": 21,
@@ -1086,8 +1168,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 22,
@@ -1144,8 +1232,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:32",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1957,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 23,
@@ -1194,8 +1289,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 24,
@@ -1227,7 +1322,7 @@
     ],
     "level_range": "ก่อนอนุบาล - มัธยมศึกษาตอนปลาย",
     "student_count": 1646,
-    "teacher_count": 290,
+    "teacher_count": 284,
     "curriculums": [
       "หลักสูตร Early Years Foundation Stage ของสหราชอาณาจักร",
       "The Early Years Foundation Stage (EYFS)",
@@ -1249,8 +1344,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1998,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 25,
@@ -1302,8 +1403,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:05",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:31",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "accreditations": [
+      "CIS"
+    ],
+    "year_established": 1994
   },
   {
     "no": 26,
@@ -1356,8 +1463,13 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:11",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:36",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 27,
@@ -1405,8 +1517,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:12",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:36",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 28,
@@ -1455,8 +1567,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:12",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:36",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 29,
@@ -1512,8 +1631,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:37",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1998,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 30,
@@ -1565,8 +1691,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:39",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 31,
@@ -1614,8 +1747,14 @@
     "instagram": "https://www.instagram.com/prep_montessori/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 32,
@@ -1668,8 +1807,14 @@
     "instagram": "ipsthailand",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1998,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 33,
@@ -1715,8 +1860,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:14",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 34,
@@ -1768,8 +1913,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "ACSI"
+    ]
   },
   {
     "no": 35,
@@ -1824,8 +1977,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:12",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:40",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 36,
@@ -1876,8 +2035,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:12",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 37,
@@ -1930,8 +2095,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:15",
-    "last_updated": "2026-09-12 23:44:04"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "MSA-CESS",
+      "AI"
+    ]
   },
   {
     "no": 38,
@@ -1979,8 +2152,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05",
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:51",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ],
     "gps_verified": true
   },
   {
@@ -2029,8 +2208,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 40,
@@ -2082,8 +2261,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1997,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 41,
@@ -2135,8 +2320,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 42,
@@ -2184,8 +2369,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:37:13"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:48:38",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1994,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 43,
@@ -2234,8 +2425,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28"
   },
   {
     "no": 44,
@@ -2284,8 +2475,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1992
   },
   {
     "no": 45,
@@ -2336,8 +2530,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 46,
@@ -2388,8 +2588,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:11",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 47,
@@ -2442,8 +2642,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1992,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC"
+    ]
   },
   {
     "no": 48,
@@ -2492,8 +2700,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:39",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1985,
+    "accreditations": [
+      "ACS WASC",
+      "CIS"
+    ]
   },
   {
     "no": 49,
@@ -2544,8 +2759,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05",
+    "fetched_at": "2026-09-13 17:48:39",
+    "last_updated": "2026-09-13 17:50:56",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA"
+    ],
     "gps_verified": true
   },
   {
@@ -2598,8 +2819,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:13",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:38",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1983,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 51,
@@ -2645,8 +2872,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:18",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:42",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 52,
@@ -2696,8 +2923,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:19",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:43",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 53,
@@ -2753,8 +2980,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:19",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:43",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 54,
@@ -2807,8 +3041,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:44",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1957,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "Adventist Accrediting Association (AAA)"
+    ]
   },
   {
     "no": 55,
@@ -2868,8 +3110,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:44",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 56,
@@ -2927,8 +3176,18 @@
     "instagram": "https://www.instagram.com/standrewsbangkok/",
     "tiktok": "",
     "youtube": "https://www.youtube.com/c/StAndrewsInternationalSchoolBangkok",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA",
+      "EDT",
+      "LPPA",
+      "FOBISIA",
+      "ISQM"
+    ]
   },
   {
     "no": 57,
@@ -2976,8 +3235,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 58,
@@ -3028,8 +3287,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 59,
@@ -3081,8 +3340,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1999,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 60,
@@ -3137,8 +3403,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1957,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 61,
@@ -3191,8 +3464,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:44",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "CIS"
+    ]
   },
   {
     "no": 62,
@@ -3241,8 +3522,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 63,
@@ -3292,8 +3580,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:20",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 64,
@@ -3346,8 +3640,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2005,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 65,
@@ -3377,7 +3678,7 @@
       "มัธยมศึกษาตอนต้น"
     ],
     "level_range": "ก่อนอนุบาล - มัธยมศึกษาตอนต้น",
-    "student_count": 132,
+    "student_count": 133,
     "teacher_count": 31,
     "curriculums": [
       "หลักสูตรสหราชอาณาจักร",
@@ -3399,8 +3700,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 66,
@@ -3448,8 +3755,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 67,
@@ -3501,8 +3808,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 68,
@@ -3532,7 +3845,7 @@
       "มัธยมศึกษาตอนปลาย"
     ],
     "level_range": "อนุบาล - มัธยมศึกษาตอนปลาย",
-    "student_count": 425,
+    "student_count": 426,
     "teacher_count": 72,
     "curriculums": [
       "หลักสูตรประเทศอังกฤษ",
@@ -3555,8 +3868,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 69,
@@ -3617,8 +3937,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:05"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 70,
@@ -3673,8 +3999,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 71,
@@ -3727,8 +4059,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:48",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 72,
@@ -3776,8 +4108,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:46",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 73,
@@ -3825,8 +4163,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:21",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:46",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 74,
@@ -3881,8 +4219,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:22",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:45",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2008,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 75,
@@ -3928,8 +4272,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:22",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:47",
+    "last_updated": "2026-09-13 17:50:29"
   },
   {
     "no": 76,
@@ -3982,8 +4326,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:26",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:48",
+    "last_updated": "2026-09-13 17:50:29",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2008,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 77,
@@ -4036,8 +4387,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:26",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:50",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 78,
@@ -4091,8 +4449,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:27",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:51",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 79,
@@ -4140,8 +4498,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:27",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:50",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2010
   },
   {
     "no": 80,
@@ -4189,8 +4550,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:27",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:51",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 81,
@@ -4238,8 +4605,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:27",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:51",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2006,
+    "accreditations": [
+      "ONESQA",
+      "NDNA"
+    ]
   },
   {
     "no": 82,
@@ -4288,8 +4662,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:51",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 83,
@@ -4340,8 +4714,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:27",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:51",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 84,
@@ -4393,8 +4767,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 85,
@@ -4443,8 +4817,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:53",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 86,
@@ -4493,8 +4873,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "NDNA"
+    ]
   },
   {
     "no": 87,
@@ -4543,8 +4930,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06",
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:56",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "AEFE"
+    ],
     "gps_verified": true
   },
   {
@@ -4598,8 +4992,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 89,
@@ -4648,8 +5049,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 90,
@@ -4704,8 +5111,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 91,
@@ -4755,8 +5168,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:31",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 92,
@@ -4807,8 +5220,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:29",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 93,
@@ -4862,8 +5275,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:29",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:54",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 94,
@@ -4913,8 +5333,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:29",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 95,
@@ -4966,8 +5392,18 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:29",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA",
+      "MSA-CESS",
+      "Cognia",
+      "AI",
+      "NDNA"
+    ]
   },
   {
     "no": 96,
@@ -5018,8 +5454,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:29",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:52",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 97,
@@ -5069,8 +5505,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:28",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:53",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017
   },
   {
     "no": 98,
@@ -5119,8 +5558,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:29",
-    "last_updated": "2026-09-12 23:44:06",
+    "fetched_at": "2026-09-13 17:48:53",
+    "last_updated": "2026-09-13 17:51:00",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ],
     "gps_verified": true
   },
   {
@@ -5172,8 +5617,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:30",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:53",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 100,
@@ -5222,8 +5673,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:30",
-    "last_updated": "2026-09-12 23:44:06"
+    "fetched_at": "2026-09-13 17:48:55",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 101,
@@ -5272,8 +5729,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:34",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:48:55",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 102,
@@ -5325,8 +5788,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:33",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:48:57",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 103,
@@ -5378,8 +5848,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:34",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:48:57",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020
   },
   {
     "no": 104,
@@ -5429,8 +5902,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:34",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:50:30"
   },
   {
     "no": 105,
@@ -5480,8 +5953,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:37",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:50:59",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2021,
     "gps_verified": true
   },
   {
@@ -5538,8 +6014,11 @@
     "instagram": "https://www.instagram.com/mandarinbangkok/",
     "tiktok": "https://www.tiktok.com/@mandarinbangkok",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:35",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:50:30",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2564
   },
   {
     "no": 107,
@@ -5590,8 +6069,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:34",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:51:03",
     "gps_verified": true
   },
   {
@@ -5641,8 +6120,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:35",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:51:04",
     "gps_verified": true
   },
   {
@@ -5674,6 +6153,7 @@
     "student_count": 34,
     "teacher_count": 2,
     "curriculums": [
+      "หลักสูตรสหราชอาณาจักร",
       "The Early Years Foundation Stage"
     ],
     "licensee_name": "",
@@ -5692,8 +6172,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:37",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:51:06",
     "gps_verified": true
   },
   {
@@ -5747,8 +6227,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:35",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:51:08",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": [
+      "ONESQA"
+    ],
     "gps_verified": true
   },
   {
@@ -5802,8 +6288,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:58",
+    "last_updated": "2026-09-13 17:51:12",
     "gps_verified": true
   },
   {
@@ -5850,8 +6336,14 @@
     "instagram": "https://www.instagram.com/heischools_bangkok/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:59",
+    "last_updated": "2026-09-13 17:51:14",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": [
+      "ONESQA"
+    ],
     "gps_verified": true
   },
   {
@@ -5902,8 +6394,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:59",
+    "last_updated": "2026-09-13 17:51:19",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2022,
     "gps_verified": true
   },
   {
@@ -5952,8 +6447,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:59",
+    "last_updated": "2026-09-13 17:51:18",
     "gps_verified": true
   },
   {
@@ -6007,8 +6502,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:35",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:48:59",
+    "last_updated": "2026-09-13 17:51:23",
     "gps_verified": true
   },
   {
@@ -6058,8 +6553,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:35",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:02",
+    "last_updated": "2026-09-13 17:51:26",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": [
+      "ONESQA"
+    ],
     "gps_verified": true
   },
   {
@@ -6107,8 +6608,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:00",
+    "last_updated": "2026-09-13 17:51:26",
     "gps_verified": true
   },
   {
@@ -6156,8 +6657,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:00",
+    "last_updated": "2026-09-13 17:51:30",
     "gps_verified": true
   },
   {
@@ -6208,8 +6709,14 @@
     "instagram": "https://www.instagram.com/kidskingdomruamrudee",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:48:59",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 120,
@@ -6259,8 +6766,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:36",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:00",
+    "last_updated": "2026-09-13 17:51:33",
     "gps_verified": true
   },
   {
@@ -6314,8 +6821,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:37",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:00",
+    "last_updated": "2026-09-13 17:51:33",
     "gps_verified": true
   },
   {
@@ -6366,8 +6873,11 @@
     "instagram": "sbsbangkok",
     "tiktok": "@sbsbangkok",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:37",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:49:00",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2025
   },
   {
     "no": 123,
@@ -6413,8 +6923,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:37",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:00",
+    "last_updated": "2026-09-13 17:51:41",
     "gps_verified": true
   },
   {
@@ -6468,8 +6978,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:38",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:01",
+    "last_updated": "2026-09-13 17:51:38",
     "gps_verified": true
   },
   {
@@ -6523,8 +7033,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:38",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:01",
+    "last_updated": "2026-09-13 17:51:45",
     "gps_verified": true
   },
   {
@@ -6575,8 +7085,8 @@
     "instagram": "https://www.instagram.com/middletonthailand/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:40",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:02",
+    "last_updated": "2026-09-13 17:51:50",
     "gps_verified": true
   },
   {
@@ -6625,8 +7135,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:41",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:04",
+    "last_updated": "2026-09-13 17:51:52",
     "gps_verified": true
   },
   {
@@ -6675,8 +7185,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:41",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:04",
+    "last_updated": "2026-09-13 17:51:58",
     "gps_verified": true
   },
   {
@@ -6724,8 +7234,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:41",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:51:59",
     "gps_verified": true
   },
   {
@@ -6770,8 +7280,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:41",
-    "last_updated": "2026-09-12 23:44:07",
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:52:05",
     "gps_verified": true
   },
   {
@@ -6816,8 +7326,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:42",
-    "last_updated": "2026-09-12 23:41:24",
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:52:07",
     "gps_verified": true
   },
   {
@@ -6872,8 +7382,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:42",
-    "last_updated": "2026-09-12 23:44:07"
+    "fetched_at": "2026-09-13 17:49:06",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2007,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 133,
@@ -6926,8 +7442,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:42",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020
   },
   {
     "no": 134,
@@ -6980,8 +7499,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:42",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1985
   },
   {
     "no": 135,
@@ -7034,8 +7556,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:42",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1995,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 136,
@@ -7087,8 +7616,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1983,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 137,
@@ -7141,8 +7676,17 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:06",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC",
+      "International Baccalaureate"
+    ]
   },
   {
     "no": 138,
@@ -7197,8 +7741,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:05",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2013,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 139,
@@ -7252,8 +7802,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:06",
+    "last_updated": "2026-09-13 17:50:31",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 140,
@@ -7306,8 +7863,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:06",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 141,
@@ -7360,8 +7924,8 @@
     "instagram": "https://www.instagram.com/versoschool/",
     "tiktok": "",
     "youtube": "https://www.youtube.com/channel/UCoYOs5fYaXFv_LDAgX4VKYQ",
-    "fetched_at": "2026-09-12 23:37:44",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:07",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 142,
@@ -7411,8 +7975,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08",
+    "fetched_at": "2026-09-13 17:49:08",
+    "last_updated": "2026-09-13 17:52:14",
     "gps_verified": true
   },
   {
@@ -7464,8 +8028,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:43",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:08",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2010
   },
   {
     "no": 144,
@@ -7518,8 +8085,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:44",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:07",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 145,
@@ -7574,8 +8141,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:46",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:07",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1990,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 146,
@@ -7628,8 +8201,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:44",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:07",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 147,
@@ -7680,8 +8253,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:45",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:07",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 148,
@@ -7734,8 +8313,15 @@
     "instagram": "https://www.instagram.com/denlabritishschool.dbs/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:44",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:08",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "COBIS"
+    ]
   },
   {
     "no": 149,
@@ -7789,8 +8375,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:45",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:09",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 150,
@@ -7842,8 +8428,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:45",
-    "last_updated": "2026-09-12 23:44:08",
+    "fetched_at": "2026-09-13 17:49:09",
+    "last_updated": "2026-09-13 17:52:09",
     "gps_verified": true
   },
   {
@@ -7898,8 +8484,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:47",
-    "last_updated": "2026-09-12 23:44:08",
+    "fetched_at": "2026-09-13 17:49:08",
+    "last_updated": "2026-09-13 17:52:13",
     "gps_verified": true
   },
   {
@@ -7948,8 +8534,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:47",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:11",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2024
   },
   {
     "no": 153,
@@ -8001,8 +8590,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:47",
-    "last_updated": "2026-09-12 23:44:08",
+    "fetched_at": "2026-09-13 17:49:11",
+    "last_updated": "2026-09-13 17:52:22",
     "gps_verified": true
   },
   {
@@ -8050,8 +8639,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:48",
-    "last_updated": "2026-09-12 23:44:08",
+    "fetched_at": "2026-09-13 17:49:11",
+    "last_updated": "2026-09-13 17:52:20",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2025,
     "gps_verified": true
   },
   {
@@ -8098,8 +8690,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:48",
-    "last_updated": "2026-09-12 23:41:44",
+    "fetched_at": "2026-09-13 17:49:11",
+    "last_updated": "2026-09-13 17:52:29",
     "gps_verified": true
   },
   {
@@ -8153,8 +8745,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:48",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:12",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 157,
@@ -8208,8 +8800,13 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:49",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:13",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 158,
@@ -8260,8 +8857,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:49",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:12",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2007
   },
   {
     "no": 159,
@@ -8311,8 +8911,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:49",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:12",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 160,
@@ -8368,8 +8968,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:50",
-    "last_updated": "2026-09-12 23:44:08",
+    "fetched_at": "2026-09-13 17:49:13",
+    "last_updated": "2026-09-13 17:52:25",
     "gps_verified": true
   },
   {
@@ -8421,8 +9021,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:49",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:12",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020
   },
   {
     "no": 162,
@@ -8474,8 +9077,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:50",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:12",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 163,
@@ -8527,8 +9130,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:50",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:13",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 164,
@@ -8580,8 +9190,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:50",
-    "last_updated": "2026-09-12 23:44:08"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2004,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 165,
@@ -8633,8 +9250,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:51",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 166,
@@ -8687,8 +9304,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:51",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 167,
@@ -8740,8 +9357,15 @@
     "instagram": "@tpis_pattaya",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:51",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 168,
@@ -8800,8 +9424,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:51",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1995
   },
   {
     "no": 169,
@@ -8855,8 +9482,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:52",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1994,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 170,
@@ -8905,8 +9539,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:51",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:14",
+    "last_updated": "2026-09-13 17:50:32"
   },
   {
     "no": 171,
@@ -8962,8 +9596,13 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:53",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:15",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 172,
@@ -9014,8 +9653,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:53",
-    "last_updated": "2026-09-12 23:37:53"
+    "fetched_at": "2026-09-13 17:49:15",
+    "last_updated": "2026-09-13 17:49:15",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2016
   },
   {
     "no": 173,
@@ -9065,8 +9707,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:53",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:15",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 174,
@@ -9118,8 +9760,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:53",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:15",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "EDT",
+      "COBIS"
+    ]
   },
   {
     "no": 175,
@@ -9170,8 +9820,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:54",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:15",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 176,
@@ -9221,8 +9871,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:54",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:16",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 177,
@@ -9270,8 +9926,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:55",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:18",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 178,
@@ -9323,8 +9979,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:56",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:18",
+    "last_updated": "2026-09-13 17:52:30",
     "gps_verified": true
   },
   {
@@ -9376,8 +10032,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:57",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:19",
+    "last_updated": "2026-09-13 17:52:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2022,
     "gps_verified": true
   },
   {
@@ -9429,8 +10088,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:56",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:19",
+    "last_updated": "2026-09-13 17:52:35",
     "gps_verified": true
   },
   {
@@ -9482,8 +10141,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:56",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:18",
+    "last_updated": "2026-09-13 17:52:43",
     "gps_verified": true
   },
   {
@@ -9531,8 +10190,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:57",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:18",
+    "last_updated": "2026-09-13 17:52:40",
     "gps_verified": true
   },
   {
@@ -9589,8 +10248,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:56",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:19",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 184,
@@ -9646,8 +10305,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:56",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:19",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 185,
@@ -9697,8 +10356,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:57",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:52:48",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2023,
     "gps_verified": true
   },
   {
@@ -9749,8 +10411,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:59",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:20",
+    "last_updated": "2026-09-13 17:52:47",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2023,
     "gps_verified": true
   },
   {
@@ -9804,8 +10469,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:57",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:19",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 188,
@@ -9856,8 +10521,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:59",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:20",
+    "last_updated": "2026-09-13 17:52:58",
     "gps_verified": true
   },
   {
@@ -9911,8 +10576,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:58",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:20",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 190,
@@ -9966,8 +10637,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:58",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:21",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "CIS"
+    ]
   },
   {
     "no": 191,
@@ -10021,8 +10700,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:59",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:20",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1995,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 192,
@@ -10074,8 +10760,15 @@
     "instagram": "https://www.instagram.com/wis_korat/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:59",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:21",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2015,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 193,
@@ -10128,8 +10821,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:59",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:21",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2011
   },
   {
     "no": 194,
@@ -10176,8 +10872,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:37:59",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 195,
@@ -10227,8 +10923,13 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:00",
-    "last_updated": "2026-09-12 23:44:09"
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 196,
@@ -10279,8 +10980,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:01",
-    "last_updated": "2026-09-12 23:44:09",
+    "fetched_at": "2026-09-13 17:49:25",
+    "last_updated": "2026-09-13 17:52:52",
     "gps_verified": true
   },
   {
@@ -10331,8 +11032,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:01",
-    "last_updated": "2026-09-12 23:44:10",
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:52:57",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2025,
     "gps_verified": true
   },
   {
@@ -10385,8 +11089,11 @@
     "instagram": "",
     "tiktok": "tiktok.com/@apiskkschool",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:01",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2023
   },
   {
     "no": 199,
@@ -10439,8 +11146,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:01",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:50:33",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 200,
@@ -10492,8 +11205,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:02",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:22",
+    "last_updated": "2026-09-13 17:50:33"
   },
   {
     "no": 201,
@@ -10540,8 +11253,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:02",
-    "last_updated": "2026-09-12 23:44:10",
+    "fetched_at": "2026-09-13 17:49:23",
+    "last_updated": "2026-09-13 17:53:05",
     "gps_verified": true
   },
   {
@@ -10591,8 +11304,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:02",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:25",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "CIS",
+      "ONESQA Candidate"
+    ]
   },
   {
     "no": 203,
@@ -10644,8 +11364,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:03",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:26",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1954,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 204,
@@ -10699,8 +11426,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:03",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:25",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1993,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 205,
@@ -10752,8 +11486,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:04",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:25",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 1993,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 206,
@@ -10787,8 +11528,6 @@
     "student_count": 568,
     "teacher_count": 110,
     "curriculums": [
-      "หลักสูตร General Certificate of Secondary Education (GCSE)",
-      "หลักสูตร International Baccalaureate (IB)",
       "IB"
     ],
     "licensee_name": "หม่อมหลวงตรีทศยุทธ  เทวกุล",
@@ -10807,8 +11546,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:04",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:28",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC"
+    ]
   },
   {
     "no": 207,
@@ -10860,8 +11607,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:04",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:26",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1997,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 208,
@@ -10913,8 +11666,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:04",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:26",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 209,
@@ -10966,8 +11719,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:04",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:27",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 210,
@@ -11019,8 +11772,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:04",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:26",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 211,
@@ -11071,8 +11824,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:05",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:27",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2007
   },
   {
     "no": 212,
@@ -11127,8 +11883,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:05",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:28",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 213,
@@ -11187,8 +11943,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:06",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:28",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 214,
@@ -11241,8 +11997,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:06",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:27",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 215,
@@ -11299,8 +12062,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:06",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:27",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 216,
@@ -11355,8 +12125,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "https://www.youtube.com/@chiangmaimontessoriinterna1954",
-    "fetched_at": "2026-09-12 23:38:06",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:28",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 217,
@@ -11413,8 +12190,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:08",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:29",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2018
   },
   {
     "no": 218,
@@ -11468,8 +12248,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:07",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:29",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2019
   },
   {
     "no": 219,
@@ -11520,8 +12303,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:06",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:29",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 220,
@@ -11575,8 +12364,15 @@
     "instagram": "https://www.instagram.com/sibs_chiangmai/",
     "tiktok": "",
     "youtube": "https://www.youtube.com/@sibschiangmai",
-    "fetched_at": "2026-09-12 23:38:07",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:29",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 221,
@@ -11631,8 +12427,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:09",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:29",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 222,
@@ -11683,8 +12485,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:09",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:29",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2022
   },
   {
     "no": 223,
@@ -11741,8 +12546,10 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "https://www.facebook.com/watch/?v=121941684314379",
-    "fetched_at": "2026-09-12 23:38:09",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:30",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false
   },
   {
     "no": 224,
@@ -11794,8 +12601,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:09",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:30",
+    "last_updated": "2026-09-13 17:50:34",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2024
   },
   {
     "no": 225,
@@ -11845,8 +12655,16 @@
     "instagram": "https://www.instagram.com/windfieldchiangmai?fbclid=IwY2xjawP3Gg9leHRuA2FlbQIxMABicmlkETFvOWdUNlFoZFJ1RFlDaWtrc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgAB",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:08",
-    "last_updated": "2026-09-12 23:44:10",
+    "fetched_at": "2026-09-13 17:49:31",
+    "last_updated": "2026-09-13 17:53:06",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": [
+      "ONESQA",
+      "NEASC",
+      "AEFE"
+    ],
     "gps_verified": true
   },
   {
@@ -11896,8 +12714,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:09",
-    "last_updated": "2026-09-12 23:44:10"
+    "fetched_at": "2026-09-13 17:49:32",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 227,
@@ -11948,8 +12766,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:09",
-    "last_updated": "2026-09-12 23:44:10",
+    "fetched_at": "2026-09-13 17:49:31",
+    "last_updated": "2026-09-13 17:53:13",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2025,
     "gps_verified": true
   },
   {
@@ -12004,8 +12825,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:10",
-    "last_updated": "2026-09-12 23:44:10",
+    "fetched_at": "2026-09-13 17:49:32",
+    "last_updated": "2026-09-13 17:53:14",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2025,
     "gps_verified": true
   },
   {
@@ -12054,8 +12878,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:10",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:32",
+    "last_updated": "2026-09-13 17:53:19",
     "gps_verified": true
   },
   {
@@ -12089,7 +12913,6 @@
     "student_count": 23,
     "teacher_count": 7,
     "curriculums": [
-      "หลักสูตรประเทศอังกฤษ",
       "National Curriculum for England and Wales"
     ],
     "licensee_name": "นางสาวพิมลมาส  โพธิ์ทอง",
@@ -12108,8 +12931,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:11",
-    "last_updated": "2026-09-12 23:38:11"
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:49:35"
   },
   {
     "no": 231,
@@ -12161,8 +12984,8 @@
     "instagram": "https://www.instagram.com/cranberryinternational/",
     "tiktok": "https://www.tiktok.com/@cranberryinternational.1",
     "youtube": "https://www.youtube.com/channel/UCyidM0bY5fGVPNvz3ozNKlg",
-    "fetched_at": "2026-09-12 23:38:11",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:33",
+    "last_updated": "2026-09-13 17:50:34"
   },
   {
     "no": 232,
@@ -12212,8 +13035,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:12",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:53:22",
     "gps_verified": true
   },
   {
@@ -12264,8 +13087,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:11",
-    "last_updated": "2026-09-12 23:39:51"
+    "fetched_at": "2026-09-13 17:49:33",
+    "last_updated": "2026-09-13 17:50:15"
   },
   {
     "no": 234,
@@ -12317,8 +13140,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:11",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:34",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 235,
@@ -12370,8 +13193,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:12",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 236,
@@ -12423,8 +13253,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:12",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 237,
@@ -12473,8 +13303,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:12",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020
   },
   {
     "no": 238,
@@ -12524,8 +13357,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:13",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:53:21",
     "gps_verified": true
   },
   {
@@ -12575,8 +13408,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:14",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2020
   },
   {
     "no": 240,
@@ -12626,8 +13462,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:14",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:53:33",
     "gps_verified": true
   },
   {
@@ -12676,8 +13512,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:16",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:35",
+    "last_updated": "2026-09-13 17:53:32",
     "gps_verified": true
   },
   {
@@ -12739,8 +13575,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:15",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:36",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 243,
@@ -12793,8 +13635,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:14",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:36",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 244,
@@ -12842,8 +13691,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:15",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:36",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 245,
@@ -12889,8 +13738,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:15",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:36",
+    "last_updated": "2026-09-13 17:53:37",
     "gps_verified": true
   },
   {
@@ -12943,8 +13792,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:16",
-    "last_updated": "2026-09-12 23:38:16"
+    "fetched_at": "2026-09-13 17:49:36",
+    "last_updated": "2026-09-13 17:49:36"
   },
   {
     "no": 247,
@@ -12995,8 +13844,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:17",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:36",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2015
   },
   {
     "no": 248,
@@ -13047,8 +13899,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:17",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:37",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 249,
@@ -13098,8 +13950,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:17",
-    "last_updated": "2026-09-12 23:44:11",
+    "fetched_at": "2026-09-13 17:49:37",
+    "last_updated": "2026-09-13 17:53:40",
     "gps_verified": true
   },
   {
@@ -13158,8 +14010,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:16",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:38",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC"
+    ]
   },
   {
     "no": 251,
@@ -13213,8 +14073,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:17",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:38",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2000,
+    "accreditations": [
+      "ONESQA",
+      "MSA-CESS"
+    ]
   },
   {
     "no": 252,
@@ -13248,8 +14115,7 @@
     "student_count": 454,
     "teacher_count": 85,
     "curriculums": [
-      "หลักสูตรประเทศอังกฤษ",
-      "IB - International Baccalaureate Organization"
+      "หลักสูตรประเทศอังกฤษ"
     ],
     "licensee_name": "",
     "director_name": "นางสาววิชดา อัครธนณัฐ",
@@ -13267,8 +14133,11 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:17",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:40",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2009
   },
   {
     "no": 253,
@@ -13321,8 +14190,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:18",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:38",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 254,
@@ -13375,8 +14251,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:17",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:39",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 255,
@@ -13422,8 +14298,13 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:18",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:43",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "accreditations": [
+      "Cambridge and AAIS (Alberta Accredited International School)"
+    ]
   },
   {
     "no": 256,
@@ -13476,8 +14357,16 @@
     "instagram": "https://www.instagram.com/oakmeadowphuket/?__pwa=1",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:18",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:40",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "ISAT"
+    ]
   },
   {
     "no": 257,
@@ -13525,8 +14414,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:20",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:40",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 258,
@@ -13578,8 +14467,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:19",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 259,
@@ -13633,8 +14522,16 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:19",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:50:35",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "AEFE"
+    ]
   },
   {
     "no": 260,
@@ -13681,8 +14578,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:19",
-    "last_updated": "2026-09-12 23:44:11"
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 261,
@@ -13732,8 +14629,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:23",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:50:35"
   },
   {
     "no": 262,
@@ -13783,8 +14680,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:20",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:41",
+    "last_updated": "2026-09-13 17:53:47",
     "gps_verified": true
   },
   {
@@ -13834,8 +14731,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:20",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:41",
+    "last_updated": "2026-09-13 17:53:44",
     "gps_verified": true
   },
   {
@@ -13884,8 +14781,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:22",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:41",
+    "last_updated": "2026-09-13 17:53:52",
     "gps_verified": true
   },
   {
@@ -13934,8 +14831,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:22",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:53:52",
     "gps_verified": true
   },
   {
@@ -13987,8 +14884,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:22",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:53:58",
     "gps_verified": true
   },
   {
@@ -14037,8 +14934,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:22",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:43",
+    "last_updated": "2026-09-13 17:53:59",
     "gps_verified": true
   },
   {
@@ -14088,8 +14985,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:54:03",
     "gps_verified": true
   },
   {
@@ -14139,8 +15036,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:23",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:42",
+    "last_updated": "2026-09-13 17:54:06",
     "gps_verified": true
   },
   {
@@ -14185,8 +15082,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:23",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:43",
+    "last_updated": "2026-09-13 17:54:07",
     "gps_verified": true
   },
   {
@@ -14231,8 +15128,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:23",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:45",
+    "last_updated": "2026-09-13 17:54:16",
     "gps_verified": true
   },
   {
@@ -14277,8 +15174,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:24",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:44",
+    "last_updated": "2026-09-13 17:54:15",
     "gps_verified": true
   },
   {
@@ -14332,8 +15229,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:43",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2006,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 274,
@@ -14385,8 +15289,15 @@
     "instagram": "https://www.instagram.com/stis_official/",
     "tiktok": "",
     "youtube": "https://youtube.com/@stisinternationalschool238?si=wNNpovD2jlsF3-c2",
-    "fetched_at": "2026-09-12 23:38:24",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:43",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "Cognia"
+    ]
   },
   {
     "no": 275,
@@ -14436,8 +15347,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:24",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:44",
+    "last_updated": "2026-09-13 17:50:36"
   },
   {
     "no": 276,
@@ -14468,7 +15379,7 @@
       "มัธยมศึกษาตอนปลาย"
     ],
     "level_range": "ก่อนอนุบาล - มัธยมศึกษาตอนปลาย",
-    "student_count": 538,
+    "student_count": 527,
     "teacher_count": 76,
     "curriculums": [
       "Cambridge",
@@ -14491,8 +15402,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:45",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2005,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 277,
@@ -14545,8 +15463,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:45",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 278,
@@ -14598,8 +15523,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:24",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 279,
@@ -14655,8 +15587,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:54:20",
     "gps_verified": true
   },
   {
@@ -14711,8 +15643,11 @@
     "instagram": "https://www.instagram.com/dis_suratthani?igsh=MmRibGNyNWd1cHhu",
     "tiktok": "",
     "youtube": "https://www.youtube.com/@danielinternationalschool7247",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2023
   },
   {
     "no": 281,
@@ -14768,8 +15703,8 @@
     "instagram": "https://www.instagram.com/bisspublic/",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:50:36"
   },
   {
     "no": 282,
@@ -14818,8 +15753,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:47",
+    "last_updated": "2026-09-13 17:54:23",
     "gps_verified": true
   },
   {
@@ -14869,8 +15804,11 @@
     "instagram": "https://www.instagram.com/unicorn_british_school?igsh=ajB4bXJqeGZ1NmF1",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2025
   },
   {
     "no": 284,
@@ -14918,8 +15856,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:54:26",
     "gps_verified": true
   },
   {
@@ -14951,7 +15889,7 @@
       "มัธยมศึกษาตอนปลาย"
     ],
     "level_range": "ก่อนอนุบาล - มัธยมศึกษาตอนปลาย",
-    "student_count": 69,
+    "student_count": 72,
     "teacher_count": 8,
     "curriculums": [
       "หลักสูตร North American Division (NAD) สหรัฐอเมริกา",
@@ -14973,8 +15911,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:26",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:47",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2014,
+    "accreditations": [
+      "Cognia"
+    ]
   },
   {
     "no": 286,
@@ -15026,8 +15970,8 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:25",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:47",
+    "last_updated": "2026-09-13 17:50:36"
   },
   {
     "no": 287,
@@ -15075,8 +16019,14 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:26",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:47",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 288,
@@ -15130,8 +16080,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "",
-    "fetched_at": "2026-09-12 23:38:26",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:46",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": true,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 289,
@@ -15183,8 +16140,15 @@
     "instagram": "",
     "tiktok": "",
     "youtube": "https://www.youtube.com/channel/UCiVxH4HLpZD39Ov0zZuvesw",
-    "fetched_at": "2026-09-12 23:38:26",
-    "last_updated": "2026-09-12 23:44:12"
+    "fetched_at": "2026-09-13 17:49:47",
+    "last_updated": "2026-09-13 17:50:36",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "EDT",
+      "NDNA"
+    ]
   },
   {
     "no": 290,
@@ -15234,8 +16198,11 @@
     "instagram": "wondervalley.hatyai",
     "tiktok": "",
     "youtube": "@wondervalley_hatyai",
-    "fetched_at": "2026-09-12 23:38:26",
-    "last_updated": "2026-09-12 23:44:12",
+    "fetched_at": "2026-09-13 17:49:47",
+    "last_updated": "2026-09-13 17:54:28",
+    "is_isat_member": true,
+    "is_boarding": false,
+    "year_established": 2022,
     "gps_verified": true
   }
 ]
