@@ -137,97 +137,113 @@ export function OpecSchoolsTable({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <div
           onClick={() => setActiveStatFilter("all")}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all shadow-xs ${
+          className={`p-4 rounded-2xl border cursor-pointer transition-all shadow-[0_1px_3px_rgba(28,25,23,0.03)] ${
             activeStatFilter === "all"
-              ? "bg-[#faf5ee] border-[#1c1917] shadow-sm ring-2 ring-[#1c1917]/10"
-              : "bg-white border-[#eae0d0] hover:border-[#ab8e72]"
+              ? "bg-[#faf7f2] border-[#ab8e72] ring-2 ring-[#ab8e72]/30 shadow-sm"
+              : "bg-white border-[#e2d8c7] hover:border-[#ab8e72] hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center justify-between mb-2">
             <School className="w-4 h-4 text-[#ab8e72]" />
-            <span className="text-[10px] font-bold text-[#ab8e72] bg-[#ab8e72]/15 px-2 py-0.5 rounded-full border border-[#ab8e72]/30">
-              กรอง
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              activeStatFilter === "all"
+                ? "text-stone-900 bg-[#ab8e72]/20 border-[#ab8e72]/40"
+                : "text-[#ab8e72] bg-[#ab8e72]/10 border-[#ab8e72]/20"
+            }`}>
+              {activeStatFilter === "all" ? "เลือกอยู่" : "กรอง"}
             </span>
           </div>
           <div className="text-xl lg:text-2xl font-black text-[#1c1917]">
             {statCounts.all.toLocaleString()}
           </div>
-          <div className="text-xs text-[#78716c] font-medium truncate">
+          <div className="text-xs font-medium text-[#78716c] truncate">
             โรงเรียนทั้งหมด
           </div>
         </div>
 
         <div
           onClick={() => setActiveStatFilter("has_website")}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all shadow-xs ${
+          className={`p-4 rounded-2xl border cursor-pointer transition-all shadow-[0_1px_3px_rgba(28,25,23,0.03)] ${
             activeStatFilter === "has_website"
-              ? "bg-[#faf5ee] border-[#0f9488] shadow-sm ring-2 ring-[#0f9488]/20"
-              : "bg-white border-[#eae0d0] hover:border-[#0f9488]"
+              ? "bg-teal-50/70 border-teal-600 ring-2 ring-teal-600/30 shadow-sm"
+              : "bg-white border-[#e2d8c7] hover:border-teal-600 hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between mb-1.5">
-            <Globe className="w-4 h-4 text-[#0f9488]" />
-            <span className="text-[10px] font-bold text-[#0f9488] bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-              กรอง
+          <div className="flex items-center justify-between mb-2">
+            <Globe className="w-4 h-4 text-teal-600" />
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              activeStatFilter === "has_website"
+                ? "text-teal-900 bg-teal-100 border-teal-300"
+                : "text-teal-700 bg-teal-50 border-teal-200"
+            }`}>
+              {activeStatFilter === "has_website" ? "เลือกอยู่" : "กรอง"}
             </span>
           </div>
           <div className="text-xl lg:text-2xl font-black text-[#1c1917]">
             {statCounts.hasWebsite}
           </div>
-          <div className="text-xs text-[#78716c] font-medium truncate">
+          <div className="text-xs font-medium text-[#78716c] truncate">
             มี Website แล้ว
           </div>
         </div>
 
         <div
           onClick={() => setActiveStatFilter("missing_en")}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all shadow-xs ${
+          className={`p-4 rounded-2xl border cursor-pointer transition-all shadow-[0_1px_3px_rgba(28,25,23,0.03)] ${
             activeStatFilter === "missing_en"
-              ? "bg-[#faf5ee] border-[#d97706] shadow-sm ring-2 ring-[#d97706]/20"
-              : "bg-white border-[#eae0d0] hover:border-[#d97706]"
+              ? "bg-amber-50/70 border-amber-600 ring-2 ring-amber-600/30 shadow-sm"
+              : "bg-white border-[#e2d8c7] hover:border-amber-600 hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between mb-1.5">
-            <AlertCircle className="w-4 h-4 text-[#d97706]" />
-            <span className="text-[10px] font-bold text-[#d97706] bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              กรอง
+          <div className="flex items-center justify-between mb-2">
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              activeStatFilter === "missing_en"
+                ? "text-amber-900 bg-amber-100 border-amber-300"
+                : "text-amber-700 bg-amber-50 border-amber-200"
+            }`}>
+              {activeStatFilter === "missing_en" ? "เลือกอยู่" : "กรอง"}
             </span>
           </div>
           <div className="text-xl lg:text-2xl font-black text-[#1c1917]">
             {statCounts.missingEn}
           </div>
-          <div className="text-xs text-[#78716c] font-medium truncate">
+          <div className="text-xs font-medium text-[#78716c] truncate">
             ไม่มีชื่อ EN
           </div>
         </div>
 
         <div
           onClick={() => setActiveStatFilter("missing_gps")}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all shadow-xs ${
+          className={`p-4 rounded-2xl border cursor-pointer transition-all shadow-[0_1px_3px_rgba(28,25,23,0.03)] ${
             activeStatFilter === "missing_gps"
-              ? "bg-[#faf5ee] border-[#e11d48] shadow-sm ring-2 ring-[#e11d48]/20"
-              : "bg-white border-[#eae0d0] hover:border-[#e11d48]"
+              ? "bg-rose-50/70 border-rose-600 ring-2 ring-rose-600/30 shadow-sm"
+              : "bg-white border-[#e2d8c7] hover:border-rose-600 hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between mb-1.5">
-            <MapPin className="w-4 h-4 text-[#e11d48]" />
-            <span className="text-[10px] font-bold text-[#e11d48] bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-              กรอง
+          <div className="flex items-center justify-between mb-2">
+            <MapPin className="w-4 h-4 text-rose-600" />
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              activeStatFilter === "missing_gps"
+                ? "text-rose-900 bg-rose-100 border-rose-300"
+                : "text-rose-700 bg-rose-50 border-rose-200"
+            }`}>
+              {activeStatFilter === "missing_gps" ? "เลือกอยู่" : "กรอง"}
             </span>
           </div>
           <div className="text-xl lg:text-2xl font-black text-[#1c1917]">
             {statCounts.missingGps}
           </div>
-          <div className="text-xs text-[#78716c] font-medium truncate">
+          <div className="text-xs font-medium text-[#78716c] truncate">
             ไม่มี/GPS ประมาณการ
           </div>
         </div>
 
         <div
           onClick={() => setSelectedProvince("ALL")}
-          className="p-4 rounded-3xl bg-white border border-[#eae0d0] hover:border-[#25508a] transition-all cursor-pointer shadow-xs"
+          className="p-4 rounded-2xl bg-white border border-[#e2d8c7] hover:border-[#25508a] hover:shadow-xs transition-all cursor-pointer shadow-[0_1px_3px_rgba(28,25,23,0.03)]"
         >
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center justify-between mb-2">
             <MapPin className="w-4 h-4 text-[#25508a]" />
             <span className="text-[10px] font-bold text-[#25508a] bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
               จังหวัด
@@ -243,16 +259,20 @@ export function OpecSchoolsTable({
 
         <div
           onClick={() => setActiveStatFilter("missing_website")}
-          className={`p-4 rounded-3xl border cursor-pointer transition-all shadow-xs ${
+          className={`p-4 rounded-2xl border cursor-pointer transition-all shadow-[0_1px_3px_rgba(28,25,23,0.03)] ${
             activeStatFilter === "missing_website"
-              ? "bg-[#faf5ee] border-[#e11d48] shadow-sm ring-2 ring-[#e11d48]/20"
-              : "bg-white border-[#eae0d0] hover:border-[#e11d48]"
+              ? "bg-rose-50/70 border-rose-600 ring-2 ring-rose-600/30 shadow-sm"
+              : "bg-white border-[#e2d8c7] hover:border-rose-600 hover:shadow-xs"
           }`}
         >
-          <div className="flex items-center justify-between mb-1.5">
-            <Link2Off className="w-4 h-4 text-[#e11d48]" />
-            <span className="text-[10px] font-bold text-[#e11d48] bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-              กรอง
+          <div className="flex items-center justify-between mb-2">
+            <Link2Off className="w-4 h-4 text-rose-600" />
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              activeStatFilter === "missing_website"
+                ? "text-rose-900 bg-rose-100 border-rose-300"
+                : "text-rose-700 bg-rose-50 border-rose-200"
+            }`}>
+              {activeStatFilter === "missing_website" ? "เลือกอยู่" : "กรอง"}
             </span>
           </div>
           <div className="text-xl lg:text-2xl font-black text-[#1c1917]">
@@ -285,7 +305,7 @@ export function OpecSchoolsTable({
       )}
 
       {/* Controls Bar: Search, Province Dropdown, Refresh */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white border border-[#eae0d0] rounded-3xl shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white border border-[#e2d8c7] rounded-2xl shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           {/* Search Box */}
           <div className="relative flex-1 min-w-[200px]">
@@ -295,7 +315,7 @@ export function OpecSchoolsTable({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ค้นหาชื่อโรงเรียน (ไทย/EN), รหัส สช., อำเภอ, จังหวัด..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#eae0d0] bg-[#faf8f5] text-xs text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:ring-2 focus:ring-[#ab8e72]/40"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#dcd1bf] bg-white text-xs text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:ring-2 focus:ring-[#ab8e72]/30 focus:border-[#ab8e72]"
             />
           </div>
 
@@ -304,7 +324,7 @@ export function OpecSchoolsTable({
             <select
               value={selectedProvince}
               onChange={(e) => setSelectedProvince(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-[#eae0d0] bg-[#faf8f5] text-xs text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#ab8e72]/40"
+              className="w-full px-3 py-2.5 rounded-xl border border-[#dcd1bf] bg-white text-xs text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#ab8e72]/30 focus:border-[#ab8e72]"
             >
               <option value="ALL">ทุกจังหวัด ({schools.length})</option>
               {provincesList.map((p) => (
@@ -324,188 +344,111 @@ export function OpecSchoolsTable({
           <button
             type="button"
             onClick={onRefresh}
-            className="p-2.5 bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#1c1917] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
+            className="p-2.5 bg-[#f5ede0] border border-[#e2d8c7] hover:bg-[#eae0d0] text-[#1c1917] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs"
             title="รีเฟรชข้อมูล"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4 text-[#78716c]" />
           </button>
         </div>
       </div>
 
       {/* Main Table */}
-      <div className="bg-white border border-[#eae0d0] rounded-3xl shadow-xs overflow-hidden">
+      <div className="bg-white border border-[#e2d8c7] rounded-2xl shadow-[0_1px_4px_rgba(28,25,23,0.04)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#eae0d0] bg-[#faf5ee]/80 text-[#78716c] font-bold text-[11px] uppercase tracking-wider">
-                <th className="py-3 px-3 w-10 text-center">#</th>
+              <tr className="border-b border-[#e2d8c7] bg-[#f8f4ed] text-[#57534e] font-bold text-[11px] uppercase tracking-wider">
+                <th className="py-3 px-3 w-12 text-center">#</th>
                 <th className="py-3 px-3 w-28">รหัส สช.</th>
-                <th className="py-3 px-4 min-w-[240px]">ชื่อโรงเรียน (ไทย & อังกฤษ)</th>
-                <th className="py-3 px-3">ที่ตั้ง / จังหวัด</th>
-                <th className="py-3 px-3">ระดับชั้น</th>
-                <th className="py-3 px-3 text-right">นักเรียน</th>
-                <th className="py-3 px-3 min-w-[150px]">Official Website</th>
-                <th className="py-3 px-3">พิกัด GPS</th>
-                <th className="py-3 px-3 text-center min-w-[180px]">จัดการ</th>
+                <th className="py-3 px-4 min-w-[280px]">ชื่อโรงเรียน (ไทย & อังกฤษ)</th>
+                <th className="py-3 px-3 min-w-[150px]">ที่ตั้ง / จังหวัด</th>
+                <th className="py-3 px-4 min-w-[260px]">สถานะความสมบูรณ์ของข้อมูล</th>
+                <th className="py-3 px-3 text-center w-28">ดูข้อมูล</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#eae0d0]/40">
+            <tbody className="divide-y divide-[#ece4d8]">
               {paginatedSchools.length > 0 ? (
                 paginatedSchools.map((s, idx) => {
+                  const hasEnName = Boolean(s.school_name_en && s.school_name_en.trim());
                   const hasWebsite = Boolean(s.website && s.website.trim());
-                  const hasExactGps = s.gps_precision === "Exact";
-                  const hasAnyGps = Boolean(s.latitude && s.longitude);
-                  const isActionLoading = actionLoadingCode === s.school_code;
+                  const hasGps = Boolean(s.latitude && s.longitude);
+                  const isComplete = hasEnName && hasWebsite && hasGps;
 
                   return (
                     <tr
                       key={s.school_code || idx}
-                      className="hover:bg-[#faf8f5] transition-colors"
+                      onClick={() => onSelectSchool(s)}
+                      className="hover:bg-[#f7f2ea]/80 transition-colors odd:bg-white even:bg-[#faf7f2]/40 cursor-pointer group"
                     >
-                      <td className="py-3 px-3 text-center text-[#a8a29e] font-mono">
+                      <td className="py-3.5 px-3 text-center text-[#a8a29e] font-mono">
                         {(currentPage - 1) * pageSize + idx + 1}
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-[#78716c]">
+                      <td className="py-3.5 px-3 font-mono font-bold text-[#78716c]">
                         {s.school_code}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#1c1917]">
-                            {s.school_name_th}
-                          </span>
-                          {s.is_isat_member && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#1e3a8a]/10 text-[#1e3a8a] border border-[#1e3a8a]/30 shrink-0" title="สมาชิกสมาคมโรงเรียนนานาชาติ (ISAT Member)">
-                              ISAT Member
-                            </span>
-                          )}
-                          {s.is_boarding && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0" title="โรงเรียนประจำ (Boarding School)">
-                              Boarding
-                            </span>
-                          )}
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-[#1c1917] group-hover:text-[#ab8e72] transition-colors">
+                          {s.school_name_th}
                         </div>
-                        <div className="text-[11px] text-[#78716c] truncate max-w-sm flex items-center gap-1.5 flex-wrap">
-                          <span>
-                            {s.school_name_en || (
-                              <span className="text-[#ab8e72] italic">ยังไม่มีชื่อภาษาอังกฤษ</span>
-                            )}
-                          </span>
-                          {s.year_established && (
-                            <span className="text-[10px] text-stone-400 font-mono">
-                              (Est. {s.year_established})
-                            </span>
-                          )}
-                          {s.accreditations && s.accreditations.length > 0 && (
-                            <span className="text-[9px] text-teal-700 bg-teal-50 px-1 py-0.2 rounded border border-teal-200">
-                              {s.accreditations.join(", ")}
-                            </span>
+                        <div className="text-[11px] text-[#78716c] truncate max-w-md">
+                          {hasEnName ? (
+                            s.school_name_en
+                          ) : (
+                            <span className="text-amber-700 italic">ยังไม่มีชื่อภาษาอังกฤษ</span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3">
                         <div className="font-bold text-[#1c1917]">
                           {s.province}
                         </div>
                         <div className="text-[11px] text-[#78716c]">
-                          {s.district || "—"}
+                          {s.district ? `${s.district}` : "—"}
                         </div>
                       </td>
-                      <td className="py-3 px-3">
-                        <span className="px-2.5 py-0.5 bg-[#faf5ee] border border-[#eae0d0] text-[#1c1917] rounded-lg text-[11px] font-medium whitespace-nowrap">
-                          {s.levels_offered && s.levels_offered.length > 0
-                            ? s.levels_offered[0] + (s.levels_offered.length > 1 ? ` +${s.levels_offered.length - 1}` : "")
-                            : s.level_range || "—"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-right font-bold text-[#ab8e72]">
-                        {Number(s.student_count) > 0 ? Number(s.student_count).toLocaleString() : "—"}
-                      </td>
-                      <td className="py-3 px-3">
-                        {hasWebsite ? (
-                          <div className="flex items-center gap-1.5">
-                            <a
-                              href={s.website!.startsWith("http") ? s.website! : `https://${s.website!}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#25508a] hover:underline truncate max-w-[130px] inline-flex items-center gap-1 font-semibold"
-                            >
-                              <Globe className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{s.website}</span>
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => onEditWebsite(s)}
-                              className="p-1 hover:bg-[#faf5ee] border border-transparent hover:border-[#eae0d0] rounded-lg text-[#78716c] hover:text-[#1c1917] transition-colors"
-                              title="แก้ไขเว็บไซต์"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
-                          </div>
+                      <td className="py-3.5 px-4">
+                        {isComplete ? (
+                          <span className="inline-flex items-center gap-1.5 text-teal-800 font-bold text-[11px] bg-teal-50 px-3 py-1 rounded-full border border-teal-200 shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
+                            <span>ข้อมูลครบถ้วน</span>
+                          </span>
                         ) : (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[#a8a29e] italic text-[11px]">ไม่มีเว็บ</span>
-                            <button
-                              type="button"
-                              onClick={() => onEditWebsite(s)}
-                              className="p-1 hover:bg-[#faf5ee] border border-transparent hover:border-[#eae0d0] rounded-lg text-[#ab8e72] transition-colors"
-                              title="เพิ่มเว็บไซต์"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </button>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {!hasEnName && (
+                              <span className="inline-flex items-center gap-1 text-amber-800 font-bold text-[10px] bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                ⚠️ ขาดชื่อ EN
+                              </span>
+                            )}
+                            {!hasWebsite && (
+                              <span className="inline-flex items-center gap-1 text-rose-800 font-bold text-[10px] bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                                ⚠️ ขาดเว็บ
+                              </span>
+                            )}
+                            {!hasGps && (
+                              <span className="inline-flex items-center gap-1 text-orange-800 font-bold text-[10px] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                                ⚠️ ขาด GPS
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3">
-                        {hasExactGps ? (
-                          <span className="inline-flex items-center gap-1 text-teal-800 font-bold text-[11px] bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
-                            <CheckCircle2 className="w-3 h-3 text-[#0f9488]" /> Exact
-                          </span>
-                        ) : hasAnyGps ? (
-                          <span className="inline-flex items-center gap-1 text-amber-800 font-bold text-[11px] bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                            Approx
-                          </span>
-                        ) : (
-                          <span className="text-[#a8a29e] italic text-[11px]">ไม่มี GPS</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => onSelectSchool(s)}
-                            className="p-1.5 bg-[#faf5ee] hover:bg-[#eae0d0]/60 border border-[#eae0d0] text-[#1c1917] rounded-xl text-xs font-bold transition-colors shadow-xs"
-                            title="ดูรายละเอียดเชิงลึก สช."
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => onResolveSchoolWebsite(s.school_code)}
-                            disabled={isActionLoading}
-                            className="p-1.5 bg-[#25508a]/10 hover:bg-[#25508a]/20 border border-[#25508a]/20 text-[#25508a] rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-xs"
-                            title="ค้นหาและยืนยัน Official Website เดี่ยว"
-                          >
-                            {isActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => onEnrichSchool(s.school_code)}
-                            disabled={isActionLoading}
-                            className="p-1.5 bg-[#0f9488]/10 hover:bg-[#0f9488]/20 border border-[#0f9488]/20 text-[#0f9488] rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-xs"
-                            title="ปักหมุด GPS และเติมชื่อ EN เดี่ยว"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <td className="py-3.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectSchool(s)}
+                          className="px-3 py-1.5 bg-[#faf5ee] hover:bg-[#1c1917] hover:text-white border border-[#e2d8c7] text-[#1c1917] rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5"
+                          title="ดูรายละเอียดเชิงลึกและจัดการข้อมูล"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-[#ab8e72]" />
+                          <span>ดูข้อมูล</span>
+                        </button>
                       </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} className="text-center py-16 text-[#a8a29e] italic">
+                  <td colSpan={6} className="text-center py-16 text-[#a8a29e] italic">
                     ไม่พบโรงเรียนที่ตรงกับเงื่อนไขการค้นหา
                   </td>
                 </tr>

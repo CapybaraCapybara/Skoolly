@@ -140,6 +140,7 @@ export function SupabaseAdminPage({
         year_established: s.year_established || undefined,
         accreditations: s.accreditations || [],
         isat_school_name: s.isat_school_name || "",
+        fetched_at: s.fetched_at || s.created_at || "",
         last_updated: s.last_updated || s.updated_at || s.created_at || "",
       }));
       setSchools(mapped);
@@ -432,7 +433,7 @@ export function SupabaseAdminPage({
   return (
     <div className="min-h-screen bg-[#faf8f5] text-[#1c1917] font-sans flex flex-col antialiased">
       {/* Top Banner Header */}
-      <header className="sticky top-0 z-40 bg-[#faf8f5]/95 backdrop-blur-md border-b border-[#eae0d0]/80 px-4 sm:px-6 lg:px-10 py-3 shadow-xs space-y-2.5">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#e2d8c7] px-4 sm:px-6 lg:px-10 py-3 shadow-[0_2px_10px_rgba(28,25,23,0.04)] space-y-2.5">
         {/* Row 1: Brand & Back Button & Mode Tabs */}
         <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -492,7 +493,7 @@ export function SupabaseAdminPage({
         </div>
 
         {/* Row 2: Action Pipeline & Utility Toolbar */}
-        <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#eae0d0]/60">
+        <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-[#e8dfd2]">
           {/* Pipeline Group: Steps 1-4 */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-bold text-[#78716c] uppercase tracking-wider mr-1 hidden sm:inline">
@@ -626,19 +627,23 @@ export function SupabaseAdminPage({
       {/* Main Layout: Wide Fluid Container */}
       <div className="flex-1 flex w-full max-w-[1720px] mx-auto p-4 sm:p-6 lg:p-10 gap-6">
         {/* Sidebar Nav */}
-        <aside className="w-60 hidden md:flex flex-col gap-2 flex-shrink-0">
-          <div className="bg-[#faf5ee] border border-[#eae0d0] rounded-[2rem] p-3 shadow-xs space-y-1">
+        <aside className="w-64 hidden md:flex flex-col gap-3 flex-shrink-0">
+          <div className="bg-white border border-[#e5dcce] rounded-3xl p-3.5 shadow-sm space-y-1.5 sticky top-36">
+            <div className="px-3 py-1.5 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">เมนูหลัก (Navigation)</span>
+            </div>
+
             <button
               type="button"
               onClick={() => setActiveTab("dashboard")}
               className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-3 ${
                 activeTab === "dashboard"
-                  ? "bg-[#1c1917] text-white shadow-md"
-                  : "text-[#1c1917]/70 hover:bg-[#eae0d0]/40 hover:text-[#1c1917]"
+                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
+              <LayoutDashboard className={`w-4 h-4 ${activeTab === "dashboard" ? "text-amber-400" : "text-[#a8a29e]"}`} />
+              <span>Executive Dashboard</span>
             </button>
 
             <button
@@ -646,87 +651,101 @@ export function SupabaseAdminPage({
               onClick={() => setActiveTab("schools")}
               className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between ${
                 activeTab === "schools"
-                  ? "bg-[#1c1917] text-white shadow-md"
-                  : "text-[#1c1917]/70 hover:bg-[#eae0d0]/40 hover:text-[#1c1917]"
+                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
               <div className="flex items-center gap-3">
-                <School className="w-4 h-4" />
-                <span>Schools</span>
+                <School className={`w-4 h-4 ${activeTab === "schools" ? "text-amber-400" : "text-[#a8a29e]"}`} />
+                <span>รายชื่อโรงเรียน</span>
               </div>
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                activeTab === "schools" ? "bg-white/20 text-white" : "bg-[#eae0d0] text-[#1c1917]"
+                activeTab === "schools" ? "bg-white/20 text-white" : "bg-[#f5efe6] text-[#78716c]"
               }`}>
                 {schools.length}
               </span>
             </button>
 
-            <div className="my-2 border-t border-[#eae0d0]/80" />
+            <div className="pt-2 pb-1 px-3">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">ระบบจัดการ (Operations)</span>
+            </div>
 
             <button
               type="button"
               onClick={() => setActiveTab("verify")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "verify" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "verify" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <CheckCircle2 className="w-4 h-4 text-[#0f9488]" />
-              <span>Verification</span>
+              <CheckCircle2 className="w-4 h-4 text-teal-600" />
+              <span>ตรวจรับรอง URL</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("reviews")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "reviews" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "reviews" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <MessageSquare className="w-4 h-4 text-[#ab8e72]" />
-              <span>Reviews</span>
+              <MessageSquare className="w-4 h-4 text-amber-600" />
+              <span>รีวิวผู้ปกครอง (Reviews)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("tickets")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "tickets" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "tickets" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <Ticket className="w-4 h-4 text-amber-600" />
-              <span>Tickets</span>
+              <Ticket className="w-4 h-4 text-orange-600" />
+              <span>แจ้งปัญหา (Tickets)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("ai-logs")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "ai-logs" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "ai-logs" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
-              <Bot className="w-4 h-4 text-[#25508a]" />
-              <span>AI / Scraper Logs</span>
+              <Bot className="w-4 h-4 text-blue-600" />
+              <span>AI & Scraper Logs</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("audit-log")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "audit-log" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "audit-log" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Audit Log</span>
+              <span>ประวัติการแก้ไข (Audit)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("users")}
-              className={`w-full px-4 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-3 ${
-                activeTab === "users" ? "bg-[#eae0d0] text-[#1c1917] font-bold" : "text-[#1c1917]/60 hover:bg-[#eae0d0]/30 hover:text-[#1c1917]"
+              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
+                activeTab === "users" 
+                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
               }`}
             >
               <Users className="w-4 h-4 text-indigo-600" />
-              <span>Users</span>
+              <span>ผู้ใช้งาน (Users)</span>
             </button>
           </div>
         </aside>

@@ -670,6 +670,8 @@ def fetch_supabase_schools(
                     item["pub_data_updated_at"] = item["pub_data_updated_at"].isoformat()
                 if item.get("updated_at"):
                     item["updated_at"] = item["updated_at"].isoformat()
+                if item.get("created_at"):
+                    item["created_at"] = item["created_at"].isoformat()
 
                 # Compatibility fields with OpecSchoolRecord
                 item["school_code"] = item.get("opec_school_code") or str(item.get("school_id", ""))
@@ -687,6 +689,7 @@ def fetch_supabase_schools(
                 item["levels_offered"] = item.get("levels_offered") or []
                 item["student_count"] = item.get("student_count") or 0
                 item["teacher_count"] = item.get("teacher_count") or 0
+                item["fetched_at"] = item.get("created_at") or ""
                 item["last_updated"] = item.get("updated_at") or item.get("created_at") or ""
                 serialized_rows.append(item)
 

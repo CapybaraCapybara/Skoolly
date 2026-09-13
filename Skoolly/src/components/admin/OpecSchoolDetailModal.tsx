@@ -20,6 +20,28 @@ import {
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
 
+function formatDisplayDate(dateStr?: string | null): string {
+  if (!dateStr || dateStr.trim() === "" || dateStr === "—") return "—";
+  try {
+    // Handle standard ISO or "YYYY-MM-DD HH:mm:ss" format
+    const cleaned = dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T");
+    const d = new Date(cleaned);
+    if (isNaN(d.getTime())) return dateStr;
+
+    return d.toLocaleString("th-TH", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 interface OpecSchoolDetailModalProps {
   school: OpecSchoolRecord | null;
   onClose: () => void;
@@ -186,6 +208,20 @@ export function OpecSchoolDetailModal({
                   <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
                     ก่อตั้ง พ.ศ. {school.year_established + 543} (ค.ศ. {school.year_established})
                   </span>
+                )}
+
+                {school.accreditations && school.accreditations.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    {school.accreditations.map((acc, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200"
+                        title={`มาตรฐานการรับรองสากล: ${acc}`}
+                      >
+                        {acc}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -725,10 +761,20 @@ export function OpecSchoolDetailModal({
             3. FOOTER ACTION BAR
            ========================================================================= */}
         <div className="p-3.5 sm:p-4.5 border-t border-[#eae0d0] bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="text-[11px] text-[#78716c] flex items-center gap-2">
-            <span>ดึงข้อมูลเมื่อ: {school.fetched_at || "—"}</span>
-            <span>•</span>
-            <span>อัปเดตล่าสุด: {school.last_updated || school.fetched_at || "—"}</span>
+          <div className="text-[11px] text-[#78716c] flex items-center flex-wrap gap-2">
+            <span>
+              ดึงข้อมูลเมื่อ:{" "}
+              <strong className="text-[#1c1917] font-semibold">
+                {formatDisplayDate(school.fetched_at || school.last_updated)}
+              </strong>
+            </span>
+            <span className="text-[#d6c7b2]">•</span>
+            <span>
+              อัปเดตล่าสุด:{" "}
+              <strong className="text-[#1c1917] font-semibold">
+                {formatDisplayDate(school.last_updated || school.fetched_at)}
+              </strong>
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
