@@ -106,6 +106,21 @@ def get_current_dsn() -> str | None:
     return env_vars.get("DATABASE_URL") or os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DATABASE_URL")
 
 
+def db_connect(target_dsn: str | None = None, **kwargs):
+    """
+    Creates a psycopg connection configured for Supabase Transaction Pooler (PgBouncer/Supavisor).
+    Disables client-side prepared statements (prepare_threshold=None) to prevent:
+    'prepared statement "_pg3_0" already exists' errors.
+    """
+    dsn = target_dsn or get_current_dsn()
+    if not dsn:
+        raise ValueError("DATABASE_URL is not set")
+    # In transaction pool mode (port 6543 / pooler), prepared statements must be disabled
+    if "prepare_threshold" not in kwargs:
+        kwargs["prepare_threshold"] = None
+    return psycopg.connect(dsn, **kwargs)
+
+
 def mask_dsn(dsn: str) -> str:
     """Masks password in connection string for safe UI presentation."""
     if not dsn:
@@ -156,7 +171,7 @@ def test_database_connection(dsn: str | None = None) -> dict[str, Any]:
 
     start_t = time.time()
     try:
-        with psycopg.connect(target_dsn, connect_timeout=5, row_factory=dict_row) as conn:
+        with db_connect(target_dsn, connect_timeout=5, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1 as ping")
                 ping_res = cur.fetchone()
@@ -220,7 +235,7 @@ def initialize_schema_on_supabase(dsn: str | None = None) -> dict[str, Any]:
 
     sql_content = SCHEMA_FILE.read_text(encoding="utf-8")
 
-    with psycopg.connect(target_dsn, connect_timeout=15) as conn:
+    with db_connect(target_dsn, connect_timeout=15) as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(sql_content)
@@ -313,7 +328,7 @@ def execute_opec_import(
     unmapped_levels: Counter[str] = Counter()
     used_slugs: set[str] = set()
 
-    with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT slug FROM school_data.schools")
             used_slugs = {r["slug"] for r in cur.fetchall()}
@@ -560,7 +575,7 @@ def fetch_supabase_schools(
 
     where_str = " AND ".join(where_clauses)
 
-    with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             # Overall KPIs
             cur.execute("""
@@ -625,6 +640,11 @@ def fetch_supabase_schools(
                     pub_data_updated_at,
                     rating_avg,
                     review_count,
+                    is_isat_member,
+                    is_boarding,
+                    year_established,
+                    accreditations,
+                    isat_school_name,
                     created_at,
                     updated_at
                 FROM school_data.schools
@@ -683,7 +703,7 @@ def clear_supabase_data(dsn: str | None = None) -> dict[str, Any]:
     if not target_dsn:
         raise ValueError("DATABASE_URL is not set")
 
-    with psycopg.connect(target_dsn, autocommit=True) as conn:
+    with db_connect(target_dsn, autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM school_data.schools")
             before_count = cur.fetchone()[0]
@@ -722,7 +742,7 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
     if isinstance(levels_offered, str):
         levels_offered = [l.strip() for l in levels_offered.split(",") if l.strip()]
 
-    with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -801,7 +821,7 @@ def update_supabase_school(school_id: str, data: dict[str, Any], dsn: str | None
     if isinstance(levels_offered, str):
         levels_offered = [l.strip() for l in levels_offered.split(",") if l.strip()]
 
-    with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -876,7 +896,7 @@ def delete_supabase_school(school_id: str, dsn: str | None = None) -> dict[str, 
     if not target_dsn:
         raise ValueError("DATABASE_URL is not set")
 
-    with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 "DELETE FROM school_data.schools WHERE school_id = %s RETURNING school_id, name_th",
@@ -914,7 +934,7 @@ def update_supabase_school_names_en(schools: list[dict] | None = None, update_pr
 
     updated_count = 0
     try:
-        with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+        with db_connect(target_dsn, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT opec_school_code, name_th, name_en, slug FROM school_data.schools")
                 db_schools = cur.fetchall()
@@ -982,7 +1002,7 @@ def update_supabase_school_gps(schools: list[dict] | None = None, update_progres
 
     updated_count = 0
     try:
-        with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+        with db_connect(target_dsn, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT opec_school_code FROM school_data.schools")
                 db_schools = cur.fetchall()
@@ -1034,7 +1054,7 @@ def update_supabase_school_websites(schools: list[dict] | None = None, update_pr
 
     updated_count = 0
     try:
-        with psycopg.connect(target_dsn, row_factory=dict_row) as conn:
+        with db_connect(target_dsn, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT opec_school_code FROM school_data.schools")
                 db_schools = cur.fetchall()
@@ -1072,7 +1092,7 @@ def sync_single_school_to_supabase(school: dict) -> bool:
     if not code:
         return False
     try:
-        with psycopg.connect(target_dsn) as conn:
+        with db_connect(target_dsn) as conn:
             with conn.cursor() as cur:
                 name_en = clean(school.get("school_name_en") or school.get("name_en"))
                 name_th = clean(school.get("school_name_th") or school.get("name_th"))

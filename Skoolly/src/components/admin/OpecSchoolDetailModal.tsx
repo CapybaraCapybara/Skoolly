@@ -169,6 +169,24 @@ export function OpecSchoolDetailModal({
                 >
                   {school.government_support || "ไม่รับเงินอุดหนุน"}
                 </span>
+
+                {school.is_isat_member && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#1e3a8a]/10 text-[#1e3a8a] border border-[#1e3a8a]/30">
+                    ISAT Member
+                  </span>
+                )}
+
+                {school.is_boarding && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
+                    Boarding School
+                  </span>
+                )}
+
+                {school.year_established && (
+                  <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
+                    ก่อตั้ง พ.ศ. {school.year_established + 543} (ค.ศ. {school.year_established})
+                  </span>
+                )}
               </div>
 
               {/* English Name Subtitle */}
@@ -264,6 +282,25 @@ export function OpecSchoolDetailModal({
                     )}
                   </div>
                 </div>
+
+                {/* International Accreditations (ISAT) */}
+                {school.accreditations && school.accreditations.length > 0 && (
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[#78716c] font-medium min-w-[130px] shrink-0 pt-0.5">
+                      การรับรองมาตรฐานสากล:
+                    </span>
+                    <div className="flex flex-wrap justify-end gap-1.5 flex-1">
+                      {school.accreditations.map((acc, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-200"
+                        >
+                          {acc}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Government Support */}
                 <div className="flex items-start justify-between gap-2">

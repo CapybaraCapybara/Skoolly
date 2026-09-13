@@ -35,6 +35,11 @@ export interface OpecSchoolRecord {
   identity?: string;
   tags?: string;
   school_logo_url?: string;
+  is_isat_member?: boolean;
+  is_boarding?: boolean;
+  year_established?: number;
+  accreditations?: string[];
+  isat_school_name?: string;
   line_id?: string;
   instagram?: string;
   tiktok?: string;
@@ -126,6 +131,11 @@ export interface SupabaseSchoolRecord {
   pub_data_updated_at?: string | null;
   rating_avg?: number | null;
   review_count?: number;
+  is_isat_member?: boolean;
+  is_boarding?: boolean;
+  year_established?: number | null;
+  accreditations?: string[];
+  isat_school_name?: string | null;
   created_at?: string;
   updated_at?: string;
 }

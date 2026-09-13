@@ -369,12 +369,36 @@ export function OpecSchoolsTable({
                         {s.school_code}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-[#1c1917]">
-                          {s.school_name_th}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[#1c1917]">
+                            {s.school_name_th}
+                          </span>
+                          {s.is_isat_member && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#1e3a8a]/10 text-[#1e3a8a] border border-[#1e3a8a]/30 shrink-0" title="สมาชิกสมาคมโรงเรียนนานาชาติ (ISAT Member)">
+                              ISAT Member
+                            </span>
+                          )}
+                          {s.is_boarding && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0" title="โรงเรียนประจำ (Boarding School)">
+                              Boarding
+                            </span>
+                          )}
                         </div>
-                        <div className="text-[11px] text-[#78716c] truncate max-w-sm">
-                          {s.school_name_en || (
-                            <span className="text-[#ab8e72] italic">ยังไม่มีชื่อภาษาอังกฤษ</span>
+                        <div className="text-[11px] text-[#78716c] truncate max-w-sm flex items-center gap-1.5 flex-wrap">
+                          <span>
+                            {s.school_name_en || (
+                              <span className="text-[#ab8e72] italic">ยังไม่มีชื่อภาษาอังกฤษ</span>
+                            )}
+                          </span>
+                          {s.year_established && (
+                            <span className="text-[10px] text-stone-400 font-mono">
+                              (Est. {s.year_established})
+                            </span>
+                          )}
+                          {s.accreditations && s.accreditations.length > 0 && (
+                            <span className="text-[9px] text-teal-700 bg-teal-50 px-1 py-0.2 rounded border border-teal-200">
+                              {s.accreditations.join(", ")}
+                            </span>
                           )}
                         </div>
                       </td>

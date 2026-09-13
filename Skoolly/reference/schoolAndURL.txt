@@ -76,7 +76,7 @@
 [76 - 1110700088] CRESCENT INTERNATIONAL SCHOOL (นานาชาติเครซเซนต์) - https://cis.ac.th
 [77 - 1110700089] Berkeley International School (นานาชาติเบิร์คลีย์) - https://www.berkeley.ac.th
 [78 - 1110700091] Regent's International School Bangkok - Rama 9 (นานาชาติรีเจ้นท์ กรุงเทพ - พระราม 9) - https://regents.ac.th/th/rama-9-campus
-[79 - 1110700092] The Tiny Seeds International Pre - School (อนุบาลนานาชาติ เดอะไทนี่ซี๊ด) - https://tinyseedsschool.com
+[79 - 1110700092] The Tiny Seeds International Pre - School (อนุบาลนานาชาติ เดอะไทนี่ซี๊ด) - https://www.thetinyseedspreschool.ac.th
 [80 - 1110700093] ABC PATHWAYS INTERNATIONAL KINDERGARTEN (อนุบาลนานาชาติ เอบีซี แพทเวยส์) - https://www.abcpathways.co.th
 [81 - 1110700094] ANNABEL'S EARLY YEARS INTERNATIONAL KINDERGARTEN (อนุบาลนานาชาติแอนนาเบลส์ เออร์ลี่ เยียร์ส) - https://www.annabels.ac.th
 [82 - 1110700095] Prep Montessori International Kindergarten (อนุบาลนานาชาติเพรพ มอนเตสซอรี่) - https://www.prep.ac.th
@@ -86,7 +86,7 @@
 [86 - 1110700099] Raintree Internatiomal School (นานาชาติเรนทรี) - https://raintree.ac.th
 [87 - 1110700100] La Petite Ecole International Kindergarten School Bangkok (อนุบาลนานาชาติ ลา เปติท อีโคล แบงค็อก) - https://www.lpebangkok.com/en
 [88 - 1110700101] Singapore International School Thonburi (นานาชาติสิงคโปร์ธนบุรี) - https://sisb.ac.th/singapore-international-school-thonburi-campus
-[89 - 1110700102] Associe International Kindergarten Bangkok 35 (อนุบาลนานาชาติแอสโซซิเอะกรุงเทพฯ ๓๕) - https://aikb35.ac.th/en
+[89 - 1110700102] Associe International Kindergarten Bangkok 35 (อนุบาลนานาชาติแอสโซซิเอะกรุงเทพฯ ๓๕) - https://aikb35.ac.th
 [90 - 1110700103] Central International School (นานาชาติเซนทรัล) - https://central-school.com
 [91 - 1110700104] ROYCE ROYAL INTERNATIONAL SCHOOL (นานาชาติรอยส์ รอยัล) - https://www.royceroyal.ac.th
 [92 - 1110700105] Shrewsbury International School Bangkok City Campus (นานาชาติโชรส์เบอรีกรุงเทพ ซิตี้แคมปัส) - https://www.shrewsbury.ac.th
@@ -151,7 +151,7 @@
 [151 - 1112700009] SINGAPORE INTERNAIONAL SCHOOL NONTHABURI (นานาชาติสิงคโปร์นนทบุรี) - https://sisb.ac.th/nonthaburi-campus
 [152 - 1112700010] THM International School (นานาชาติ ทีเอชเอ็ม) - https://www.thm.ac.th
 [153 - 1112700011] Denla Rama V School (เด่นหล้า พระราม 5) - https://www.denlaramavschool.ac.th
-[154 - 1112700012] Knightsbridge House International School Nonthaburi (นานาชาติไนทส์บริดจ์เฮ้าส์ นนทบุรี) - https://www.knightsbridgeschool.com
+[154 - 1112700012] Knightsbridge House International School Nonthaburi (นานาชาติไนทส์บริดจ์เฮ้าส์ นนทบุรี) - https://kbh.ac.th/
 [155 - 1112700014] New American Chinese International School (นานาชาตินิวอเมริกันไชนีส) - 
 [156 - 1113700001] SIAM INTERNATIONAL SCHOOL (นานาชาติสยาม) - https://siamis.ac.th/th
 [157 - 1113700002] SATHIT PATHUM DEMONSTRATION SCHOOL (สาธิตปทุม) - https://www.sathitpathum.ac.th
@@ -163,10 +163,10 @@
 [163 - 1119700001] California Prep International School (นานาชาติแคลิฟอร์เนีย เพรพ) - https://caprepschool.com
 [164 - 1119700002] SAINT JOHN MARY INTERNATIONAL SCHOOL (นานาชาติเซนต์จอห์นแมรี) - https://www.sjmis.ac.th
 [165 - 1119700003] John Wyatt Montessori International School (นานาชาติ จอห์น ไวแอท มอนเตสซอรี) - https://www.jwmontessori.com
-[166 - 1119700004] Adventist Mission International School (นานาชาติแอ๊ดเวนติสมิชชัน) - https://dev.aims.ac.th
+[166 - 1119700004] Adventist Mission International School (นานาชาติแอ๊ดเวนติสมิชชัน) - https://www.aims.ac.th
 [167 - 1120700001] Tara Pattana International School (นานาชาติธาราพัฒนา) - https://www.tpis.ac.th
 [168 - 1120700002] Regents International School Pattaya (นานาชาติรีเจ้นท์ พัทยา) - https://www.nordangliaeducation.com/risp-pattaya
-[169 - 1120700003] INTERNATIONAL SCHOOL EASTERN SEABOARD (นานาชาติภาคตะวันออก) - https://www.brandbucket.com/names/ises
+[169 - 1120700003] INTERNATIONAL SCHOOL EASTERN SEABOARD (นานาชาติภาคตะวันออก) - https://ise.ac.th/
 [170 - 1120700004] Thai Japanese Association School Sriracha (สมาคมไทย-ญี่ปุ่น ศรีราชา) - https://sites.google.com/tjas.ac.th/top
 [171 - 1120700005] Mooltripakdee International School (นานาชาติมูลตรีภักดี) - https://www.mis.ac.th
 [172 - 1120700007] Tonlew International Kindergarten (อนุบาลนานาชาติต้นหลิว) - 
@@ -188,13 +188,13 @@
 [188 - 1125700002] KRIS International School (นานาชาติเคอาร์ไอเอส) - https://www.kriskb.com/th
 [189 - 1130700001] KORAT ADVENTIST INTERNATIONAL SCHOOL (นานาชาติแอ๊ดเวนตีสโคราช) - https://www.kais2009.ac.th
 [190 - 1130700002] ANGLO SINGAPORE INTERNATIONAL SCHOOL NAKHONRATCHASIMA (นานาชาติแองโกลสิงคโปร์ นครราชสีมา) - https://anglosingapore.ac.th/korat
-[191 - 1130700003] St. Stephen'S International School (Khao Yai) (นานาชาติเซนต์สตีเฟ่นส์ เขาใหญ่) - https://www.ststephen.ac.th
+[191 - 1130700003] St. Stephen'S International School (Khao Yai) (นานาชาติเซนต์สตีเฟ่นส์ เขาใหญ่) - https://www.sis.edu/khaoyai
 [192 - 1130700004] WESLEY INTERNATIONAL SCHOOL (นานาชาติเวสลี่) - https://www.wis.ac.th
 [193 - 1134700001] Ubon Adventist International Mission School (นานาชาติแอ๊ดเวนตีสมิชชั่นอุบล) - https://www.uaims.ac.th
 [194 - 1134700002] Begins international School (นานาชาติบีกิน) - https://www.begins.ac.th
 [195 - 1140700001] Khon Kaen International School (นานาชาติขอนแก่น) - https://kkisinterschool.wixsite.com/mysite
 [196 - 1140700002] Ratchut International School (นานาชาติรัตน์ฉัตร) - https://www.ratchutschool.com
-[197 - 1140700003] Asia Singapore International School (นานาชาติเอเชียสิงคโปร์) - http://www.asiskk.com
+[197 - 1140700003] Asia Singapore International School (นานาชาติเอเชียสิงคโปร์) - https://asis.ac.th/
 [198 - 1140700004] AMERICAN PRIME INTERNATIONAL SCHOOL (นานาชาติอเมริกันไพรม) - https://apis-kk.com
 [199 - 1141700001] Udon Thani International School (นานาชาติอุดรธานี) - https://www.udoninternationalschool.com
 [200 - 1141700002] INTERNATIONAL COMMUNITY SCHOOL UDON THANI (ประชาคมนานาชาติ อุดรธานี) - https://www.icsud.ac.th
@@ -232,7 +232,7 @@
 [232 - 1152700003] Saint Helier-Brelade International School (นานาชาติเซนต์เฮเลียร์-เบรลาร์ด) - https://www.sainthelierbreladeinternationalschool.com
 [233 - 1154700001] Sanfan International School (นานาชาติสานฝัน) - 
 [234 - 1156700002] British Thai International School at Chiangkham-Phayao (นานาชาติอังกฤษ ไทย ณ เชียงคำ-พะเยา) - https://btis.ac.th
-[235 - 1157700001] Chiangrai International School (นานาชาติเชียงราย) - https://cis.ac.th
+[235 - 1157700001] Chiangrai International School (นานาชาติเชียงราย) - https://www.cris.ac.th/
 [236 - 1157700002] CHIANG RAI INTERNATOPNAL CHRISTIAN SCHOOL (คริสเตียนนานาชาติเชียงราย) - https://crics.asia
 [237 - 1157700004] ONE HOPE INTERNATIONAL SCHOOL (นานาชาติวันโฮป) - https://www.onehope.ac.th
 [238 - 1157700005] Gainesville International School Maesai (นานาชาติเกนส์วิลล์ แม่สาย) - https://www.gism.ac.th
