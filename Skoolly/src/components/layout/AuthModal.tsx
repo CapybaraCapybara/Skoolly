@@ -18,7 +18,7 @@ export function AuthModal({ reason, onClose }: AuthModalProps) {
 
   return (
     <div
-      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="modal-overlay fixed inset-0 z-[2000] flex items-center justify-center p-4"
       style={{ background: "rgba(10,22,40,0.7)" }}
       onClick={onClose}
     >

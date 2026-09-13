@@ -27,6 +27,7 @@ interface SchoolCardProps {
   onToggleFavorite: (id: number) => void;
   onRestrictedAction: (reason: string) => void;
   onSchoolClick: (id: number) => void;
+  onCompareLimitReached?: (school: School) => void;
 }
 
 export function SchoolCard({
@@ -37,6 +38,7 @@ export function SchoolCard({
   onToggleFavorite,
   onRestrictedAction,
   onSchoolClick,
+  onCompareLimitReached,
 }: SchoolCardProps) {
   const isCompared = compareIds.includes(school.id);
   const isFav = favorites.has(school.id);
@@ -112,30 +114,36 @@ export function SchoolCard({
         </div>
 
         {/* Compare */}
-        <label
-          className={`flex items-center gap-2 mt-1 text-xs cursor-pointer select-none group ${compareAtLimit ? "opacity-40" : ""}`}
-          title={compareAtLimit ? `Compare limit reached (${MAX_COMPARE} schools max as guest)` : ""}
+        <div
+          onClick={(e) => {
+            if (compareAtLimit) {
+              e.preventDefault();
+              onCompareLimitReached?.(school);
+            }
+          }}
+          className={`flex items-center gap-2 mt-1 text-xs select-none group ${compareAtLimit ? "cursor-pointer" : "cursor-pointer"}`}
+          title={compareAtLimit ? `เลือกครบ ${MAX_COMPARE} โรงเรียนแล้ว (คลิกเพื่อเลือกลบและแทนที่)` : isCompared ? "นำออกจากเปรียบเทียบ" : "เพิ่มเข้าเปรียบเทียบ"}
         >
           <input
             type="checkbox"
             checked={isCompared}
-            disabled={compareAtLimit}
+            readOnly={compareAtLimit}
             onChange={() => {
-              if (compareAtLimit) {
-                onRestrictedAction("Guest comparisons are limited to 3 schools per session. Sign in to compare more and save your comparisons.");
-              } else {
+              if (!compareAtLimit) {
                 onToggleCompare(school.id);
               }
             }}
-            className="w-4 h-4 rounded accent-warm-bronze border-warm-accent"
+            className="w-4 h-4 rounded accent-warm-bronze border-warm-accent cursor-pointer"
           />
-          <span className="text-warm-charcoal/80 group-hover:text-warm-bronze transition-colors font-medium">Add to Compare</span>
+          <span className={`transition-colors font-medium ${isCompared ? "text-warm-bronze font-bold" : "text-warm-charcoal/80 group-hover:text-warm-bronze"}`}>
+            {isCompared ? "อยู่ในรายการเปรียบเทียบ" : "Add to Compare"}
+          </span>
           {compareAtLimit && (
-            <svg className="w-3.5 h-3.5 text-warm-bronze ml-auto" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-            </svg>
+            <span className="ml-auto text-[10px] font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+              3/3 เต็ม (สลับ)
+            </span>
           )}
-        </label>
+        </div>
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ export function CompareBar({
   if (compareIds.length === 0) return null;
   const selected = schools.filter((s) => compareIds.includes(s.id));
   return (
-    <div className="compare-bar fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 shadow-lg" style={{ backdropFilter: "blur(8px)" }}>
+    <div className="compare-bar fixed bottom-0 left-0 right-0 z-[1100] border-t border-slate-200 bg-white/95 shadow-lg" style={{ backdropFilter: "blur(8px)" }}>
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-sm font-semibold text-navy-900 shrink-0">Comparing ({compareIds.length}/{MAX_COMPARE}):</span>

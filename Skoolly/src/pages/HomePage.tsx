@@ -23,6 +23,7 @@ interface HomePageProps {
   onRestrictedAction: (reason: string) => void;
   onSchoolClick: (id: number) => void;
   onOpenCalculator?: () => void;
+  onCompareLimitReached?: (school: School) => void;
 }
 
 export function HomePage({
@@ -33,6 +34,7 @@ export function HomePage({
   onRestrictedAction,
   onSchoolClick,
   onOpenCalculator,
+  onCompareLimitReached,
 }: HomePageProps) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [schools, setSchools] = useState<School[]>([]);
@@ -307,6 +309,7 @@ export function HomePage({
                   onToggleFavorite={onToggleFavorite}
                   onRestrictedAction={onRestrictedAction}
                   onSchoolClick={onSchoolClick}
+                  onCompareLimitReached={onCompareLimitReached}
                 />
               ))
               : <NoResults onReset={() => setFilters(DEFAULT_FILTERS)} />

@@ -60,6 +60,10 @@ input[type="range"] {
   accent-color: #0f9488;
 }
 
+.compare-bar {
+  z-index: 1100 !important;
+}
+
 .compare-bar,
 /* used by the admin toast — Tailwind has no built-in `animate-slideUp` */
 .animate-slideUp {

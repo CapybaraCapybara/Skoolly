@@ -6,6 +6,8 @@ import { SchoolDetailPage } from "@/pages/SchoolDetailPage";
 import { CostCalculatorPage } from "@/pages/CostCalculatorPage";
 import { AuthModal } from "@/components/layout/AuthModal";
 import { CompareBar } from "@/components/schools/CompareBar";
+import { CompareModal } from "@/components/schools/CompareModal";
+import { CompareLimitModal } from "@/components/schools/CompareLimitModal";
 import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 
@@ -42,6 +44,8 @@ export default function App() {
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [authModal, setAuthModal] = useState<string | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [replaceLimitSchool, setReplaceLimitSchool] = useState<School | null>(null);
 
   // ── Sync with browser URL hash ──────────────────────────────────────────
   useEffect(() => {
@@ -127,7 +131,15 @@ export default function App() {
         onSignUp={() => showAuth("Create a free account to access personalised AI recommendations, save schools, and compare unlimited options.")}
         onLogin={() => showAuth("Sign in to your Skoolly account.")}
         compareCount={compareIds.length}
-        onCompare={() => showAuth("Sign in to save and revisit your school comparisons anytime.")}
+        onCompare={() => {
+          if (compareIds.length >= 2) {
+            setCompareModalOpen(true);
+          } else if (compareIds.length === 1) {
+            setCompareModalOpen(true);
+          } else {
+            showAuth("กรุณากด 'Add to Compare' บนการ์ดโรงเรียนอย่างน้อย 2 แห่งเพื่อเริ่มเปรียบเทียบครับ");
+          }
+        }}
         onCalculator={() => goCalculator()}
         onForum={goForum}
         onHome={goHome}
@@ -171,6 +183,7 @@ export default function App() {
         onRestrictedAction={showAuth}
         onSchoolClick={goSchool}
         onOpenCalculator={() => goCalculator()}
+        onCompareLimitReached={(school) => setReplaceLimitSchool(school)}
       />
     );
   }
@@ -187,7 +200,36 @@ export default function App() {
           schools={schools}
           onRemove={(id) => setCompareIds((p) => p.filter((x) => x !== id))}
           onClear={() => setCompareIds([])}
-          onCompareClick={() => showAuth("Sign in to view a full side-by-side comparison with detailed curriculum breakdowns, fees, and parent reviews.")}
+          onCompareClick={() => setCompareModalOpen(true)}
+        />
+      )}
+
+      {/* ── SIDE-BY-SIDE COMPARE MODAL (GUEST & USER) ─────────────────────── */}
+      {compareModalOpen && (
+        <CompareModal
+          compareIds={compareIds}
+          schools={schools}
+          onClose={() => setCompareModalOpen(false)}
+          onRemove={(id) => setCompareIds((p) => p.filter((x) => x !== id))}
+          onSchoolClick={goSchool}
+          onOpenCalculator={(schoolId) => {
+            setCompareModalOpen(false);
+            goCalculator(schoolId);
+          }}
+          onSaveComparison={() => showAuth("Sign in to save and revisit your school comparisons anytime.")}
+        />
+      )}
+
+      {/* ── 4TH SCHOOL LIMIT REPLACE MODAL ─────────────────────────────────── */}
+      {replaceLimitSchool && (
+        <CompareLimitModal
+          currentSchools={schools.filter((s) => compareIds.includes(s.id))}
+          newSchool={replaceLimitSchool}
+          onReplace={(removeId, addId) => {
+            setCompareIds((prev) => [...prev.filter((id) => id !== removeId), addId]);
+            setReplaceLimitSchool(null);
+          }}
+          onClose={() => setReplaceLimitSchool(null)}
         />
       )}
 
