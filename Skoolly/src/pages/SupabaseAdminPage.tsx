@@ -21,7 +21,6 @@ import {
   Languages,
   Award,
   Zap,
-  PlayCircle,
 } from "lucide-react";
 import type { OpecSchoolRecord, ScraperProgressState } from "@/types/opec";
 import {
@@ -775,11 +774,7 @@ export function SupabaseAdminPage({
                 <OpecSchoolsTable
                   schools={schools}
                   onSelectSchool={(s) => setSelectedSchool(s)}
-                  onEditWebsite={(s) => setEditingWebsiteSchool(s)}
-                  onResolveSchoolWebsite={handleResolveSingleWebsite}
-                  onEnrichSchool={handleEnrichSingleSchool}
                   onRefresh={loadSchoolsData}
-                  actionLoadingCode={actionLoadingCode}
                 />
               )}
 

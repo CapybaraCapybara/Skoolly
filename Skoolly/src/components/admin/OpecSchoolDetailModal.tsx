@@ -12,8 +12,6 @@ import {
   FileJson,
   Copy,
   Check,
-  CheckCircle2,
-  AlertTriangle,
   Sparkles,
   Edit,
   ArrowLeft,

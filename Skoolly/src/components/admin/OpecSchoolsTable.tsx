@@ -4,8 +4,6 @@ import {
   School,
   Globe,
   MapPin,
-  Edit,
-  Sparkles,
   Eye,
   CheckCircle2,
   AlertCircle,
@@ -15,36 +13,40 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  Loader2,
+  ArrowUpDown,
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
 
 interface OpecSchoolsTableProps {
   schools: OpecSchoolRecord[];
   onSelectSchool: (school: OpecSchoolRecord) => void;
-  onEditWebsite: (school: OpecSchoolRecord) => void;
-  onResolveSchoolWebsite: (code: string) => Promise<void>;
-  onEnrichSchool: (code: string) => Promise<void>;
   onRefresh: () => void;
-  actionLoadingCode?: string | null;
 }
 
 type StatFilter = "all" | "has_website" | "missing_en" | "missing_gps" | "provinces" | "missing_website";
+export type SortOption =
+  | "code_asc"
+  | "code_desc"
+  | "name_th_asc"
+  | "name_th_desc"
+  | "province_asc"
+  | "province_desc"
+  | "students_desc"
+  | "students_asc"
+  | "completion_asc"
+  | "completion_desc";
 
 export function OpecSchoolsTable({
   schools,
   onSelectSchool,
-  onEditWebsite,
-  onResolveSchoolWebsite,
-  onEnrichSchool,
   onRefresh,
-  actionLoadingCode,
 }: OpecSchoolsTableProps) {
   const [activeStatFilter, setActiveStatFilter] = useState<StatFilter>("all");
   const [search, setSearch] = useState("");
   // Keep typing responsive: re-filter the full dataset off the keystroke's render.
   const deferredSearch = useDeferredValue(search);
   const [selectedProvince, setSelectedProvince] = useState<string>("ALL");
+  const [sortBy, setSortBy] = useState<SortOption>("code_asc");
   const [pageSize, setPageSize] = useState<number>(100);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
@@ -60,9 +62,9 @@ export function OpecSchoolsTable({
   // Quick stat counts
   const statCounts = useMemo(() => {
     let hasWeb = 0;
+    let missingWeb = 0;
     let missingEn = 0;
     let missingGps = 0;
-    let missingWeb = 0;
 
     schools.forEach((s) => {
       if (s.website && s.website.trim()) hasWeb++;
@@ -82,9 +84,9 @@ export function OpecSchoolsTable({
     };
   }, [schools, provincesList]);
 
-  // Filter and Search logic
+  // Filter, Search, and Sort logic
   const filteredSchools = useMemo(() => {
-    return schools.filter((s) => {
+    const list = schools.filter((s) => {
       // 1. Stat Card Filter
       if (activeStatFilter === "has_website" && (!s.website || !s.website.trim())) return false;
       if (activeStatFilter === "missing_website" && s.website && s.website.trim()) return false;
@@ -108,7 +110,46 @@ export function OpecSchoolsTable({
 
       return true;
     });
-  }, [schools, activeStatFilter, selectedProvince, deferredSearch]);
+
+    // Helper: calculate data completeness score (higher = more complete)
+    const getCompletenessScore = (s: OpecSchoolRecord) => {
+      let score = 0;
+      if (s.school_name_en && s.school_name_en.trim()) score += 2;
+      if (s.website && s.website.trim()) score += 2;
+      if (s.latitude && s.longitude) {
+        score += s.gps_precision === "Exact" ? 2 : 1;
+      }
+      return score;
+    };
+
+    // Sort
+    return list.sort((a, b) => {
+      switch (sortBy) {
+        case "code_asc":
+          return (a.school_code || "").localeCompare(b.school_code || "", undefined, { numeric: true });
+        case "code_desc":
+          return (b.school_code || "").localeCompare(a.school_code || "", undefined, { numeric: true });
+        case "name_th_asc":
+          return (a.school_name_th || "").localeCompare(b.school_name_th || "", "th");
+        case "name_th_desc":
+          return (b.school_name_th || "").localeCompare(a.school_name_th || "", "th");
+        case "province_asc":
+          return (a.province || "").localeCompare(b.province || "", "th") || (a.school_name_th || "").localeCompare(b.school_name_th || "", "th");
+        case "province_desc":
+          return (b.province || "").localeCompare(a.province || "", "th") || (b.school_name_th || "").localeCompare(a.school_name_th || "", "th");
+        case "students_desc":
+          return (Number(b.student_count) || 0) - (Number(a.student_count) || 0);
+        case "students_asc":
+          return (Number(a.student_count) || 0) - (Number(b.student_count) || 0);
+        case "completion_asc": // ขาดข้อมูลเยอะสุดขึ้นก่อน (score น้อยสุด)
+          return getCompletenessScore(a) - getCompletenessScore(b);
+        case "completion_desc": // ข้อมูลครบถ้วนขึ้นก่อน
+          return getCompletenessScore(b) - getCompletenessScore(a);
+        default:
+          return 0;
+      }
+    });
+  }, [schools, activeStatFilter, selectedProvince, deferredSearch, sortBy]);
 
   // Reset to page 1 when filter changes
   useEffect(() => {
@@ -320,7 +361,7 @@ export function OpecSchoolsTable({
           </div>
 
           {/* Province Dropdown */}
-          <div className="w-48">
+          <div className="w-44">
             <select
               value={selectedProvince}
               onChange={(e) => setSelectedProvince(e.target.value)}
@@ -333,6 +374,28 @@ export function OpecSchoolsTable({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Sort By Dropdown */}
+          <div className="w-48 relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="w-full pl-8 pr-3 py-2.5 rounded-xl border border-[#dcd1bf] bg-[#faf8f5] text-xs font-semibold text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#ab8e72]/30 focus:border-[#ab8e72]"
+              title="จัดเรียงลำดับข้อมูล"
+            >
+              <option value="code_asc">เรียงตามรหัส สช. (น้อย ➔ มาก)</option>
+              <option value="code_desc">เรียงตามรหัส สช. (มาก ➔ น้อย)</option>
+              <option value="name_th_asc">ชื่อโรงเรียน (ก ➔ ฮ)</option>
+              <option value="name_th_desc">ชื่อโรงเรียน (ฮ ➔ ก)</option>
+              <option value="province_asc">เรียงตามจังหวัด (ก ➔ ฮ)</option>
+              <option value="province_desc">เรียงตามจังหวัด (ฮ ➔ ก)</option>
+              <option value="completion_asc">⚠️ ขาดข้อมูลเยอะสุดก่อน</option>
+              <option value="completion_desc">✅ ข้อมูลครบถ้วนก่อน</option>
+              <option value="students_desc">จำนวนนักเรียน (มาก ➔ น้อย)</option>
+              <option value="students_asc">จำนวนนักเรียน (น้อย ➔ มาก)</option>
+            </select>
+            <ArrowUpDown className="w-3.5 h-3.5 text-[#78716c] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
@@ -357,12 +420,48 @@ export function OpecSchoolsTable({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#e2d8c7] bg-[#f8f4ed] text-[#57534e] font-bold text-[11px] uppercase tracking-wider">
+              <tr className="border-b border-[#e2d8c7] bg-[#f8f4ed] text-[#57534e] font-bold text-[11px] uppercase tracking-wider select-none">
                 <th className="py-3 px-3 w-12 text-center">#</th>
-                <th className="py-3 px-3 w-28">รหัส สช.</th>
-                <th className="py-3 px-4 min-w-[280px]">ชื่อโรงเรียน (ไทย & อังกฤษ)</th>
-                <th className="py-3 px-3 min-w-[150px]">ที่ตั้ง / จังหวัด</th>
-                <th className="py-3 px-4 min-w-[260px]">สถานะความสมบูรณ์ของข้อมูล</th>
+                <th
+                  onClick={() => setSortBy(sortBy === "code_asc" ? "code_desc" : "code_asc")}
+                  className="py-3 px-3 w-28 cursor-pointer hover:text-[#1c1917] hover:bg-[#eae0d0]/40 transition-colors"
+                  title="คลิกเพื่อจัดเรียงตามรหัส สช."
+                >
+                  <div className="flex items-center gap-1">
+                    <span>รหัส สช.</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy.startsWith("code") ? "text-[#ab8e72]" : "text-[#a8a29e]"}`} />
+                  </div>
+                </th>
+                <th
+                  onClick={() => setSortBy(sortBy === "name_th_asc" ? "name_th_desc" : "name_th_asc")}
+                  className="py-3 px-4 min-w-[280px] cursor-pointer hover:text-[#1c1917] hover:bg-[#eae0d0]/40 transition-colors"
+                  title="คลิกเพื่อจัดเรียงตามชื่อโรงเรียน"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>ชื่อโรงเรียน (ไทย & อังกฤษ)</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy.startsWith("name") ? "text-[#ab8e72]" : "text-[#a8a29e]"}`} />
+                  </div>
+                </th>
+                <th
+                  onClick={() => setSortBy(sortBy === "province_asc" ? "province_desc" : "province_asc")}
+                  className="py-3 px-3 min-w-[150px] cursor-pointer hover:text-[#1c1917] hover:bg-[#eae0d0]/40 transition-colors"
+                  title="คลิกเพื่อจัดเรียงตามจังหวัด"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>ที่ตั้ง / จังหวัด</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy.startsWith("province") ? "text-[#ab8e72]" : "text-[#a8a29e]"}`} />
+                  </div>
+                </th>
+                <th
+                  onClick={() => setSortBy(sortBy === "completion_asc" ? "completion_desc" : "completion_asc")}
+                  className="py-3 px-4 min-w-[260px] cursor-pointer hover:text-[#1c1917] hover:bg-[#eae0d0]/40 transition-colors"
+                  title="คลิกเพื่อจัดเรียงตามความสมบูรณ์ของข้อมูล"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>สถานะความสมบูรณ์ของข้อมูล</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy.startsWith("completion") ? "text-[#ab8e72]" : "text-[#a8a29e]"}`} />
+                  </div>
+                </th>
                 <th className="py-3 px-3 text-center w-28">ดูข้อมูล</th>
               </tr>
             </thead>
@@ -372,7 +471,9 @@ export function OpecSchoolsTable({
                   const hasEnName = Boolean(s.school_name_en && s.school_name_en.trim());
                   const hasWebsite = Boolean(s.website && s.website.trim());
                   const hasGps = Boolean(s.latitude && s.longitude);
-                  const isComplete = hasEnName && hasWebsite && hasGps;
+                  const isExactGps = hasGps && s.gps_precision === "Exact";
+                  const isApproxGps = hasGps && s.gps_precision !== "Exact";
+                  const isComplete = hasEnName && hasWebsite && isExactGps;
 
                   return (
                     <tr
@@ -410,7 +511,7 @@ export function OpecSchoolsTable({
                         {isComplete ? (
                           <span className="inline-flex items-center gap-1.5 text-teal-800 font-bold text-[11px] bg-teal-50 px-3 py-1 rounded-full border border-teal-200 shadow-2xs">
                             <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
-                            <span>ข้อมูลครบถ้วน</span>
+                            <span>ข้อมูลครบถ้วนสมบูรณ์</span>
                           </span>
                         ) : (
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -425,8 +526,13 @@ export function OpecSchoolsTable({
                               </span>
                             )}
                             {!hasGps && (
-                              <span className="inline-flex items-center gap-1 text-orange-800 font-bold text-[10px] bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">
+                              <span className="inline-flex items-center gap-1 text-red-800 font-bold text-[10px] bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
                                 ⚠️ ขาด GPS
+                              </span>
+                            )}
+                            {isApproxGps && (
+                              <span className="inline-flex items-center gap-1 text-purple-800 font-bold text-[10px] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200" title="พิกัดปัจจุบันเป็นระดับตำบล/อำเภอ หรือประมาณการ">
+                                📍 GPS ประมาณการ
                               </span>
                             )}
                           </div>
