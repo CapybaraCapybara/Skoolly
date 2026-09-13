@@ -1142,4 +1142,323 @@ def sync_single_school_to_supabase(school: dict) -> bool:
         return False
 
 
+def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
+    """
+    Fetches all school versions that are pending admin review (UC-A04 Diff View).
+    Includes related school info, version fees, extra fees, and safety policies.
+    """
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
 
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    v.version_id,
+                    v.school_id,
+                    v.version_number,
+                    v.status,
+                    v.source_type,
+                    v.confidence_score,
+                    v.confidence_reasoning,
+                    v.scraped_page_url,
+                    v.diff_summary,
+                    v.data_snapshot,
+                    v.submitted_at,
+                    s.name_th,
+                    s.name_en,
+                    s.opec_school_code,
+                    s.province,
+                    s.district,
+                    s.logo_url,
+                    s.official_website_url,
+                    s.pub_tuition_min_thb as current_pub_min_thb,
+                    s.pub_tuition_max_thb as current_pub_max_thb,
+                    s.pub_has_safeguarding_policy as current_has_safeguarding
+                FROM school_data.school_versions v
+                JOIN school_data.schools s ON v.school_id = s.school_id
+                WHERE v.status = 'pending_review'
+                ORDER BY v.submitted_at DESC
+            """)
+            versions = [dict(r) for r in cur.fetchall()]
+
+            for v in versions:
+                vid = v["version_id"]
+                v["version_id"] = str(vid)
+                v["school_id"] = str(v["school_id"])
+                if v.get("current_pub_min_thb") is not None:
+                    v["current_pub_min_thb"] = float(v["current_pub_min_thb"])
+                if v.get("current_pub_max_thb") is not None:
+                    v["current_pub_max_thb"] = float(v["current_pub_max_thb"])
+                if v.get("submitted_at"):
+                    v["submitted_at"] = v["submitted_at"].isoformat()
+
+                # 1. Fetch version fees
+                cur.execute("""
+                    SELECT fee_id, grade_label, level_code, annual_thb, semester_thb, currency, notes
+                    FROM school_data.version_fees
+                    WHERE version_id = %s
+                    ORDER BY grade_label ASC
+                """, (vid,))
+                v["fees"] = [
+                    {
+                        "fee_id": str(f["fee_id"]),
+                        "grade_label": f["grade_label"],
+                        "level_code": f.get("level_code"),
+                        "annual_thb": float(f["annual_thb"]) if f.get("annual_thb") is not None else None,
+                        "semester_thb": float(f["semester_thb"]) if f.get("semester_thb") is not None else None,
+                        "currency": f.get("currency") or "THB",
+                        "notes": f.get("notes"),
+                    }
+                    for f in cur.fetchall()
+                ]
+
+                # 2. Fetch version extra fees (hidden costs)
+                cur.execute("""
+                    SELECT extra_fee_id, name, amount_thb, frequency, notes
+                    FROM school_data.version_extra_fees
+                    WHERE version_id = %s
+                    ORDER BY name ASC
+                """, (vid,))
+                v["extra_fees"] = [
+                    {
+                        "extra_fee_id": str(ef["extra_fee_id"]),
+                        "name": ef["name"],
+                        "amount_thb": float(ef["amount_thb"]) if ef.get("amount_thb") is not None else None,
+                        "frequency": ef.get("frequency") or "unknown",
+                        "notes": ef.get("notes"),
+                    }
+                    for ef in cur.fetchall()
+                ]
+
+                # 3. Fetch version safety
+                cur.execute("""
+                    SELECT security_guards, cctv_monitoring, nurse_medical_clinic, 
+                           child_safeguarding_policy, air_quality_pm25_protocol, visitor_access_control,
+                           highlights, policy_summary, policy_url
+                    FROM school_data.version_safety
+                    WHERE version_id = %s
+                """, (vid,))
+                safety_row = cur.fetchone()
+                v["safety"] = dict(safety_row) if safety_row else None
+
+            return versions
+
+
+def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn: str | None = None) -> dict[str, Any]:
+    """
+    Approves a pending version and publishes it (UC-A04 Step 4).
+    1. Updates target version status to 'published'
+    2. Supersedes any previous published version
+    3. Projects published tuition min/max and safeguarding policy to school_data.schools
+    """
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT version_id, school_id, status, version_number 
+                FROM school_data.school_versions 
+                WHERE version_id = %s
+            """, (version_id,))
+            ver = cur.fetchone()
+            if not ver:
+                raise ValueError("ไม่พบเวอร์ชันที่ต้องการอนุมัติ")
+
+            school_id = ver["school_id"]
+
+            cur.execute("""
+                SELECT 
+                    MIN(COALESCE(annual_thb, semester_thb * 2)) as min_tuition,
+                    MAX(COALESCE(annual_thb, semester_thb * 2)) as max_tuition
+                FROM school_data.version_fees
+                WHERE version_id = %s AND (annual_thb > 0 OR semester_thb > 0)
+            """, (version_id,))
+            fees_calc = cur.fetchone() or {"min_tuition": None, "max_tuition": None}
+            min_tuition = fees_calc.get("min_tuition")
+            max_tuition = fees_calc.get("max_tuition")
+
+            cur.execute("""
+                SELECT child_safeguarding_policy 
+                FROM school_data.version_safety 
+                WHERE version_id = %s
+            """, (version_id,))
+            safety_row = cur.fetchone()
+            has_safeguarding = safety_row.get("child_safeguarding_policy") if safety_row else None
+
+            # Supersede existing published versions
+            cur.execute("""
+                UPDATE school_data.school_versions
+                SET status = 'superseded'
+                WHERE school_id = %s AND status = 'published' AND version_id != %s
+            """, (school_id, version_id))
+
+            # Publish target version
+            cur.execute("""
+                UPDATE school_data.school_versions
+                SET status = 'published',
+                    reviewed_at = NOW()
+                WHERE version_id = %s
+            """, (version_id,))
+
+            # Project to main schools table
+            cur.execute("""
+                UPDATE school_data.schools
+                SET current_published_version_id = %s,
+                    pub_tuition_min_thb = %s,
+                    pub_tuition_max_thb = %s,
+                    pub_has_safeguarding_policy = %s,
+                    pub_data_updated_at = NOW(),
+                    updated_at = NOW()
+                WHERE school_id = %s
+            """, (version_id, min_tuition, max_tuition, has_safeguarding, school_id))
+
+            conn.commit()
+
+            return {
+                "status": "success",
+                "action": "published",
+                "version_id": str(version_id),
+                "school_id": str(school_id),
+                "min_tuition": float(min_tuition) if min_tuition is not None else None,
+                "max_tuition": float(max_tuition) if max_tuition is not None else None,
+                "has_safeguarding": has_safeguarding,
+            }
+
+
+def reject_school_version(version_id: str, reason: str | None = None, dsn: str | None = None) -> dict[str, Any]:
+    """Rejects a pending version with an optional reason."""
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE school_data.school_versions
+                SET status = 'rejected',
+                    rejection_reason = %s,
+                    reviewed_at = NOW()
+                WHERE version_id = %s
+            """, (reason or "ไม่ผ่านเกณฑ์การตรวจสอบของแอดมิน", version_id))
+            conn.commit()
+
+    return {
+        "status": "success",
+        "action": "rejected",
+        "version_id": str(version_id),
+    }
+
+
+def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn: str | None = None) -> dict[str, Any]:
+    """
+    Saves new scraped data as a draft version in school_data.school_versions
+    with status 'pending_review' (preserving versioning history & auditability).
+    """
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT COALESCE(MAX(version_number), 0) + 1 as next_num 
+                FROM school_data.school_versions 
+                WHERE school_id = %s
+            """, (school_id,))
+            version_number = cur.fetchone()["next_num"]
+
+            metadata = result_data.get("metadata") or {}
+            confidence_score = result_data.get("confidence") or metadata.get("confidence_score")
+            confidence_reasoning = result_data.get("confidence_reasoning") or metadata.get("confidence_reasoning")
+            scraped_url = result_data.get("page_scraped") or metadata.get("source_url")
+            diff_raw = result_data.get("diff_summary") or metadata.get("diff_summary")
+            diff_json = json.dumps(diff_raw if isinstance(diff_raw, dict) else {"text": str(diff_raw or "")}, ensure_ascii=False)
+
+            cur.execute("""
+                INSERT INTO school_data.school_versions
+                    (school_id, version_number, status, source_type, data_snapshot, 
+                     confidence_score, confidence_reasoning, scraped_page_url, diff_summary)
+                VALUES (%s, %s, 'pending_review', 'scraper', %s::jsonb, %s, %s, %s, %s::jsonb)
+                RETURNING version_id
+            """, (
+                school_id,
+                version_number,
+                json.dumps(result_data, ensure_ascii=False),
+                confidence_score,
+                confidence_reasoning,
+                scraped_url,
+                diff_json
+            ))
+            version_id = cur.fetchone()["version_id"]
+
+            tuition_list = result_data.get("tuition_by_grade") or result_data.get("fees_by_grade") or []
+            for t in tuition_list:
+                grade_label = clean(t.get("grade_level")) or clean(t.get("grade_label"))
+                if not grade_label:
+                    continue
+                annual = to_float(t.get("annual_thb"))
+                semester = to_float(t.get("semester_thb"))
+                currency = clean(t.get("currency")) or "THB"
+                notes = clean(t.get("notes"))
+                if annual is not None or semester is not None or notes:
+                    cur.execute("""
+                        INSERT INTO school_data.version_fees
+                            (version_id, grade_label, level_code, annual_thb, semester_thb, currency, notes)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (version_id, grade_label, clean(t.get("level_code")), annual, semester, currency, notes))
+
+            hidden_costs = result_data.get("hidden_costs") or []
+            freq_map = {
+                "once": "once", "one_time": "once", "ครั้งเดียว": "once", "แรกเข้า": "once",
+                "per_year": "per_year", "annual": "per_year", "ต่อปี": "per_year", "รายปี": "per_year",
+                "per_term": "per_term", "termly": "per_term", "ต่อเทอม": "per_term", "รายภาค": "per_term",
+                "per_month": "per_month", "monthly": "per_month", "ต่อเดือน": "per_month", "รายเดือน": "per_month",
+                "conditional": "conditional", "optional": "conditional", "ทางเลือก": "conditional"
+            }
+            for hc in hidden_costs:
+                name = clean(hc.get("name")) or clean(hc.get("fee_name"))
+                if not name:
+                    continue
+                amount = to_float(hc.get("amount_thb"))
+                raw_freq = (clean(hc.get("frequency")) or "unknown").lower()
+                freq = freq_map.get(raw_freq, "unknown")
+                notes = clean(hc.get("notes"))
+                cur.execute("""
+                    INSERT INTO school_data.version_extra_fees
+                        (version_id, name, amount_thb, frequency, notes)
+                    VALUES (%s, %s, %s, %s::school_data.fee_frequency, %s)
+                """, (version_id, name, amount, freq, notes))
+
+            safety = result_data.get("safety_and_security") or result_data.get("safety_policies") or {}
+            if safety:
+                cur.execute("""
+                    INSERT INTO school_data.version_safety
+                        (version_id, security_guards, cctv_monitoring, nurse_medical_clinic,
+                         child_safeguarding_policy, air_quality_pm25_protocol, visitor_access_control,
+                         highlights, policy_summary, policy_url)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    version_id,
+                    safety.get("security_guards"),
+                    safety.get("cctv_monitoring"),
+                    safety.get("nurse_medical_clinic"),
+                    safety.get("child_safeguarding_policy"),
+                    safety.get("air_quality_pm25_protocol"),
+                    safety.get("visitor_access_control"),
+                    safety.get("highlights") or [],
+                    clean(safety.get("policy_summary")),
+                    clean(safety.get("policy_url"))
+                ))
+
+            conn.commit()
+
+            return {
+                "status": "success",
+                "version_id": str(version_id),
+                "version_number": version_number,
+                "school_id": str(school_id)
+            }

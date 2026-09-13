@@ -2,6 +2,7 @@ import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 
 export function formatTuition(n: number) {
+  if (!n || n <= 0) return "Contact school";
   if (n >= 1000000) return `฿${(n / 1000000).toFixed(1)}M`;
   return `฿${(n / 1000).toFixed(0)}K`;
 }
@@ -44,15 +45,22 @@ export function SchoolCard({
   const isFav = favorites.has(school.id);
   const compareAtLimit = compareIds.length >= MAX_COMPARE && !isCompared;
 
+  const imageSrc = school.image.startsWith("http")
+    ? school.image
+    : `https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`;
+
   return (
     <div className="card-hover bg-warm-cream rounded-[2rem] overflow-hidden border border-warm-accent shadow-sm flex flex-col p-3">
       {/* Cover image */}
       <div className="relative h-56 bg-warm-accent rounded-[1.5rem] overflow-hidden cursor-pointer" onClick={() => onSchoolClick(school.id)}>
         <img
-          src={`https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`}
+          src={imageSrc}
           alt={`${school.name} campus`}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=350&fit=crop&auto=format";
+          }}
         />
         {school.badge && (
           <span className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze">
@@ -96,7 +104,16 @@ export function SchoolCard({
         <div className="mt-auto pt-2.5 flex items-end justify-between border-t border-warm-accent/30">
           <div>
             <div className="text-[10px] uppercase font-bold tracking-wider text-warm-charcoal/50">Starting from</div>
-            <div className="font-extrabold text-warm-charcoal text-base">{formatTuition(school.tuitionStart)}<span className="text-xs font-normal text-warm-charcoal/50">/yr</span></div>
+            <div className="font-extrabold text-warm-charcoal text-base">
+              {school.tuitionStart > 0 ? (
+                <>
+                  {formatTuition(school.tuitionStart)}
+                  <span className="text-xs font-normal text-warm-charcoal/50">/yr</span>
+                </>
+              ) : (
+                <span className="text-sm font-semibold text-warm-charcoal/60">Contact school</span>
+              )}
+            </div>
           </div>
           <div className="text-right">
             <StarRating rating={school.rating} />

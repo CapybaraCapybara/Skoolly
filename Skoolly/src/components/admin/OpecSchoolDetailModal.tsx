@@ -45,6 +45,7 @@ interface OpecSchoolDetailModalProps {
   onClose: () => void;
   onEditWebsite: (school: OpecSchoolRecord) => void;
   onResolveSchoolWebsite?: (schoolCode: string) => void;
+  onScrapeTuition?: (school: OpecSchoolRecord) => void;
 }
 
 export function OpecSchoolDetailModal({
@@ -52,6 +53,7 @@ export function OpecSchoolDetailModal({
   onClose,
   onEditWebsite,
   onResolveSchoolWebsite,
+  onScrapeTuition,
 }: OpecSchoolDetailModalProps) {
   const [showJson, setShowJson] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
@@ -802,6 +804,18 @@ export function OpecSchoolDetailModal({
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>ค้นหาเฉพาะโรงเรียนนี้</span>
+              </button>
+            )}
+
+            {onScrapeTuition && school.website && (
+              <button
+                type="button"
+                onClick={() => onScrapeTuition(school)}
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+                title="เริ่มดึงข้อมูลค่าเทอมและนโยบายความปลอดภัยจากเว็บไซต์ทางการ"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-current" />
+                <span>Scrape ค่าเทอม</span>
               </button>
             )}
           </div>

@@ -204,4 +204,61 @@ export interface WebsiteRegistryResponse {
   items: WebsiteRegistryItem[];
 }
 
+export interface VersionFeeItem {
+  fee_id: string;
+  grade_label: string;
+  level_code?: string | null;
+  annual_thb?: number | null;
+  semester_thb?: number | null;
+  currency: string;
+  notes?: string | null;
+}
+
+export interface VersionExtraFeeItem {
+  extra_fee_id: string;
+  name: string;
+  amount_thb?: number | null;
+  frequency: string;
+  notes?: string | null;
+}
+
+export interface VersionSafetyData {
+  security_guards?: boolean | null;
+  cctv_monitoring?: boolean | null;
+  nurse_medical_clinic?: boolean | null;
+  child_safeguarding_policy?: boolean | null;
+  air_quality_pm25_protocol?: boolean | null;
+  visitor_access_control?: boolean | null;
+  highlights?: string[] | null;
+  policy_summary?: string | null;
+  policy_url?: string | null;
+}
+
+export interface PendingVersionRecord {
+  version_id: string;
+  school_id: string;
+  version_number: number;
+  status: "pending_review" | "published" | "superseded" | "rejected";
+  source_type: string;
+  confidence_score?: number | null;
+  confidence_reasoning?: string | null;
+  scraped_page_url?: string | null;
+  diff_summary?: string | null;
+  data_snapshot?: any;
+  submitted_at?: string;
+  name_th: string;
+  name_en?: string | null;
+  opec_school_code?: string | null;
+  province?: string | null;
+  district?: string | null;
+  logo_url?: string | null;
+  official_website_url?: string | null;
+  current_pub_min_thb?: number | null;
+  current_pub_max_thb?: number | null;
+  current_has_safeguarding?: boolean | null;
+  fees: VersionFeeItem[];
+  extra_fees: VersionExtraFeeItem[];
+  safety?: VersionSafetyData | null;
+}
+
 

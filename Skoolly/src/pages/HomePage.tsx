@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Hero from "@/components/schools/Hero";
 import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
@@ -6,6 +7,21 @@ import { SchoolMap, EXAMPLE_SAVED_LOCATION } from "@/components/schools/SchoolMa
 import type { School, Filters } from "@/types";
 import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";
+
+const ITEMS_PER_PAGE = 9;
+
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total];
+}
 
 const DEFAULT_FILTERS: Filters = {
   curriculum: "All Curricula",
@@ -38,11 +54,17 @@ export function HomePage({
 }: HomePageProps) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [schools, setSchools] = useState<School[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // ── Fetch schools from the API layer on mount ──────────────────────────────
   useEffect(() => {
     getSchools().then(setSchools);
   }, []);
+
+  // Reset to page 1 whenever any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const filteredSchools = schools.filter((s) => {
     if (filters.curriculum !== "All Curricula" && s.curriculum !== filters.curriculum) return false;
@@ -56,6 +78,19 @@ export function HomePage({
 
   const setFilter = (key: keyof Filters, value: string | number) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
+
+  const totalPages = Math.max(1, Math.ceil(filteredSchools.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedSchools = filteredSchools.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    const target = document.getElementById("schools");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div>
@@ -287,6 +322,9 @@ export function HomePage({
               <p className="text-slate-500 text-sm mt-1">
                 {filteredSchools.length} school{filteredSchools.length !== 1 ? "s" : ""} match your criteria
                 {compareIds.length > 0 && <span className="ml-2 text-teal-600 font-medium">· {compareIds.length} selected to compare</span>}
+                {filteredSchools.length > ITEMS_PER_PAGE && (
+                  <span className="ml-2 text-slate-400">· Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -298,8 +336,8 @@ export function HomePage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
-            {filteredSchools.length > 0
-              ? filteredSchools.map((school) => (
+            {paginatedSchools.length > 0
+              ? paginatedSchools.map((school) => (
                 <SchoolCard
                   key={school.id}
                   school={school}
@@ -316,15 +354,70 @@ export function HomePage({
             }
           </div>
 
-          {filteredSchools.length > 0 && (
-            <div className="text-center mt-10">
-              <button
-                onClick={() => onRestrictedAction("Sign in to load all 120+ schools, apply advanced filters, and save your search preferences.")}
-                className="px-6 py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 bg-white hover:border-teal-300 hover:text-teal-700 transition-all"
-              >
-                Load more schools →
-              </button>
-              <p className="text-xs text-slate-400 mt-2">Sign in to see all 120+ schools</p>
+          {/* ── 9 PER PAGE PAGINATION CONTROLS ─────────────────────────────────── */}
+          {filteredSchools.length > 0 && totalPages > 1 && (
+            <div className="mt-12 flex flex-col items-center gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                {/* Previous Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                  title="หน้าก่อนหน้า"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Previous</span>
+                </button>
+
+                {/* Page Number Pills */}
+                {getPageNumbers(currentPage, totalPages).map((p, idx) => {
+                  if (p === "...") {
+                    return (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        className="px-2 py-1 text-slate-400 font-mono text-xs select-none"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  const pageNum = Number(p);
+                  const isActive = pageNum === currentPage;
+                  return (
+                    <button
+                      key={`page-${pageNum}`}
+                      type="button"
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`min-w-[36px] h-9 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
+                        isActive
+                          ? "bg-warm-charcoal text-white shadow-xs scale-105"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                      title={`หน้าที่ ${pageNum}`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                {/* Next Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                  title="หน้าถัดไป"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Progress Summary */}
+              <p className="text-xs text-slate-500 font-medium">
+                แสดงโรงเรียนที่ <span className="font-bold text-slate-800">{startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</span> จากทั้งหมด <span className="font-bold text-slate-800">{filteredSchools.length}</span> แห่ง (หน้า {currentPage} จาก {totalPages})
+              </p>
             </div>
           )}
         </div>

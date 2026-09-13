@@ -1,4 +1,4 @@
-# Skoolly — Database Design & Tooling Decision
+                        # Skoolly — Database Design & Tooling Decision
 
 เอกสารนี้อธิบายเหตุผลเบื้องหลัง [`db/schema.sql`](schema.sql) และการเลือกเครื่องมือแบบ free tier
 วิเคราะห์จาก **Use Case จริง** (`reference/use_case_specification_final_v6.md` — v6.3, 29 Use Case, Data Dictionary 28 ตาราง)
