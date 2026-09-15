@@ -1,7 +1,7 @@
 # Skoolly — Database Design & Tooling Decision
 
 เอกสารนี้อธิบายเหตุผลเบื้องหลัง [`db/schema.sql`](schema.sql) และการเลือกเครื่องมือแบบ free tier
-วิเคราะห์จาก **Use Case จริง** (`reference/use_case_specification_final_v6.md` — v6.3, 29 Use Case, Data Dictionary 28 ตาราง)
+วิเคราะห์จาก **Use Case จริง** (`reference/use_case_specification_final_v6.md` — v6.6, 19 Use Case, Data Dictionary 25 ตาราง)
 และ **โค้ด/ข้อมูลที่มีอยู่จริง** ในโปรเจกต์ ไม่ใช่จากทฤษฎีอย่างเดียว
 
 ---
@@ -10,12 +10,12 @@
 
 | สิ่งที่มีอยู่ | รายละเอียด | ผลต่อการออกแบบ |
 |---|---|---|
-| **ยังไม่มี Database เลย** | `microservices/db_service.py` เขียนลง `results.json` + `scrape_log.json` และทำ Saga rollback ด้วยไฟล์ `.bak` | งานนี้คือการย้ายจาก file-based → Postgres จริง โค้ด compensate ด้วย `.bak` จะถูกแทนด้วย transaction ของ DB |
-| **ข้อมูล OPEC 291 โรงเรียน** | `data/international_schools_thailand_opec.json` — lat/lng ครบ 291/291, website 182/291, curriculums 257/291 (free-text ไทย), levels 286/291 | ต้องมีตาราง lookup + alias เพื่อ normalize ก่อน ไม่งั้นตัวกรองของ UC-G01 ใช้ไม่ได้จริง |
+| **มีฐานข้อมูลจริงแล้ว** (รัน migration 15 ก.ย. 2569) | Supabase Postgres — `schools` 290, `school_versions` 292, `official_website_registry` 291 แถว · `microservices/db_service.py` ยังเขียน `results.json`/`scrape_log.json` คู่ขนานอยู่ | ส่วนที่ย้ายเข้า Postgres แล้วคือ pipeline OPEC/scraper ที่เหลือ (ฟอรัม/ผู้ใช้/AI) ตารางพร้อมแล้วแต่ยังไม่มีฟีเจอร์มาใช้ |
+| **ข้อมูล OPEC 291 โรงเรียน** | `data/international_schools_thailand_opec.json` — lat/lng ครบ 291/291, website 182/291, curriculums 257/291 (free-text ไทย), levels 286/291 | ต้องมีตาราง lookup + alias เพื่อ normalize ก่อน ไม่งั้นตัวกรองของ UC-01 ใช้ไม่ได้จริง |
 | **ผลลัพธ์ scraper** | `tuition_by_grade`, `hidden_costs`, `safety_and_security`, `confidence`, `confidence_reasoning` | เป็นตัวกำหนดหน้าตาตาราง `version_fees` / `version_extra_fees` / `version_safety` โดยตรง |
 | **Frontend React 19 + Vite** | `src/api/*.ts` เป็นชั้น service layer ที่ออกแบบมาให้สลับไป backend จริงได้อยู่แล้ว | ไม่ต้องรื้อ FE ตอนต่อ DB — เปลี่ยนแค่ body ของฟังก์ชันใน `src/api/` |
-| **หน้า Forum** | `src/pages/ForumPage.tsx`, type `Post`/`Comment` | ✅ ยืนยันแล้วว่าจะทำจริง → เพิ่ม UC-G08/U09/A12 เข้าเอกสาร และตาราง `forum_*` เข้า schema |
-| **scraper เก็บ safety/safeguarding** | `EXTRACT_SCHEMA.safety_and_security` | ✅ ผนวกเข้าเอกสารแล้ว → แท็บใน UC-G02, แถวเปรียบเทียบใน UC-U03, ตาราง `version_safety` |
+| **หน้า Forum** | `src/pages/ForumPage.tsx`, type `Post`/`Comment` | ✅ ยืนยันแล้วว่าจะทำจริง → เพิ่ม UC-05/U09/A12 เข้าเอกสาร และตาราง `forum_*` เข้า schema |
+| **scraper เก็บ safety/safeguarding** | `EXTRACT_SCHEMA.safety_and_security` | ✅ ผนวกเข้าเอกสารแล้ว → แท็บใน UC-02, แถวเปรียบเทียบใน UC-03, ตาราง `version_safety` |
 
 **ขนาดข้อมูลจริง:** OPEC ~2.3 KB/โรง, ผลลัพธ์ scraper ~3.9 KB/โรง → รวม ~6.3 KB ต่อโรงต่อเวอร์ชัน
 291 โรง × เก็บ 24 เวอร์ชัน (สแครปเดือนละครั้ง 2 ปี) ≈ **44 MB** — ตัวเลขนี้สำคัญต่อการเลือกเครื่องมือในข้อ 2
@@ -31,15 +31,15 @@
 
 | หลักฐานจาก Use Case | ทำไม NoSQL ตอบไม่ได้ |
 |---|---|
-| UC-G01 กรองด้วยหลักสูตร + ระดับชั้น + ช่วงค่าเทอม + ระยะทาง พร้อมกัน | เป็น multi-attribute range query แบบคลาสสิก — Document DB ต้องสร้าง index ผสมเองหรือ denormalize หนัก |
+| UC-01 กรองด้วยหลักสูตร + ระดับชั้น + ช่วงค่าเทอม + ระยะทาง พร้อมกัน | เป็น multi-attribute range query แบบคลาสสิก — Document DB ต้องสร้าง index ผสมเองหรือ denormalize หนัก |
 | Architecture 8.5: publish ต้องแก้ `schools` + `school_versions` ใน **transaction เดียว** | MongoDB free tier ทำ multi-document transaction ได้ก็จริงแต่แพงและซับซ้อนกว่า `BEGIN/COMMIT` มาก |
 | Architecture 4.2: `account-deletion-cron` แก้ **3 schema พร้อมกันในธุรกรรมเดียว** | ต้องมี ACID ข้าม collection — จุดที่ Document DB เสียเปรียบชัดที่สุด |
 | Use Case 8.1: **RLS ทำหน้าที่ authorization แทน API Gateway** | ไม่มีใน NoSQL ตัวไหนในระดับเดียวกับ Postgres RLS |
 | Use Case 8.2: **Postgres Advisory Lock** กัน scraper job ซ้อน | ต้องมี Redis หรือ lock service เพิ่มถ้าไม่ใช้ Postgres |
-| UC-U04 คำนวณเงิน ต้อง decimal-safe | JSON number = float64 → ปัดเศษพลาดได้จริง ต้องใช้ `numeric` ของ SQL |
-| UC-A07 ต้องการ vector search | `pgvector` อยู่ใน Postgres แล้ว ไม่ต้องมี Pinecone/Chroma แยก |
-| UC-G01/G03 ต้องการระยะทาง | `PostGIS` อยู่ใน Postgres แล้ว |
-| UC-U09 ต้องบังคับ "1 บัญชีรายงาน 1 เนื้อหาได้ครั้งเดียว" | unique constraint 1 บรรทัด vs เขียน logic กันเองทุกจุดที่เขียนข้อมูล |
+| UC-07 คำนวณเงิน ต้อง decimal-safe | JSON number = float64 → ปัดเศษพลาดได้จริง ต้องใช้ `numeric` ของ SQL |
+| RAG (Use Case Spec หัวข้อ 3.4.1) — **ยังไม่เปิดใช้ในเฟสนี้** แต่ถ้าเปิดต้องการ vector search | `pgvector` อยู่ใน Postgres แล้ว ไม่ต้องมี Pinecone/Chroma แยก |
+| UC-01/G03 ต้องการระยะทาง | `PostGIS` อยู่ใน Postgres แล้ว |
+| UC-05 ต้องบังคับ "1 บัญชีรายงาน 1 เนื้อหาได้ครั้งเดียว" | unique constraint 1 บรรทัด vs เขียน logic กันเองทุกจุดที่เขียนข้อมูล |
 
 **ข้อมูลมีแค่ 291 แถว** — เหตุผลคลาสสิกที่คนเลือก NoSQL (scale แนวนอน, write throughput สูง) ไม่มีอยู่ในระบบนี้เลย
 
@@ -122,37 +122,38 @@ Database Webhooks + PostGIS + pgvector **ในที่เดียวและ
 ## 3. โครงสร้างที่ออกแบบ (สรุปจาก `schema.sql`)
 
 ```
-school_data ── schools ─┬─ school_curriculums ─ curriculums ─ curriculum_aliases
- (School Data Svc)      ├─ school_levels ────── grade_levels ─ grade_level_aliases
+school_data ── schools ─┬─ curriculums   (lookup + aliases[])  ← .curriculums[] อ้างด้วย code
+ (School Data Svc)      ├─ grade_levels  (lookup + aliases[])  ← .levels_offered[] อ้างด้วย code
+                        ├─ school_google_reviews  (cache รีวิวจาก Google Places)
                         └─ school_versions ─┬─ version_fees        (ค่าเทอมรายชั้น)
                                             ├─ version_extra_fees  (hidden cost)
                                             └─ version_safety      (safeguarding/ความปลอดภัย)
                            school_scrape_log
+                           official_website_registry  (ทะเบียน URL ที่ยืนยันแล้ว)
 
-community   ── reviews                          (Pre-Moderation)
-               data_correction_reports ─ report_submissions
+community   ── data_correction_reports ─ report_submissions
                forum_posts ─ forum_comments     (Post-Moderation)
                forum_likes │ forum_reports
 
 user_data   ── user_accounts ─┬─ children_profiles 🔒
                               ├─ favorites
                               └─ comparison_sets (share_token / share_enabled)
-ai          ── conversations ─ messages │ school_embeddings (pgvector)
+ai          ── conversations ─ messages │ school_embeddings (pgvector, ⏸ ยังไม่เปิดใช้)
 ops         ── audit_log (append-only) │ failed_jobs
 ```
 
 ### จุดออกแบบสำคัญ 8 ข้อ
 
 1. **`opec_school_code` เป็น natural key** — OPEC มีรหัสโรงเรียน 10 หลักครบทุกแถว ใช้เป็น unique key
-   ทำให้ re-import ซ้ำกี่รอบก็ไม่เกิดข้อมูลซ้ำ (ตอบ UC-A02 E5 ที่ระดับ database ไม่ใช่แค่ logic)
+   ทำให้ re-import ซ้ำกี่รอบก็ไม่เกิดข้อมูลซ้ำ (ตอบ UC-12 E5 ที่ระดับ database ไม่ใช่แค่ logic)
 
 2. **ตาราง alias สำหรับหลักสูตร/ระดับชั้น** — ข้อมูลจริงเก็บเป็น free-text ไทยที่ไม่ normalize
    (`"หลักสูตรราชอาณาจักร"`, `"IB"`, `"IGCSE and A-Level"`, `"United State (Californian) Common Core"`)
-   ถ้าไม่ map เป็นรหัสมาตรฐาน ตัวกรอง "หลักสูตร: British" ของ UC-G01 จะกรองไม่เจอโรงเรียนครึ่งหนึ่ง
+   ถ้าไม่ map เป็นรหัสมาตรฐาน ตัวกรอง "หลักสูตร: British" ของ UC-01 จะกรองไม่เจอโรงเรียนครึ่งหนึ่ง
 
 3. **คอลัมน์ `pub_*` บน `schools` เป็น read model** — projection จากเวอร์ชันที่ published อยู่
    อัปเดตใน transaction เดียวกับ publish (ฟังก์ชัน `publish_version()`) ทำให้หน้าค้นหากรอง/เรียงด้วย
-   index ปกติได้ และ**ไม่ถือเป็น "search index แยกที่ต้อง sync"** ตามที่ UC-G01 E4 ยืนยันไว้
+   index ปกติได้ และ**ไม่ถือเป็น "search index แยกที่ต้อง sync"** ตามที่ UC-01 E4 ยืนยันไว้
    เพราะอัปเดตพร้อมกันแบบ atomic
 
 4. **ค้นหาชื่อโรงเรียนใช้ `pg_trgm` ไม่ใช่ full-text search** — ⚠️ จุดที่ยังต้องแก้ในเอกสาร:
@@ -165,10 +166,10 @@ ops         ── audit_log (append-only) │ failed_jobs
    เลยแม้เขียน SQL ผิด — ใช้ defend คำว่า "Microservices" ได้จริง ไม่ใช่แค่แบ่งชื่อ schema
 
 6. **`children_profiles` ไม่เปิด RLS ให้ Admin อ่าน** — เป็นข้อมูลอ่อนไหวสุดตาม PDPA
-   UC-A05 ต้องการแค่ "ลบ" ไม่ใช่ "อ่าน" จึงให้ `account-deletion-cron` ทำด้วยสิทธิ์ระบบแทน
+   UC-15 ต้องการแค่ "ลบ" ไม่ใช่ "อ่าน" จึงให้ `account-deletion-cron` ทำด้วยสิทธิ์ระบบแทน
 
 7. **ฟอรัมใช้ `content_status` แยก type จาก `review_status`** — ค่าเหมือนกันแต่ **default ต่างกันคนละขั้ว**
-   (`forum_posts` default `approved` = Post-Moderation, `reviews` default `pending` = Pre-Moderation)
+   (`forum_posts` default `approved` = Post-Moderation — ตั้งแต่ v6.5 ฟอรัมเป็นเนื้อหาจากผู้ใช้ชนิดเดียวที่ระบบเป็นเจ้าของ เพราะรีวิวย้ายไปใช้ Google Places)
    แยก type ไว้เพื่อไม่ให้เผลอ copy default ผิดกันในอนาคต ซึ่งจะทำให้ฟอรัมเงียบหรือรีวิวหลุด moderation
 
 8. **`forum_reports` ผู้ใช้ทั่วไป select ไม่ได้เลย** — insert ได้อย่างเดียว อ่านได้เฉพาะ Admin
@@ -181,8 +182,8 @@ ops         ── audit_log (append-only) │ failed_jobs
 | ต้นทาง | ปลายทาง |
 |---|---|
 | `international_schools_thailand_opec.json` → `school_code, name_th/en, province, address, lat/lng, website, logo, student/teacher_count` | `school_data.schools` (+ `geom` จาก `ST_MakePoint(lng, lat)`) |
-| `.curriculums[]` (ไทย free-text) | `curriculum_aliases` → `school_curriculums` |
-| `.levels_offered[]` (ไทย) | `grade_level_aliases` → `school_levels` |
+| `.curriculums[]` (ไทย free-text) | `supabase_sync.match_curriculums()` แปลงเป็น code → `schools.curriculums text[]` (ตรวจด้วย trigger `schools_vocab_check` กับ lookup `curriculums`) |
+| `.levels_offered[]` (ไทย) | `GRADE_LEVEL_MAP` แปลงเป็น code → `schools.levels_offered text[]` (ตรวจกับ lookup `grade_levels`) |
 | `.vision / mission / school_history / uniqueness` (มีแค่ ~20/291) | เก็บใน `data_snapshot` และใช้เป็น**เนื้อหาตั้งต้นของ pgvector** — ตอบช่องว่าง "ไม่มี free text ให้ vector search" ที่ Architecture หัวข้อ 12 บอกไว้ ได้บางส่วนโดยไม่ต้องสแครปเพิ่ม |
 | ผลลัพธ์ scraper ทั้งก้อน | `school_versions.data_snapshot` (JSONB) |
 | `.tuition_by_grade[]` | `version_fees` (numeric + `academic_year` แกะจาก `notes` เช่น `"Academic Year 2026/27"`) |
@@ -215,7 +216,7 @@ list เฉพาะ schema ที่มีอยู่จริงในฐา�
 
 **หลังรัน `schema.sql` แล้วไปตั้งที่ Data API → แท็บ Settings → Exposed schemas:** ค่า default มีแค่ `public`
 ต้องเพิ่ม `school_data`, `community`, `user_data`, `ai`, `ops` เข้าไป (Admin Dashboard ต้องใช้ทั้ง 5
-ตาม Architecture หัวข้อ 9) — ปลอดภัยได้เพราะทั้ง 28 ตารางเปิด RLS ครบและมี policy กำกับทุกตัวแล้ว
+ตาม Architecture หัวข้อ 9) — ปลอดภัยได้เพราะทั้ง 25 ตารางเปิด RLS ครบและมี policy กำกับทุกตัวแล้ว
 โดยตารางที่ไม่ควรให้ใครอ่านผ่าน API เลย (`ai.school_embeddings`) จงใจเปิด RLS ไว้โดยไม่มี policy
 select และไม่ GRANT ให้ใคร ซึ่งเท่ากับปิดสนิท ส่วน Edge Function/Pipeline ใช้ service role ที่
 bypass RLS อยู่แล้ว
@@ -232,10 +233,18 @@ bypass RLS อยู่แล้ว
 ```sql
 select table_schema, count(*) from information_schema.tables
 where table_schema in ('school_data','community','user_data','ai','ops')
-group by 1 order by 1;                                   -- ต้องได้รวม 28
+group by 1 order by 1;                                   -- ต้องได้รวม 25
 select extname from pg_extension order by 1;             -- ต้องมี postgis, vector, pg_trgm, pg_cron
-select count(*) from school_data.curriculums;            -- 15
-select count(*) from school_data.grade_level_aliases;    -- 6
+select count(*) from school_data.curriculums;            -- 17
+select count(*) from school_data.grade_levels;           -- 5
+
+-- ค่าใน array ต้องอ้าง lookup ได้ทุกตัว (ทั้งสองคิวรีต้องคืน 0)
+select count(*) from school_data.schools s where exists (
+  select 1 from unnest(s.curriculums) x
+  where not exists (select 1 from school_data.curriculums l where l.code = x));
+select count(*) from school_data.schools s where exists (
+  select 1 from unnest(s.levels_offered) x
+  where not exists (select 1 from school_data.grade_levels g where g.code = x));
 ```
 
 **สร้างบัญชี Admin** — RLS เช็ค role จาก `user_data.user_accounts` ไม่ได้เช็คจาก JWT claim
@@ -273,9 +282,9 @@ python db/import_opec.py               # เขียนจริง
 ```
 
 สคริปต์ map หลักสูตรได้ **~89%** ของค่าที่พบจริง (exact alias สำหรับค่าที่พบบ่อย + keyword
-pattern สำหรับ long tail ที่มีถึง 268 ค่าไม่ซ้ำ) ค่าที่ map ไม่ได้จะตกเป็น `OTHER` **พร้อมรายงาน
+pattern สำหรับ long tail ที่มีถึง 268 ค่าไม่ซ้ำ) ค่าที่ map ไม่ได้จะตกเป็น `SCHOOL_SPECIFIC` **พร้อมรายงาน
 ออกมาให้เห็นทุกค่า** ตาม Business Rule ของหัวข้อ 7.16 — ส่วนที่ map ด้วย keyword จะถูกเขียนกลับ
-เข้า `curriculum_aliases` ให้ Admin ตรวจ/แก้ทีหลังได้โดยไม่ต้องแตะโค้ด
+เข้าคอลัมน์ `curriculums.aliases` (text[]) ให้ Admin ตรวจ/แก้ทีหลังได้โดยไม่ต้องแตะโค้ด
 
 ถัดไป:
 
@@ -298,7 +307,7 @@ pattern สำหรับ long tail ที่มีถึง 268 ค่าไ�
 | มิติ `embedding vector(768)` | ตอนนี้ตั้งตาม Gemini `text-embedding-004` (768) — ถ้าเปลี่ยนไป OpenAI `text-embedding-3-small` ต้องเป็น 1536 **และเปลี่ยนทีหลังไม่ได้โดยไม่ล้างตาราง** |
 | เก็บกี่เวอร์ชันย้อนหลัง | ยังไม่ได้ตั้ง retention — 500 MB รับได้สบาย แต่ควรมีนโยบายเขียนไว้ |
 | Rate limiter counter | เอกสารบอกว่ามี rate limit แต่ไม่ระบุที่เก็บ — แนะนำตาราง `ops.rate_limits` เล็กๆ (ไม่มี Redis ในสแตกนี้) |
-| ตัวนับ `like_count` / `comment_count` | ตอนนี้เป็นคอลัมน์ denormalize — ควรอัปเดตด้วย trigger หรือคำนวณสดตอนอ่าน ยังไม่ได้ตัดสิน |
+| ~~ตัวนับ `like_count` / `comment_count`~~ | ✅ **ตัดสินใจแล้ว (v6.6)** — ใช้ trigger ที่ระดับ DB (`forum_likes_sync`, `forum_comments_sync`, `report_submissions_sync`) ไม่ปล่อยให้โค้ดแอปอัปเดตด้วย trigger หรือคำนวณสดตอนอ่าน ยังไม่ได้ตัดสิน |
 
 ---
 
@@ -306,11 +315,15 @@ pattern สำหรับ long tail ที่มีถึง 268 ค่าไ�
 
 | ประเด็น | สถานะ |
 |---|---|
-| ฟอรัมไม่มีใน Use Case | ✅ **แก้แล้ว (v6.2)** — เพิ่ม UC-G08 (อ่าน), UC-U09 (เขียน/รายงาน), UC-A12 (moderate) + ตาราง 7.11-7.13 |
-| `safety_and_security` ไม่มีในเอกสาร | ✅ **แก้แล้ว (v6.2)** — เพิ่มแท็บใน UC-G02 (+ E2b), แถวเปรียบเทียบใน UC-U03, ขั้นตอนสกัดใน UC-A03, ตาราง 7.10 |
+| ฟอรัมไม่มีใน Use Case | ✅ **แก้แล้ว (v6.2)** — เพิ่ม UC-05 (อ่าน), UC-05 (เขียน/รายงาน), UC-16 (moderate) + ตาราง 7.11-7.13 |
+| `safety_and_security` ไม่มีในเอกสาร | ✅ **แก้แล้ว (v6.2)** — เพิ่มแท็บใน UC-02 (+ E2b), แถวเปรียบเทียบใน UC-03, ขั้นตอนสกัดใน UC-13, ตาราง 7.10 |
 | Architecture หัวข้อ 5: full-text search ภาษาไทย | ✅ **แก้แล้ว (v6.3)** — เปลี่ยนเป็น `pg_trgm` พร้อมเหตุผลว่า Postgres ไม่มี dictionary ภาษาไทย |
 | Architecture หัวข้อ 13.2: 3 Supabase projects | ✅ **แก้แล้ว (v6.3)** — เหลือ Dev local (Supabase CLI) + Production cloud **project เดียว** พร้อมเงื่อนไขชัดเจนว่าจะเพิ่ม staging เมื่อเริ่ม UAT กับผู้ใช้จริง และเตือนเรื่องโปรเจกต์ถูกหยุดหลังไม่มี activity 1 สัปดาห์ |
-| เอกสารหัวข้อ 7 ไม่ตรงกับ `schema.sql` (ขาด 10 ตาราง + คอลัมน์/enum/type ไม่ตรง) | ✅ **แก้แล้ว (v6.3)** — Use Case doc หัวข้อ 7 เป็น Data Dictionary ครบ 28 ตารางตรงกับ DDL แบบคอลัมน์ต่อคอลัมน์ (7.14-7.21 เป็นของใหม่) และเคลียร์ว่า JSONB เป็น provenance ส่วนตาราง normalize เป็นค่าที่ระบบใช้จริง |
+| เอกสารหัวข้อ 7 ไม่ตรงกับ `schema.sql` | ✅ **แก้แล้ว (v6.6)** — ตรงกันครบ 3 ทาง: เอกสาร 25 ตาราง = `schema.sql` 25 ตาราง = ฐานข้อมูลจริง 25 ตาราง ตรวจด้วยสคริปต์เทียบชื่อตารางแล้วไม่มีตัวไหนต่างกัน |
+| `community.reviews` เป็นรีวิวที่ผู้ใช้เขียนเอง | ✅ **แก้แล้ว (v6.5/v6.6)** — แทนด้วย `school_data.school_google_reviews` ที่เป็น cache จาก Google Places พร้อมย้าย schema ให้ตรงกับเจ้าของข้อมูล |
+| ตาราง lookup `curriculums` ไม่เคยถูกใช้ (คำศัพท์ 3 ชุดไม่ตรงกัน) | ✅ **แก้แล้ว (v6.6)** — รวมเป็นชุดเดียว DB เก็บ code, API แปลงกลับเป็นภาษาไทยตอนส่งออก, trigger `schools_vocab_check` บังคับความถูกต้อง |
+| คอลัมน์ ISAT + `official_website_registry` ไม่อยู่ใน `schema.sql` (schema drift) | ✅ **แก้แล้ว (v6.6)** — ย้ายมาประกาศใน `schema.sql` ทั้งหมด ไม่ต้องพึ่ง `ALTER TABLE` ตอนรันอีก |
+| `updated_at` ไม่มีอะไรอัปเดตให้ 8 ตาราง | ✅ **แก้แล้ว (v6.6)** — trigger `set_updated_at` |
 | `src/api/schoolsApi.ts` คอมเมนต์อ้าง `testz.py` ที่ไม่มีแล้ว | ✅ **แก้แล้ว** — ชี้ไป `microservices/scraper_service.py` |
 | FE ใช้ `id: number` แต่ schema เป็น `uuid` | ⏳ **ยังไม่แก้โดยตั้งใจ** — เป็นงานที่ต้องทำพร้อมกันตอนต่อ DB จริง (ขั้นที่ 5 ของหัวข้อ 5) แก้ตอนนี้จะทำให้ mock data พังโดยไม่ได้อะไร |
 | `requirements.txt` / `package.json` ยังไม่มี driver | ⏳ **ยังไม่แก้โดยตั้งใจ** — เพิ่ม dependency ที่ยังไม่มีโค้ดเรียกใช้ จะกลายเป็น dead dependency ให้เพิ่มตอนขั้นที่ 3-4 ของหัวข้อ 5 |

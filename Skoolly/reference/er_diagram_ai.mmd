@@ -1,0 +1,41 @@
+erDiagram
+  ai__conversations {
+    uuid conversation_id PK
+    uuid user_id 
+    text title 
+    text summary 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  ai__messages {
+    uuid message_id PK
+    uuid conversation_id FK
+    text role 
+    text content 
+    text_arr suggested_replies 
+    jsonb tool_calls 
+    uuid_arr grounded_school_ids 
+    boolean hallucination_flag 
+    text user_feedback 
+    uuid correlation_id 
+    timestamp_with_time_zone created_at 
+    text entry_mode 
+  }
+  ai__school_embeddings {
+    uuid embedding_id PK
+    uuid school_id 
+    uuid school_version_id 
+    integer chunk_index 
+    text content 
+    vector embedding 
+    timestamp_with_time_zone created_at 
+  }
+  school_data__school_versions {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__user_accounts {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  ai__conversations ||--o{ ai__messages : "conversation_id"
+  user_data__user_accounts ||..o{ ai__conversations : "user_id"
+  school_data__school_versions ||..o{ ai__school_embeddings : "school_version_id"

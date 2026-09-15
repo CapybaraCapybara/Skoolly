@@ -1,0 +1,27 @@
+erDiagram
+  ops__audit_log {
+    bigint log_id PK
+    uuid actor_id 
+    actor_type actor_type 
+    text action 
+    text entity_type 
+    uuid entity_id 
+    jsonb before_snapshot 
+    jsonb after_snapshot 
+    uuid correlation_id 
+    timestamp_with_time_zone created_at 
+  }
+  ops__failed_jobs {
+    uuid job_id PK
+    text job_type 
+    jsonb payload 
+    text error_message 
+    integer attempt_count 
+    uuid correlation_id 
+    timestamp_with_time_zone resolved_at 
+    timestamp_with_time_zone created_at 
+  }
+  user_data__user_accounts {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__user_accounts ||..o{ ops__audit_log : "actor_id"

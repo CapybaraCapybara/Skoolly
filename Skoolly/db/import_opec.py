@@ -3,10 +3,10 @@ Import the OPEC dataset into Postgres (Phase 1 — Bootstrap).
 
 Reads data/international_schools_thailand_opec.json and upserts every school into
 school_data.schools, then maps the free-text Thai curriculum / level values onto the
-lookup tables so UC-G01's filters actually work.
+lookup tables so UC-01's filters actually work.
 
 Idempotent: re-running updates existing rows instead of duplicating them, keyed on
-`opec_school_code` (UC-A02 E5). Everything runs in one transaction.
+`opec_school_code` (UC-12 E5). Everything runs in one transaction.
 
 Usage:
     pip install "psycopg[binary]"
@@ -18,7 +18,7 @@ Usage:
 By default no school becomes visible on the public site: `current_published_version_id`
 stays NULL, matching Phase 1 in the architecture doc. Pass --publish-initial to create an
 initial published version from the OPEC fields (name/address/levels/curriculums — no
-tuition), which is what UC-A02 step 5 describes after an admin confirms the import.
+tuition), which is what UC-12 step 5 describes after an admin confirms the import.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ DATA_FILE = BASE_DIR / "data" / "international_schools_thailand_opec.json"
 #
 # The (?<!ภาษา) guards matter: "ภาษาอังกฤษ" means the English *language* subject, not the
 # English curriculum — without the guard, every school that lists its teaching languages
-# would be filed under BRITISH and the UC-G01 filter would return nonsense.
+# would be filed under BRITISH and the UC-01 filter would return nonsense.
 CURRICULUM_PATTERNS: list[tuple[str, str]] = [
     ("สหราชอาณาจักร (British)", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
                                 r"|IGCSE|GCSE|AS\s*(&|and)?\s*A\s*Level|A[\s-]?Level|Cambridge|เคมบริดจ์|แคมบริ"
@@ -155,7 +155,7 @@ def main() -> int:
     parser.add_argument(
         "--publish-initial",
         action="store_true",
-        help="create a published v1 per school from the OPEC fields (UC-A02 step 5)",
+        help="create a published v1 per school from the OPEC fields (UC-12 step 5)",
     )
     parser.add_argument("--dry-run", action="store_true", help="roll back instead of committing")
     args = parser.parse_args()
@@ -323,7 +323,7 @@ def main() -> int:
                 else:
                     updated += 1
 
-                # ── optional: initial published version (UC-A02 step 5) ──────────
+                # ── optional: initial published version (UC-12 step 5) ──────────
                 if args.publish_initial:
                     snapshot = {
                         "source": "opec_import",
@@ -377,7 +377,7 @@ def main() -> int:
 
     if unmapped_curriculums:
         print(f"\n{len(unmapped_curriculums)} curriculum values matched nothing (filed under OTHER).")
-        print("Add a real alias for these so UC-G01's filter can find the schools:")
+        print("Add a real alias for these so UC-01's filter can find the schools:")
         for raw, count in unmapped_curriculums.most_common():
             print(f"  ({count:>3}x)  {raw}")
     if unmapped_levels:

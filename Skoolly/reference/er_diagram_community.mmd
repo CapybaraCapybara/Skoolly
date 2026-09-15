@@ -1,0 +1,86 @@
+erDiagram
+  community__data_correction_reports {
+    uuid report_id PK
+    uuid school_id 
+    text field_name 
+    text description 
+    text evidence_url 
+    integer report_count 
+    report_status status 
+    uuid resolved_by 
+    timestamp_with_time_zone resolved_at 
+    text resolution_note 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  community__forum_comments {
+    uuid comment_id PK
+    uuid post_id FK
+    uuid user_id 
+    text content 
+    content_status status 
+    boolean deleted_by_author 
+    uuid moderated_by 
+    timestamp_with_time_zone moderated_at 
+    integer like_count 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  community__forum_likes {
+    forum_target target_type PK
+    uuid target_id PK
+    uuid user_id PK
+    timestamp_with_time_zone created_at 
+  }
+  community__forum_posts {
+    uuid post_id PK
+    uuid user_id 
+    uuid school_id 
+    forum_category category 
+    text title 
+    text content 
+    content_status status 
+    uuid moderated_by 
+    timestamp_with_time_zone moderated_at 
+    text rejection_reason 
+    integer like_count 
+    integer comment_count 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  community__forum_reports {
+    uuid report_id PK
+    forum_target target_type 
+    uuid target_id 
+    uuid reporter_user_id 
+    text reason 
+    forum_report_status status 
+    uuid reviewed_by 
+    timestamp_with_time_zone reviewed_at 
+    timestamp_with_time_zone created_at 
+  }
+  community__report_submissions {
+    uuid report_id PK
+    uuid user_id PK
+    text note 
+    timestamp_with_time_zone created_at 
+  }
+  school_data__schools {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__user_accounts {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__forum_posts ||--o{ community__forum_comments : "post_id"
+  community__data_correction_reports ||--o{ community__report_submissions : "report_id"
+  school_data__schools ||..o{ community__data_correction_reports : "school_id"
+  school_data__schools ||..o{ community__forum_posts : "school_id"
+  user_data__user_accounts ||..o{ community__forum_posts : "user_id"
+  user_data__user_accounts ||..o{ community__forum_comments : "user_id"
+  user_data__user_accounts ||..o{ community__forum_likes : "user_id"
+  community__forum_posts ||..o{ community__forum_likes : "target_id เมื่อเป็น post"
+  community__forum_comments ||..o{ community__forum_likes : "target_id เมื่อเป็น comment"
+  user_data__user_accounts ||..o{ community__forum_reports : "reporter_user_id"
+  community__forum_posts ||..o{ community__forum_reports : "target_id เมื่อเป็น post"
+  community__forum_comments ||..o{ community__forum_reports : "target_id เมื่อเป็น comment"
+  user_data__user_accounts ||..o{ community__report_submissions : "user_id"

@@ -5,7 +5,7 @@ Handles:
 1. Connection testing and status reporting.
 2. Saving DATABASE_URL to .env.
 3. Automated Schema initialization (running db/schema.sql).
-4. Upserting OPEC school records into Postgres (school_data.schools, school_data.school_curriculums, etc.)
+4. Upserting OPEC school records into Postgres (school_data.schools, school_data.school_versions)
    with live progress reporting.
 """
 
@@ -36,38 +36,38 @@ DATA_FILE = BASE_DIR / "data" / "international_schools_thailand_opec.json"
 
 # Comprehensive Normalized Curriculum Categories (Eliminates "OTHER" fallback)
 CURRICULUM_PATTERNS: list[tuple[str, str]] = [
-    ("สหราชอาณาจักร (British)", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
+    ("BRITISH", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
                                 r"|IGCSE|GCSE|AS\s*(&|and)?\s*A\s*Level|A[\s-]?Level|Cambridge|เคมบริดจ์|แคมบริ"
                                 r"|Oxford|Early\s*Years?\s*Foundation|EYFS|Edexcel|BTEC|Pearson|Key\s*Stage"
                                 r"|English\s*National\s*Curric|\bENC\b|Wellington|เวลลิงตัน|AICE|St\s*Andrews"),
-    ("สหรัฐอเมริกา (American)", r"สหรัฐอเมริกา|สหรัฐอเมริก|อเมริกัน|อเมริกา|แคลิฟอร์เนีย|แมสซาชูเซตส์|มิสซิสซิปปี"
+    ("AMERICAN", r"สหรัฐอเมริกา|สหรัฐอเมริก|อเมริกัน|อเมริกา|แคลิฟอร์เนีย|แมสซาชูเซตส์|มิสซิสซิปปี"
                                 r"|เวอร์จีเนีย|เพนซิลเวเนีย|Pennsylvania|นิวเจอร์ซีย์|New\s*Jersey|อะลาบามา"
                                 r"|American|California|\bCDE\b|Massachusetts|\bAERO\b|High\s*School\s*Diploma"
                                 r"|Common\s*Core|\bCCSS\b|Advanced\s*Placement|\bAP\b|\bU\.?S\.?\b"
                                 r"|District\s*of\s*Columbia|Chicago|Accelerated\s*Christian|School\s*of\s*Tomorrow"
                                 r"|\bWASC\b|BASIS|North\s*American\s*Division|\bNAD\b|Carson|Calvert|High\s*Reach"
                                 r"|ริเวอร์ไซด์|แอ๊ดเวนตีส|เอกมัย|ประชาคมนานาชาติ"),
-    ("นานาชาติ IB (International Baccalaureate)", r"International\s*Baccalaureate|\bIB\b|\bIBDP\b|\bPYP\b|\bMYP\b"
+    ("IB", r"International\s*Baccalaureate|\bIB\b|\bIBDP\b|\bPYP\b|\bMYP\b"
                                                  r"|\bIB-CP\b|Diploma\s*Programme|\bIBO\b|Reignwood|เคไอเอส|KIS"),
-    ("สิงคโปร์ (Singapore)", r"สิงคโปร์|สิงค์โปร์|Singapore|Nurturing\s*Early\s*Learners|SISB|แองโกล"
+    ("SINGAPOREAN", r"สิงคโปร์|สิงค์โปร์|Singapore|Nurturing\s*Early\s*Learners|SISB|แองโกล"
                              r"|Pre-School\s*Education\s*Unit|Primary\s*School\s*Curriculum"
                              r"|National\s*Curriculum\s*for\s*Primary\s*School"),
-    ("ออสเตรเลีย (Australian)", r"ออสเตรเลีย|Australia|\bACARA\b|Western\s*Australian"),
-    ("แคนาดา (Canadian)", r"แคนาดา|แคนนาดา|Canad|บริติชโคลัมเบีย|British\s*Columbia|Ontario|Quebec"),
-    ("ฝรั่งเศส (French)", r"ฝรั่งเศส|French|France|Lyc[eé]e"),
-    ("เยอรมัน (German)", r"เยอรมัน|German|ทูริงเง่น|Thuringia"),
-    ("ญี่ปุ่น (Japanese)", r"ญี่ปุ่น|Japan|Culture,\s*Sports,\s*Science\s*and\s*Technology"),
-    ("จีน (Chinese)", r"จีน|Chinese|Mandarin|แมนดาริน"),
-    ("เกาหลี (Korean)", r"เกาหลี|Korea"),
-    ("อินเดีย (Indian)", r"อินเดีย|India|\bCBSE\b|ซิลเวอร์ไลน์|Central\s*Board\s*of\s*Secondary"),
-    ("มอนเตสซอรี (Montessori)", r"Montessori|มอนเตสซอรี|มอนเทสซอรี่|Hershey"),
-    ("ฟินแลนด์ (Finnish)", r"Finish|Finnish|FGES"),
-    ("ปฐมวัยสากล (Early Childhood / IPC)", r"International\s*Preschool|International\s*Primary|\bIPC\b|\bIMYC\b"
+    ("AUSTRALIAN", r"ออสเตรเลีย|Australia|\bACARA\b|Western\s*Australian"),
+    ("CANADIAN", r"แคนาดา|แคนนาดา|Canad|บริติชโคลัมเบีย|British\s*Columbia|Ontario|Quebec"),
+    ("FRENCH", r"ฝรั่งเศส|French|France|Lyc[eé]e"),
+    ("GERMAN", r"เยอรมัน|German|ทูริงเง่น|Thuringia"),
+    ("JAPANESE", r"ญี่ปุ่น|Japan|Culture,\s*Sports,\s*Science\s*and\s*Technology"),
+    ("CHINESE", r"จีน|Chinese|Mandarin|แมนดาริน"),
+    ("KOREAN", r"เกาหลี|Korea"),
+    ("INDIAN", r"อินเดีย|India|\bCBSE\b|ซิลเวอร์ไลน์|Central\s*Board\s*of\s*Secondary"),
+    ("MONTESSORI", r"Montessori|มอนเตสซอรี|มอนเทสซอรี่|Hershey"),
+    ("FINNISH", r"Finish|Finnish|FGES"),
+    ("EARLY_CHILDHOOD", r"International\s*Preschool|International\s*Primary|\bIPC\b|\bIMYC\b"
                                            r"|HighScope|Creative\s*Curriculum|Child-Centered|ASDAN|Early\s*child"
                                            r"|Early\s*Years\s*Development|ปฐมวัย|A\s*Child\'s\s*World"
                                            r"|Kindergarten\s*Curriculum"),
-    ("ไทย (กระทรวงศึกษาธิการ)", r"วัฒนธรรมไทย|ประวัติศาสตร์ไทย|แกนกลางการศึกษาขั้นพื้นฐาน|ภาษาไทย"),
-    ("หลักสูตรเฉพาะของโรงเรียน", r"หลักสูตรของทางโรงเรียน|หลักสูตรนานาชาติ|หลักสูตรอินเตอร์"
+    ("THAI_MOE", r"วัฒนธรรมไทย|ประวัติศาสตร์ไทย|แกนกลางการศึกษาขั้นพื้นฐาน|ภาษาไทย"),
+    ("SCHOOL_SPECIFIC", r"หลักสูตรของทางโรงเรียน|หลักสูตรนานาชาติ|หลักสูตรอินเตอร์"
                                   r"|International\s*Curriculum|ประกาศนียบัตรนานาชาติ|ซีสเต็มส์"
                                   r"|ดาเนียล|อริสตา|มัธยมศึกษาตอนปลาย"),
 ]
@@ -75,12 +75,12 @@ COMPILED_PATTERNS = [(code, re.compile(pattern, re.IGNORECASE)) for code, patter
 
 # Grade level mapping kept in standard Thai names for 1:1 frontend matching
 GRADE_LEVEL_MAP: dict[str, str] = {
-    "ก่อนอนุบาล": "ก่อนอนุบาล",
-    "เตรียมอนุบาล": "ก่อนอนุบาล",
-    "อนุบาล": "อนุบาล",
-    "ประถมศึกษา": "ประถมศึกษา",
-    "มัธยมศึกษาตอนต้น": "มัธยมศึกษาตอนต้น",
-    "มัธยมศึกษาตอนปลาย": "มัธยมศึกษาตอนปลาย",
+    "ก่อนอนุบาล": "PRE_K",
+    "เตรียมอนุบาล": "PRE_K",
+    "อนุบาล": "KINDERGARTEN",
+    "ประถมศึกษา": "PRIMARY",
+    "มัธยมศึกษาตอนต้น": "LOWER_SEC",
+    "มัธยมศึกษาตอนปลาย": "UPPER_SEC",
 }
 
 
@@ -119,6 +119,78 @@ def db_connect(target_dsn: str | None = None, **kwargs):
     if "prepare_threshold" not in kwargs:
         kwargs["prepare_threshold"] = None
     return psycopg.connect(dsn, **kwargs)
+
+
+
+def social_links_json(facebook: Any = None, line_id: Any = None,
+                      instagram: Any = None, youtube: Any = None) -> str:
+    """รวมลิงก์โซเชียลเป็น JSON ก้อนเดียวสำหรับคอลัมน์ schools.social_links (jsonb).
+
+    เก็บเฉพาะคีย์ที่มีค่าจริง เพื่อไม่ให้ jsonb เต็มไปด้วย null —
+    fill rate ของข้อมูลชุดนี้ต่ำมาก และไม่เคยถูกใช้กรอง/เรียง จึงไม่ต้องแยกเป็นคอลัมน์
+    """
+    pairs = {"facebook": facebook, "line_id": line_id,
+             "instagram": instagram, "youtube": youtube}
+    return json.dumps({k: v for k, v in pairs.items() if v}, ensure_ascii=False)
+
+
+def expand_social_links(item: dict) -> None:
+    """แตก social_links กลับเป็นคีย์แบน ๆ ที่หน้าเว็บใช้อยู่เดิม (แก้ item ในที่)"""
+    links = item.get("social_links") or {}
+    if isinstance(links, str):
+        try:
+            links = json.loads(links)
+        except (ValueError, TypeError):
+            links = {}
+    item["facebook"] = links.get("facebook") or ""
+    item["line_id"] = links.get("line_id") or ""
+    item["instagram"] = links.get("instagram") or ""
+    item["youtube"] = links.get("youtube") or ""
+
+
+
+# label ที่ใช้แสดงผล — ตรงกับ name_th ในตาราง school_data.curriculums / grade_levels
+CURRICULUM_LABELS: dict[str, str] = {
+    "BRITISH": "สหราชอาณาจักร (British)",
+    "AMERICAN": "สหรัฐอเมริกา (American)",
+    "IB": "นานาชาติ IB (International Baccalaureate)",
+    "SINGAPOREAN": "สิงคโปร์ (Singapore)",
+    "AUSTRALIAN": "ออสเตรเลีย (Australian)",
+    "CANADIAN": "แคนาดา (Canadian)",
+    "FRENCH": "ฝรั่งเศส (French)",
+    "GERMAN": "เยอรมัน (German)",
+    "JAPANESE": "ญี่ปุ่น (Japanese)",
+    "CHINESE": "จีน (Chinese)",
+    "KOREAN": "เกาหลี (Korean)",
+    "INDIAN": "อินเดีย (Indian)",
+    "MONTESSORI": "มอนเตสซอรี (Montessori)",
+    "FINNISH": "ฟินแลนด์ (Finnish)",
+    "EARLY_CHILDHOOD": "ปฐมวัยสากล (Early Childhood / IPC)",
+    "THAI_MOE": "ไทย (กระทรวงศึกษาธิการ)",
+    "SCHOOL_SPECIFIC": "หลักสูตรเฉพาะของโรงเรียน",
+}
+GRADE_LEVEL_LABELS: dict[str, str] = {
+    "PRE_K": "ก่อนอนุบาล",
+    "KINDERGARTEN": "อนุบาล",
+    "PRIMARY": "ประถมศึกษา",
+    "LOWER_SEC": "มัธยมศึกษาตอนต้น",
+    "UPPER_SEC": "มัธยมศึกษาตอนปลาย",
+}
+
+
+def expand_vocab(item: dict) -> None:
+    """แปลง code ที่เก็บใน DB กลับเป็นข้อความไทยที่หน้าเว็บแสดงอยู่เดิม (แก้ item ในที่)
+
+    DB เก็บ code เพื่อให้ join กับตาราง lookup และกรองได้แน่นอน
+    ส่วน payload ที่ส่งออกยังเป็นข้อความไทยเหมือนเดิม หน้าเว็บจึงไม่ต้องแก้
+    เก็บ code ดิบไว้ในคีย์ *_codes เผื่อฝั่ง client อยากใช้ตรง ๆ
+    """
+    codes = item.get("curriculums") or []
+    levels = item.get("levels_offered") or []
+    item["curriculum_codes"] = list(codes)
+    item["level_codes"] = list(levels)
+    item["curriculums"] = [CURRICULUM_LABELS.get(c, c) for c in codes]
+    item["levels_offered"] = [GRADE_LEVEL_LABELS.get(c, c) for c in levels]
 
 
 def mask_dsn(dsn: str) -> str:
@@ -324,6 +396,7 @@ def execute_opec_import(
     inserted = 0
     updated = 0
     unmapped_curriculums: Counter[str] = Counter()
+    unmapped_levels: Counter[str] = Counter()
     auto_mapped: dict[str, list[str]] = {}
     unmapped_levels: Counter[str] = Counter()
     used_slugs: set[str] = set()
@@ -360,9 +433,9 @@ def execute_opec_import(
                         auto_mapped[raw] = sorted(derived)
                     else:
                         unmapped_curriculums[raw] += 1
-                        codes.add("หลักสูตรเฉพาะของโรงเรียน")
+                        codes.add("SCHOOL_SPECIFIC")
                 if not codes:
-                    codes.add("หลักสูตรเฉพาะของโรงเรียน")
+                    codes.add("SCHOOL_SPECIFIC")
 
                 # 2. Derive grade levels (standard Thai names matching modal badges)
                 level_codes = set()
@@ -370,7 +443,10 @@ def execute_opec_import(
                     raw = clean(raw)
                     if not raw:
                         continue
-                    code = GRADE_LEVEL_MAP.get(raw, raw)
+                    code = GRADE_LEVEL_MAP.get(raw)
+                    if not code:
+                        unmapped_levels[raw] += 1
+                        continue
                     level_codes.add(code)
 
                 curriculums_list = sorted(list(codes))
@@ -383,7 +459,7 @@ def execute_opec_import(
                         opec_school_code, slug, name_th, name_en,
                         official_website_url, website_source, opec_profile_url,
                         official_phone, official_mobile, official_email,
-                        facebook_url, line_id, instagram_url, youtube_url,
+                        social_links,
                         province, district, subdistrict, address,
                         geom, gps_precision, gps_source,
                         logo_url, level_range, levels_offered, curriculums,
@@ -393,7 +469,7 @@ def execute_opec_import(
                         %(opec_code)s, %(slug)s, %(name_th)s, %(name_en)s,
                         %(website)s, %(website_source)s, %(profile_url)s,
                         %(phone)s, %(mobile)s, %(email)s,
-                        %(facebook)s, %(line_id)s, %(instagram)s, %(youtube)s,
+                        %(social_links)s::jsonb,
                         %(province)s, %(district)s, %(subdistrict)s, %(address)s,
                         CASE WHEN %(lng)s::double precision IS NULL OR %(lat)s::double precision IS NULL THEN NULL
                              ELSE st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography END,
@@ -411,10 +487,7 @@ def execute_opec_import(
                         official_phone = EXCLUDED.official_phone,
                         official_mobile = EXCLUDED.official_mobile,
                         official_email = EXCLUDED.official_email,
-                        facebook_url = EXCLUDED.facebook_url,
-                        line_id = EXCLUDED.line_id,
-                        instagram_url = EXCLUDED.instagram_url,
-                        youtube_url = EXCLUDED.youtube_url,
+                        social_links = EXCLUDED.social_links,
                         province = EXCLUDED.province,
                         district = EXCLUDED.district,
                         subdistrict = EXCLUDED.subdistrict,
@@ -446,10 +519,12 @@ def execute_opec_import(
                         "phone": clean(record.get("telephone")),
                         "mobile": clean(record.get("mobile")),
                         "email": clean(record.get("email")),
-                        "facebook": clean(record.get("facebook")),
-                        "line_id": clean(record.get("line_id")),
-                        "instagram": clean(record.get("instagram")),
-                        "youtube": clean(record.get("youtube")),
+                        "social_links": social_links_json(
+                            clean(record.get("facebook")),
+                            clean(record.get("line_id")),
+                            clean(record.get("instagram")),
+                            clean(record.get("youtube")),
+                        ),
                         "province": clean(record.get("province")) or "ไม่ระบุ",
                         "district": clean(record.get("district")),
                         "subdistrict": clean(record.get("subdistrict")),
@@ -477,7 +552,7 @@ def execute_opec_import(
                 else:
                     updated += 1
 
-                # 4. Initial published version (UC-A02 step 5)
+                # 4. Initial published version (UC-12 step 5)
                 if publish_initial:
                     snapshot = {
                         "source": "opec_import",
@@ -553,7 +628,8 @@ def fetch_supabase_schools(
     if not target_dsn:
         raise ValueError("DATABASE_URL is not set")
 
-    where_clauses = ["1=1"]
+    # โรงเรียนที่ถูกนำออก (archived) ไม่แสดงในรายการ — ข้อมูลยังอยู่ในฐานข้อมูล
+    where_clauses = ["status <> 'archived'"]
     params: list[Any] = []
 
     if search and search.strip():
@@ -566,7 +642,7 @@ def fetch_supabase_schools(
         params.append(province.strip())
 
     if curriculum and curriculum.strip() and curriculum != "all":
-        where_clauses.append("%s = ANY(curriculums)")
+        where_clauses.append("%s = ANY(curriculums)")  # ค่าที่ส่งมาเป็น code เช่น BRITISH
         params.append(curriculum.strip().upper())
 
     if level and level.strip() and level != "all":
@@ -612,10 +688,7 @@ def fetch_supabase_schools(
                     official_phone,
                     official_mobile,
                     official_email,
-                    facebook_url,
-                    line_id,
-                    instagram_url,
-                    youtube_url,
+                    social_links,
                     province,
                     district,
                     subdistrict,
@@ -681,12 +754,9 @@ def fetch_supabase_schools(
                 item["telephone"] = item.get("official_phone") or ""
                 item["mobile"] = item.get("official_mobile") or ""
                 item["email"] = item.get("official_email") or ""
-                item["facebook"] = item.get("facebook_url") or ""
-                item["instagram"] = item.get("instagram_url") or ""
-                item["youtube"] = item.get("youtube_url") or ""
+                expand_social_links(item)
                 item["school_logo_url"] = item.get("logo_url") or ""
-                item["curriculums"] = item.get("curriculums") or []
-                item["levels_offered"] = item.get("levels_offered") or []
+                expand_vocab(item)
                 item["student_count"] = item.get("student_count") or 0
                 item["teacher_count"] = item.get("teacher_count") or 0
                 item["fetched_at"] = item.get("created_at") or ""
@@ -701,7 +771,12 @@ def fetch_supabase_schools(
 
 
 def clear_supabase_data(dsn: str | None = None) -> dict[str, Any]:
-    """Clears all school records and scrape logs from Supabase for clean testing."""
+    """⚠️ ล้างข้อมูลโรงเรียนทั้งหมด — เครื่องมือรีเซ็ตสำหรับการทดสอบเท่านั้น
+
+    ต่างจาก delete_supabase_school() ที่เป็น soft delete ตาม UC-11 Business Rule —
+    ฟังก์ชันนี้ลบจริงและ cascade ไปทุกตารางลูก ใช้เฉพาะตอนต้องการ re-import
+    ชุดข้อมูล OPEC ใหม่ทั้งหมด ห้ามเรียกจากหน้าใช้งานปกติ
+    """
     target_dsn = dsn or get_current_dsn()
     if not target_dsn:
         raise ValueError("DATABASE_URL is not set")
@@ -753,7 +828,7 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
                     opec_school_code, slug, name_th, name_en,
                     official_website_url, website_source,
                     official_phone, official_mobile, official_email,
-                    facebook_url, line_id, instagram_url, youtube_url,
+                    social_links,
                     province, district, subdistrict, address,
                     geom, gps_precision, gps_source,
                     logo_url, level_range, levels_offered, curriculums,
@@ -762,7 +837,7 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
                     %(opec_code)s, %(slug)s, %(name_th)s, %(name_en)s,
                     %(website)s, %(website_source)s,
                     %(phone)s, %(mobile)s, %(email)s,
-                    %(facebook)s, %(line_id)s, %(instagram)s, %(youtube)s,
+                    %(social_links)s::jsonb,
                     %(province)s, %(district)s, %(subdistrict)s, %(address)s,
                     CASE WHEN %(lng)s::double precision IS NULL OR %(lat)s::double precision IS NULL THEN NULL
                          ELSE st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography END,
@@ -782,10 +857,12 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
                     "phone": clean(data.get("official_phone")),
                     "mobile": clean(data.get("official_mobile")),
                     "email": clean(data.get("official_email")),
-                    "facebook": clean(data.get("facebook_url")),
-                    "line_id": clean(data.get("line_id")),
-                    "instagram": clean(data.get("instagram_url")),
-                    "youtube": clean(data.get("youtube_url")),
+                    "social_links": social_links_json(
+                        clean(data.get("facebook_url")),
+                        clean(data.get("line_id")),
+                        clean(data.get("instagram_url")),
+                        clean(data.get("youtube_url")),
+                    ),
                     "province": province,
                     "district": clean(data.get("district")),
                     "subdistrict": clean(data.get("subdistrict")),
@@ -836,10 +913,7 @@ def update_supabase_school(school_id: str, data: dict[str, Any], dsn: str | None
                     official_phone = COALESCE(%(phone)s, official_phone),
                     official_mobile = COALESCE(%(mobile)s, official_mobile),
                     official_email = COALESCE(%(email)s, official_email),
-                    facebook_url = COALESCE(%(facebook)s, facebook_url),
-                    line_id = COALESCE(%(line_id)s, line_id),
-                    instagram_url = COALESCE(%(instagram)s, instagram_url),
-                    youtube_url = COALESCE(%(youtube)s, youtube_url),
+                    social_links = social_links || %(social_links)s::jsonb,
                     province = COALESCE(%(province)s, province),
                     district = COALESCE(%(district)s, district),
                     subdistrict = COALESCE(%(subdistrict)s, subdistrict),
@@ -867,10 +941,12 @@ def update_supabase_school(school_id: str, data: dict[str, Any], dsn: str | None
                     "phone": clean(data.get("official_phone")),
                     "mobile": clean(data.get("official_mobile")),
                     "email": clean(data.get("official_email")),
-                    "facebook": clean(data.get("facebook_url")),
-                    "line_id": clean(data.get("line_id")),
-                    "instagram": clean(data.get("instagram_url")),
-                    "youtube": clean(data.get("youtube_url")),
+                    "social_links": social_links_json(
+                        clean(data.get("facebook_url")),
+                        clean(data.get("line_id")),
+                        clean(data.get("instagram_url")),
+                        clean(data.get("youtube_url")),
+                    ),
                     "province": clean(data.get("province")),
                     "district": clean(data.get("district")),
                     "subdistrict": clean(data.get("subdistrict")),
@@ -894,7 +970,15 @@ def update_supabase_school(school_id: str, data: dict[str, Any], dsn: str | None
 
 
 def delete_supabase_school(school_id: str, dsn: str | None = None) -> dict[str, Any]:
-    """Deletes a school record from Supabase."""
+    """Archives a school (soft delete) — ไม่ลบแถวจริง
+
+    UC-11 Business Rule: "ห้าม hard delete ข้อมูลโรงเรียนเด็ดขาด ใช้ Archived status แทนเสมอ"
+    เดิมฟังก์ชันนี้ DELETE จริง ซึ่งจะ cascade ลบ school_versions / version_fees /
+    version_extra_fees / version_safety / school_google_reviews ทิ้งทั้งหมด และทำให้
+    favorites / comparison_sets ของผู้ใช้ (ที่อ้าง school_id แบบ logical ไม่มี FK)
+    ชี้ไปยังแถวที่ไม่มีอยู่จริง — โรงเรียนที่ archived จะหายจากรายการของ Admin
+    และจากผลค้นหา (UC-01) เหมือนเดิม แต่ลิงก์เก่ายังเปิดดูได้ตาม UC-02 E1b
+    """
     target_dsn = dsn or get_current_dsn()
     if not target_dsn:
         raise ValueError("DATABASE_URL is not set")
@@ -902,12 +986,17 @@ def delete_supabase_school(school_id: str, dsn: str | None = None) -> dict[str, 
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "DELETE FROM school_data.schools WHERE school_id = %s RETURNING school_id, name_th",
+                """
+                UPDATE school_data.schools
+                   SET status = 'archived', updated_at = now()
+                 WHERE school_id = %s AND status <> 'archived'
+                RETURNING school_id, name_th
+                """,
                 (school_id,)
             )
             row = cur.fetchone()
             if not row:
-                raise ValueError("ไม่พบโรงเรียนที่ต้องการลบ")
+                raise ValueError("ไม่พบโรงเรียนที่ต้องการลบ หรือถูกนำออกไปแล้ว")
             conn.commit()
 
     return {"status": "deleted", "school_id": str(row["school_id"]), "name_th": row["name_th"]}
@@ -1070,7 +1159,8 @@ def update_supabase_school_websites(schools: list[dict] | None = None, update_pr
                             UPDATE school_data.schools
                             SET official_website_url = %(web)s,
                                 website_source = COALESCE(NULLIF(%(src)s, ''), website_source),
-                                facebook_url = COALESCE(NULLIF(%(fb)s, ''), facebook_url),
+                                social_links = case when NULLIF(%(fb)s, '') is null then social_links
+                                                   else social_links || jsonb_build_object('facebook', %(fb)s) end,
                                 updated_at = NOW()
                             WHERE opec_school_code = %(code)s
                             """,

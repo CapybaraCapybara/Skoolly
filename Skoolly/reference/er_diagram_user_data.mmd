@@ -1,0 +1,83 @@
+erDiagram
+  user_data__children_profiles {
+    uuid profile_id PK
+    uuid user_id FK
+    text nickname 
+    integer birth_year 
+    text target_level_code 
+    numeric budget_min_thb 
+    numeric budget_max_thb 
+    text_arr curriculum_preference 
+    text preferred_area 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  user_data__comparison_sets {
+    uuid comparison_id PK
+    uuid user_id FK
+    text name 
+    uuid_arr school_ids 
+    text share_token 
+    boolean share_enabled 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  user_data__favorites {
+    uuid user_id PK
+    uuid school_id PK
+    timestamp_with_time_zone created_at 
+  }
+  user_data__user_accounts {
+    uuid user_id PK
+    text display_name 
+    text role 
+    account_status status 
+    text suspended_reason 
+    timestamp_with_time_zone deletion_requested_at 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+  }
+  ai__conversations {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__forum_comments {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__forum_likes {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__forum_posts {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__forum_reports {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__report_submissions {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  ops__audit_log {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  school_data__curriculums {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  school_data__grade_levels {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  school_data__schools {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__user_accounts ||--o{ user_data__children_profiles : "user_id"
+  user_data__user_accounts ||--o{ user_data__comparison_sets : "user_id"
+  user_data__user_accounts ||--o{ user_data__favorites : "user_id"
+  user_data__user_accounts ||..o{ community__forum_posts : "user_id"
+  user_data__user_accounts ||..o{ community__forum_comments : "user_id"
+  user_data__user_accounts ||..o{ community__forum_likes : "user_id"
+  user_data__user_accounts ||..o{ community__forum_reports : "reporter_user_id"
+  user_data__user_accounts ||..o{ community__report_submissions : "user_id"
+  school_data__schools ||..o{ user_data__favorites : "school_id"
+  school_data__schools ||..o{ user_data__comparison_sets : "school_ids อาร์เรย์"
+  school_data__grade_levels ||..o{ user_data__children_profiles : "target_level_code"
+  school_data__curriculums ||..o{ user_data__children_profiles : "curriculum_preference"
+  user_data__user_accounts ||..o{ ai__conversations : "user_id"
+  user_data__user_accounts ||..o{ ops__audit_log : "actor_id"

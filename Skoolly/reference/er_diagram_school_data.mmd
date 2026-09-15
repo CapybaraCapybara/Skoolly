@@ -1,0 +1,204 @@
+erDiagram
+  school_data__curriculums {
+    text code PK
+    text name_th 
+    text name_en 
+    integer sort_order 
+    text_arr aliases 
+  }
+  school_data__grade_levels {
+    text code PK
+    text name_th 
+    text name_en 
+    integer sort_order 
+    text_arr aliases 
+  }
+  school_data__official_website_registry {
+    text school_code PK
+    text school_name_th 
+    text school_name_en 
+    text website_url 
+    boolean is_verified 
+    text source 
+    text notes 
+    timestamp_with_time_zone verified_at 
+    text verified_by 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+    integer http_status 
+    timestamp_with_time_zone last_checked_at 
+    boolean is_broken 
+    text error_reason 
+  }
+  school_data__school_google_reviews {
+    uuid school_id PK
+    text google_place_id 
+    numeric rating_avg 
+    integer review_count 
+    jsonb payload 
+    text attribution_url 
+    timestamp_with_time_zone fetched_at 
+    timestamp_with_time_zone expires_at 
+  }
+  school_data__school_scrape_log {
+    uuid school_id FK
+    uuid version_id FK
+    uuid run_id 
+    uuid correlation_id 
+    text phase 
+    scrape_status status 
+    text page_scraped 
+    numeric elapsed_sec 
+    text ai_model 
+    text ai_reasoning 
+    text error_message 
+    timestamp_with_time_zone created_at 
+    bigint log_id PK
+  }
+  school_data__school_versions {
+    uuid version_id PK
+    uuid school_id FK
+    integer version_number 
+    uuid parent_version_id FK
+    version_status status 
+    source_type source_type 
+    jsonb data_snapshot 
+    jsonb diff_summary 
+    real confidence_score 
+    text confidence_reasoning 
+    text scraped_page_url 
+    uuid submitted_by 
+    timestamp_with_time_zone submitted_at 
+    uuid reviewed_by 
+    timestamp_with_time_zone reviewed_at 
+    text rejection_reason 
+    timestamp_with_time_zone created_at 
+  }
+  school_data__schools {
+    uuid school_id PK
+    text opec_school_code 
+    text slug 
+    text name_th 
+    text name_en 
+    school_status status 
+    uuid current_published_version_id FK
+    text official_website_url 
+    text website_source 
+    timestamp_with_time_zone website_confirmed_at 
+    uuid website_confirmed_by 
+    text opec_profile_url 
+    text official_phone 
+    text official_mobile 
+    text official_email 
+    text province 
+    text district 
+    text subdistrict 
+    text address 
+    geography geom 
+    text gps_precision 
+    text gps_source 
+    text logo_url 
+    text level_range 
+    integer student_count 
+    integer teacher_count 
+    numeric pub_tuition_min_thb 
+    numeric pub_tuition_max_thb 
+    boolean pub_has_safeguarding_policy 
+    timestamp_with_time_zone pub_data_updated_at 
+    numeric rating_avg 
+    integer review_count 
+    timestamp_with_time_zone last_verified_at 
+    timestamp_with_time_zone created_at 
+    timestamp_with_time_zone updated_at 
+    text_arr levels_offered 
+    text_arr curriculums 
+    text licensee_name 
+    text director_name 
+    text manager_name 
+    text government_support 
+    boolean is_isat_member 
+    boolean is_boarding 
+    integer year_established 
+    text_arr accreditations 
+    text isat_school_name 
+    text google_place_id 
+    jsonb social_links 
+    integer row_version 
+  }
+  school_data__version_extra_fees {
+    uuid extra_fee_id PK
+    uuid version_id FK
+    text name 
+    numeric amount_thb 
+    fee_frequency frequency 
+    boolean refundable 
+    boolean sibling_related 
+    text academic_year 
+    date source_published_at 
+    text notes 
+  }
+  school_data__version_fees {
+    uuid fee_id PK
+    uuid version_id FK
+    text grade_label 
+    text level_code 
+    numeric annual_thb 
+    numeric semester_thb 
+    character currency 
+    text academic_year 
+    date source_published_at 
+    text source_url 
+    real confidence_score 
+    text notes 
+  }
+  school_data__version_safety {
+    uuid version_id PK
+    boolean security_guards 
+    boolean cctv_monitoring 
+    boolean nurse_medical_clinic 
+    boolean child_safeguarding_policy 
+    boolean air_quality_pm25_protocol 
+    boolean visitor_access_control 
+    text_arr highlights 
+    text policy_summary 
+    text policy_url 
+    date source_published_at 
+  }
+  ai__school_embeddings {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__data_correction_reports {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  community__forum_posts {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__children_profiles {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__comparison_sets {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  user_data__favorites {
+    ตารางของ_Service_อื่น อ้างอิงข้ามมา
+  }
+  school_data__schools ||--|| school_data__school_google_reviews : "school_id"
+  school_data__schools ||--o{ school_data__school_scrape_log : "school_id"
+  school_data__school_versions ||--o{ school_data__school_scrape_log : "version_id"
+  school_data__school_versions ||--o{ school_data__school_versions : "parent_version_id"
+  school_data__schools ||--o{ school_data__school_versions : "school_id"
+  school_data__school_versions ||--o{ school_data__schools : "current_published_version_id"
+  school_data__school_versions ||--o{ school_data__version_extra_fees : "version_id"
+  school_data__school_versions ||--o{ school_data__version_fees : "version_id"
+  school_data__school_versions ||--|| school_data__version_safety : "version_id"
+  school_data__curriculums ||..o{ school_data__schools : "curriculums อ้าง code"
+  school_data__grade_levels ||..o{ school_data__schools : "levels_offered อ้าง code"
+  school_data__schools ||..o{ school_data__official_website_registry : "school_code"
+  school_data__grade_levels ||..o{ school_data__version_fees : "level_code"
+  school_data__schools ||..o{ community__data_correction_reports : "school_id"
+  school_data__schools ||..o{ community__forum_posts : "school_id"
+  school_data__schools ||..o{ user_data__favorites : "school_id"
+  school_data__schools ||..o{ user_data__comparison_sets : "school_ids อาร์เรย์"
+  school_data__grade_levels ||..o{ user_data__children_profiles : "target_level_code"
+  school_data__curriculums ||..o{ user_data__children_profiles : "curriculum_preference"
+  school_data__school_versions ||..o{ ai__school_embeddings : "school_version_id"

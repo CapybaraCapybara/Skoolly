@@ -28,7 +28,12 @@ def extract_domain(url: str) -> str:
         return ""
 
 def ensure_isat_columns_in_supabase(conn) -> None:
-    """Adds isat columns to school_data.schools if not existing."""
+    """Safety net เท่านั้น — คอลัมน์ชุดนี้ประกาศไว้ใน db/schema.sql แล้วตั้งแต่ v6.5
+
+    เดิมฟังก์ชันนี้เป็นที่เดียวที่สร้างคอลัมน์ ISAT ทำให้ schema จริงกับ db/schema.sql
+    ไม่ตรงกัน (schema drift) ตอนนี้ db/schema.sql เป็นแหล่งความจริงเดียวแล้ว
+    คงฟังก์ชันไว้เพื่อให้ฐานข้อมูลเก่าที่ยังไม่ได้รัน schema ใหม่ยังทำงานต่อได้
+    """
     sql = """
     ALTER TABLE school_data.schools 
     ADD COLUMN IF NOT EXISTS is_isat_member BOOLEAN DEFAULT FALSE,
