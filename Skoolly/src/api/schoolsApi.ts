@@ -117,31 +117,45 @@ function formatGrades(record: SupabaseSchoolRecord): string {
   return "Pre-K–Grade 12";
 }
 
-function parseNumericId(record: SupabaseSchoolRecord, index: number, seedSchools: School[]): number {
+function parseNumericId(
+  record: SupabaseSchoolRecord,
+  index: number,
+  seedSchools: School[],
+  claimedIds?: Set<number>
+): number {
   // 1. Preserve seed ID if school matches existing seed (e.g. Bangkok Patana -> 1, NIST -> 2)
+  // Only claim if this seed ID hasn't already been taken by another campus
   const enName = (record.name_en || "").toLowerCase();
   const thName = (record.name_th || "").toLowerCase();
   const matchedSeed = seedSchools.find((s) => {
+    if (claimedIds && claimedIds.has(s.id)) return false;
     const sName = s.name.toLowerCase();
     return (
-      (enName && (enName.includes(sName) || sName.includes(enName))) ||
-      (thName && (thName.includes(sName) || sName.includes(thName)))
+      (enName && (enName === sName || enName.includes(sName))) ||
+      (thName && (thName === sName || thName.includes(sName)))
     );
   });
-  if (matchedSeed) {
+  if (matchedSeed && (!claimedIds || !claimedIds.has(matchedSeed.id))) {
+    claimedIds?.add(matchedSeed.id);
     return matchedSeed.id;
   }
 
   // 2. Try parsing OPEC natural code if pure number
   if (record.opec_school_code && /^\d+$/.test(record.opec_school_code)) {
     const parsed = parseInt(record.opec_school_code, 10);
-    if (!isNaN(parsed) && parsed > 0) {
+    if (!isNaN(parsed) && parsed > 0 && (!claimedIds || !claimedIds.has(parsed))) {
+      claimedIds?.add(parsed);
       return parsed;
     }
   }
 
-  // 3. Fallback deterministic index
-  return 1000 + index;
+  // 3. Fallback deterministic index, ensuring uniqueness
+  let fallbackId = 1000 + index;
+  while (claimedIds && claimedIds.has(fallbackId)) {
+    fallbackId += 10000;
+  }
+  claimedIds?.add(fallbackId);
+  return fallbackId;
 }
 
 /**
@@ -150,9 +164,10 @@ function parseNumericId(record: SupabaseSchoolRecord, index: number, seedSchools
 export function mapSupabaseToDomainSchool(
   record: SupabaseSchoolRecord,
   index: number,
-  seedSchools: School[]
+  seedSchools: School[],
+  claimedIds?: Set<number>
 ): School {
-  const id = parseNumericId(record, index, seedSchools);
+  const id = parseNumericId(record, index, seedSchools, claimedIds);
   const fallback = seedSchools.find((s) => s.id === id);
 
   const name = formatSchoolName(record.name_en, record.name_th);
@@ -296,13 +311,14 @@ function parseScrapedFees(item: any): SchoolFee[] {
   // 1. Grade tuition lines
   if (Array.isArray(item.tuition_by_grade)) {
     for (const g of item.tuition_by_grade) {
-      if (!g?.grade_level) continue;
+      if (!g?.grade_level && !g?.display_name) continue;
+      const labelName = g.display_name || g.grade_level;
       const amountText = g.annual_thb
         ? `฿${g.annual_thb.toLocaleString()} / yr`
         : g.semester_thb
         ? `฿${(g.semester_thb * 2).toLocaleString()} / yr`
         : "Contact school";
-      fees.push({ label: `Tuition (${g.grade_level})`, amount: amountText });
+      fees.push({ label: `Tuition (${labelName})`, amount: amountText });
     }
   }
 
@@ -436,9 +452,10 @@ async function loadMergedData(): Promise<MergedData> {
 
       const mappedSchools: School[] = [];
       const mappedDetails: Record<number, SchoolDetail> = {};
+      const claimedIds = new Set<number>();
 
       res.schools.forEach((record, index) => {
-        const domainSchool = mapSupabaseToDomainSchool(record, index, seedSchools);
+        const domainSchool = mapSupabaseToDomainSchool(record, index, seedSchools, claimedIds);
         const fallbackDetail = seedDetails[domainSchool.id];
         const domainDetail = mapSupabaseToDomainDetail(record, domainSchool, fallbackDetail);
 

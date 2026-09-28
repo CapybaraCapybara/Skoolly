@@ -68,9 +68,12 @@ export function SchoolCard({
           </span>
         )}
         <button
-          onClick={() => onToggleFavorite(school.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(school.id);
+          }}
           title={isFav ? "Remove from saved" : "Save school"}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer"
           style={{ background: isFav ? "#ef4444" : "rgba(250,248,245,0.9)", backdropFilter: "blur(4px)" }}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isFav ? "white" : "none"} stroke={isFav ? "white" : "#1c1917"} strokeWidth={2}>

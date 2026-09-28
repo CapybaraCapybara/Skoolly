@@ -9,8 +9,12 @@
 
 export interface ScrapedTuitionGrade {
   grade_level: string;
+  order_start?: number | null;
+  order_end?: number | null;
+  display_name?: string | null;
+  level_code?: string | null;
   annual_thb: number;
-  semester_thb: number | null;
+  semester_thb?: number | null;
   notes?: string;
 }
 
@@ -68,6 +72,7 @@ export interface FeeItemBreakdown {
 export interface YearlyScheduleRow {
   yearNumber: number;
   gradeLabel: string;
+  displayName?: string;
   tuitionTHB: number;
   oneTimeTHB: number;
   addonsTHB: number;
@@ -95,7 +100,7 @@ export function formatCurrency(amountTHB: number, currency: CurrencyCode | strin
   const conf = CURRENCY_RATES[currency as CurrencyCode] || CURRENCY_RATES.THB;
   const num = typeof amountTHB === "number" && !isNaN(amountTHB) ? amountTHB : 0;
   const converted = num * conf.rate;
-  
+
   if (currency === "THB") {
     return `${conf.symbol}${Math.round(converted).toLocaleString("en-US")}`;
   }
@@ -117,9 +122,33 @@ export function getSchoolGrades(school?: ScrapedSchoolData): ScrapedTuitionGrade
   const mid = Math.round((min + max) / 2);
 
   return [
-    { grade_level: "Early Years / Kindergarten", annual_thb: min, semester_thb: Math.round(min / 2), notes: "Standard Early Years rate" },
-    { grade_level: "Primary (Years 1–6 / Grades 1–5)", annual_thb: mid, semester_thb: Math.round(mid / 2), notes: "Standard Primary rate" },
-    { grade_level: "Secondary & High School", annual_thb: max, semester_thb: Math.round(max / 2), notes: "Standard High School / Diploma rate" },
+    {
+      grade_level: "Early Years / Kindergarten",
+      order_start: 0,
+      order_end: 4,
+      display_name: "เตรียมอนุบาล–อ.3 (Early Years)",
+      level_code: "KINDERGARTEN",
+      annual_thb: min,
+      notes: "Standard Early Years rate"
+    },
+    {
+      grade_level: "Primary (Years 1–6 / Grades 1–5)",
+      order_start: 5,
+      order_end: 10,
+      display_name: "ป.1–ป.6 (Primary)",
+      level_code: "PRIMARY",
+      annual_thb: mid,
+      notes: "Standard Primary rate"
+    },
+    {
+      grade_level: "Secondary & High School",
+      order_start: 11,
+      order_end: 16,
+      display_name: "ม.1–ม.6 (Secondary)",
+      level_code: "UPPER_SECONDARY",
+      annual_thb: max,
+      notes: "Standard High School / Diploma rate"
+    },
   ];
 }
 
@@ -322,7 +351,7 @@ export function calculateSchoolCosts(
     const gradeIdx = Math.min(startIndex + y, Math.max(0, grades.length - 1));
     const gradeItem = grades[gradeIdx] || { grade_level: `Year ${y + 1}`, annual_thb: 500000, semester_thb: null };
     const tuitionForYear = gradeItem.annual_thb || (gradeItem.semester_thb ? gradeItem.semester_thb * 2 : 500000);
-    
+
     const oneTimeForYear = y === 0 ? oneTimeTotalTHB : 0;
     const addonsForYear = annualAddonsPerYear;
 
@@ -339,6 +368,7 @@ export function calculateSchoolCosts(
     yearlySchedule.push({
       yearNumber: y + 1,
       gradeLabel: gradeItem.grade_level || `Grade ${y + 1}`,
+      displayName: gradeItem.display_name || gradeItem.grade_level || `Grade ${y + 1}`,
       tuitionTHB: tuitionForYear,
       oneTimeTHB: oneTimeForYear,
       addonsTHB: addonsForYear,
@@ -347,8 +377,8 @@ export function calculateSchoolCosts(
     });
   }
 
-  const startLabel = grades[startIndex]?.grade_level || "Grade 1";
-  const endLabel = grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.grade_level || `Grade ${duration}`;
+  const startLabel = grades[startIndex]?.display_name || grades[startIndex]?.grade_level || "Grade 1";
+  const endLabel = grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.display_name || grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.grade_level || `Grade ${duration}`;
 
   // Insert Base Tuition line item at position 3
   lineItems.splice(3, 0, {

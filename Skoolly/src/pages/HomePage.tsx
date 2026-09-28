@@ -104,7 +104,7 @@ export function HomePage({
           description="Compare 120+ accredited international schools by curriculum, cost, distance, and real parent reviews — with AI-powered personalised recommendations."
           primaryCtaLabel="Search Schools"
           primaryCtaHref="#schools"
-          backgroundImage="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&h=900&fit=crop&auto=format"
+          backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
         />
       </div>
 

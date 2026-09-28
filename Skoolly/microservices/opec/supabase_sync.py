@@ -597,56 +597,68 @@ def fetch_supabase_schools(
             cur.execute(f"SELECT count(*) as filtered_count FROM school_data.schools WHERE {where_str}", params)
             filtered_count = cur.fetchone()["filtered_count"]
 
-            # Query list with lat/lng extracted from geom
+            # Dynamically inspect available columns in school_data.schools to prevent UndefinedColumn crashes
+            cur.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_schema = 'school_data' AND table_name = 'schools'"
+            )
+            existing_cols = {r["column_name"] for r in cur.fetchall()}
+
+            def c(col_name: str) -> str:
+                return col_name if col_name in existing_cols else f"NULL as {col_name}"
+
+            lat_expr = "st_y(geom::geometry) as latitude" if "geom" in existing_cols else "NULL as latitude"
+            lng_expr = "st_x(geom::geometry) as longitude" if "geom" in existing_cols else "NULL as longitude"
+
+            # Query list with lat/lng extracted from geom safely
             query = f"""
                 SELECT 
-                    school_id,
-                    opec_school_code,
-                    slug,
-                    name_th,
-                    name_en,
-                    status,
-                    official_website_url,
-                    website_source,
-                    opec_profile_url,
-                    official_phone,
-                    official_mobile,
-                    official_email,
-                    facebook_url,
-                    line_id,
-                    instagram_url,
-                    youtube_url,
-                    province,
-                    district,
-                    subdistrict,
-                    address,
-                    st_y(geom::geometry) as latitude,
-                    st_x(geom::geometry) as longitude,
-                    gps_precision,
-                    gps_source,
-                    logo_url,
-                    level_range,
-                    levels_offered,
-                    curriculums,
-                    student_count,
-                    teacher_count,
-                    licensee_name,
-                    director_name,
-                    manager_name,
-                    government_support,
-                    pub_tuition_min_thb,
-                    pub_tuition_max_thb,
-                    pub_has_safeguarding_policy,
-                    pub_data_updated_at,
-                    rating_avg,
-                    review_count,
-                    is_isat_member,
-                    is_boarding,
-                    year_established,
-                    accreditations,
-                    isat_school_name,
-                    created_at,
-                    updated_at
+                    {c('school_id')},
+                    {c('opec_school_code')},
+                    {c('slug')},
+                    {c('name_th')},
+                    {c('name_en')},
+                    {c('status')},
+                    {c('official_website_url')},
+                    {c('website_source')},
+                    {c('opec_profile_url')},
+                    {c('official_phone')},
+                    {c('official_mobile')},
+                    {c('official_email')},
+                    {c('facebook_url')},
+                    {c('line_id')},
+                    {c('instagram_url')},
+                    {c('youtube_url')},
+                    {c('province')},
+                    {c('district')},
+                    {c('subdistrict')},
+                    {c('address')},
+                    {lat_expr},
+                    {lng_expr},
+                    {c('gps_precision')},
+                    {c('gps_source')},
+                    {c('logo_url')},
+                    {c('level_range')},
+                    {c('levels_offered')},
+                    {c('curriculums')},
+                    {c('student_count')},
+                    {c('teacher_count')},
+                    {c('licensee_name')},
+                    {c('director_name')},
+                    {c('manager_name')},
+                    {c('government_support')},
+                    {c('pub_tuition_min_thb')},
+                    {c('pub_tuition_max_thb')},
+                    {c('pub_has_safeguarding_policy')},
+                    {c('pub_data_updated_at')},
+                    {c('rating_avg')},
+                    {c('review_count')},
+                    {c('is_isat_member')},
+                    {c('is_boarding')},
+                    {c('year_established')},
+                    {c('accreditations')},
+                    {c('isat_school_name')},
+                    {c('created_at')},
+                    {c('updated_at')}
                 FROM school_data.schools
                 WHERE {where_str}
                 ORDER BY updated_at DESC, name_th ASC

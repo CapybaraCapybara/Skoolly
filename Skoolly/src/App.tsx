@@ -4,6 +4,7 @@ import { HomePage } from "@/pages/HomePage";
 import { ForumPage } from "@/pages/ForumPage";
 import { SchoolDetailPage } from "@/pages/SchoolDetailPage";
 import { CostCalculatorPage } from "@/pages/CostCalculatorPage";
+import { FavoritesPage } from "@/pages/FavoritesPage";
 import { AuthModal } from "@/components/layout/AuthModal";
 import { CompareBar } from "@/components/schools/CompareBar";
 import { CompareModal } from "@/components/schools/CompareModal";
@@ -31,6 +32,7 @@ function parseHashView(): View {
   }
   if (hash === "forum") return "forum";
   if (hash === "calculator") return "calculator";
+  if (hash === "favorites" || hash === "saved") return "favorites";
   if (hash.startsWith("school/")) {
     const id = parseInt(hash.replace("school/", ""), 10);
     if (!isNaN(id)) return { type: "school", id };
@@ -41,6 +43,7 @@ function parseHashView(): View {
 export default function App() {
   const [view, setView] = useState<View>(() => parseHashView());
   const [compareIds, setCompareIds] = useState<number[]>([]);
+  // In-memory state for favorites (ready to sync with user_data.favorites in DB once logged in)
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [authModal, setAuthModal] = useState<string | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
@@ -69,6 +72,12 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  const goFavorites = useCallback(() => {
+    setView("favorites");
+    window.location.hash = "favorites";
+    window.scrollTo(0, 0);
+  }, []);
+
   const goForum = useCallback(() => {
     setView("forum");
     window.location.hash = "forum";
@@ -91,6 +100,10 @@ export default function App() {
     setView("admin");
     window.location.hash = "admin";
     window.scrollTo(0, 0);
+  }, []);
+
+  const clearAllFavorites = useCallback(() => {
+    setFavorites(new Set());
   }, []);
 
   const showAuth = useCallback((reason: string) => setAuthModal(reason), []);
@@ -131,6 +144,8 @@ export default function App() {
         onSignUp={() => showAuth("Create a free account to access personalised AI recommendations, save schools, and compare unlimited options.")}
         onLogin={() => showAuth("Sign in to your Skoolly account.")}
         compareCount={compareIds.length}
+        favoritesCount={favorites.size}
+        onFavorites={goFavorites}
         onCompare={() => {
           if (compareIds.length >= 2) {
             setCompareModalOpen(true);
@@ -173,6 +188,26 @@ export default function App() {
           />
         )
       : null;
+  } else if (view === "favorites") {
+    pageContent = (
+      <FavoritesPage
+        schools={schools}
+        favorites={favorites}
+        compareIds={compareIds}
+        onToggleFavorite={toggleFavorite}
+        onToggleCompare={toggleCompare}
+        onSchoolClick={goSchool}
+        onOpenCalculator={goCalculator}
+        onOpenCompare={(ids) => {
+          if (ids && ids.length > 0) {
+            setCompareIds(ids.slice(0, 3));
+          }
+          setCompareModalOpen(true);
+        }}
+        onExplore={goHome}
+        onClearAllFavorites={clearAllFavorites}
+      />
+    );
   } else {
     pageContent = (
       <HomePage
@@ -194,7 +229,7 @@ export default function App() {
       {pageContent}
 
       {/* ── COMPARE BAR ───────────────────────────────────────────────────── */}
-      {view === "home" && (
+      {(view === "home" || view === "favorites") && compareIds.length > 0 && (
         <CompareBar
           compareIds={compareIds}
           schools={schools}
