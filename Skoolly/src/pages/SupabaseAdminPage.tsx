@@ -21,8 +21,13 @@ import {
   Languages,
   Award,
   Zap,
+  Stamp,
+  Sparkles,
+  ExternalLink,
+  RefreshCw,
+  Eye,
 } from "lucide-react";
-import type { OpecSchoolRecord, ScraperProgressState } from "@/types/opec";
+import type { OpecSchoolRecord, ScraperProgressState, PendingVersionRecord } from "@/types/opec";
 import {
   getSupabaseSchools,
   clearSupabaseData,
@@ -34,6 +39,10 @@ import {
   enrichSchoolData,
   getSupabaseStatus,
   enrichWithIsat,
+  getPendingVersions,
+  approveVersion,
+  rejectVersion,
+  scrapeSchoolTuition,
   type SupabaseStatusResponse,
 } from "@/api/opecApi";
 import { OpecDashboard } from "@/components/admin/OpecDashboard";
@@ -45,12 +54,13 @@ import { OpecDrillDownModal } from "@/components/admin/OpecDrillDownModal";
 import { OpecSupabaseModal } from "@/components/admin/OpecSupabaseModal";
 import { OpecUrlVerificationModal } from "@/components/admin/OpecUrlVerificationModal";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
+import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
 
 interface SupabaseAdminPageProps {
   onBack: () => void;
 }
 
-type AdminTab = "dashboard" | "schools" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
+type AdminTab = "dashboard" | "schools" | "approvals" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
 
 export function SupabaseAdminPage({
   onBack,
@@ -76,6 +86,12 @@ export function SupabaseAdminPage({
     schools: [],
   });
 
+  // Version Review & Approvals State
+  const [pendingVersions, setPendingVersions] = useState<PendingVersionRecord[]>([]);
+  const [isPendingLoading, setIsPendingLoading] = useState(false);
+  const [reviewingVersion, setReviewingVersion] = useState<PendingVersionRecord | null>(null);
+  const [isVersionActionLoading, setIsVersionActionLoading] = useState(false);
+
   // Confirmation Modals
   const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
@@ -89,6 +105,18 @@ export function SupabaseAdminPage({
     setToast(msg);
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     toastTimerRef.current = window.setTimeout(() => setToast(null), 3200);
+  }, []);
+
+  const loadPendingVersions = useCallback(async () => {
+    setIsPendingLoading(true);
+    try {
+      const vers = await getPendingVersions();
+      setPendingVersions(vers);
+    } catch {
+      // Backend service idle or table empty
+    } finally {
+      setIsPendingLoading(false);
+    }
   }, []);
 
   // Polling refs
@@ -180,13 +208,69 @@ export function SupabaseAdminPage({
   useEffect(() => {
     isMountedRef.current = true;
     loadSchoolsData();
+    loadPendingVersions();
     pollProgress();
     return () => {
       isMountedRef.current = false;
       if (pollTimerRef.current !== null) window.clearTimeout(pollTimerRef.current);
       if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     };
-  }, [loadSchoolsData, pollProgress]);
+  }, [loadSchoolsData, loadPendingVersions, pollProgress]);
+
+  // Handle Approve Version (Publish to Supabase)
+  const handleApproveVersion = async (versionId: string) => {
+    setIsVersionActionLoading(true);
+    try {
+      await approveVersion(versionId);
+      showToast("อนุมัติและเผยแพร่ค่าเทอมสู่ Supabase เรียบร้อยแล้ว!");
+      setReviewingVersion(null);
+      await loadPendingVersions();
+      await loadSchoolsData();
+    } catch (err: any) {
+      showToast(`อนุมัติไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setIsVersionActionLoading(false);
+    }
+  };
+
+  // Handle Reject Version
+  const handleRejectVersion = async (versionId: string, reason?: string) => {
+    setIsVersionActionLoading(true);
+    try {
+      await rejectVersion(versionId, reason);
+      showToast("ปฏิเสธข้อมูลเวอร์ชันนี้เรียบร้อยแล้ว");
+      setReviewingVersion(null);
+      await loadPendingVersions();
+    } catch (err: any) {
+      showToast(`ปฏิเสธไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setIsVersionActionLoading(false);
+    }
+  };
+
+  // Handle Scrape Single School Tuition
+  const handleScrapeSchool = async (school: OpecSchoolRecord) => {
+    if (!school.website) {
+      showToast("โรงเรียนนี้ยังไม่มี Official Website ไม่สามารถ Scrape ได้");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      showToast(`กำลังเริ่ม Scrape ค่าเทอมสำหรับ ${school.school_name_th}...`);
+      await scrapeSchoolTuition(
+        school.school_code,
+        school.school_name_en || school.school_name_th,
+        school.website
+      );
+      showToast("เริ่มการค้นหาค่าเทอมแล้ว! กรุณาตรวจสอบสถานะใน Activity Console");
+      pollProgress();
+      await loadPendingVersions();
+    } catch (err: any) {
+      showToast(`Scrape ค่าเทอมไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Action: Trigger OPEC scrape directly into Supabase
   const handleConfirmSyncOpec = async () => {
@@ -665,6 +749,35 @@ export function SupabaseAdminPage({
               </span>
             </button>
 
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("approvals");
+                loadPendingVersions();
+              }}
+              className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between ${
+                activeTab === "approvals"
+                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
+                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Stamp className={`w-4 h-4 ${activeTab === "approvals" ? "text-amber-400" : "text-amber-600"}`} />
+                <span>รออนุมัติค่าเทอม</span>
+              </div>
+              {pendingVersions.length > 0 ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-black animate-pulse">
+                  {pendingVersions.length}
+                </span>
+              ) : (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                  activeTab === "approvals" ? "bg-white/20 text-white" : "bg-[#f5efe6] text-[#78716c]"
+                }`}>
+                  0
+                </span>
+              )}
+            </button>
+
             <div className="pt-2 pb-1 px-3">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">ระบบจัดการ (Operations)</span>
             </div>
@@ -775,7 +888,180 @@ export function SupabaseAdminPage({
                   schools={schools}
                   onSelectSchool={(s) => setSelectedSchool(s)}
                   onRefresh={loadSchoolsData}
+                  onScrapeSchool={handleScrapeSchool}
                 />
+              )}
+
+              {activeTab === "approvals" && (
+                <div className="space-y-6">
+                  {/* Header Card */}
+                  <div className="bg-white border border-[#eae0d0] rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center">
+                        <Stamp className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-base font-bold text-[#1c1917] flex items-center gap-2">
+                          <span>ศูนย์ตรวจสอบและอนุมัติค่าเทอม (Tuition Approvals & Diff View)</span>
+                          {pendingVersions.length > 0 && (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-[#1c1917]">
+                              {pendingVersions.length} รายการ
+                            </span>
+                          )}
+                        </h2>
+                        <p className="text-xs text-[#78716c] mt-0.5">
+                          ตรวจสอบความถูกต้องของข้อมูลค่าเทอมและนโยบายความปลอดภัยที่ดึงจากเว็บไซต์ทางการผ่านระบบ Scraper ก่อนเผยแพร่สู่ผู้ปกครอง
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={loadPendingVersions}
+                        disabled={isPendingLoading}
+                        className="px-3.5 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/60 text-[#1c1917] text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isPendingLoading ? "animate-spin" : ""}`} />
+                        <span>รีเฟรช</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List / Empty State */}
+                  {isPendingLoading ? (
+                    <div className="bg-white border border-[#eae0d0] rounded-3xl p-16 text-center shadow-xs">
+                      <Loader2 className="w-8 h-8 text-amber-600 animate-spin mx-auto mb-3" />
+                      <p className="text-xs text-[#78716c]">กำลังโหลดรายการค่าเทอมที่รอตรวจสอบ...</p>
+                    </div>
+                  ) : pendingVersions.length === 0 ? (
+                    <div className="bg-white border border-[#eae0d0] rounded-3xl p-12 text-center shadow-xs space-y-4">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
+                      <div className="max-w-md mx-auto space-y-1">
+                        <h3 className="text-sm font-bold text-[#1c1917]">
+                          ไม่มีรายการค่าเทอมที่รอตรวจสอบในขณะนี้
+                        </h3>
+                        <p className="text-xs text-[#78716c] leading-relaxed">
+                          ข้อมูลค่าเทอมของโรงเรียนในระบบ Supabase เป็นปัจจุบันตรงกับฉบับเผยแพร่แล้ว คุณสามารถกด "Scrape ค่าเทอม" จากหน้ารายชื่อโรงเรียนเพื่อดึงข้อมูลใหม่ได้ตลอดเวลา
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("schools")}
+                        className="px-4 py-2 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold shadow-xs transition-all inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <School className="w-4 h-4 text-amber-400" />
+                        <span>ไปที่หน้ารายชื่อโรงเรียน</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {pendingVersions.map((v) => {
+                        const confScore = v.confidence_score ? Math.round(v.confidence_score * 100) : null;
+                        const annualAmounts = (v.fees || [])
+                          .map((f) => f.annual_thb || (f.semester_thb ? f.semester_thb * 2 : null))
+                          .filter((amt): amt is number => amt !== null && amt > 0);
+                        const minTuition = annualAmounts.length > 0 ? Math.min(...annualAmounts) : null;
+                        const maxTuition = annualAmounts.length > 0 ? Math.max(...annualAmounts) : null;
+
+                        return (
+                          <div
+                            key={v.version_id}
+                            className="bg-white border border-[#eae0d0] hover:border-amber-400/60 rounded-3xl p-5 sm:p-6 shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-5"
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] flex items-center justify-center shrink-0 text-[#ab8e72] font-black text-sm">
+                                {v.province ? v.province.substring(0, 2) : "รร"}
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black uppercase">
+                                    Version {v.version_number} (Draft)
+                                  </span>
+                                  <span className="text-[11px] font-mono text-[#78716c]">
+                                    {v.opec_school_code}
+                                  </span>
+                                  {v.province && (
+                                    <span className="text-[11px] text-[#78716c]">
+                                      📍 {v.province} {v.district ? `(${v.district})` : ""}
+                                    </span>
+                                  )}
+                                  {confScore !== null && (
+                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                      confScore >= 80
+                                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                        : "bg-amber-100 text-amber-800 border border-amber-200"
+                                    }`}>
+                                      ความมั่นใจ {confScore}%
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h3 className="text-base font-bold text-[#1c1917]">{v.name_th}</h3>
+                                {v.name_en && (
+                                  <p className="text-xs text-[#78716c] font-medium">{v.name_en}</p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#57534e]">
+                                  <div>
+                                    <span className="text-[#a8a29e]">ค่าเทอมที่สกัดได้: </span>
+                                    <strong className="text-emerald-800 font-bold">
+                                      {minTuition && maxTuition
+                                        ? `฿${minTuition.toLocaleString()} - ฿${maxTuition.toLocaleString()} / ปี`
+                                        : minTuition
+                                        ? `฿${minTuition.toLocaleString()} / ปี`
+                                        : "ตามตารางระดับชั้น"}
+                                    </strong>
+                                  </div>
+                                  <span className="text-[#eae0d0]">•</span>
+                                  <div>
+                                    <span className="text-[#a8a29e]">ระดับชั้น: </span>
+                                    <strong>{v.fees?.length || 0} ระดับ</strong>
+                                  </div>
+                                  <span className="text-[#eae0d0]">•</span>
+                                  <div>
+                                    <span className="text-[#a8a29e]">ค่าใช้จ่ายแฝง: </span>
+                                    <strong>{v.extra_fees?.length || 0} รายการ</strong>
+                                  </div>
+                                  {v.safety?.child_safeguarding_policy && (
+                                    <>
+                                      <span className="text-[#eae0d0]">•</span>
+                                      <span className="text-emerald-700 font-medium">🛡️ Child Safeguarding Policy</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 shrink-0 self-end lg:self-center">
+                              {v.scraped_page_url && (
+                                <a
+                                  href={v.scraped_page_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-2.5 rounded-xl bg-[#faf5ee] hover:bg-[#eae0d0] text-[#78716c] hover:text-[#1c1917] transition-all"
+                                  title="เปิดดูหน้าเว็บต้นทาง"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setReviewingVersion(v)}
+                                className="px-4 py-2.5 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4 text-amber-400" />
+                                <span>ตรวจสอบ Diff & อนุมัติ</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
 
               {activeTab === "verify" && (
@@ -827,7 +1113,7 @@ export function SupabaseAdminPage({
                 </div>
               )}
 
-              {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "verify" && (
+              {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "approvals" && activeTab !== "verify" && (
                 <div className="bg-white border border-[#eae0d0] rounded-3xl p-12 text-center shadow-xs">
                   <div className="w-12 h-12 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] text-[#ab8e72] flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
@@ -854,6 +1140,15 @@ export function SupabaseAdminPage({
           setEditingWebsiteSchool(s);
         }}
         onResolveSchoolWebsite={handleResolveSingleWebsite}
+        onScrapeTuition={handleScrapeSchool}
+      />
+
+      <VersionApprovalModal
+        version={reviewingVersion}
+        onClose={() => setReviewingVersion(null)}
+        onApprove={handleApproveVersion}
+        onReject={handleRejectVersion}
+        isActionLoading={isVersionActionLoading}
       />
 
       <OpecEditWebsiteModal

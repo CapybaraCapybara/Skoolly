@@ -255,9 +255,11 @@ create table if not exists school_data.version_fees (
 
   grade_label         text not null,          -- ข้อความดิบจากเว็บ เช่น "Year 7 - Year 9"
   level_code          text,                   -- รหัสระดับชั้น เช่น 'PRIMARY', 'KINDERGARTEN' (nullable)
+  order_start         int,                    -- order_index ของชั้นแรกในช่วง (เช่น 5 สำหรับ ป.1)
+  order_end           int,                    -- order_index ของชั้นสุดท้ายในช่วง (เช่น 6 สำหรับ ป.1-ป.2)
+  display_name        text,                   -- ชื่อเทียบเคียง เช่น 'ป.1–ป.2 (Year 2–3)' (Admin ยืนยันแล้ว)
 
   annual_thb          numeric(12,2),
-  semester_thb        numeric(12,2),
   currency            char(3) not null default 'THB',
 
   academic_year       text,                   -- มิติ 3: "2568" / "2026/27"
@@ -267,7 +269,9 @@ create table if not exists school_data.version_fees (
   notes               text,
 
   constraint version_fees_has_amount
-    check (annual_thb is not null or semester_thb is not null or notes is not null)
+    check (annual_thb is not null or notes is not null),
+  constraint version_fees_order_range
+    check (order_start is null or order_end is null or order_start <= order_end)
 );
 
 -- ── 3.6 ค่าใช้จ่ายแฝง (hidden_costs) ──────────────────────────────────────────

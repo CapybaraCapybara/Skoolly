@@ -533,24 +533,33 @@ def _extract_page_content_with_tables(p) -> str:
         pass
     return txt
 
-def extract_pdf_text(page, pdf_url, max_chars=8000):
+def extract_pdf_text(page, pdf_url, max_chars=8000, min_chars_per_page=20) -> dict:
     """
     ฟังก์ชันดึงข้อความจากไฟล์ PDF:
+    - คำนวณ total_extracted_chars เทียบกับ total_pages เพื่อเช็ค likely_scanned
     - วิธีที่ 1 (วิธีหลัก): อ่านข้อความและตาราง Markdown จาก 5 หน้าแรก
     - วิธีที่ 3 (วิธีสำรอง): ถ้าวิธีที่ 1 ดึงได้น้อย ให้วนหาเฉพาะหน้าที่มีคำสำคัญ
+    - คืนค่า: {"text": str, "likely_scanned": bool}
     """
     try:
         # 1. ดาวน์โหลดไฟล์ PDF
         resp = page.context.request.get(pdf_url, timeout=20000)
         if not resp.ok:
-            return ""
+            return {"text": "", "likely_scanned": False}
 
         pdf_bytes = io.BytesIO(resp.body())
 
         with pdfplumber.open(pdf_bytes) as pdf:
             total_pages = len(pdf.pages)
             if total_pages == 0:
-                return ""
+                return {"text": "", "likely_scanned": False}
+
+            total_extracted_chars = 0
+            for p in pdf.pages:
+                raw_t = p.extract_text() or ""
+                total_extracted_chars += len(raw_t.strip())
+
+            likely_scanned = (total_extracted_chars / total_pages) < min_chars_per_page
 
             # --- วิธีที่ 1 (หลัก): ดึงข้อความพร้อมตารางจาก 5 หน้าแรก ---
             first_pages_text = []
@@ -563,7 +572,7 @@ def extract_pdf_text(page, pdf_url, max_chars=8000):
 
             # ถ้าดึงได้ข้อความเกิน 200 ตัวอักษร ให้ถือว่าวิธีที่ 1 สำเร็จ
             if len(combined_text) >= 200:
-                return combined_text[:max_chars]
+                return {"text": combined_text[:max_chars], "likely_scanned": likely_scanned}
 
             # --- วิธีที่ 3 (สำรอง): ถ้าวิธีที่ 1 ได้ข้อความน้อย ให้ค้นหาเฉพาะหน้าที่ตรงกับคีย์เวิร์ด ---
             keywords = ["safeguard", "child protect", "safety", "security", "health", "reporting", "policy", "fee", "tuition", "cost", "admission"]
@@ -582,13 +591,13 @@ def extract_pdf_text(page, pdf_url, max_chars=8000):
                         break
 
             if targeted_text:
-                return "\n\n".join(targeted_text)[:max_chars]
+                return {"text": "\n\n".join(targeted_text)[:max_chars], "likely_scanned": likely_scanned}
 
-            return combined_text[:max_chars]
+            return {"text": combined_text[:max_chars], "likely_scanned": likely_scanned}
 
     except Exception as e:
-        print(f"    ⚠️ Failed to read PDF ({pdf_url}): {e}")
-        return ""
+        print(f"    Failed to read PDF ({pdf_url}): {e}")
+        return {"text": "", "likely_scanned": False}
 
 def ai_extract(client, school_name, page_text):
     prompt = f"""Extract school fee, curriculum, AND campus safety/security information for "{school_name}" from the
@@ -732,10 +741,15 @@ def scrape_endpoint(req: ScrapeRequest):
             combined_text = f"=== TUITION & FEE PAGE ({target_fee_url}) ===\n" + clean_page_text(fee_html)
 
             # Detect PDFs on fee page
+            needs_ocr_review = False
             fee_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs)
             for pu in fee_pdf_urls:
                 add_log("pdf_detected", "found PDF on fee page", pu)
-                pdf_text = extract_pdf_text(page, pu)
+                pdf_res = extract_pdf_text(page, pu)
+                pdf_text = pdf_res.get("text", "")
+                if pdf_res.get("likely_scanned"):
+                    needs_ocr_review = True
+                    add_log("pdf_scanned_no_text_layer", "Fee PDF appears to be a scanned image with no text layer", url=pu, status="warning")
                 if pdf_text:
                     combined_text += f"\n\n--- Fee PDF content from {pu} ---\n{pdf_text}"
                     add_log("pdf_extracted", f"extracted {len(pdf_text)} chars from fee PDF", pu)
@@ -759,7 +773,11 @@ def scrape_endpoint(req: ScrapeRequest):
                     safety_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs)
                     for spu in safety_pdf_urls:
                         add_log("pdf_detected_safety", "found policy PDF on safety page", spu)
-                        policy_pdf_text = extract_pdf_text(page, spu)
+                        policy_res = extract_pdf_text(page, spu)
+                        policy_pdf_text = policy_res.get("text", "")
+                        if policy_res.get("likely_scanned"):
+                            needs_ocr_review = True
+                            add_log("pdf_scanned_no_text_layer", "Policy PDF appears to be a scanned image with no text layer", url=spu, status="warning")
                         if policy_pdf_text:
                             combined_text += f"\n\n--- Policy PDF Content from {spu} ---\n{policy_pdf_text}"
                             add_log("pdf_extracted_safety", f"extracted {len(policy_pdf_text)} chars from policy PDF", spu)
@@ -807,6 +825,7 @@ def scrape_endpoint(req: ScrapeRequest):
                 "page_scraped": target_fee_url,
                 "fee_page_discovery": fee_page_discovery,
                 "identity_verified": identity_verified,
+                "needs_ocr_review": needs_ocr_review,
                 "elapsed_sec": round(time.time() - t0, 1),
                 **extraction,
             })

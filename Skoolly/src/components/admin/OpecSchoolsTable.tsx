@@ -14,6 +14,7 @@ import {
   ChevronRight,
   RefreshCw,
   ArrowUpDown,
+  Sparkles,
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
 
@@ -21,6 +22,7 @@ interface OpecSchoolsTableProps {
   schools: OpecSchoolRecord[];
   onSelectSchool: (school: OpecSchoolRecord) => void;
   onRefresh: () => void;
+  onScrapeSchool?: (school: OpecSchoolRecord) => void;
 }
 
 type StatFilter = "all" | "has_website" | "missing_en" | "missing_gps" | "provinces" | "missing_website";
@@ -40,6 +42,7 @@ export function OpecSchoolsTable({
   schools,
   onSelectSchool,
   onRefresh,
+  onScrapeSchool,
 }: OpecSchoolsTableProps) {
   const [activeStatFilter, setActiveStatFilter] = useState<StatFilter>("all");
   const [search, setSearch] = useState("");
@@ -539,15 +542,29 @@ export function OpecSchoolsTable({
                         )}
                       </td>
                       <td className="py-3.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => onSelectSchool(s)}
-                          className="px-3 py-1.5 bg-[#faf5ee] hover:bg-[#1c1917] hover:text-white border border-[#e2d8c7] text-[#1c1917] rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5"
-                          title="ดูรายละเอียดเชิงลึกและจัดการข้อมูล"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-[#ab8e72]" />
-                          <span>ดูข้อมูล</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onSelectSchool(s)}
+                            className="px-2.5 py-1.5 bg-[#faf5ee] hover:bg-[#1c1917] hover:text-white border border-[#e2d8c7] text-[#1c1917] rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1"
+                            title="ดูรายละเอียดเชิงลึกและจัดการข้อมูล"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-[#ab8e72]" />
+                            <span>ดูข้อมูล</span>
+                          </button>
+
+                          {onScrapeSchool && s.website && (
+                            <button
+                              type="button"
+                              onClick={() => onScrapeSchool(s)}
+                              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-500 hover:text-white border border-amber-200 text-amber-900 rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1"
+                              title="เริ่มดึงข้อมูลค่าเทอมจากเว็บไซต์"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-600 group-hover:text-white" />
+                              <span className="hidden sm:inline">Scrape</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -7,6 +7,7 @@ import type {
   WebsiteRegistryItem,
   WebsiteRegistryResponse,
   WebsiteHealthState,
+  PendingVersionRecord,
 } from "@/types/opec";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
@@ -463,6 +464,72 @@ export async function enrichWithIsat(): Promise<{
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "การเชื่อมต่อล้มเหลว" }));
     throw new Error(err.detail || "ไม่สามารถดึงข้อมูลจาก ISAT ได้");
+  }
+  return await res.json();
+}
+
+export async function getPendingVersions(): Promise<PendingVersionRecord[]> {
+  const res = await fetch(`${API_BASE}/api/supabase/pending-versions?t=${Date.now()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถดึงรายการเวอร์ชันที่รอตรวจสอบได้");
+  }
+  return await res.json();
+}
+
+export async function approveVersion(versionId: string): Promise<{
+  status: string;
+  action: string;
+  version_id: string;
+  school_id: string;
+  min_tuition?: number | null;
+  max_tuition?: number | null;
+  has_safeguarding?: boolean | null;
+}> {
+  const res = await fetch(`${API_BASE}/api/supabase/versions/${versionId}/approve`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "การอนุมัติล้มเหลว" }));
+    throw new Error(err.detail || "ไม่สามารถอนุมัติเวอร์ชันได้");
+  }
+  return await res.json();
+}
+
+export async function rejectVersion(
+  versionId: string,
+  reason?: string
+): Promise<{ status: string; action: string; version_id: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/versions/${versionId}/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason: reason || "ไม่ผ่านเกณฑ์การตรวจสอบของแอดมิน" }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "การปฏิเสธล้มเหลว" }));
+    throw new Error(err.detail || "ไม่สามารถปฏิเสธเวอร์ชันได้");
+  }
+  return await res.json();
+}
+
+export async function scrapeSchoolTuition(
+  schoolId: string,
+  schoolName: string,
+  website: string
+): Promise<{ status: string; message: string }> {
+  const res = await fetch(`${API_BASE}/api/supabase/scrape-school`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      school_id: schoolId,
+      school_name: schoolName,
+      website: website,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถเริ่ม Scrape ได้" }));
+    throw new Error(err.detail || "ไม่สามารถเริ่ม Scrape ค่าเทอมได้");
   }
   return await res.json();
 }

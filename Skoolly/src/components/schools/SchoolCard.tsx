@@ -2,6 +2,7 @@ import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 
 export function formatTuition(n: number) {
+  if (!n || n <= 0) return "Contact school";
   if (n >= 1000000) return `฿${(n / 1000000).toFixed(1)}M`;
   return `฿${(n / 1000).toFixed(0)}K`;
 }
@@ -27,6 +28,7 @@ interface SchoolCardProps {
   onToggleFavorite: (id: number) => void;
   onRestrictedAction: (reason: string) => void;
   onSchoolClick: (id: number) => void;
+  onCompareLimitReached?: (school: School) => void;
 }
 
 export function SchoolCard({
@@ -37,20 +39,28 @@ export function SchoolCard({
   onToggleFavorite,
   onRestrictedAction,
   onSchoolClick,
+  onCompareLimitReached,
 }: SchoolCardProps) {
   const isCompared = compareIds.includes(school.id);
   const isFav = favorites.has(school.id);
   const compareAtLimit = compareIds.length >= MAX_COMPARE && !isCompared;
+
+  const imageSrc = school.image.startsWith("http")
+    ? school.image
+    : `https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`;
 
   return (
     <div className="card-hover bg-warm-cream rounded-[2rem] overflow-hidden border border-warm-accent shadow-sm flex flex-col p-3">
       {/* Cover image */}
       <div className="relative h-56 bg-warm-accent rounded-[1.5rem] overflow-hidden cursor-pointer" onClick={() => onSchoolClick(school.id)}>
         <img
-          src={`https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`}
+          src={imageSrc}
           alt={`${school.name} campus`}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=350&fit=crop&auto=format";
+          }}
         />
         {school.badge && (
           <span className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze">
@@ -58,9 +68,12 @@ export function SchoolCard({
           </span>
         )}
         <button
-          onClick={() => onToggleFavorite(school.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(school.id);
+          }}
           title={isFav ? "Remove from saved" : "Save school"}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer"
           style={{ background: isFav ? "#ef4444" : "rgba(250,248,245,0.9)", backdropFilter: "blur(4px)" }}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isFav ? "white" : "none"} stroke={isFav ? "white" : "#1c1917"} strokeWidth={2}>
@@ -94,7 +107,16 @@ export function SchoolCard({
         <div className="mt-auto pt-2.5 flex items-end justify-between border-t border-warm-accent/30">
           <div>
             <div className="text-[10px] uppercase font-bold tracking-wider text-warm-charcoal/50">Starting from</div>
-            <div className="font-extrabold text-warm-charcoal text-base">{formatTuition(school.tuitionStart)}<span className="text-xs font-normal text-warm-charcoal/50">/yr</span></div>
+            <div className="font-extrabold text-warm-charcoal text-base">
+              {school.tuitionStart > 0 ? (
+                <>
+                  {formatTuition(school.tuitionStart)}
+                  <span className="text-xs font-normal text-warm-charcoal/50">/yr</span>
+                </>
+              ) : (
+                <span className="text-sm font-semibold text-warm-charcoal/60">Contact school</span>
+              )}
+            </div>
           </div>
           <div className="text-right">
             <StarRating rating={school.rating} />
@@ -112,30 +134,36 @@ export function SchoolCard({
         </div>
 
         {/* Compare */}
-        <label
-          className={`flex items-center gap-2 mt-1 text-xs cursor-pointer select-none group ${compareAtLimit ? "opacity-40" : ""}`}
-          title={compareAtLimit ? `Compare limit reached (${MAX_COMPARE} schools max as guest)` : ""}
+        <div
+          onClick={(e) => {
+            if (compareAtLimit) {
+              e.preventDefault();
+              onCompareLimitReached?.(school);
+            }
+          }}
+          className={`flex items-center gap-2 mt-1 text-xs select-none group ${compareAtLimit ? "cursor-pointer" : "cursor-pointer"}`}
+          title={compareAtLimit ? `เลือกครบ ${MAX_COMPARE} โรงเรียนแล้ว (คลิกเพื่อเลือกลบและแทนที่)` : isCompared ? "นำออกจากเปรียบเทียบ" : "เพิ่มเข้าเปรียบเทียบ"}
         >
           <input
             type="checkbox"
             checked={isCompared}
-            disabled={compareAtLimit}
+            readOnly={compareAtLimit}
             onChange={() => {
-              if (compareAtLimit) {
-                onRestrictedAction("Guest comparisons are limited to 3 schools per session. Sign in to compare more and save your comparisons.");
-              } else {
+              if (!compareAtLimit) {
                 onToggleCompare(school.id);
               }
             }}
-            className="w-4 h-4 rounded accent-warm-bronze border-warm-accent"
+            className="w-4 h-4 rounded accent-warm-bronze border-warm-accent cursor-pointer"
           />
-          <span className="text-warm-charcoal/80 group-hover:text-warm-bronze transition-colors font-medium">Add to Compare</span>
+          <span className={`transition-colors font-medium ${isCompared ? "text-warm-bronze font-bold" : "text-warm-charcoal/80 group-hover:text-warm-bronze"}`}>
+            {isCompared ? "อยู่ในรายการเปรียบเทียบ" : "Add to Compare"}
+          </span>
           {compareAtLimit && (
-            <svg className="w-3.5 h-3.5 text-warm-bronze ml-auto" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-            </svg>
+            <span className="ml-auto text-[10px] font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+              3/3 เต็ม (สลับ)
+            </span>
           )}
-        </label>
+        </div>
       </div>
     </div>
   );

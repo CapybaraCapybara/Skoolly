@@ -38,6 +38,10 @@ try:
         update_supabase_school_gps,
         update_supabase_school_websites,
         sync_single_school_to_supabase,
+        fetch_pending_versions,
+        approve_school_version,
+        reject_school_version,
+        save_scraped_draft_version,
     )
     from opec.website_registry import (
         get_full_registry_status,
@@ -69,6 +73,10 @@ except ImportError:
         update_supabase_school_gps,
         update_supabase_school_websites,
         sync_single_school_to_supabase,
+        fetch_pending_versions,
+        approve_school_version,
+        reject_school_version,
+        save_scraped_draft_version,
     )
     from website_registry import (  # type: ignore
         get_full_registry_status,
@@ -627,6 +635,110 @@ def put_update_supabase_school(school_id: str, payload: Dict[str, Any]):
 def delete_supabase_school_endpoint(school_id: str):
     try:
         return delete_supabase_school(school_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/supabase/pending-versions")
+def get_pending_versions_endpoint():
+    try:
+        return fetch_pending_versions()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class RejectVersionPayload(BaseModel):
+    reason: Optional[str] = "ไม่ผ่านเกณฑ์การตรวจสอบของแอดมิน"
+
+@app.post("/api/supabase/versions/{version_id}/approve")
+def post_approve_version_endpoint(version_id: str):
+    try:
+        return approve_school_version(version_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/supabase/versions/{version_id}/reject")
+def post_reject_version_endpoint(version_id: str, payload: Optional[RejectVersionPayload] = None):
+    try:
+        reason = payload.reason if payload else None
+        return reject_school_version(version_id, reason=reason)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class ScrapeSchoolPayload(BaseModel):
+    school_id: str
+    school_name: str
+    website: str
+
+def run_single_school_scrape_worker(school_id: str, school_name: str, website: str):
+    global scraper_state
+    with state_lock:
+        scraper_state["is_running"] = True
+        scraper_state["task"] = f"กำลัง Scrape ค่าเทอม: {school_name}..."
+        scraper_state["current"] = 1
+        scraper_state["total"] = 100
+        scraper_state["percent"] = 15
+        scraper_state["log"] = f"เริ่มต้นกระบวนการค้นหาค่าเทอมจาก {website}..."
+        scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] เริ่มสแกน {website} ({school_name})...")
+
+    try:
+        import requests
+        scraper_url = "http://127.0.0.1:8001/scrape"
+        resp = None
+        try:
+            resp = requests.post(scraper_url, json={"school_name": school_name, "homepage_url": website}, timeout=120)
+        except Exception:
+            pass
+
+        if resp and resp.status_code == 200 and resp.json().get("status") == "success":
+            result_data = resp.json()["result_data"]
+            draft_res = save_scraped_draft_version(school_id, result_data)
+            with state_lock:
+                scraper_state["log"] = f"Scrape สำเร็จ! บันทึกแบบร่าง Version {draft_res.get('version_number')} รอแอดมินอนุมัติ"
+                scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] สร้างแบบร่าง Version {draft_res.get('version_number')} รอแอดมินอนุมัติเรียบร้อยแล้ว")
+            return
+
+        # Fallback to checking local results.json if already extracted
+        results_file = os.path.join(BASE_DIR, "results.json")
+        matched = None
+        if os.path.exists(results_file):
+            try:
+                with open(results_file, "r", encoding="utf-8") as f:
+                    scraped_items = json.load(f)
+                    for it in scraped_items:
+                        s_name = it.get("school_name", "").lower()
+                        if s_name in school_name.lower() or school_name.lower() in s_name:
+                            matched = it
+                            break
+            except Exception:
+                pass
+
+        if matched:
+            draft_res = save_scraped_draft_version(school_id, matched)
+            with state_lock:
+                scraper_state["log"] = f"บันทึกแบบร่างจากผลลัพธ์เดิม: Version {draft_res.get('version_number')} (รออนุมัติ)"
+                scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] บันทึกแบบร่าง Version {draft_res.get('version_number')} สำเร็จ รอแอดมินอนุมัติ")
+        else:
+            with state_lock:
+                scraper_state["log"] = "ไม่สามารถเชื่อมต่อ Scraper Service (port 8001) กรุณาเปิด service ก่อนรัน"
+                scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] Scraper Service (port 8001) ไม่ได้เปิดใช้งาน")
+
+    except Exception as e:
+        with state_lock:
+            scraper_state["log"] = f"เกิดข้อผิดพลาดในการ Scrape: {str(e)}"
+            scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] Error: {str(e)}")
+    finally:
+        with state_lock:
+            scraper_state["is_running"] = False
+            scraper_state["percent"] = 100
+
+@app.post("/api/supabase/scrape-school")
+def post_scrape_school_endpoint(payload: ScrapeSchoolPayload):
+    try:
+        threading.Thread(
+            target=run_single_school_scrape_worker,
+            args=(payload.school_id, payload.school_name, payload.website),
+            daemon=True
+        ).start()
+        return {"status": "started", "message": f"กำลังเริ่ม Scrape ค่าเทอมสำหรับ {payload.school_name}..."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

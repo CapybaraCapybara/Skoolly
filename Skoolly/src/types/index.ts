@@ -5,6 +5,7 @@ export type View =
   | "calculator"
   | "admin"
   | "supabase-admin"
+  | "favorites"
   | { type: "school"; id: number }
   | { type: "calculator"; schoolId?: number };
 export * from "./opec";

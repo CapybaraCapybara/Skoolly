@@ -16,6 +16,9 @@ import {
   X,
   Users,
   Info,
+  GraduationCap,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +56,7 @@ export function CostCalculatorPage({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [showYearlyTable, setShowYearlyTable] = useState<boolean>(true);
+  const [showTuitionTiers, setShowTuitionTiers] = useState<boolean>(false);
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
 
   // Form State
@@ -96,6 +100,249 @@ export function CostCalculatorPage({
   const availableAddons = useMemo(() => {
     return currentSchool ? getSchoolAvailableAddons(currentSchool) : [];
   }, [currentSchool]);
+
+  const schoolStages = useMemo(() => {
+    if (!grades.length) return [];
+    const set = new Set<string>();
+    grades.forEach((g) => {
+      if (g.level_code === "PRE_NURSERY" || g.display_name?.includes("เตรียมอนุบาล")) set.add("เตรียมอนุบาล");
+      else if (g.level_code === "KINDERGARTEN" || g.display_name?.includes("อ.")) set.add("อนุบาล");
+      else if (g.level_code === "PRIMARY" || g.display_name?.includes("ป.")) set.add("ประถม");
+      else if (g.level_code === "LOWER_SECONDARY" || g.display_name?.includes("ม.1") || g.display_name?.includes("ม.2") || g.display_name?.includes("ม.3")) set.add("มัธยมต้น");
+      else if (g.level_code === "UPPER_SECONDARY" || g.display_name?.includes("ม.4") || g.display_name?.includes("ม.5") || g.display_name?.includes("ม.6")) set.add("มัธยมปลาย");
+    });
+    return Array.from(set);
+  }, [grades]);
+
+  // Kindergarten boundary helper index
+  const kgEndIdx = useMemo(() => {
+    if (!grades.length) return -1;
+    for (let i = grades.length - 1; i >= 0; i--) {
+      const g = grades[i];
+      if (
+        g.level_code === "KINDERGARTEN" ||
+        g.level_code === "PRE_NURSERY" ||
+        (typeof g.order_end === "number" && g.order_end <= 3) ||
+        g.display_name?.includes("อ.") ||
+        g.display_name?.includes("เตรียมอนุบาล")
+      ) {
+        return i;
+      }
+    }
+    return -1;
+  }, [grades]);
+
+  // Primary boundary helper index
+  const primaryEndIdx = useMemo(() => {
+    if (!grades.length) return -1;
+    for (let i = grades.length - 1; i >= 0; i--) {
+      const g = grades[i];
+      if (
+        g.level_code === "PRIMARY" ||
+        (typeof g.order_end === "number" && g.order_end >= 4 && g.order_end <= 9) ||
+        g.display_name?.includes("ป.")
+      ) {
+        return i;
+      }
+    }
+    return -1;
+  }, [grades]);
+
+  // Lower secondary boundary helper index
+  const lowerSecEndIdx = useMemo(() => {
+    if (!grades.length) return -1;
+    for (let i = grades.length - 1; i >= 0; i--) {
+      const g = grades[i];
+      if (
+        g.level_code === "LOWER_SECONDARY" ||
+        (typeof g.order_end === "number" && g.order_end >= 10 && g.order_end <= 12) ||
+        g.display_name?.includes("ม.1") ||
+        g.display_name?.includes("ม.2") ||
+        g.display_name?.includes("ม.3")
+      ) {
+        return i;
+      }
+    }
+    return -1;
+  }, [grades]);
+
+  // 4 Stage milestone targets for 1-click education journey selection (Option 3)
+  const stageMilestones = useMemo(() => {
+    const s1Start = 0;
+    const s1End = kgEndIdx >= 0 ? kgEndIdx : -1;
+
+    const s2Start = s1End >= 0 ? s1End + 1 : 0;
+    const s2End = primaryEndIdx >= 0 ? primaryEndIdx : -1;
+
+    const s3Start = s2End >= 0 ? s2End + 1 : s2Start;
+    const s3End = lowerSecEndIdx >= 0 ? lowerSecEndIdx : -1;
+
+    const s4Start = s3End >= 0 ? s3End + 1 : s3Start;
+    const s4End = grades.length > 0 ? grades.length - 1 : -1;
+
+    return [
+      {
+        id: "kg",
+        stageNum: "Early Years",
+        title: "เตรียม / อนุบาล",
+        subtitle: "อ.1 – อ.3",
+        startIdx: s1Start,
+        endIdx: s1End,
+      },
+      {
+        id: "primary",
+        stageNum: "Primary",
+        title: "ประถมศึกษา",
+        subtitle: "ป.1 – ป.6",
+        startIdx: s2Start,
+        endIdx: s2End,
+      },
+      {
+        id: "lower_sec",
+        stageNum: "Lower Sec",
+        title: "มัธยมศึกษาตอนต้น",
+        subtitle: "ม.1 – ม.3",
+        startIdx: s3Start,
+        endIdx: s3End,
+      },
+      {
+        id: "graduation",
+        stageNum: "Upper Sec",
+        title: "มัธยมศึกษาตอนปลาย",
+        subtitle: "ม.4 – ม.6 (จบการศึกษา)",
+        startIdx: s4Start,
+        endIdx: s4End,
+      },
+    ];
+  }, [grades.length, kgEndIdx, primaryEndIdx, lowerSecEndIdx]);
+
+  // Short label helper for grade node timeline strip
+  const getGradeShortLabel = (g: { display_name?: string | null; grade_level?: string }, idx: number): string => {
+    const name = g.display_name || g.grade_level || "";
+    if (/เตรียมอนุบาล/i.test(name)) return "ต.อ.";
+    
+    // Check abbreviation first
+    const abbrevMatch = name.match(/(อ\.\d(?:[–-]อ?\.\d)?|ป\.\d(?:[–-]ป?\.\d)?|ม\.\d(?:[–-]ม?\.\d)?)/);
+    if (abbrevMatch) return abbrevMatch[0].replace(/–/g, "-");
+
+    // Check full Thai names
+    const mThai = name.match(/มัธยมศึกษาปีที่\s*(\d)(?:[–-](\d))?/);
+    if (mThai) return mThai[2] ? `ม.${mThai[1]}-${mThai[2]}` : `ม.${mThai[1]}`;
+
+    const pThai = name.match(/ประถมศึกษาปีที่\s*(\d)(?:[–-](\d))?/);
+    if (pThai) return pThai[2] ? `ป.${pThai[1]}-${pThai[2]}` : `ป.${pThai[1]}`;
+
+    const aThai = name.match(/อนุบาล\s*(\d)(?:[–-](\d))?/);
+    if (aThai) return aThai[2] ? `อ.${aThai[1]}-${aThai[2]}` : `อ.${aThai[1]}`;
+
+    const enMatch = name.match(/(Nursery|FS\d|KG\d|Reception|Year\s*\d+(-\d+)?|Grade\s*\d+(-\d+)?|K\d)/i);
+    if (enMatch) {
+      return enMatch[0].replace(/Year\s*/i, "Y").replace(/Grade\s*/i, "G");
+    }
+    return `Y${idx + 1}`;
+  };
+
+  // Helper to format full grade title (ONLY full names, no "ม.1-ม.3" abbreviations before full name)
+  // Example: "มัธยมศึกษาปีที่ 1–3 (Years 7–9)", "ประถมศึกษาปีที่ 1–2 (Years 1–2)", "อนุบาล 1 (Foundation Stage 1)"
+  const formatFullGradeTitle = (g?: { display_name?: string | null; grade_level?: string | null } | null): string => {
+    if (!g) return "";
+    const raw = (g.display_name || g.grade_level || "").trim();
+    if (!raw) return "";
+    
+    // Extract English curriculum part in parenthesis if exists, or fallback to grade_level
+    let enPart = "";
+    const parenMatch = raw.match(/\(([^)]+)\)/);
+    if (parenMatch) {
+      enPart = parenMatch[1].trim();
+    } else if (g.grade_level && g.grade_level !== raw) {
+      enPart = g.grade_level.trim();
+    }
+
+    // Expand abbreviations in English part
+    const expandEn = (str: string) => {
+      if (!str) return "";
+      return str
+        .replace(/\bFS1\b/gi, "Foundation Stage 1")
+        .replace(/\bFS2\b/gi, "Foundation Stage 2")
+        .replace(/\bPre-?K\s*1\b/gi, "Pre-Kindergarten 1")
+        .replace(/\bPre-?K\s*2\b/gi, "Pre-Kindergarten 2")
+        .replace(/\bPre-?K\b/gi, "Pre-Kindergarten")
+        .replace(/\bKG\s*1\b/gi, "Kindergarten 1")
+        .replace(/\bKG\s*2\b/gi, "Kindergarten 2")
+        .replace(/\bKG\b/gi, "Kindergarten")
+        .replace(/\bEY1\b/gi, "Early Years 1")
+        .replace(/\bEY2\b/gi, "Early Years 2")
+        .replace(/\bRec\b/gi, "Reception");
+    };
+
+    enPart = expandEn(enPart);
+
+    // Strip parentheses for Thai part
+    let thaiPart = raw.replace(/\s*\([^)]*\)/g, "").trim();
+
+    // Strip leading abbreviations like 'อ.1 ', 'ป.1–ป.2 ', 'ม.1–ม.3 ', 'ม.4 ', 'เตรียมอนุบาล–อ.3 ', 'ป.6–ม.2 '
+    thaiPart = thaiPart
+      .replace(/^เตรียมอนุบาล–อ\.\d\s*/i, "เตรียมอนุบาล – ")
+      .replace(/^อ\.\d(?:[–-]อ?\.\d)?\s*–?\s*ป\.\d\s*/i, "")
+      .replace(/^(?:อ\.|ป\.|ม\.)\d(?:[–-](?:อ\.|ป\.|ม\.)?\d)?\s*/i, "")
+      .trim();
+
+    if (thaiPart.includes("ประถม ") || thaiPart.includes("มัธยม ")) {
+      thaiPart = thaiPart
+        .replace(/ประถม\s*(\d)/g, "ประถมศึกษาปีที่ $1")
+        .replace(/มัธยม\s*(\d)/g, "มัธยมศึกษาปีที่ $1");
+    }
+
+    // If thaiPart is empty or just numbers or doesn't have Thai words, reconstruct from raw
+    if (!thaiPart || !/(มัธยมศึกษา|ประถมศึกษา|อนุบาล|เตรียมอนุบาล)/.test(thaiPart)) {
+      if (/เตรียมอนุบาล/i.test(raw)) {
+        thaiPart = "เตรียมอนุบาล";
+      } else if (/อ\.(\d)(?:[–-]อ?\.?(\d))?/.test(raw)) {
+        const m = raw.match(/อ\.(\d)(?:[–-]อ?\.?(\d))?/);
+        thaiPart = m ? (m[2] ? `อนุบาล ${m[1]}–${m[2]}` : `อนุบาล ${m[1]}`) : "";
+      } else if (/ป\.(\d)(?:[–-]ป?\.?(\d))?/.test(raw)) {
+        const m = raw.match(/ป\.(\d)(?:[–-]ป?\.?(\d))?/);
+        thaiPart = m ? (m[2] ? `ประถมศึกษาปีที่ ${m[1]}–${m[2]}` : `ประถมศึกษาปีที่ ${m[1]}`) : "";
+      } else if (/ม\.(\d)(?:[–-]ม?\.?(\d))?/.test(raw)) {
+        const m = raw.match(/ม\.(\d)(?:[–-]ม?\.?(\d))?/);
+        thaiPart = m ? (m[2] ? `มัธยมศึกษาปีที่ ${m[1]}–${m[2]}` : `มัธยมศึกษาปีที่ ${m[1]}`) : "";
+      } else if (/Nursery/i.test(raw)) {
+        thaiPart = "เตรียมอนุบาล";
+      } else if (/Year\s*(\d+)(?:[–-](\d+))?/i.test(raw)) {
+        const ym = raw.match(/Year\s*(\d+)(?:[–-](\d+))?/i);
+        if (ym) {
+          const yStart = parseInt(ym[1], 10);
+          const yEnd = ym[2] ? parseInt(ym[2], 10) : null;
+          if (yStart <= 2 && (!yEnd || yEnd <= 2)) {
+            thaiPart = yEnd ? "ประถมศึกษาปีที่ 1–2" : `ประถมศึกษาปีที่ ${yStart}`;
+          } else if (yStart <= 6) {
+            thaiPart = yEnd ? `ประถมศึกษาปีที่ ${yStart}–${yEnd}` : `ประถมศึกษาปีที่ ${yStart}`;
+          } else {
+            const mStart = yStart - 6;
+            const mEnd = yEnd ? yEnd - 6 : null;
+            thaiPart = mEnd ? `มัธยมศึกษาปีที่ ${mStart}–${mEnd}` : `มัธยมศึกษาปีที่ ${mStart}`;
+          }
+        }
+      } else if (/Grade\s*(\d+)(?:[–-](\d+))?/i.test(raw)) {
+        const gm = raw.match(/Grade\s*(\d+)(?:[–-](\d+))?/i);
+        if (gm) {
+          const gStart = parseInt(gm[1], 10);
+          const gEnd = gm[2] ? parseInt(gm[2], 10) : null;
+          if (gStart <= 6) {
+            thaiPart = gEnd ? `ประถมศึกษาปีที่ ${gStart}–${gEnd}` : `ประถมศึกษาปีที่ ${gStart}`;
+          } else {
+            const mStart = gStart - 6;
+            const mEnd = gEnd ? gEnd - 6 : null;
+            thaiPart = mEnd ? `มัธยมศึกษาปีที่ ${mStart}–${mEnd}` : `มัธยมศึกษาปีที่ ${mStart}`;
+          }
+        }
+      } else {
+        thaiPart = raw.replace(/\s*\([^)]*\)/g, "").trim();
+      }
+    }
+
+    return enPart ? `${thaiPart} (${enPart})` : thaiPart;
+  };
 
   // Check if current school has specific sibling discount in scraped data
   const hasPatanaSiblingDiscount = useMemo(() => {
@@ -390,20 +637,24 @@ export function CostCalculatorPage({
                 )}
               </div>
 
-              {/* Selected School Active Card (Empty by default) */}
+              {/* Selected School Active Card */}
               {currentSchool ? (
-                <div className="mt-3.5 p-4 rounded-2xl border border-warm-bronze/40 bg-warm-card/70 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-warm-bronze text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                <div className="mt-3.5 p-4 rounded-2xl border border-warm-bronze/40 bg-warm-card/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-warm-bronze text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
                       {currentSchool.school_name.charAt(0)}
                     </div>
                     <div>
                       <div className="text-xs font-bold text-warm-charcoal line-clamp-1">
                         {currentSchool.school_name}
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-warm-charcoal/70 mt-0.5">
-                        <span className="font-medium text-warm-bronze">
-                          {currentSchool.curriculum || "International Curriculum"}
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-warm-charcoal/70 mt-1">
+                        <span className="font-semibold text-warm-bronze">
+                          {currentSchool.curriculum ? `หลักสูตร ${currentSchool.curriculum}` : "International Curriculum"}
+                        </span>
+                        <span>·</span>
+                        <span className="text-warm-charcoal/60">
+                          {grades.length} ระดับชั้นปี
                         </span>
                         {currentSchool.page_scraped && (
                           <>
@@ -414,108 +665,347 @@ export function CostCalculatorPage({
                               rel="noreferrer"
                               className="text-warm-charcoal/60 underline hover:text-warm-bronze"
                             >
-                              Official Fee Schedule ↗
+                              ตารางค่าเทอมทางการ ↗
                             </a>
                           </>
                         )}
                       </div>
+                      {/* Educational stages tags */}
+                      {schoolStages.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          <span className="text-[10px] text-warm-charcoal/50 font-medium">ระดับที่เปิดสอน:</span>
+                          {schoolStages.map((stage) => (
+                            <span
+                              key={stage}
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-warm-cream border border-warm-accent text-warm-charcoal"
+                            >
+                              {stage}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="text-xs font-semibold text-warm-bronze hover:underline px-2.5 py-1 rounded-full border border-warm-accent bg-warm-cream cursor-pointer"
+                    className="self-end sm:self-center text-xs font-semibold text-warm-bronze hover:underline px-3 py-1.5 rounded-full border border-warm-accent bg-warm-cream cursor-pointer shrink-0"
                   >
-                    Change School
+                    เปลี่ยนโรงเรียน
                   </button>
                 </div>
               ) : null}
             </div>
 
-            {/* 2. Grade Stage & Duration (Dynamically Clamped to Remaining Years) */}
+            {/* 2. Educational Journey (Option 3: Interactive Timeline Only) */}
             <div className="p-6 rounded-3xl border border-warm-accent bg-warm-cream shadow-xs">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warm-card text-warm-bronze border border-warm-accent">
-                  <Clock className="size-4" />
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warm-card text-warm-bronze border border-warm-accent">
+                    <Clock className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
+                      2. Educational Journey (เส้นทางการศึกษา)
+                    </h3>
+                    <span className="text-[11px] text-warm-charcoal/60">
+                      คลิกเลือกช่วงชั้น หรือคลิกที่ชั้นปีบนไทม์ไลน์เพื่อกำหนดระยะเวลาเรียน
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                  2. Starting Grade & Duration
-                </h3>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Starting Grade Selector */}
-                <div>
-                  <label className="block text-xs font-semibold text-warm-charcoal/80 mb-2">
-                    Starting Grade Level
-                  </label>
+                {/* Starting Grade Selector Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-warm-charcoal/70 shrink-0">
+                    เริ่มเข้าเรียนชั้น:
+                  </span>
                   <select
                     disabled={!currentSchool}
                     value={calcState.startingGradeIndex}
                     onChange={(e) => handleStartingGradeChange(Number(e.target.value))}
-                    className="w-full rounded-2xl border border-warm-accent bg-warm-card px-3.5 py-2.5 text-xs font-semibold text-warm-charcoal focus:border-warm-bronze focus:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-xl border border-warm-accent bg-warm-card px-3 py-1.5 text-xs font-bold text-warm-charcoal focus:border-warm-bronze focus:outline-none transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
                   >
                     {grades.length > 0 ? (
-                      grades.map((g, idx) => {
-                        const yearsLeft = grades.length - idx;
-                        return (
-                          <option key={idx} value={idx}>
-                            {g.grade_level} (Max {yearsLeft} yr{yearsLeft > 1 ? "s" : ""} to graduation)
-                          </option>
-                        );
-                      })
+                      grades.map((g, idx) => (
+                        <option key={idx} value={idx}>
+                          {formatFullGradeTitle(g)}
+                        </option>
+                      ))
                     ) : (
                       <option value={0}>— กรุณาเลือกโรงเรียนก่อน —</option>
                     )}
                   </select>
-                  <span className="text-[11px] text-warm-charcoal/60 mt-1.5 block">
-                    {currentSchool && grades.length > 0 ? (
-                      <>
-                        Starting at {grades[calcState.startingGradeIndex]?.grade_level || "selected grade"} leaves <strong>{maxDurationYears} year{maxDurationYears > 1 ? "s" : ""} max</strong> to graduation.
-                      </>
-                    ) : (
-                      "กรุณาเลือกโรงเรียนเพื่อแสดงระดับชั้น"
-                    )}
-                  </span>
-                </div>
-
-                {/* Duration Slider Clamped to maxDurationYears */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold text-warm-charcoal/80">
-                      Study Duration
-                    </label>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-warm-charcoal text-white">
-                      {calcState.durationYears} {calcState.durationYears > 1 ? "Years" : "Year"}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max={maxDurationYears}
-                    step="1"
-                    value={calcState.durationYears}
-                    onChange={(e) =>
-                      setCalcState((prev) => ({
-                        ...prev,
-                        durationYears: Math.min(Number(e.target.value), maxDurationYears),
-                      }))
-                    }
-                    className="w-full cursor-pointer h-2 bg-warm-accent rounded-lg appearance-none"
-                  />
-                  <div className="flex justify-between text-[10px] text-warm-charcoal/50 mt-1">
-                    <span>1 yr</span>
-                    {maxDurationYears > 3 && (
-                      <span>{Math.round(maxDurationYears / 2)} yrs</span>
-                    )}
-                    <span className="font-semibold text-warm-bronze">
-                      Max {maxDurationYears} yrs (to {grades[grades.length - 1]?.grade_level?.split(' ')[0] || "Graduation"})
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-warm-charcoal/70 mt-1.5 block">
-                    Range: <strong>{grades[calcState.startingGradeIndex]?.grade_level || "Year 1"}</strong> through <strong>{grades[Math.min(calcState.startingGradeIndex + calcState.durationYears - 1, grades.length - 1)]?.grade_level || "Final Year"}</strong>
-                  </span>
                 </div>
               </div>
+
+              {/* ── UNIFIED OPTION 3 TIMELINE CARD ───────────────────────────────── */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-warm-card border border-warm-accent shadow-2xs">
+                {/* 1. Connected 4 Stage Header Blocks (Early Years / Primary / Lower Sec / Upper Sec) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl bg-warm-cream border border-warm-accent/70 mb-5">
+                  {stageMilestones.map((stage) => {
+                    const isAvailable = stage.endIdx >= 0;
+                    const isBeforeStart = stage.endIdx < calcState.startingGradeIndex;
+                    const isCurrentEnd = calcState.startingGradeIndex + calcState.durationYears - 1 === stage.endIdx;
+                    const stageStartIdx = stage.startIdx;
+                    const currentStart = calcState.startingGradeIndex;
+                    const currentEnd = calcState.startingGradeIndex + calcState.durationYears - 1;
+                    const isOverlap = isAvailable && currentEnd >= stageStartIdx && currentStart <= stage.endIdx;
+
+                    return (
+                      <button
+                        key={stage.id}
+                        type="button"
+                        disabled={!isAvailable}
+                        onClick={() => {
+                          if (isBeforeStart) {
+                            handleStartingGradeChange(stageStartIdx);
+                            setCalcState((p) => ({ ...p, durationYears: stage.endIdx - stageStartIdx + 1 }));
+                          } else {
+                            setCalcState((p) => ({ ...p, durationYears: stage.endIdx - p.startingGradeIndex + 1 }));
+                          }
+                        }}
+                        className={`p-2.5 sm:p-3 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between gap-1 relative ${
+                          !isAvailable
+                            ? "opacity-35 cursor-not-allowed"
+                            : isCurrentEnd
+                            ? "bg-warm-bronze text-white shadow-xs font-bold"
+                            : isOverlap
+                            ? "bg-warm-bronze/15 text-warm-charcoal border border-warm-bronze/40 font-semibold"
+                            : "hover:bg-warm-card text-warm-charcoal/70"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                            isCurrentEnd ? "text-white/80" : "text-warm-charcoal/50"
+                          }`}>
+                            {stage.stageNum}
+                          </span>
+                          {isCurrentEnd && (
+                            <span className="flex size-3.5 rounded-full bg-white text-warm-bronze items-center justify-center shadow-2xs font-bold">
+                              <Check className="size-2.5 stroke-[3]" />
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <div className={`text-xs font-bold leading-tight ${
+                            isCurrentEnd ? "text-white" : "text-warm-charcoal"
+                          }`}>
+                            {stage.title}
+                          </div>
+                          <div className={`text-[10px] truncate mt-0.5 ${
+                            isCurrentEnd ? "text-white/80" : "text-warm-charcoal/60"
+                          }`}>
+                            {stage.subtitle}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 2. Horizontal Timeline Track Line with Circular Grade Nodes */}
+                <div className="relative py-4 px-2 sm:px-4">
+                  <div className="relative flex items-center justify-between gap-1 sm:gap-2">
+                    {/* Background line across full width */}
+                    <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1.5 bg-warm-accent rounded-full -z-0" />
+                    
+                    {/* Active highlighted line portion */}
+                    {grades.length > 1 && (
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-warm-bronze rounded-full transition-all duration-200 -z-0"
+                        style={{
+                          left: `${(calcState.startingGradeIndex / (grades.length - 1)) * 100}%`,
+                          width: `${(Math.min(calcState.durationYears - 1, grades.length - 1 - calcState.startingGradeIndex) / (grades.length - 1)) * 100}%`,
+                        }}
+                      />
+                    )}
+
+                    {/* Grade Nodes */}
+                    {grades.map((g, idx) => {
+                      const isStart = idx === calcState.startingGradeIndex;
+                      const isEnd = idx === calcState.startingGradeIndex + calcState.durationYears - 1;
+                      const isCovered = idx >= calcState.startingGradeIndex && idx <= calcState.startingGradeIndex + calcState.durationYears - 1;
+                      const shortLabel = getGradeShortLabel(g, idx);
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col items-center relative z-10 group"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (idx < calcState.startingGradeIndex) {
+                                handleStartingGradeChange(idx);
+                              } else {
+                                setCalcState((p) => ({ ...p, durationYears: idx - p.startingGradeIndex + 1 }));
+                              }
+                            }}
+                            title={`${g.display_name || g.grade_level}\nค่าเทอม: ฿${formatCurrency(g.annual_thb, curr)}/ปี`}
+                            className={`size-7 sm:size-8 rounded-full flex items-center justify-center transition-all cursor-pointer text-[10px] font-bold ${
+                              isStart || isEnd
+                                ? "bg-warm-bronze text-white shadow-md ring-4 ring-warm-bronze/30 scale-110"
+                                : isCovered
+                                ? "bg-warm-bronze text-white ring-2 ring-warm-card"
+                                : "bg-warm-card text-warm-charcoal/60 border-2 border-warm-accent hover:border-warm-bronze hover:scale-105"
+                            }`}
+                          >
+                            {isStart ? (
+                              <Check className="size-3.5 stroke-[3]" />
+                            ) : isEnd ? (
+                              <span className="size-2 bg-white rounded-full" />
+                            ) : isCovered ? (
+                              <span className="size-1.5 bg-white rounded-full" />
+                            ) : (
+                              <span className="text-[9px] font-semibold">{idx + 1}</span>
+                            )}
+                          </button>
+
+                          {/* Node Label Below */}
+                          <span
+                            onClick={() => {
+                              if (idx < calcState.startingGradeIndex) {
+                                handleStartingGradeChange(idx);
+                              } else {
+                                setCalcState((p) => ({ ...p, durationYears: idx - p.startingGradeIndex + 1 }));
+                              }
+                            }}
+                            className={`text-[10px] sm:text-[11px] font-bold mt-2 cursor-pointer transition-colors ${
+                              isStart || isEnd
+                                ? "text-warm-bronze font-black"
+                                : isCovered
+                                ? "text-warm-charcoal"
+                                : "text-warm-charcoal/40 group-hover:text-warm-charcoal"
+                            }`}
+                          >
+                            {shortLabel}
+                          </span>
+
+                          {/* Start / Target Pin Tag */}
+                          {isStart && (
+                            <span className="absolute -top-6 px-1.5 py-0.5 rounded-full bg-warm-charcoal text-white text-[8px] font-bold tracking-tight whitespace-nowrap shadow-xs">
+                              เริ่ม
+                            </span>
+                          )}
+                          {isEnd && (
+                            <span className="absolute -top-6 px-1.5 py-0.5 rounded-full bg-warm-bronze text-white text-[8px] font-bold tracking-tight whitespace-nowrap shadow-xs">
+                              เป้าหมาย
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Selected Summary Footer Line */}
+                <div className="mt-4 pt-3 border-t border-warm-accent/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-warm-charcoal/60 font-medium">ช่วงการศึกษาที่เลือก:</span>
+                    <strong className="text-warm-bronze font-bold text-sm">
+                      {formatFullGradeTitle(grades[calcState.startingGradeIndex])}
+                    </strong>
+                    <span className="text-warm-charcoal/40 font-bold">➔</span>
+                    <strong className="text-warm-charcoal font-bold text-sm">
+                      {formatFullGradeTitle(grades[Math.min(calcState.startingGradeIndex + calcState.durationYears - 1, grades.length - 1)])}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-warm-bronze text-white px-3 py-1 rounded-full font-bold text-xs shadow-2xs">
+                      ระยะเวลา {calcState.durationYears} ปีการศึกษา
+                    </Badge>
+                    <span className="text-[11px] text-warm-charcoal/60 hidden sm:inline">
+                      (ค่าเทอมปีแรก {formatCurrency(grades[calcState.startingGradeIndex]?.annual_thb || 0, curr)})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Standardized Grade Fee Schedule Toggle */}
+              {currentSchool && grades.length > 0 && (
+                <div className="mt-5 pt-4 border-t border-warm-accent/50">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setShowTuitionTiers(!showTuitionTiers)}
+                      className="inline-flex items-center gap-2 text-xs font-bold text-warm-bronze hover:underline cursor-pointer"
+                    >
+                      <GraduationCap className="size-4" />
+                      <span>
+                        {showTuitionTiers ? "ซ่อนตารางค่าเทอมมาตรฐาน" : "ดูตารางค่าเทอมมาตรฐานทุกระดับชั้น"} ({grades.length} ชั้นปี)
+                      </span>
+                      {showTuitionTiers ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                    </button>
+                    <span className="text-[10px] text-warm-charcoal/50 font-medium">
+                      เทียบระดับชั้นไทย (อ.1 – ม.6)
+                    </span>
+                  </div>
+
+                  {showTuitionTiers && (
+                    <div className="mt-3 overflow-hidden rounded-2xl border border-warm-accent bg-warm-bg/60 shadow-inner">
+                      <div className="overflow-x-auto max-h-72 overflow-y-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="sticky top-0 bg-warm-card border-b border-warm-accent text-[11px] text-warm-charcoal/70 z-10">
+                            <tr>
+                              <th className="py-2.5 px-3 font-semibold">ระดับชั้นมาตรฐาน (ระบบไทย)</th>
+                              <th className="py-2.5 px-3 font-semibold">ชื่อตามหลักสูตรโรงเรียน</th>
+                              <th className="py-2.5 px-3 font-semibold text-right">ค่าเทอม/ปี</th>
+                              <th className="py-2.5 px-3 font-semibold text-center">เลือกคำนวณ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-warm-accent/40 bg-warm-cream/30">
+                            {grades.map((g, idx) => {
+                              const isSelected = calcState.startingGradeIndex === idx;
+                              return (
+                                <tr
+                                  key={idx}
+                                  className={`transition-colors ${
+                                    isSelected
+                                      ? "bg-warm-bronze/10 font-bold"
+                                      : "hover:bg-warm-card/60"
+                                  }`}
+                                >
+                                  <td className="py-2 px-3">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-warm-charcoal font-semibold">
+                                        {formatFullGradeTitle(g)}
+                                      </span>
+                                      {isSelected && (
+                                        <Badge className="bg-warm-bronze text-white text-[9px] px-1.5 py-0 border-0">
+                                          เริ่มต้น
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-3 text-warm-charcoal/60 text-[11px]">
+                                    {g.grade_level}
+                                  </td>
+                                  <td className="py-2 px-3 text-right font-bold text-warm-charcoal">
+                                    {formatCurrency(g.annual_thb, curr)}
+                                  </td>
+                                  <td className="py-2 px-3 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartingGradeChange(idx)}
+                                      className={`text-[10px] px-2.5 py-0.5 rounded-full border transition-all cursor-pointer font-medium ${
+                                        isSelected
+                                          ? "bg-warm-bronze text-white border-warm-bronze"
+                                          : "bg-warm-card text-warm-charcoal border-warm-accent hover:border-warm-bronze"
+                                      }`}
+                                    >
+                                      {isSelected ? "เลือกอยู่" : "เริ่มที่ชั้นนี้"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* 3. One-Time Mandatory Admission Fees (Non-optional, Mandatory for Enrollment) */}
@@ -1045,30 +1535,44 @@ export function CostCalculatorPage({
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-warm-accent text-warm-charcoal/60 text-[11px]">
-                        <th className="pb-2 font-medium">Year</th>
-                        <th className="pb-2 font-medium">Grade</th>
-                        <th className="pb-2 font-medium">Tuition</th>
-                        <th className="pb-2 font-medium">Add-ons</th>
-                        <th className="pb-2 font-medium text-right">Total</th>
+                        <th className="pb-2 font-medium">ปีที่</th>
+                        <th className="pb-2 font-medium">ระดับชั้น (Grade)</th>
+                        <th className="pb-2 font-medium">ค่าเทอม</th>
+                        <th className="pb-2 font-medium">บริการ & แรกเข้า</th>
+                        <th className="pb-2 font-medium text-right">ยอดรวม</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-warm-accent/40">
                       {results && results.yearlySchedule.length > 0 ? (
                         results.yearlySchedule.map((row) => (
                           <tr key={row.yearNumber} className="hover:bg-warm-card/50 transition-colors">
-                            <td className="py-2 font-bold text-warm-bronze">
+                            <td className="py-2.5 font-bold text-warm-bronze">
                               Y{row.yearNumber}
                             </td>
-                            <td className="py-2 text-warm-charcoal/80 font-medium">
-                              {row.gradeLabel}
+                            <td className="py-2.5">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-warm-charcoal text-xs">
+                                  {formatFullGradeTitle({ display_name: row.displayName, grade_level: row.gradeLabel })}
+                                </span>
+                                {row.displayName && row.displayName !== row.gradeLabel && (
+                                  <span className="text-[10px] text-warm-charcoal/50">
+                                    หลักสูตร: {row.gradeLabel}
+                                  </span>
+                                )}
+                              </div>
                             </td>
-                            <td className="py-2 text-warm-charcoal/80">
+                            <td className="py-2.5 text-warm-charcoal/80 font-medium">
                               {formatCurrency(row.tuitionTHB, curr)}
                             </td>
-                            <td className="py-2 text-warm-charcoal/80">
+                            <td className="py-2.5 text-warm-charcoal/80">
                               {formatCurrency(row.addonsTHB + row.oneTimeTHB, curr)}
+                              {row.oneTimeTHB > 0 && (
+                                <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded ml-1 border border-emerald-200">
+                                  +แรกเข้า
+                                </span>
+                              )}
                             </td>
-                            <td className="py-2 font-bold text-warm-charcoal text-right">
+                            <td className="py-2.5 font-bold text-warm-charcoal text-right">
                               {formatCurrency(row.totalTHB, curr)}
                             </td>
                           </tr>
