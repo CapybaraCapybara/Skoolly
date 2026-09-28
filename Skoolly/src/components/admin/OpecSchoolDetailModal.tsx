@@ -15,6 +15,8 @@ import {
   Sparkles,
   Edit,
   ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
 

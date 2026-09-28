@@ -218,3 +218,9 @@ delete from community.forum_reports r
 -- ── 6. Optimistic Locking ของ UC-11 E1 (เดิมประกาศไว้แต่ไม่มีคอลัมน์รองรับ) ───
 alter table school_data.schools
   add column if not exists row_version int not null default 1;
+
+
+-- ── 7. จำกัดช่วงปีเกิดให้สมเหตุสมผล (เดิมอนุญาตถึง 2100) ─────────────────────
+alter table user_data.children_profiles drop constraint if exists children_profiles_birth_year_check;
+alter table user_data.children_profiles
+  add constraint children_profiles_birth_year_check check (birth_year between 2000 and 2035);

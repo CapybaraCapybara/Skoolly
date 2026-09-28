@@ -22,7 +22,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `name_th` | ชื่อหลักสูตรภาษาไทยที่ใช้แสดงต่อผู้ใช้ | `text` | NOT NULL | — |
 | `name_en` | ชื่อหลักสูตรภาษาอังกฤษ | `text` | NOT NULL | — |
 | `sort_order` | ลำดับการแสดงในรายการตัวเลือก | `integer` | NOT NULL, DEFAULT 100 | — |
-| `aliases` | ข้อความดิบที่พบในข้อมูลจริงและต้องแปลงมาเป็นรหัสนี้ | `text[]` | NOT NULL, DEFAULT '{}'[] | — |
+| `aliases` | ข้อความดิบที่พบในข้อมูลจริงและต้องแปลงมาเป็นรหัสนี้ | `text[]` | NOT NULL, DEFAULT '{}' | — |
 
 ---
 
@@ -36,7 +36,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `name_th` | ชื่อระดับชั้นภาษาไทยที่ใช้แสดงต่อผู้ใช้ | `text` | NOT NULL | — |
 | `name_en` | ชื่อระดับชั้นภาษาอังกฤษ | `text` | NOT NULL | — |
 | `sort_order` | ลำดับการแสดงจากชั้นเล็กไปชั้นโต | `integer` | NOT NULL, DEFAULT 100 | — |
-| `aliases` | ข้อความดิบที่พบในข้อมูลจริงและต้องแปลงมาเป็นรหัสนี้ | `text[]` | NOT NULL, DEFAULT '{}'[] | — |
+| `aliases` | ข้อความดิบที่พบในข้อมูลจริงและต้องแปลงมาเป็นรหัสนี้ | `text[]` | NOT NULL, DEFAULT '{}' | — |
 
 ---
 
@@ -90,7 +90,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `school_id` | โรงเรียนที่รอบนี้ทำงานด้วย ว่างได้ถ้าเป็นงานภาพรวม | `uuid` | FK | school_data.schools · ON DELETE SET NULL |
 | `version_id` | เวอร์ชันที่เกิดจากรอบนี้ ว่างได้ถ้ารอบนั้นไม่พบการเปลี่ยนแปลง | `uuid` | FK | school_data.school_versions · ON DELETE SET NULL |
 | `run_id` | 1 รอบการรัน (orchestrator) | `uuid` | NOT NULL | — |
-| `correlation_id` | trace ข้าม Service (Use Case หัวข้อ 8.6) | `uuid` | — | — |
+| `correlation_id` | รหัสสำหรับตามรอยคำขอเดียวกันข้าม Service เวลาไล่ปัญหา (Use Case Spec หัวข้อ 8.6) | `uuid` | — | — |
 | `phase` | ขั้นตอนของ pipeline ที่บันทึกนี้เป็นของ เช่น นำเข้า เติมข้อมูล นำทาง สกัด หรือความปลอดภัย | `text` | NOT NULL | — |
 | `status` | ผลของขั้นตอนนี้ สำเร็จ ล้มเหลว หรือข้าม | `school_data.scrape_status` | NOT NULL | — |
 | `page_scraped` | หน้าเว็บที่อ่านในขั้นตอนนี้ | `text` | — | — |
@@ -110,15 +110,15 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
 | `version_id` | รหัสเวอร์ชันของข้อมูลโรงเรียน | `uuid` | PK, DEFAULT gen_random_uuid() | — |
-| `school_id` | โรงเรียนที่เวอร์ชันนี้เป็นของ | `uuid` | FK, UNIQUE, NOT NULL | school_data.schools · ON DELETE CASCADE |
-| `version_number` | ลำดับเวอร์ชันของโรงเรียนนั้น เริ่มที่ 1 และไม่ซ้ำกันภายในโรงเรียนเดียว | `integer` | UNIQUE, NOT NULL, CHECK versions_number_positive | — |
+| `school_id` | โรงเรียนที่เวอร์ชันนี้เป็นของ | `uuid` | FK, UNIQUE รวม (school_id, version_number), NOT NULL | school_data.schools · ON DELETE CASCADE |
+| `version_number` | ลำดับเวอร์ชันของโรงเรียนนั้น เริ่มที่ 1 และไม่ซ้ำกันภายในโรงเรียนเดียว | `integer` | UNIQUE รวม (school_id, version_number), NOT NULL, CHECK versions_number_positive | — |
 | `parent_version_id` | เวอร์ชันที่ใช้เป็นฐานตอนสร้างเวอร์ชันนี้ ใช้ตรวจว่ามีคนแก้แทรกกลางคันหรือไม่ | `uuid` | FK | school_data.school_versions |
 | `status` | สถานะเวอร์ชัน รอตรวจ ปฏิเสธ เผยแพร่ หรือถูกแทนที่แล้ว | `school_data.version_status` | NOT NULL, DEFAULT 'pending_review' | — |
 | `source_type` | ที่มาของเวอร์ชัน มาจากผู้ดูแลแก้เอง จาก Scraper หรือจากการนำเข้าชุดใหญ่ | `school_data.source_type` | NOT NULL | — |
 | `data_snapshot` | ข้อมูลทั้งก้อนของเวอร์ชันนี้เก็บเป็น JSON เพื่อย้อนดูและกู้คืนได้ | `jsonb` | NOT NULL | — |
 | `diff_summary` | สรุปว่าเปลี่ยนอะไรจากเวอร์ชันก่อนหน้า ใช้แสดงในหน้าตรวจสอบของผู้ดูแล | `jsonb` | — | — |
-| `confidence_score` | มีความหมายเฉพาะ source_type='scraper' | `real` | CHECK versions_confidence_range | — |
-| `confidence_reasoning` | scraper คืนมาจริง ใช้โชว์ใน Diff View (UC-14) | `text` | — | — |
+| `confidence_score` | ระดับความมั่นใจของ AI ต่อข้อมูลที่สกัดมาได้ ค่าอยู่ระหว่าง 0 ถึง 1 มีความหมายเฉพาะเวอร์ชันที่ source_type เป็น scraper เท่านั้น | `real` | CHECK versions_confidence_range | — |
+| `confidence_reasoning` | คำอธิบายจาก Scraper ว่าทำไมจึงให้คะแนนความมั่นใจเท่านี้ ใช้แสดงประกอบใน Diff View ตอนผู้ดูแลตรวจ (UC-14) | `text` | — | — |
 | `scraped_page_url` | หน้าเว็บที่ Scraper อ่านข้อมูลนี้มา | `text` | — | — |
 | `submitted_by` | ผู้ส่งเวอร์ชันนี้เข้าคิว | `uuid` | — | user_data.user_accounts |
 | `submitted_at` | เวลาที่ส่งเข้าคิว | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
@@ -149,39 +149,39 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `opec_profile_url` | URL หน้าข้อมูลโรงเรียนบนเว็บ สช. | `text` | — | — |
 | `official_phone` | หมายเลขโทรศัพท์ติดต่อ | `text` | — | — |
 | `official_mobile` | หมายเลขโทรศัพท์มือถือ | `text` | — | — |
-| `official_email` | อีเมลติดต่อ | `text` | — | — |
+| `official_email` | อีเมลติดต่อของโรงเรียน | `text` | — | — |
 | `province` | จังหวัดที่ตั้ง ใช้เป็นตัวกรองหลักในหน้าค้นหา | `text` | NOT NULL | — |
 | `district` | อำเภอหรือเขต | `text` | — | — |
 | `subdistrict` | ตำบลหรือแขวง | `text` | — | — |
-| `address` | ที่อยู่เต็ม | `text` | — | — |
+| `address` | ที่อยู่เต็มของโรงเรียน | `text` | — | — |
 | `geom` | พิกัดละติจูดลองจิจูด ใช้คำนวณระยะทางและวางหมุดบนแผนที่ | `geography(Point,4326)` | — | — |
 | `gps_precision` | ความแม่นยำของพิกัด ระบุตำแหน่งได้แน่นอน โดยประมาณ หรือไม่มีพิกัด | `text` | — | — |
-| `gps_source` | แหล่งที่มาของพิกัด เช่น จาก สช. หรือจาก Google Maps | `text` | — | — |
+| `gps_source` | แหล่งที่มาของพิกัด ค่าที่พบจริงคือ OPEC Official สำหรับพิกัดที่ทะเบียน สช. ให้มา 218 แถว และค่าที่ขึ้นต้นด้วย ArcGIS สำหรับพิกัดที่ได้จากการแปลงที่อยู่ด้วย ArcGIS World Geocoding Service อีก 72 แถว | `text` | — | — |
 | `logo_url` | URL รูปตราโรงเรียน | `text` | — | — |
-| `level_range` | ข้อความสรุปดิบจาก OPEC เช่น "อนุบาล - ประถมศึกษา" | `text` | — | — |
+| `level_range` | ช่วงชั้นที่เปิดสอนเป็นข้อความดิบจาก สช. ใช้แสดงผลเท่านั้น ส่วนการกรองใช้ levels_offered | `text` | — | — |
 | `student_count` | จำนวนนักเรียนตามข้อมูล สช. | `integer` | CHECK schools_counts_nonneg | — |
 | `teacher_count` | จำนวนครูตามข้อมูล สช. | `integer` | CHECK schools_counts_nonneg | — |
 | `pub_tuition_min_thb` | ค่าเทอมต่ำสุดของเวอร์ชันที่เผยแพร่อยู่ ใช้กรองช่วงราคาในหน้าค้นหาโดยไม่ต้องอ่าน JSONB | `numeric(12,2)` | CHECK schools_tuition_range | — |
 | `pub_tuition_max_thb` | ค่าเทอมสูงสุดของเวอร์ชันที่เผยแพร่อยู่ | `numeric(12,2)` | CHECK schools_tuition_range | — |
 | `pub_has_safeguarding_policy` | มีนโยบายคุ้มครองเด็กหรือไม่ ใช้แสดงป้ายในผลค้นหา | `boolean` | — | — |
-| `pub_data_updated_at` | "ข้อมูลเปลี่ยนแปลงล่าสุด" (มิติ 1) | `timestamp with time zone` | — | — |
+| `pub_data_updated_at` | วันที่ข้อมูลของโรงเรียนนี้เปลี่ยนแปลงล่าสุด ใช้แสดงให้ผู้ใช้เห็นว่าข้อมูลสดแค่ไหน | `timestamp with time zone` | — | — |
 | `rating_avg` | คะแนนรีวิวเฉลี่ยจาก Google คัดลอกมาโดยทริกเกอร์ google_reviews_sync | `numeric(2,1)` | CHECK schools_rating_range | — |
 | `review_count` | จำนวนรีวิวจาก Google | `integer` | NOT NULL, DEFAULT 0, CHECK schools_counts_nonneg | — |
-| `last_verified_at` | "ตรวจสอบล่าสุด" (มิติ 1, UC-13 step 5) | `timestamp with time zone` | — | — |
+| `last_verified_at` | วันที่ระบบเข้าไปตรวจสอบล่าสุด อาจใหม่กว่าวันที่ข้อมูลเปลี่ยน เพราะตรวจแล้วอาจไม่พบการเปลี่ยนแปลง | `timestamp with time zone` | — | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 | `updated_at` | เวลาที่แก้ไขล่าสุด (ทริกเกอร์ set_updated_at อัปเดตให้อัตโนมัติ) | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
-| `levels_offered` | อาร์เรย์ระดับชั้น เช่น {'PRE_K', 'KINDERGARTEN', 'PRIMARY'} | `text[]` | NOT NULL, DEFAULT '{}'[] | school_data.grade_levels (สมาชิกในอาร์เรย์) |
-| `curriculums` | อาร์เรย์รหัสหลักสูตร เช่น {'BRITISH', 'IB'} | `text[]` | NOT NULL, DEFAULT '{}'[] | school_data.curriculums (สมาชิกในอาร์เรย์) |
-| `licensee_name` | ผู้รับใบอนุญาต | `text` | — | — |
-| `director_name` | ผู้อำนวยการ | `text` | — | — |
-| `manager_name` | ผู้จัดการ | `text` | — | — |
-| `government_support` | เช่น "ไม่รับเงินอุดหนุน" / "รับเงินอุดหนุน" | `text` | — | — |
+| `levels_offered` | อาร์เรย์ระดับชั้น เช่น {'PRE_K', 'KINDERGARTEN', 'PRIMARY'} | `text[]` | NOT NULL, DEFAULT '{}' | school_data.grade_levels (สมาชิกในอาร์เรย์) |
+| `curriculums` | อาร์เรย์รหัสหลักสูตร เช่น {'BRITISH', 'IB'} | `text[]` | NOT NULL, DEFAULT '{}' | school_data.curriculums (สมาชิกในอาร์เรย์) |
+| `licensee_name` | ชื่อผู้รับใบอนุญาตจัดตั้งโรงเรียนตามทะเบียน สช. | `text` | — | — |
+| `director_name` | ชื่อผู้อำนวยการโรงเรียนตามทะเบียน สช. | `text` | — | — |
+| `manager_name` | ชื่อผู้จัดการโรงเรียนตามทะเบียน สช. | `text` | — | — |
+| `government_support` | สถานะการรับเงินอุดหนุนจากรัฐตามข้อมูล สช. | `text` | — | — |
 | `is_isat_member` | เป็นสมาชิกสมาคมโรงเรียนนานาชาติแห่งประเทศไทย (ISAT) หรือไม่ | `boolean` | DEFAULT false | — |
 | `is_boarding` | มีหอพักประจำหรือไม่ | `boolean` | DEFAULT false | — |
 | `year_established` | ปีที่ก่อตั้งโรงเรียน | `integer` | — | — |
-| `accreditations` | รายการสถาบันรับรองมาตรฐาน เช่น CIS, WASC, NEASC | `text[]` | DEFAULT '{}'[] | — |
+| `accreditations` | รายการสถาบันรับรองมาตรฐาน เช่น CIS, WASC, NEASC | `text[]` | DEFAULT '{}' | — |
 | `isat_school_name` | ชื่อโรงเรียนตามที่ปรากฏบนเว็บ ISAT ใช้ตรวจสอบว่าจับคู่ถูกโรงเรียน | `text` | — | — |
-| `google_place_id` | ใช้ดึงรีวิวจาก Google (UC-02 ข้อ 4) — null = จับคู่ไม่ได้ (UC-02 E6) | `text` | — | — |
+| `google_place_id` | รหัสสถานที่บน Google ของโรงเรียนนี้ ใช้ดึงรีวิวมาแสดง (UC-02 ข้อ 4) ว่างแปลว่าจับคู่กับสถานที่บน Google ไม่ได้ (UC-02 E6) | `text` | — | — |
 | `social_links` | ลิงก์โซเชียลรวมเป็น JSON ก้อนเดียว คีย์ที่ใช้คือ facebook, line_id, instagram, youtube | `jsonb` | NOT NULL, DEFAULT '{}' | — |
 | `row_version` | ตัวนับสำหรับ Optimistic Locking กันผู้ดูแลสองคนบันทึกทับกัน ทริกเกอร์บวกให้เอง | `integer` | NOT NULL, DEFAULT 1 | — |
 
@@ -195,11 +195,11 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 |---|---|---|---|---|
 | `extra_fee_id` | รหัสรายการค่าใช้จ่ายแฝง | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `version_id` | เวอร์ชันที่รายการนี้เป็นของ | `uuid` | FK, NOT NULL | school_data.school_versions · ON DELETE CASCADE |
-| `name` | "Application Fee", "Entrance Fee (First Child)" | `text` | NOT NULL | — |
-| `amount_thb` | null ได้ ถ้าเว็บไม่ระบุตัวเลข (UC-07 E1) | `numeric(12,2)` | CHECK extra_fees_amount_nonneg | — |
+| `name` | ชื่อรายการค่าใช้จ่าย เช่น ค่าสมัคร ค่าแรกเข้า หรือค่ากิจกรรม | `text` | NOT NULL | — |
+| `amount_thb` | จำนวนเงินเป็นบาท ว่างได้ถ้าเว็บโรงเรียนบอกว่ามีค่าใช้จ่ายนี้แต่ไม่ระบุตัวเลข (UC-07 E1) | `numeric(12,2)` | CHECK extra_fees_amount_nonneg | — |
 | `frequency` | ความถี่ในการเก็บ เช่น ครั้งเดียว รายปี รายภาค หรือรายเดือน | `school_data.fee_frequency` | NOT NULL, DEFAULT 'unknown' | — |
 | `refundable` | คืนเงินได้หรือไม่ | `boolean` | — | — |
-| `sibling_related` | รองรับส่วนลดพี่น้องใน UC-07 | `boolean` | NOT NULL, DEFAULT false | — |
+| `sibling_related` | ค่าใช้จ่ายรายการนี้เกี่ยวกับส่วนลดกรณีมีบุตรหลายคนเรียนพร้อมกันหรือไม่ ใช้ในเครื่องคำนวณค่าใช้จ่าย (UC-07) | `boolean` | NOT NULL, DEFAULT false | — |
 | `academic_year` | ปีการศึกษาที่ตัวเลขนี้ใช้ | `text` | — | — |
 | `source_published_at` | วันที่ต้นฉบับเผยแพร่ตัวเลขนี้ ใช้บอกผู้ใช้ว่าข้อมูลเก่าแค่ไหน | `date` | — | — |
 | `notes` | ข้อความประกอบที่พบในต้นฉบับ | `text` | — | — |
@@ -219,7 +219,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `annual_thb` | ค่าเทอมต่อปีเป็นบาท ใช้ชนิด numeric เพื่อไม่ให้ปัดเศษผิด | `numeric(12,2)` | CHECK fees_amount_nonneg, CHECK version_fees_has_amount | — |
 | `semester_thb` | ค่าเทอมต่อภาคการศึกษาเป็นบาท | `numeric(12,2)` | CHECK fees_amount_nonneg, CHECK version_fees_has_amount | — |
 | `currency` | สกุลเงิน ปกติเป็น THB | `character(3)` | NOT NULL, DEFAULT 'THB' | — |
-| `academic_year` | มิติ 3: "2568" / "2026/27" | `text` | — | — |
+| `academic_year` | ปีการศึกษาที่ค่าเทอมนี้ใช้ เก็บตามที่ต้นฉบับเขียน จึงมีได้ทั้งแบบ พ.ศ. และแบบคร่อมปี | `text` | — | — |
 | `source_published_at` | วันที่ต้นฉบับเผยแพร่ตัวเลขนี้ ใช้บอกผู้ใช้ว่าข้อมูลเก่าแค่ไหน ว่างได้เสมอ | `date` | — | — |
 | `source_url` | หน้าเว็บที่อ่านตัวเลขนี้มา | `text` | — | — |
 | `confidence_score` | ระดับความมั่นใจของ AI ต่อตัวเลขนี้ ค่าอยู่ระหว่าง 0 ถึง 1 | `real` | — | — |
@@ -281,7 +281,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `user_id` | ผู้เขียนความคิดเห็น | `uuid` | NOT NULL | user_data.user_accounts |
 | `content` | เนื้อหาความคิดเห็น | `text` | NOT NULL | — |
 | `status` | สถานะเนื้อหา เผยแพร่ รอตรวจ หรือถูกนำออก | `community.content_status` | NOT NULL, DEFAULT 'approved' | — |
-| `deleted_by_author` | แยกจาก rejected: ข้อความที่แสดงต่างกัน (UC-05 ข้อ 5) | `boolean` | NOT NULL, DEFAULT false | — |
+| `deleted_by_author` | ผู้เขียนลบความคิดเห็นนี้เอง แยกจากสถานะถูกนำออกโดยผู้ดูแล เพราะข้อความที่แสดงแทนที่ต่างกัน (UC-05 ข้อ 8) | `boolean` | NOT NULL, DEFAULT false | — |
 | `moderated_by` | ผู้ดูแลที่ตัดสินเนื้อหานี้ | `uuid` | — | user_data.user_accounts |
 | `moderated_at` | เวลาที่ตัดสิน | `timestamp with time zone` | — | — |
 | `like_count` | จำนวนการกดถูกใจ ทริกเกอร์นับให้อัตโนมัติ | `integer` | NOT NULL, DEFAULT 0, CHECK forum_comments_like_nonneg | — |
@@ -296,9 +296,9 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
-| `target_type` | ประเภทเนื้อหาที่กดถูกใจ กระทู้หรือความคิดเห็น | `community.forum_target` | PK | — |
-| `target_id` | รหัสเนื้อหาที่กดถูกใจ ชี้ไปได้ทั้งสองตารางจึงประกาศ Foreign Key ไม่ได้ | `uuid` | PK | forum_posts หรือ forum_comments (polymorphic) |
-| `user_id` | ผู้กดถูกใจ | `uuid` | PK | user_data.user_accounts |
+| `target_type` | ประเภทเนื้อหาที่กดถูกใจ กระทู้หรือความคิดเห็น | `community.forum_target` | PK รวม (target_type, target_id, user_id), NOT NULL | — |
+| `target_id` | รหัสเนื้อหาที่กดถูกใจ ชี้ไปได้ทั้งสองตารางจึงประกาศ Foreign Key ไม่ได้ | `uuid` | PK รวม (target_type, target_id, user_id), NOT NULL | forum_posts หรือ forum_comments (polymorphic) |
+| `user_id` | ผู้ใช้ที่กดถูกใจเนื้อหานี้ | `uuid` | PK รวม (target_type, target_id, user_id), NOT NULL | user_data.user_accounts |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 
 ---
@@ -309,7 +309,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
-| `post_id` | รหัสกระทู้ | `uuid` | PK, DEFAULT gen_random_uuid() | — |
+| `post_id` | รหัสประจำกระทู้ | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `user_id` | ผู้ตั้งกระทู้ | `uuid` | NOT NULL | user_data.user_accounts |
 | `school_id` | โรงเรียนที่กระทู้นี้แท็กไว้ ไม่บังคับต้องมี | `uuid` | — | school_data.schools |
 | `category` | หมวดหมู่กระทู้ รีวิว คำถาม อัปเดต หรือเคล็ดลับ | `community.forum_category` | NOT NULL | — |
@@ -333,9 +333,9 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
 | `report_id` | รหัสการรายงาน | `uuid` | PK, DEFAULT gen_random_uuid() | — |
-| `target_type` | ประเภทเนื้อหาที่ถูกรายงาน | `community.forum_target` | UNIQUE, NOT NULL | — |
-| `target_id` | รหัสเนื้อหาที่ถูกรายงาน ชี้ได้สองตารางจึงประกาศ Foreign Key ไม่ได้ | `uuid` | UNIQUE, NOT NULL | forum_posts หรือ forum_comments (polymorphic) |
-| `reporter_user_id` | ผู้รายงาน | `uuid` | UNIQUE, NOT NULL | user_data.user_accounts |
+| `target_type` | ประเภทเนื้อหาที่ถูกรายงาน | `community.forum_target` | UNIQUE รวม (target_type, target_id, reporter_user_id), NOT NULL | — |
+| `target_id` | รหัสเนื้อหาที่ถูกรายงาน ชี้ได้สองตารางจึงประกาศ Foreign Key ไม่ได้ | `uuid` | UNIQUE รวม (target_type, target_id, reporter_user_id), NOT NULL | forum_posts หรือ forum_comments (polymorphic) |
+| `reporter_user_id` | ผู้ใช้ที่กดรายงานเนื้อหานี้ | `uuid` | UNIQUE รวม (target_type, target_id, reporter_user_id), NOT NULL | user_data.user_accounts |
 | `reason` | เหตุผลที่รายงาน | `text` | NOT NULL | — |
 | `status` | สถานะ เปิดอยู่ ยกคำร้อง หรือดำเนินการแล้ว | `community.forum_report_status` | NOT NULL, DEFAULT 'open' | — |
 | `reviewed_by` | ผู้ดูแลที่พิจารณา | `uuid` | — | user_data.user_accounts |
@@ -350,8 +350,8 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
-| `report_id` | เรื่องที่แจ้งซึ่งผู้ใช้คนนี้ร่วมแจ้ง | `uuid` | PK, FK | community.data_correction_reports · ON DELETE CASCADE |
-| `user_id` | ผู้ใช้ที่แจ้ง | `uuid` | PK | user_data.user_accounts |
+| `report_id` | เรื่องที่แจ้งซึ่งผู้ใช้คนนี้ร่วมแจ้ง | `uuid` | PK รวม (report_id, user_id), FK, NOT NULL | community.data_correction_reports · ON DELETE CASCADE |
+| `user_id` | ผู้ใช้ที่แจ้ง | `uuid` | PK รวม (report_id, user_id), NOT NULL | user_data.user_accounts |
 | `note` | ข้อความเพิ่มเติมของผู้แจ้งรายนี้ | `text` | — | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 
@@ -368,7 +368,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `profile_id` | รหัสโปรไฟล์บุตรหลาน | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `user_id` | บัญชีผู้ปกครองที่เป็นเจ้าของโปรไฟล์นี้ | `uuid` | FK, NOT NULL | user_data.user_accounts · ON DELETE CASCADE |
 | `nickname` | ชื่อเรียกที่ผู้ปกครองตั้งเอง ใช้แยกเมื่อมีบุตรหลายคน | `text` | — | — |
-| `birth_year` | ปีเกิด ใช้ประมาณระดับชั้นที่เหมาะสม | `integer` | CHECK children_profiles_birth_year_check | — |
+| `birth_year` | ปีเกิดของบุตรหลาน ใช้ประมาณระดับชั้นที่เหมาะสม เก็บเป็นปีไม่ใช่วันเกิดเต็มเพื่อลดข้อมูลส่วนบุคคลที่ถือไว้ตาม PDPA และจำกัดช่วงไว้ที่ 2000 ถึง 2035 กันการกรอกปีในอนาคต (UC-06 E2) | `integer` | CHECK children_profiles_birth_year_check | — |
 | `target_level_code` | ระดับชั้นที่กำลังมองหาให้บุตรหลานคนนี้ | `text` | — | school_data.grade_levels |
 | `budget_min_thb` | งบประมาณค่าเทอมต่ำสุดที่รับได้ | `numeric(12,2)` | CHECK children_budget_range, CHECK children_profiles_budget_min_thb_check | — |
 | `budget_max_thb` | งบประมาณค่าเทอมสูงสุดที่รับได้ | `numeric(12,2)` | CHECK children_budget_range, CHECK children_profiles_budget_max_thb_check | — |
@@ -389,7 +389,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `user_id` | เจ้าของชุดเปรียบเทียบ | `uuid` | FK, NOT NULL | user_data.user_accounts · ON DELETE CASCADE |
 | `name` | ชื่อชุดที่ผู้ใช้ตั้งเอง | `text` | NOT NULL | — |
 | `school_ids` | รายการโรงเรียนในชุดเปรียบเทียบนี้ เก็บเป็นอาร์เรย์เรียงตามที่ผู้ใช้เลือก | `uuid[]` | NOT NULL, CHECK comparison_sets_not_empty | school_data.schools (สมาชิกในอาร์เรย์) |
-| `share_token` | null = ยังไม่เคยเปิดแชร์ (UC-10) | `text` | UNIQUE, CHECK comparison_share_needs_token | — |
+| `share_token` | รหัสสุ่มสำหรับลิงก์แชร์ชุดเปรียบเทียบ ว่างแปลว่ายังไม่เคยเปิดแชร์ (UC-10) | `text` | UNIQUE, CHECK comparison_share_needs_token | — |
 | `share_enabled` | เปิดให้คนอื่นเปิดดูผ่านลิงก์อยู่หรือไม่ | `boolean` | NOT NULL, DEFAULT false, CHECK comparison_share_needs_token | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 | `updated_at` | เวลาที่แก้ไขล่าสุด (ทริกเกอร์ set_updated_at อัปเดตให้อัตโนมัติ) | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
@@ -402,8 +402,8 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
-| `user_id` | ผู้ใช้ที่บันทึกโรงเรียนนี้ไว้ | `uuid` | PK, FK | user_data.user_accounts · ON DELETE CASCADE |
-| `school_id` | โรงเรียนที่ถูกบันทึกไว้ | `uuid` | PK | school_data.schools |
+| `user_id` | ผู้ใช้ที่บันทึกโรงเรียนนี้ไว้ | `uuid` | PK รวม (user_id, school_id), FK, NOT NULL | user_data.user_accounts · ON DELETE CASCADE |
+| `school_id` | โรงเรียนที่ถูกบันทึกไว้ | `uuid` | PK รวม (user_id, school_id), NOT NULL | school_data.schools |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 
 ---
@@ -419,7 +419,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `role` | บทบาท ผู้ปกครองทั่วไปหรือผู้ดูแลระบบ | `text` | NOT NULL, DEFAULT 'parent', CHECK user_accounts_role_check | — |
 | `status` | สถานะบัญชี ใช้งานปกติ ถูกระงับ หรืออยู่ระหว่างรอลบ | `user_data.account_status` | NOT NULL, DEFAULT 'active' | — |
 | `suspended_reason` | เหตุผลที่ถูกระงับ | `text` | — | — |
-| `deletion_requested_at` | จุดเริ่ม Grace Period (UC-06 E5) | `timestamp with time zone` | — | — |
+| `deletion_requested_at` | เวลาที่ผู้ใช้กดขอลบบัญชี ใช้เป็นจุดเริ่มนับ Grace Period ก่อนลบจริง ว่างแปลว่าไม่ได้ขอลบ (UC-06 E5) | `timestamp with time zone` | — | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 | `updated_at` | เวลาที่แก้ไขล่าสุด (ทริกเกอร์ set_updated_at อัปเดตให้อัตโนมัติ) | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 
@@ -433,10 +433,10 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
-| `conversation_id` | รหัสบทสนทนา | `uuid` | PK, DEFAULT gen_random_uuid() | — |
+| `conversation_id` | รหัสประจำบทสนทนา | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `user_id` | ผู้ใช้ที่เป็นเจ้าของบทสนทนานี้ | `uuid` | NOT NULL | user_data.user_accounts |
 | `title` | หัวข้อบทสนทนาที่ระบบตั้งให้ | `text` | — | — |
-| `summary` | สรุปเมื่อยาวเกิน context (UC-08 E2) | `text` | — | — |
+| `summary` | บทสรุปของบทสนทนาช่วงต้น ใช้แทนข้อความเดิมเมื่อบทสนทนายาวเกิน context window ของโมเดล (UC-08 E2) | `text` | — | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 | `updated_at` | เวลาที่แก้ไขล่าสุด (ทริกเกอร์ set_updated_at อัปเดตให้อัตโนมัติ) | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 
@@ -448,13 +448,13 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 | Field Name | Description | Data Type | Key / Constraint | Reference Table |
 |---|---|---|---|---|
-| `message_id` | รหัสข้อความ | `uuid` | PK, DEFAULT gen_random_uuid() | — |
+| `message_id` | รหัสประจำข้อความ | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `conversation_id` | บทสนทนาที่ข้อความนี้อยู่ | `uuid` | FK, NOT NULL | ai.conversations · ON DELETE CASCADE |
 | `role` | ผู้พูด ผู้ใช้ ผู้ช่วย ระบบ หรือเครื่องมือ | `text` | NOT NULL, CHECK messages_role_check | — |
 | `content` | เนื้อหาข้อความ | `text` | NOT NULL | — |
-| `suggested_replies` | Quick Replies ที่แนบท้ายคำตอบ (UC-08 ข้อ 6) | `text[]` | — | — |
-| `tool_calls` | log ว่าเรียก school-data-api ด้วยพารามิเตอร์อะไร | `jsonb` | — | — |
-| `grounded_school_ids` | ใช้ตรวจ grounding/hallucination (UC-08 E6) | `uuid[]` | — | — |
+| `suggested_replies` | ชุดคำถามต่อยอดที่แนบท้ายคำตอบนี้ ให้ผู้ใช้กดเดินบทสนทนาต่อโดยไม่ต้องพิมพ์เอง (UC-08 ข้อ 6) | `text[]` | — | — |
+| `tool_calls` | บันทึกว่าคำตอบนี้เรียกเครื่องมือใดด้วยพารามิเตอร์อะไร เช่น เรียก school-data-api ค้นโรงเรียนด้วยเงื่อนไขใด | `jsonb` | — | — |
+| `grounded_school_ids` | รายการโรงเรียนที่คำตอบนี้อ้างอิงจริง ใช้ตรวจว่า AI แนะนำโรงเรียนที่ไม่มีอยู่จริงหรือไม่ (UC-08 E6) | `uuid[]` | — | — |
 | `hallucination_flag` | ระบบตรวจพบว่าคำตอบอ้างถึงสิ่งที่ไม่มีอยู่จริงหรือไม่ | `boolean` | NOT NULL, DEFAULT false | — |
 | `user_feedback` | ผู้ใช้กดถูกใจหรือไม่ถูกใจคำตอบนี้ | `text` | CHECK messages_user_feedback_check | — |
 | `correlation_id` | รหัสสำหรับตามรอยคำขอเดียวกันข้าม Service เวลาไล่ปัญหา | `uuid` | — | — |
@@ -471,10 +471,10 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 |---|---|---|---|---|
 | `embedding_id` | รหัสเวกเตอร์ | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `school_id` | โรงเรียนที่เวกเตอร์นี้เป็นของ | `uuid` | NOT NULL | school_data.schools |
-| `school_version_id` | เวอร์ชันข้อมูลที่ถูกแปลงเป็นเวกเตอร์ ใช้เป็นกุญแจตอนเขียนทับให้ไม่เกิดข้อมูลซ้ำ | `uuid` | UNIQUE, NOT NULL | school_data.school_versions |
-| `chunk_index` | ลำดับท่อนข้อความเมื่อเนื้อหายาวจนต้องแบ่ง | `integer` | UNIQUE, NOT NULL, DEFAULT 0 | — |
+| `school_version_id` | เวอร์ชันข้อมูลที่ถูกแปลงเป็นเวกเตอร์ ใช้เป็นกุญแจตอนเขียนทับให้ไม่เกิดข้อมูลซ้ำ | `uuid` | UNIQUE รวม (school_version_id, chunk_index), NOT NULL | school_data.school_versions |
+| `chunk_index` | ลำดับท่อนข้อความเมื่อเนื้อหายาวจนต้องแบ่ง | `integer` | UNIQUE รวม (school_version_id, chunk_index), NOT NULL, DEFAULT 0 | — |
 | `content` | ข้อความที่ถูกแปลงเป็นเวกเตอร์ เก็บไว้ตรวจย้อนหลัง | `text` | NOT NULL | — |
-| `embedding` | ปรับตามโมเดล: Gemini text-embedding-004 = 768 | `vector(768)` | — | — |
+| `embedding` | เวกเตอร์ของเนื้อหา ขนาดมิติปรับตามโมเดลที่ใช้ ปัจจุบันตั้งไว้ 768 ตาม Gemini text-embedding-004 | `vector(768)` | — | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 
 ---

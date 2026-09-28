@@ -398,7 +398,6 @@ def execute_opec_import(
     unmapped_curriculums: Counter[str] = Counter()
     unmapped_levels: Counter[str] = Counter()
     auto_mapped: dict[str, list[str]] = {}
-    unmapped_levels: Counter[str] = Counter()
     used_slugs: set[str] = set()
 
     with db_connect(target_dsn, row_factory=dict_row) as conn:
@@ -611,6 +610,10 @@ def execute_opec_import(
         "updated": updated,
         "auto_mapped_curriculums": len(auto_mapped),
         "unmapped_curriculums": len(unmapped_curriculums),
+        # ระดับชั้นที่ map ไม่ลงถูก "ข้าม" ไปเลย ไม่เหมือนหลักสูตรที่ยังตกไปที่ SCHOOL_SPECIFIC
+        # จึงต้องรายงานออกมาด้วย มิฉะนั้นโรงเรียนจะหายจากตัวกรองระดับชั้นโดยไม่มีใครรู้
+        "unmapped_levels": len(unmapped_levels),
+        "unmapped_level_values": sorted(unmapped_levels),
     }
 
 

@@ -2,9 +2,9 @@
 -- Skoolly — Database Schema (Postgres / Supabase)
 -- =============================================================================
 -- ออกแบบจาก:
---   - reference/use_case_specification_final_v6.md  (UC-01..G08, U01..U09, A01..A12)
+--   - reference/use_case_specification_final_v6.md  (UC-01 ถึง UC-19, Data Dictionary หัวข้อ 7)
 --   - reference/system_architecture_explained_v6.md (Schema-per-Service, Golden Rule)
---   - ข้อมูลจริงในโปรเจกต์: data/international_schools_thailand_opec.json (291 โรง)
+--   - ข้อมูลจริงในโปรเจกต์: data/international_schools_thailand_opec.json (290 โรง)
 --     และผลลัพธ์ scraper (tuition_by_grade / hidden_costs / safety_and_security)
 --
 -- รันตามลำดับไฟล์นี้ได้เลย (idempotent เท่าที่ Postgres อนุญาต)
@@ -60,10 +60,6 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create type school_data.fee_frequency as enum
     ('once', 'per_year', 'per_term', 'per_month', 'conditional', 'unknown');
-exception when duplicate_object then null; end $$;
-
--- รีวิวใช้ Pre-Moderation → default 'pending'
-do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -133,7 +129,9 @@ create table if not exists school_data.schools (
 
   -- แหล่งข้อมูล (UC-12: URL ต้องผ่าน Admin ยืนยัน ≥1 ครั้งก่อน scrape จริง)
   official_website_url          text,
-  website_source                text,                      -- 'OPEC Profile' / 'Serper' / 'admin'
+  website_source                text,                      -- ชั้นของการไล่หา URL ที่ให้ค่านี้มา
+                                                           -- ค่าที่พบจริง: 'Verified Official Registry' (283)
+                                                           -- และ 'Not Checked' (7) — ดู UC-12 ขั้นที่ 4
   website_confirmed_at          timestamptz,
   website_confirmed_by          uuid,
   opec_profile_url              text,
@@ -153,7 +151,7 @@ create table if not exists school_data.schools (
   district                      text,
   subdistrict                   text,
   address                       text,
-  geom                          geography(Point, 4326),     -- lat/lng ครบ 291/291 ใน dataset
+  geom                          geography(Point, 4326),     -- lat/lng ครบ 290/290 ใน dataset
   gps_precision                 text,                       -- 'Exact' | 'Approximate' | 'None'
   gps_source                    text,
 
@@ -337,7 +335,8 @@ create table if not exists school_data.official_website_registry (
   school_name_en  text,
   website_url     text,
   is_verified     boolean not null default false,
-  source          text,                        -- 'Verified Official Registry' / 'Serper' / 'admin'
+  source          text,                        -- ชั้นของการไล่หาที่ยืนยัน URL นี้
+                                               -- ค่าที่พบจริงตอนนี้คือ 'Verified Official Registry' ทั้ง 291 แถว
   notes           text,
   verified_at     timestamptz,
   verified_by     text,
@@ -351,7 +350,7 @@ create table if not exists school_data.official_website_registry (
 
 -- ── 3.10 log การทำงานของ pipeline ──────────────────────────────────────────────
 -- log_id เป็น bigint identity ไม่ใช่ UUID v4 โดยตั้งใจ: ตารางนี้เป็น append-only ปริมาณสูง
--- (หลายเฟส × 291 โรงเรียน × ทุกรอบที่รัน) UUID v4 สุ่มทำให้ B-tree แตกหน้าและ index บวม
+-- (หลายเฟส × 290 โรงเรียน × ทุกรอบที่รัน) UUID v4 สุ่มทำให้ B-tree แตกหน้าและ index บวม
 -- ส่วน UUID ที่เป็น business key ของตารางอื่นยังคงใช้ uuid ตามเดิม
 create table if not exists school_data.school_scrape_log (
   log_id         bigint generated always as identity primary key,
@@ -433,7 +432,7 @@ create table if not exists community.forum_comments (
   user_id           uuid not null,
   content           text not null,
   status            community.content_status not null default 'approved',
-  deleted_by_author boolean not null default false,  -- แยกจาก rejected: ข้อความที่แสดงต่างกัน (UC-05 ข้อ 5)
+  deleted_by_author boolean not null default false,  -- แยกจาก rejected: ข้อความที่แสดงต่างกัน (UC-05 ข้อ 8)
   moderated_by      uuid,
   moderated_at      timestamptz,
   like_count        int  not null default 0,
@@ -491,7 +490,9 @@ create table if not exists user_data.children_profiles (
   profile_id            uuid primary key default gen_random_uuid(),
   user_id               uuid not null references user_data.user_accounts(user_id) on delete cascade,
   nickname              text,
-  birth_year            int check (birth_year between 1990 and 2100),
+  birth_year            int check (birth_year between 2000 and 2035),
+                                   -- ช่วงที่เป็นไปได้จริงของเด็กที่กำลังหาโรงเรียนในอายุระบบนี้
+                                   -- ขอบบนเดิมคือ 2100 ซึ่งอนุญาตให้กรอกปีเกิดในอนาคตได้ 70 กว่าปี
   target_level_code     text,                        -- logical ref → grade_levels.code
   budget_min_thb        numeric(12,2) check (budget_min_thb >= 0),
   budget_max_thb        numeric(12,2) check (budget_max_thb >= 0),
@@ -509,7 +510,7 @@ create table if not exists user_data.favorites (
   user_id    uuid not null references user_data.user_accounts(user_id) on delete cascade,
   school_id  uuid not null,                          -- logical ref ข้าม Service
   created_at timestamptz not null default now(),
-  primary key (user_id, school_id)                   -- idempotent ตาม UC-06 E1
+  primary key (user_id, school_id)                   -- idempotent ตาม UC-06 E7
 );
 
 create table if not exists user_data.comparison_sets (
