@@ -9,12 +9,17 @@ import os
 import json
 import csv
 import shutil
+import time
 
 # Directory paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DATA_FILE = os.path.join(DATA_DIR, "international_schools_thailand_opec.json")
 CSV_FILE = os.path.join(DATA_DIR, "international_schools_thailand_opec.csv")
+# Pins an admin set by hand, keyed by school_code. Kept apart from the school list on
+# purpose: "ดึงข้อมูล OPEC" rebuilds that list from scratch and the reset buttons wipe
+# it, but a manual pin must survive both.
+MANUAL_PINS_FILE = os.path.join(DATA_DIR, "gps_manual_pins.json")
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -30,11 +35,77 @@ def load_schools():
                 if not content:
                     return []
                 data = json.loads(content)
-                return data if isinstance(data, list) else []
+                return apply_manual_pins(data) if isinstance(data, list) else []
         except Exception as e:
             print(f"[DataManager] Error loading {DATA_FILE}:", e)
             return []
     return []
+
+
+# ─── manual GPS pins ────────────────────────────────────────────────────────
+
+def load_manual_pins():
+    """{school_code: {"lat", "lon", "source", "note", "by", "at"}} — empty when none."""
+    try:
+        with open(MANUAL_PINS_FILE, "r", encoding="utf-8") as f:
+            pins = json.load(f)
+            return pins if isinstance(pins, dict) else {}
+    except (FileNotFoundError, ValueError):
+        return {}
+
+
+def _save_manual_pins(pins):
+    _atomic_write(MANUAL_PINS_FILE, lambda f: json.dump(pins, f, ensure_ascii=False, indent=2), "utf-8")
+
+
+def set_manual_pin(school_code, lat, lon, source, note="", by=""):
+    """Locks a school's pin at (lat, lon). `source` says where the coordinate came from."""
+    pins = load_manual_pins()
+    pins[str(school_code)] = {
+        "lat": f"{float(lat):.7f}".rstrip("0"), "lon": f"{float(lon):.7f}".rstrip("0"),
+        "source": source.strip(), "note": (note or "").strip(), "by": (by or "").strip(),
+        "at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    _save_manual_pins(pins)
+    return pins[str(school_code)]
+
+
+def clear_manual_pin(school_code):
+    """Unlocks a school; its next GPS run decides the pin again. False if it had none."""
+    pins = load_manual_pins()
+    if pins.pop(str(school_code), None) is None:
+        return False
+    _save_manual_pins(pins)
+    return True
+
+
+def apply_manual_pins(schools, pins=None):
+    """
+    Writes each manual pin over its school record, in place, and returns the list.
+    Every load and save goes through here, so no scraper, GPS run or late save of a
+    stale list can put a different coordinate on a locked school.
+    """
+    pins = load_manual_pins() if pins is None else pins
+    for s in schools or []:
+        code = str(s.get("school_code") or "").strip()
+        pin = pins.get(code)
+        if pin:
+            s.update({
+                "latitude": pin["lat"], "longitude": pin["lon"],
+                "gps_locked": True, "gps_method": "manual",
+                "gps_precision": "Exact", "gps_confidence": "high", "gps_verified": True,
+                "gps_source": f"ปักหมุดด้วยมือโดยแอดมิน: {pin['source']}",
+                "gps_confirmed_by": ["แอดมิน"],
+                "gps_manual": {k: pin.get(k, "") for k in ("source", "note", "by", "at")},
+            })
+        elif s.get("gps_locked"):
+            # The pin was removed from the pins file: unlock, and let the next GPS run
+            # re-decide this school (it only picks records whose method is not current).
+            s.update({"gps_locked": False, "gps_method": "manual-unlocked", "gps_precision": "Approximate",
+                      "gps_confidence": "low", "gps_verified": False,
+                      "gps_source": "เคยปักหมุดด้วยมือ ปลดล็อกแล้ว รอตรวจพิกัดใหม่ (พิกัดประมาณการ)"})
+            s.pop("gps_manual", None)
+    return schools
 
 def _atomic_write(path, write_fn, encoding, newline=None):
     """
@@ -75,7 +146,7 @@ def save_schools(data):
     no second copy under public/.
     """
     os.makedirs(DATA_DIR, exist_ok=True)
-    data = data or []
+    data = apply_manual_pins(data or [])
 
     _atomic_write(
         DATA_FILE,

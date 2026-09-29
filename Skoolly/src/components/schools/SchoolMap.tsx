@@ -49,9 +49,14 @@ export function SchoolMap() {
 
       mapRef.current = map;
 
-      // OpenStreetMap tiles — no API key needed
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      // OpenStreetMap tiles — no API key needed. The tile policy asks for exactly this
+      // host: the old a/b/c subdomains may be slowed or withdrawn without notice.
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        // School locations also draw on Overture Maps (CDLA-Permissive-2.0 / Apache-2.0) and
+        // DOPA open data (Open Government License Thailand), both of which ask for credit.
+        attribution:
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · ' +
+          '<a href="https://overturemaps.org">Overture Maps Foundation</a> · กรมการปกครอง',
         maxZoom: 19,
       }).addTo(map);
 

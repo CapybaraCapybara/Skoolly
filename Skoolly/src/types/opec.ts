@@ -17,6 +17,17 @@ export interface OpecSchoolRecord {
   longitude?: string | number;
   gps_source?: string;
   gps_precision?: string; // "Exact" | "Approximate" | "None"
+  // Written by the GPS button (enrich_school_gps.py, method "consensus-v2"), or "manual"
+  // for a pin an admin placed by hand (PUT /api/school/{code}/gps), which nothing overwrites
+  gps_method?: string;
+  gps_locked?: boolean;
+  gps_manual?: { source: string; note: string; by: string; at: string };
+  gps_confidence?: "high" | "medium" | "low"; // high: independent sources agree; medium: one name-verified POI
+  gps_confirmed_by?: string[]; // sources that agreed on the chosen point
+  gps_evidence?: GpsEvidence[]; // every candidate pin, for review
+  gps_anchor?: { level: "tambon" | "amphoe"; lat: number; lon: number; label: string } | null;
+  opec_latitude?: string; // raw OPEC pin, never overwritten
+  opec_longitude?: string;
   opec_profile_url?: string;
   levels_offered?: string[];
   level_range?: string;
@@ -46,6 +57,25 @@ export interface OpecSchoolRecord {
   youtube?: string;
   fetched_at?: string;
   last_updated?: string;
+}
+
+/** One candidate pin the GPS button considered, with its distance from the chosen point. */
+export interface GpsEvidence {
+  source: "opec" | "website" | "osm" | "arcgis_poi" | "arcgis_address" | "overture" | "dopa";
+  lat?: number; // absent for sources whose coordinates may not be stored (ArcGIS)
+  lon?: number;
+  distance_m: number | null; // null when no point was chosen
+  label: string;
+  pin?: "place" | "camera"; // website pins only: the marker itself, or Google's view centre
+  origin?: "school" | "google"; // website pins only: written by the school, or taken from a Google embed
+  keys?: string[]; // Overture only: how identity was matched (domain / phone / facebook / name)
+  confidence?: number; // Overture only: the record's own existence confidence
+  overture_id?: string;
+  category?: string;
+  score?: number; // name-match strength (OSM / ArcGIS POI)
+  osm_id?: string;
+  anchor_m?: number; // distance from the registered tambon/amphoe/khet centre
+  shared?: boolean; // an OPEC pin that another record also uses
 }
 
 export interface ScraperProgressState {

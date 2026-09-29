@@ -47,6 +47,28 @@ def make_multipart(fields):
     content_type = f"multipart/form-data; boundary={boundary}"
     return content_type, body
 
+def fetch_opec_coordinates():
+    """
+    {school_code: (lat, lon)} for every international school, straight from OPEC's
+    search API — a single request that returns in about a second.
+
+    The GPS button uses it to recover the raw OPEC pin for records whose
+    latitude/longitude were already overwritten by an earlier run.
+    """
+    fields = {"SchoolCodeName": "", "Course": "", "Tags": "", "ProvinceCode": "",
+              "AmphurCode": "", "TumbolCode": "", "SchoolTypeGroup": "1"}
+    content_type, body = make_multipart(fields)
+    r = session.post("https://school.opec.go.th/api/GetSchoolSearch", data=body,
+                     headers={"Content-Type": content_type}, timeout=30, verify=False)
+    out = {}
+    for s in r.json():
+        if str(s.get("schoolType1")) != "7":
+            continue
+        lat, lon = str(s.get("latitude") or "").strip(), str(s.get("longitude") or "").strip()
+        if lat and lon and lat not in ("0", "0.0") and lon not in ("0", "0.0"):
+            out[str(s.get("schoolCode", "")).strip()] = (lat, lon)
+    return out
+
 def build_pure_opec_record(s):
     """Transforms raw OPEC API response into standard school record (100% Pure OPEC Data)"""
     code = str(s.get("schoolCode", "")).strip()
@@ -113,8 +135,11 @@ def build_pure_opec_record(s):
             gps_source = "OPEC Placeholder (Centroid)"
             gps_precision = "Approximate"
         else:
-            gps_source = "OPEC Official"
-            gps_precision = "Exact"
+            # Not "Exact": nothing has checked this pin yet. Some OPEC pins sit on a
+            # tambon centroid or are shared with an unrelated school. The GPS button
+            # cross-checks it against other sources and sets the real precision.
+            gps_source = "OPEC Official (unverified)"
+            gps_precision = "Approximate"
     else:
         gps_source = ""
         gps_precision = "None"
@@ -137,6 +162,11 @@ def build_pure_opec_record(s):
         "email": s.get("email", "").strip(),
         "latitude": raw_lat,
         "longitude": raw_lon,
+        # The raw OPEC pin, kept apart from latitude/longitude so that a better
+        # answer from the GPS button never erases it — enrich_school_gps.py reads
+        # these and never writes them.
+        "opec_latitude": raw_lat,
+        "opec_longitude": raw_lon,
         "gps_source": gps_source,
         "gps_precision": gps_precision,
         "opec_profile_url": f"https://school.opec.go.th/school/{code}",

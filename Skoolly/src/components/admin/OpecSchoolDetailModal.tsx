@@ -666,7 +666,7 @@ export function OpecSchoolDetailModal({
                     </span>
                     {hasGps ? (
                       <a
-                        href={`https://www.google.com/maps?q=${lat},${lon}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3.5 py-2 bg-white hover:bg-[#faf5ee] border border-[#eae0d0] text-[#1c1917] rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors"

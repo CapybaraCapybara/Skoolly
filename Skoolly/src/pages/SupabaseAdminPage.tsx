@@ -151,7 +151,8 @@ export function SupabaseAdminPage({
         latitude: s.latitude ?? undefined,
         longitude: s.longitude ?? undefined,
         gps_source: s.gps_source || "Supabase PostGIS",
-        gps_precision: s.gps_precision || (s.latitude ? "Exact" : "None"),
+        // A coordinate nobody has verified is not "Exact"
+        gps_precision: s.gps_precision || (s.latitude ? "Approximate" : "None"),
         levels_offered: s.levels_offered || [],
         level_range: s.level_range || "",
         curriculums: s.curriculums || [],

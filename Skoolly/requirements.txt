@@ -9,3 +9,4 @@ pydantic
 requests
 urllib3
 psycopg[binary]
+duckdb

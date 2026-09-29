@@ -264,6 +264,25 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 </div>
               </div>
 
+              {/* A plain link to Google Maps: allowed without an API key or any Google data
+                  on our side — Google finds the school from its name when the parent clicks. */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5">
+                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Location</h3>
+                <div className="text-sm text-slate-600">{school.location}</div>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name} ${school.location}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 w-full py-2 rounded-lg text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-6.2-7-11.5a7 7 0 1114 0C19 14.8 12 21 12 21z" />
+                    <circle cx="12" cy="9.5" r="2.5" />
+                  </svg>
+                  Open in Google Maps
+                </a>
+              </div>
+
               <div className="bg-white rounded-2xl border border-slate-100 p-5">
                 <h3 className="font-semibold text-navy-900 mb-2 text-sm">Accreditation</h3>
                 <div className="flex flex-wrap gap-2">

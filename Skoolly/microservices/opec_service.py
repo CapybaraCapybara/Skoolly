@@ -17,11 +17,11 @@ if OPEC_DIR not in sys.path:
     sys.path.insert(0, OPEC_DIR)
 
 try:
-    from opec.data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools
+    from opec.data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins
     from opec.fetch_opec import fetch_opec_schools
     from opec.fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code
     from opec.enrich_school_names_en import enrich_all_school_names_en
-    from opec.enrich_school_gps import enrich_all_school_gps
+    from opec.enrich_school_gps import enrich_all_school_gps, is_coords_in_province
     from opec.enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
     from opec.supabase_sync import (
         test_database_connection,
@@ -52,11 +52,11 @@ try:
     )
     from opec.enrich_from_isat import run_isat_enrichment
 except ImportError:
-    from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools  # type: ignore
+    from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
     from fetch_opec import fetch_opec_schools  # type: ignore
     from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
     from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
-    from enrich_school_gps import enrich_all_school_gps  # type: ignore
+    from enrich_school_gps import enrich_all_school_gps, is_coords_in_province  # type: ignore
     from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data  # type: ignore
     from supabase_sync import (  # type: ignore
         test_database_connection,
@@ -790,6 +790,66 @@ def update_school(school_code: str, payload: UpdateSchoolPayload):
             sync_single_school_to_supabase(matched_school)
         return {"status": "updated"}
     raise HTTPException(status_code=404, detail="School not found")
+
+class ManualGpsPayload(BaseModel):
+    latitude: float
+    longitude: float
+    # Where the coordinate came from, e.g. "OpenStreetMap way/123456 (วาดจากภาพ Esri World
+    # Imagery ใน iD)". Required: it is the licence record for a pin we publish.
+    source: str
+    note: Optional[str] = ""
+    by: Optional[str] = ""
+    allow_outside_province: bool = False
+
+# Coordinates read off Google Maps / Earth / Street View may not be stored or shown on our map.
+_FORBIDDEN_GPS_SOURCES = ("google", "goo.gl", "g.page", "street view", "streetview")
+
+def _find_school(schools, school_code):
+    for s in schools:
+        if s.get("school_code") == school_code:
+            return s
+    return None
+
+@app.put("/api/school/{school_code}/gps")
+def set_school_gps(school_code: str, payload: ManualGpsPayload):
+    """Pins a school by hand and locks it: no GPS run, OPEC fetch or sync will move it."""
+    schools = get_current_schools()
+    school = _find_school(schools, school_code)
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    source = (payload.source or "").strip()
+    if not source:
+        raise HTTPException(status_code=422, detail="ต้องระบุแหล่งที่มาของพิกัด (source) เช่น OpenStreetMap way/123")
+    if any(w in source.lower() for w in _FORBIDDEN_GPS_SOURCES):
+        raise HTTPException(status_code=422, detail="ใช้พิกัดจาก Google ไม่ได้: เงื่อนไขของ Google ห้ามเก็บพิกัดและห้ามแสดงบนแผนที่อื่น")
+    if not is_coords_in_province(payload.latitude, payload.longitude, ""):
+        raise HTTPException(status_code=422, detail="พิกัดอยู่นอกประเทศไทย (ตรวจว่าไม่ได้สลับ lat กับ long)")
+    if not payload.allow_outside_province and not is_coords_in_province(payload.latitude, payload.longitude, school.get("province")):
+        raise HTTPException(status_code=422, detail=f"พิกัดอยู่นอกจังหวัด{school.get('province', '')} ที่จดทะเบียน "
+                                                    "(ถ้าตั้งใจ ส่ง allow_outside_province=true)")
+    set_manual_pin(school_code, payload.latitude, payload.longitude, source, payload.note or "", payload.by or "")
+    apply_manual_pins(schools)
+    school["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    set_current_schools(schools)
+    save_schools(schools)
+    sync_single_school_to_supabase(school)
+    return {k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source",
+                                       "gps_locked", "gps_manual")}
+
+@app.delete("/api/school/{school_code}/gps")
+def clear_school_gps(school_code: str):
+    """Removes a hand-placed pin; the next GPS run decides this school again."""
+    schools = get_current_schools()
+    school = _find_school(schools, school_code)
+    if not school:
+        raise HTTPException(status_code=404, detail="School not found")
+    if not clear_manual_pin(school_code):
+        raise HTTPException(status_code=404, detail="โรงเรียนนี้ไม่มีหมุดที่ปักด้วยมือ")
+    apply_manual_pins(schools)
+    set_current_schools(schools)
+    save_schools(schools)
+    sync_single_school_to_supabase(school)
+    return {k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source", "gps_locked")}
 
 @app.post("/api/school/{school_code}/resolve")
 def resolve_one_school(school_code: str):

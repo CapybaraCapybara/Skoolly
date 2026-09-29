@@ -382,6 +382,9 @@ def execute_opec_import(
         if not DATA_FILE.exists():
             raise FileNotFoundError(f"Dataset not found: {DATA_FILE}")
         records = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    # A hand-placed pin wins over whatever coordinate the records carry.
+    from data_manager import apply_manual_pins
+    apply_manual_pins(records)
 
     total_records = len(records)
     log("เชื่อมต่อสำเร็จ", 5, 100, f"เตรียมนำเข้าข้อมูลโรงเรียน {total_records} แห่ง...")
@@ -1096,14 +1099,17 @@ def update_supabase_school_gps(schools: list[dict] | None = None, update_progres
         from data_manager import load_schools
         schools = load_schools() or []
 
-    code_to_gps: dict[str, tuple[float, float, str, str]] = {}
+    code_to_gps: dict[str, tuple[float | None, float | None, str, str]] = {}
     for s in schools:
         code = str(s.get("school_code") or s.get("opec_school_code") or "").strip()
         lat = s.get("latitude") or s.get("lat")
         lng = s.get("longitude") or s.get("lng")
         precision = str(s.get("gps_precision") or "")
         source = str(s.get("gps_source") or "")
-        if code and lat and lng:
+        if code and not (lat and lng) and precision == "None":
+            # No coordinate we may keep (e.g. only ArcGIS had one): clear the old point.
+            code_to_gps[code] = (None, None, precision, source)
+        elif code and lat and lng:
             try:
                 lat_f = float(lat)
                 lng_f = float(lng)
@@ -1124,7 +1130,8 @@ def update_supabase_school_gps(schools: list[dict] | None = None, update_progres
                         cur.execute(
                             """
                             UPDATE school_data.schools
-                            SET geom = st_setsrid(st_makepoint(%(lng)s, %(lat)s), 4326)::geography,
+                            SET geom = CASE WHEN %(lat)s::double precision IS NULL THEN NULL
+                                            ELSE st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography END,
                                 gps_precision = %(precision)s,
                                 gps_source = %(source)s,
                                 updated_at = NOW()
@@ -1224,8 +1231,9 @@ def sync_single_school_to_supabase(school: dict) -> bool:
                         slug = COALESCE(%(slug)s, slug),
                         official_website_url = COALESCE(%(web)s, official_website_url),
                         website_source = COALESCE(%(src)s, website_source),
-                        geom = CASE WHEN %(lat)s::double precision IS NOT NULL AND %(lng)s::double precision IS NOT NULL 
-                                    THEN st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography 
+                        geom = CASE WHEN %(lat)s::double precision IS NOT NULL AND %(lng)s::double precision IS NOT NULL
+                                    THEN st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography
+                                    WHEN %(precision)s = 'None' THEN NULL
                                     ELSE geom END,
                         gps_precision = COALESCE(%(precision)s, gps_precision),
                         gps_source = COALESCE(%(gps_source)s, gps_source),
