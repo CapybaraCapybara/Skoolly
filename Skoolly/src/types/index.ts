@@ -35,6 +35,14 @@ export interface School {
   isIsatMember?: boolean | null;
   websiteUrl?: string | null;
   phone?: string | null;
+  coords?: SchoolCoords;
+}
+
+export interface SchoolCoords {
+  lat: number;
+  lng: number;
+  precision: "Exact" | "Approximate";
+  source?: string | null;
 }
 
 // ─── School Detail (extended — stored in DB, fetched on demand) ───────────────

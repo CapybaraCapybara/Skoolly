@@ -46,6 +46,8 @@ logs/
 /.plugins/
 /.opencode-skills/
 .agents/
+.claude/
+**/.claude/
 
 # LaTeX / Project Reports
 report/

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Hero from "@/components/schools/Hero";
 import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
-import { SchoolMap, EXAMPLE_SAVED_LOCATION } from "@/components/schools/SchoolMap";
+import { SchoolMap, EXAMPLE_SAVED_LOCATION, APPROXIMATE_PIN_NOTE } from "@/components/schools/SchoolMap";
 import type { School, Filters } from "@/types";
 import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";
@@ -479,6 +479,13 @@ export function HomePage({
                     <div>
                       <div className="text-xs font-semibold text-navy-900">School Marker</div>
                       <div className="text-xs text-slate-500">Click for name, fee & distance</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/85 border-2 border-dashed border-stone-400 rounded-full px-2 py-0.5 text-xs font-semibold text-stone-500 shrink-0">≈ ⭐ 4.8</div>
+                    <div>
+                      <div className="text-xs font-semibold text-navy-900">Approximate Location</div>
+                      <div className="text-xs text-slate-500">{APPROXIMATE_PIN_NOTE}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

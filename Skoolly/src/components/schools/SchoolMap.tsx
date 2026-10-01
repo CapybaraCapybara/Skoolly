@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import type { Map as LeafletMap } from "leaflet";
+import { getSchools } from "@/api/schoolsApi";
+import { formatTuition } from "@/components/schools/SchoolCard";
 
 // Example saved location — Sukhumvit, Bangkok
-// For production, replace with Google Maps API + real user location
+// For production, replace with the user's real saved location
 export const EXAMPLE_SAVED_LOCATION = {
   name: "Your Saved Location",
   address: "Sukhumvit Rd, Khlong Toei, Bangkok 10110",
@@ -10,14 +12,7 @@ export const EXAMPLE_SAVED_LOCATION = {
   lng: 100.5688,
 };
 
-const SCHOOLS_WITH_COORDS = [
-  { id: 1, name: "Bangkok Patana School",       lat: 13.6962, lng: 100.6022, tuition: "฿420K", rating: 4.8 },
-  { id: 2, name: "NIST International School",   lat: 13.7414, lng: 100.5599, tuition: "฿510K", rating: 4.7 },
-  { id: 3, name: "Ruamrudee International",      lat: 13.7862, lng: 100.6149, tuition: "฿380K", rating: 4.6 },
-  { id: 4, name: "Harrow International School",  lat: 13.7248, lng: 100.4847, tuition: "฿560K", rating: 4.9 },
-  { id: 5, name: "ISB Bangkok",                  lat: 13.8873, lng: 100.5524, tuition: "฿490K", rating: 4.7 },
-  { id: 6, name: "Shrewsbury International",     lat: 13.7014, lng: 100.5220, tuition: "฿530K", rating: 4.8 },
-];
+export const APPROXIMATE_PIN_NOTE = "ตำแหน่งโดยประมาณ";
 
 export function SchoolMap() {
   const mapRef = useRef<LeafletMap | null>(null);
@@ -49,11 +44,8 @@ export function SchoolMap() {
 
       mapRef.current = map;
 
-      // OpenStreetMap tiles — no API key needed. The tile policy asks for exactly this
-      // host: the old a/b/c subdomains may be slowed or withdrawn without notice.
+      // OpenStreetMap tiles — no API key needed.
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        // School locations also draw on Overture Maps (CDLA-Permissive-2.0 / Apache-2.0) and
-        // DOPA open data (Open Government License Thailand), both of which ask for credit.
         attribution:
           '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · ' +
           '<a href="https://overturemaps.org">Overture Maps Foundation</a> · กรมการปกครอง',
@@ -83,7 +75,8 @@ export function SchoolMap() {
         className: "",
       });
 
-      L.marker([EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng], { icon: homeIcon })
+      // Keep the home pin above school pins, which can now be dense around it
+      L.marker([EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng], { icon: homeIcon, zIndexOffset: 1000 })
         .addTo(map)
         .bindPopup(
           `<div style="font-family:system-ui;min-width:160px">
@@ -95,41 +88,67 @@ export function SchoolMap() {
         )
         .openPopup();
 
-      // School markers
-      const schoolIcon = (rating: number) => L.divIcon({
+      // School markers — an exact pin is a solid pill; an approximate one is dashed and muted
+      const schoolIcon = (rating: number, approximate: boolean) => L.divIcon({
         html: `<div style="
-          background:#faf8f5;
-          border:2px solid #ab8e72;
+          background:${approximate ? "rgba(250,248,245,0.85)" : "#faf8f5"};
+          border:2px ${approximate ? "dashed #a8a29e" : "solid #ab8e72"};
           border-radius:20px;
           padding:3px 8px;
           font-size:11px;
-          font-weight:700;
-          color:#1c1917;
+          font-weight:${approximate ? 600 : 700};
+          color:${approximate ? "#78716c" : "#1c1917"};
           white-space:nowrap;
           box-shadow:0 2px 8px rgba(28,25,23,0.12);
           display:flex;align-items:center;gap:3px;
-        ">⭐ ${rating}</div>`,
-        iconSize: [52, 24],
-        iconAnchor: [26, 12],
+        ">${approximate ? "≈ " : ""}${rating > 0 ? `⭐ ${rating}` : "🏫"}</div>`,
+        iconSize: approximate ? [62, 24] : [52, 24],
+        iconAnchor: approximate ? [31, 12] : [26, 12],
         className: "",
       });
 
-      SCHOOLS_WITH_COORDS.forEach((school) => {
-        const distKm = getDistance(
-          EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng,
-          school.lat, school.lng
-        );
-        L.marker([school.lat, school.lng], { icon: schoolIcon(school.rating) })
-          .addTo(map)
-          .bindPopup(
-            `<div style="font-family:system-ui;min-width:180px">
-              <div style="font-weight:700;color:#1c1917;margin-bottom:3px">${school.name}</div>
-              <div style="font-size:12px;color:#ab8e72;font-weight:600">From ${school.tuition}/yr</div>
-              <div style="font-size:12px;color:#78716c;margin-top:2px">⭐ ${school.rating} · ${distKm} km from you</div>
-            </div>`,
-            { maxWidth: 220 }
-          );
-      });
+      // Real pins from school_data.schools via schoolsApi; schools without usable coordinates have no coords
+      getSchools()
+        .then((schools) => {
+          if (mapRef.current !== map) return;
+
+          schools.forEach((school) => {
+            if (!school.coords) return;
+            const { lat, lng, precision } = school.coords;
+            const approximate = precision === "Approximate";
+            const name = escapeHtml(school.name);
+            const distKm = getDistance(EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng, lat, lng);
+            const fee =
+              school.tuitionStart > 0 ? `From ${formatTuition(school.tuitionStart)}/yr` : "Contact school for fees";
+            const ratingText = school.rating > 0 ? `⭐ ${school.rating} · ` : "";
+
+            const marker = L.marker([lat, lng], {
+              icon: schoolIcon(school.rating, approximate),
+              zIndexOffset: approximate ? 0 : 500,
+            })
+              .addTo(map)
+              .bindPopup(
+                `<div style="font-family:system-ui;min-width:180px">
+                  <div style="font-weight:700;color:#1c1917;margin-bottom:3px">${name}</div>
+                  <div style="font-size:12px;color:#ab8e72;font-weight:600">${fee}</div>
+                  <div style="font-size:12px;color:#78716c;margin-top:2px">${ratingText}${distKm} km from you</div>
+                  ${approximate ? `<div style="font-size:11px;color:#b45309;margin-top:4px">${APPROXIMATE_PIN_NOTE}</div>` : ""}
+                </div>`,
+                { maxWidth: 220 }
+              );
+
+            if (approximate) {
+              marker.bindTooltip(
+                `<div style="font-family:system-ui">
+                  <div style="font-weight:600;color:#1c1917">${name}</div>
+                  <div style="font-size:11px;color:#b45309">${APPROXIMATE_PIN_NOTE}</div>
+                </div>`,
+                { direction: "top", offset: [0, -12] }
+              );
+            }
+          });
+        })
+        .catch((error) => console.debug("[SchoolMap] school pins unavailable:", error));
 
       // Draw radius circle from saved location (10 km)
       L.circle([EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng], {
@@ -155,6 +174,11 @@ export function SchoolMap() {
       style={{ minHeight: 400 }}
     />
   );
+}
+
+// School names come from the database and are rendered as popup HTML
+function escapeHtml(text: string) {
+  return text.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 }
 
 function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {

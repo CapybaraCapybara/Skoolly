@@ -14,7 +14,7 @@
  *    scraped enrichments overlay without mutating source database records directly.
  */
 
-import type { School, SchoolDetail, SchoolFee, SchoolReview } from "@/types";
+import type { School, SchoolCoords, SchoolDetail, SchoolFee, SchoolReview } from "@/types";
 import type { SupabaseSchoolRecord } from "@/types/opec";
 import { SCHOOLS_SEED } from "@/api/mock/schools";
 import { SCHOOL_DETAILS_SEED } from "@/api/mock/schoolDetails";
@@ -117,6 +117,23 @@ function formatGrades(record: SupabaseSchoolRecord): string {
   return "Pre-K–Grade 12";
 }
 
+function mapCoords(record: SupabaseSchoolRecord): SchoolCoords | undefined {
+  const precision = (record.gps_precision || "").trim().toLowerCase();
+  if (precision === "none" || record.latitude == null || record.longitude == null) return undefined;
+
+  const lat = Number(record.latitude);
+  const lng = Number(record.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return undefined;
+
+  // Only a pin the GPS pipeline marked Exact is shown as exact; an unlabelled one counts as approximate
+  return {
+    lat,
+    lng,
+    precision: precision === "exact" ? "Exact" : "Approximate",
+    source: record.gps_source ?? null,
+  };
+}
+
 function parseNumericId(
   record: SupabaseSchoolRecord,
   index: number,
@@ -207,6 +224,7 @@ export function mapSupabaseToDomainSchool(
     isIsatMember: record.is_isat_member ?? false,
     websiteUrl: record.official_website_url || null,
     phone: record.official_phone || record.official_mobile || null,
+    coords: mapCoords(record),
   };
 }
 
