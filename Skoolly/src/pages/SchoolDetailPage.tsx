@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { School, SchoolDetail } from "@/types";
 import { getSchoolDetail } from "@/api/schoolsApi";
+import { getSchoolInitials } from "@/components/schools/SchoolCard";
 
 // ─── StarRating ─────────────────────────────────────────────────────────────
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
@@ -29,13 +30,13 @@ interface SchoolDetailPageProps {
 
 // ─── Format date helper ───────────────────────────────────────────────────────
 function formatLastUpdated(val?: string | number): string {
-  if (!val) return "September 2026";
+  if (!val || val === "ไม่มีข้อมูล") return "กันยายน 2569";
   const str = String(val).trim();
   const parsed = Date.parse(str);
   if (!isNaN(parsed) && (str.includes("-") || str.includes("/"))) {
     try {
       const d = new Date(parsed);
-      return d.toLocaleDateString("en-US", {
+      return d.toLocaleDateString("th-TH", {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -51,6 +52,7 @@ function formatLastUpdated(val?: string | number): string {
 export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: SchoolDetailPageProps) {
   const [tab, setTab] = useState("Overview");
   const [detail, setDetail] = useState<SchoolDetail | null>(null);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   // ── Fetch extended school detail from the API layer on mount ───────────────
   useEffect(() => {
@@ -60,7 +62,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
   if (!detail) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-400 text-sm">Loading school details…</div>
+        <div className="text-slate-400 text-sm">กำลังโหลดข้อมูลโรงเรียน…</div>
       </div>
     );
   }
@@ -73,89 +75,121 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
     (school as any).last_updated;
   const lastUpdatedDisplay = formatLastUpdated(rawLastUpdated);
 
+  const logoSrc = detail.logoUrl || school.logoUrl || (school.image?.startsWith("http") ? school.image : null);
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Hero */}
-      <div className="relative h-72 md:h-88 bg-navy-900 overflow-hidden">
-        <img
-          src={`https://images.unsplash.com/${school.image}?w=1400&h=600&fit=crop&auto=format`}
-          alt={school.name}
-          className="w-full h-full object-cover opacity-60"
-        />
+      {/* ── Hero Header: Branded School Presentation with Official Logo ── */}
+      <div className="relative min-h-[290px] md:min-h-[320px] bg-gradient-to-br from-slate-900 via-navy-950 to-slate-900 overflow-hidden flex flex-col justify-between p-6 md:p-8">
+        {/* Soft background ambient glow */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-warm-bronze/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Top-right badges: Last updated date & Draft watermark */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2.5">
-          {/* Last updated badge (circled in red by user) */}
-          <div
-            id="school-last-updated-badge"
-            className="flex items-center gap-1.5 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white text-xs font-medium px-3.5 py-1.5 rounded-full shadow-md transition-all select-none"
-            title="Last updated date"
+        {/* Top bar: Back button & Official verification badge */}
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-full transition-all cursor-pointer"
           >
-            <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="text-slate-300">Updated:</span>
-            <span className="font-semibold text-white">{lastUpdatedDisplay}</span>
-          </div>
+            ย้อนกลับ
+          </button>
 
-          {/* Draft watermark */}
-          <div className="bg-amber-400 text-amber-900 text-xs font-black px-3 py-1 rounded-full rotate-2 shadow-lg select-none">
-            PROTOTYPE DRAFT
+          <div className="flex items-center gap-2.5 flex-wrap justify-end">
+            <div
+              id="school-last-updated-badge"
+              className="flex items-center gap-1.5 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white text-xs font-medium px-3.5 py-1.5 rounded-full shadow-md select-none"
+              title="วันที่อัปเดตข้อมูลล่าสุด"
+            >
+              <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-slate-300">อัปเดต:</span>
+              <span className="font-semibold text-white">{lastUpdatedDisplay}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-full select-none shadow-xs">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>ข้อมูลทางการ สช. (OPEC)</span>
+            </div>
           </div>
         </div>
 
-        <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(to top, rgba(10,22,40,0.85) 0%, transparent 60%)" }}
-        />
-
-        {/* Back button */}
-        <button
-          onClick={onBack}
-          className="absolute top-5 left-5 flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-full transition-all"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back
-        </button>
-
-        {/* School name overlay */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-6">
-          <div className="max-w-5xl mx-auto">
-            {school.badge && (
-              <span
-                className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full text-white mb-2"
-                style={{ background: "rgba(15,148,136,0.85)" }}
-              >
-                {school.badge}
-              </span>
-            )}
-            <h1 className="font-display text-3xl md:text-4xl text-white mb-1">{school.name}</h1>
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <StarRating rating={school.rating} size="lg" />
-                <span className="text-white font-semibold">{school.rating}</span>
-                <span className="text-slate-300 text-sm">({school.reviewCount} reviews)</span>
+        {/* Hero main identity: Official School Logo & Verified Titles */}
+        <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col md:flex-row items-start md:items-center gap-5 my-auto pt-6 pb-2">
+          {/* Official Logo Container */}
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-3 shadow-xl border border-white/20 flex items-center justify-center shrink-0">
+            {logoSrc && !logoFailed ? (
+              <img
+                src={logoSrc}
+                alt={`โลโก้ ${school.name}`}
+                referrerPolicy="no-referrer"
+                className="max-h-full max-w-full object-contain"
+                onError={() => setLogoFailed(true)}
+              />
+            ) : (
+              <div className="w-full h-full rounded-xl bg-warm-bronze/10 border border-warm-bronze/20 flex flex-col items-center justify-center text-warm-bronze font-bold text-xl tracking-wider select-none">
+                {getSchoolInitials(school.name)}
               </div>
-              <span className="text-slate-300 text-sm">·</span>
-              <span className="text-slate-300 text-sm">{school.location}</span>
-              <span className="text-slate-300 text-sm">·</span>
-              <span className="text-slate-300 text-sm">{school.curriculum} Curriculum</span>
+            )}
+          </div>
+
+          {/* School Titles & Metadata */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              {school.badge && (
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full text-white bg-warm-bronze shadow-xs">
+                  {school.badge}
+                </span>
+              )}
+              {detail.schoolCode && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-white/10 text-slate-300 border border-white/10">
+                  รหัสโรงเรียน: {detail.schoolCode}
+                </span>
+              )}
+            </div>
+
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl text-white font-bold leading-tight">
+              {school.name}
+            </h1>
+            {school.nameTh && school.nameTh !== school.name && (
+              <p className="text-slate-300 text-sm sm:text-base mt-1 font-normal">
+                {school.nameTh}
+              </p>
+            )}
+
+            <div className="flex items-center gap-3 mt-3 text-slate-300 text-xs sm:text-sm flex-wrap">
+              {school.reviewCount > 0 && school.rating > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <StarRating rating={school.rating} size="lg" />
+                  <span className="text-white font-semibold">{school.rating}</span>
+                  <span className="text-slate-400">({school.reviewCount} รีวิว)</span>
+                </div>
+              ) : (
+                <span className="text-slate-400 italic">ยังไม่มีรีวิว</span>
+              )}
+              <span>·</span>
+              <span>{school.location}</span>
+              <span>·</span>
+              <span>หลักสูตร {school.curriculum}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 flex gap-0 overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t}
               onClick={() => (t === "Forum" ? onForum() : setTab(t))}
-              className={`px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${tab === t && t !== "Forum"
-                ? "border-teal-500 text-teal-700"
+              className={`px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors cursor-pointer ${tab === t && t !== "Forum"
+                ? "border-teal-500 text-teal-700 font-bold"
                 : "border-transparent text-slate-500 hover:text-navy-900"
                 }`}
             >
@@ -171,92 +205,118 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
         {tab === "Overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
-              <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                <h2 className="font-semibold text-navy-900 text-lg mb-3">About the School</h2>
+              {/* About the School (Authentic OPEC summary) */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">About the School (ข้อมูลโรงเรียน)</h2>
                 <p className="text-slate-600 text-sm leading-relaxed">{detail.about}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                <h2 className="font-semibold text-navy-900 text-lg mb-3">Facilities</h2>
-                <div className="grid grid-cols-2 gap-2">
-                  {detail.facilities.map((f) => (
-                    <div key={f} className="flex items-center gap-2 text-sm text-slate-700">
-                      <svg className="w-4 h-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {f}
-                    </div>
-                  ))}
+
+              {/* School Academic & Operational Profile */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                <h2 className="font-semibold text-navy-900 text-lg mb-4">Academic & Campus Standards (ข้อมูลมาตรฐานสถานศึกษา)</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                    <span className="text-xs text-slate-500 block mb-0.5">ระดับชั้นที่เปิดสอน</span>
+                    <span className="font-semibold text-slate-800">{detail.levelRange || (detail.levelsOffered?.length ? detail.levelsOffered.join(", ") : "ไม่ระบุ")}</span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                    <span className="text-xs text-slate-500 block mb-0.5">หลักสูตรการศึกษา</span>
+                    <span className="font-semibold text-slate-800">{detail.curriculums?.length ? detail.curriculums.join(", ") : school.curriculum}</span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                    <span className="text-xs text-slate-500 block mb-0.5">สถานะหอพักนักเรียน</span>
+                    <span className="font-semibold text-slate-800">{detail.isBoarding ? "มีหอพักประจำ (Boarding School)" : "ไม่มีหอพัก (Day School ไป-กลับ)"}</span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                    <span className="text-xs text-slate-500 block mb-0.5">สมาชิกสมาคม ISAT</span>
+                    <span className="font-semibold text-slate-800">{detail.isIsatMember ? "เป็นสมาชิก ISAT (International Schools Association of Thailand)" : "ไม่ได้เป็นสมาชิก ISAT"}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Campus Safety & Safeguarding Highlight Card */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-navy-900 text-lg leading-tight">Campus Safety & Safeguarding</h2>
-                      <span className="text-xs text-teal-700 font-medium">Scraped & Verified Policy Standards</span>
-                    </div>
+              {/* Facilities: Strictly truthful */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">Facilities (สิ่งอำนวยความสะดวก)</h2>
+                {detail.facilities && detail.facilities.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {detail.facilities.map((f) => (
+                      <div key={f} className="flex items-center gap-2 text-sm text-slate-700">
+                        <svg className="w-4 h-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {f}
+                      </div>
+                    ))}
                   </div>
-                  <button
-                    onClick={() => setTab("Safety & Security")}
-                    className="text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    View details →
-                  </button>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-sm text-slate-600">
+                    <p className="font-medium text-slate-700 mb-1">ยังไม่มีข้อมูลสิ่งอำนวยความสะดวกในฐานข้อมูล OPEC</p>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                      ระบบบันทึกเฉพาะข้อมูลทางการ ผู้ปกครองสามารถตรวจสอบสิ่งอำนวยความสะดวก ห้องเรียน ห้องปฏิบัติการ และพื้นที่กิจกรรมได้โดยตรงจากเว็บไซต์ทางการของโรงเรียน
+                    </p>
+                    {detail.website && (
+                      <a
+                        href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        เข้าชมเว็บไซต์ทางการของโรงเรียน ↗
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Child Safeguarding Policy: Truthful DB verification */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 font-bold">
+                    🛡️
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-navy-900 text-lg leading-tight">Child Safeguarding & Safety Policy</h2>
+                    <span className="text-xs text-slate-500">ข้อมูลมาตรฐานความปลอดภัยและสวัสดิภาพเด็ก</span>
+                  </div>
                 </div>
 
-                <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                  {detail.safety?.summary || "Comprehensive campus safety protocols, 24/7 security guard patrol, and child safeguarding standards."}
-                </p>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-base">🛡️</span>
-                    <span className="font-medium text-slate-700">24/7 Gated Security</span>
+                {detail.safety?.safeguardingPolicy ? (
+                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-900">
+                    <div className="flex items-center gap-2 font-semibold text-emerald-800 mb-1">
+                      <span className="text-base">✓</span>
+                      <span>ผ่านการรับรองนโยบายคุ้มครองสวัสดิภาพเด็ก (Child Safeguarding Policy)</span>
+                    </div>
+                    <p className="text-xs text-emerald-700 leading-relaxed">
+                      โรงเรียนมีนโยบายคุ้มครองความปลอดภัยและสวัสดิภาพของนักเรียนตามเกณฑ์มาตรฐานการรับรองของ สช./ISAT
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-base">🩺</span>
-                    <span className="font-medium text-slate-700">Full-time Nurse</span>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-sm text-slate-600">
+                    <p className="font-medium text-slate-700 mb-1">ยังไม่มีข้อมูลนโยบายความปลอดภัยที่เผยแพร่ผ่านระบบ OPEC</p>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      ผู้ปกครองสามารถสอบถามรายละเอียดเกี่ยวกับมาตรการความปลอดภัย การดูแลทางการแพทย์ และการคัดกรองบุคลากรได้โดยตรงจากทางโรงเรียน
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-base">📜</span>
-                    <span className="font-medium text-slate-700">Child Safeguarding</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-base">📹</span>
-                    <span className="font-medium text-slate-700">CCTV Coverage</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-base">💨</span>
-                    <span className="font-medium text-slate-700">PM2.5 Filtration</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                    <span className="text-base">🚨</span>
-                    <span className="font-medium text-slate-700">Emergency Drills</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
+            {/* Sidebar Facts */}
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-navy-900 mb-3 text-sm">Quick Facts</h3>
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                <h3 className="font-semibold text-navy-900 mb-3 text-sm">Quick Facts (ข้อมูลพื้นฐาน)</h3>
                 <div className="space-y-2.5">
                   {[
-                    ["Founded", detail.founded],
-                    ["Students", detail.students],
-                    ["Curriculum", school.curriculum],
-                    ["Language", school.language],
-                    ["Grades", school.grades],
-                    ["Distance", `${school.distance} km from saved location`],
+                    ["ก่อตั้งปี (Founded)", detail.founded],
+                    ["จำนวนนักเรียน (Students)", detail.students],
+                    ["จำนวนครู (Teachers)", detail.teacherCount ? `${detail.teacherCount.toLocaleString()} คน` : "ไม่มีข้อมูล"],
+                    ["สัดส่วนนักเรียนต่อครู", detail.studentTeacherRatio ? `1 : ${detail.studentTeacherRatio}` : "ไม่มีข้อมูล"],
+                    ["หลักสูตร (Curriculum)", school.curriculum],
+                    ["ระดับชั้น (Grades)", school.grades || "ไม่มีข้อมูล"],
+                    ["หอพัก (Boarding)", detail.isBoarding ? "มีหอพัก (Boarding)" : "ไม่มีหอพัก (Day School)"],
+                    ["สมาชิก ISAT", detail.isIsatMember ? "เป็นสมาชิก ISAT" : "ไม่ได้เป็นสมาชิก"],
                   ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-sm">
+                    <div key={k} className="flex justify-between text-sm py-1 border-b border-slate-50 last:border-0">
                       <span className="text-slate-500">{k}</span>
                       <span className="font-medium text-navy-900 text-right max-w-[55%]">{v}</span>
                     </div>
@@ -264,13 +324,12 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 </div>
               </div>
 
-              {/* A plain link to Google Maps: allowed without an API key or any Google data
-                  on our side — Google finds the school from its name when the parent clicks. */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Location</h3>
-                <div className="text-sm text-slate-600">{school.location}</div>
+              {/* Location */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Location (ที่ตั้ง)</h3>
+                <div className="text-sm text-slate-600 leading-relaxed">{detail.address || school.location}</div>
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name} ${school.location}`)}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name} ${detail.address || school.location}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 w-full py-2 rounded-lg text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors flex items-center justify-center gap-1.5"
@@ -279,43 +338,86 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-6.2-7-11.5a7 7 0 1114 0C19 14.8 12 21 12 21z" />
                     <circle cx="12" cy="9.5" r="2.5" />
                   </svg>
-                  Open in Google Maps
+                  เปิดดูตำแหน่งใน Google Maps ↗
                 </a>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Accreditation</h3>
-                <div className="flex flex-wrap gap-2">
-                  {detail.accreditation.map((a) => (
-                    <span key={a} className="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold px-2.5 py-1 rounded-full">
-                      {a}
-                    </span>
-                  ))}
+              {/* Contact Information */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                <h3 className="font-semibold text-navy-900 mb-3 text-sm">Contact (การติดต่อโรงเรียน)</h3>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">โทรศัพท์:</span>
+                    {detail.officialPhone ? (
+                      <a href={`tel:${detail.officialPhone}`} className="text-teal-700 font-semibold hover:underline">
+                        {detail.officialPhone}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">ไม่มีข้อมูล</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">อีเมล:</span>
+                    {detail.officialEmail ? (
+                      <a href={`mailto:${detail.officialEmail}`} className="text-teal-700 font-semibold hover:underline truncate max-w-[65%]">
+                        {detail.officialEmail}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">ไม่มีข้อมูล</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">เว็บไซต์:</span>
+                    {detail.website ? (
+                      <a
+                        href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-teal-700 font-semibold hover:underline truncate max-w-[65%]"
+                      >
+                        {detail.website.replace(/^https?:\/\/(www\.)?/, "")} ↗
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">ไม่มีข้อมูล</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-100 p-5">
-                <h3 className="font-semibold text-navy-900 mb-3 text-sm">Starting Tuition</h3>
-                <div className="text-2xl font-bold text-navy-900">฿{(school.tuitionStart / 1000).toFixed(0)}K</div>
-                <div className="text-xs text-slate-500 mt-0.5">per year · see Fees tab for full breakdown</div>
-                <button
-                  onClick={() => setTab("Fees")}
-                  className="mt-3 w-full py-2 rounded-lg text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
-                >
-                  View full fee schedule →
-                </button>
-              </div>
-
-              <div className="bg-amber-50 rounded-2xl border border-amber-200 p-4">
-                <div className="text-xs font-semibold text-amber-800 mb-1 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  Prototype Note
+              {/* Accreditation */}
+              {detail.accreditation && detail.accreditation.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                  <h3 className="font-semibold text-navy-900 mb-2 text-sm">Accreditation (การรับรองวิทยฐานะ)</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {detail.accreditation.map((a) => (
+                      <span key={a} className="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold px-2.5 py-1 rounded-full">
+                        {a}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-xs text-amber-700">
-                  This is a draft school profile. In the live version, you'll see verified data, direct school contact, virtual tours, and an enquiry form.
-                </p>
+              )}
+
+              {/* Starting Tuition */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Starting Tuition (ค่าธรรมเนียมเริ่มต้น)</h3>
+                {school.tuitionStart > 0 ? (
+                  <>
+                    <div className="text-2xl font-bold text-navy-900">฿{(school.tuitionStart / 1000).toFixed(0)}K</div>
+                    <div className="text-xs text-slate-500 mt-0.5">ต่อปี (ประมาณการ) · ดูรายละเอียดเพิ่มเติมในแท็บ Fees</div>
+                    <button
+                      onClick={() => setTab("Fees")}
+                      className="mt-3 w-full py-2 rounded-lg text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors cursor-pointer"
+                    >
+                      ดูตารางค่าธรรมเนียมการศึกษา →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm font-semibold text-slate-600">ติดต่อโรงเรียนเพื่อสอบถาม</div>
+                    <div className="text-xs text-slate-500 mt-1">ยังไม่มีข้อมูลค่าธรรมเนียมการศึกษาในระบบ OPEC</div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -323,269 +425,161 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
 
         {/* ── FEES ─────────────────────────────────────────────────────────── */}
         {tab === "Fees" && (
-          <div className="max-w-2xl">
-            <div className="bg-white rounded-2xl border border-slate-100 p-6">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
               <h2 className="font-semibold text-navy-900 text-lg mb-1">{school.name} — Fee Schedule</h2>
-              <p className="text-xs text-slate-500 mb-5">Academic Year 2025–26 · All amounts in Thai Baht. Fees subject to annual increases.</p>
-              <div className="space-y-2">
-                {detail.fees.map((f, i) => (
-                  <div
-                    key={i}
-                    className={`flex justify-between items-center py-3 px-4 rounded-xl text-sm ${i % 2 === 0 ? "bg-slate-50" : "bg-white border border-slate-100"
-                      }`}
-                  >
-                    <span className="text-slate-700">{f.label}</span>
-                    <span className="font-bold text-navy-900">{f.amount}</span>
+              <p className="text-xs text-slate-500 mb-5">ข้อมูลค่าธรรมเนียมการศึกษาทางการตามที่บันทึกในฐานข้อมูลระบบ</p>
+
+              {detail.fees && detail.fees.length > 0 ? (
+                <div className="space-y-2 mb-6">
+                  {detail.fees.map((f, i) => (
+                    <div
+                      key={i}
+                      className={`flex justify-between items-center py-3.5 px-4 rounded-xl text-sm ${i % 2 === 0 ? "bg-slate-50" : "bg-white border border-slate-100"}`}
+                    >
+                      <span className="text-slate-700 font-medium">{f.label}</span>
+                      <span className="font-bold text-navy-900">{f.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-6 text-center mb-6">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center mx-auto mb-2 text-base font-bold">
+                    ฿
                   </div>
-                ))}
-              </div>
-              <div className="mt-5 bg-warm-cream border border-warm-accent rounded-2xl p-5 shadow-2xs">
+                  <h3 className="font-semibold text-navy-900 text-sm mb-1">ยังไม่มีข้อมูลโครงสร้างค่าเล่าเรียนในระบบ OPEC</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mb-4">
+                    โรงเรียนยังไม่ได้เผยแพร่โครงสร้างค่าเล่าเรียนผ่านฐานข้อมูล สช. ท่านสามารถติดต่อสอบถามข้อมูลค่าเล่าเรียนและค่าธรรมเนียมล่าสุดได้จากทางโรงเรียนโดยตรง
+                  </p>
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    {detail.officialPhone && (
+                      <a
+                        href={`tel:${detail.officialPhone}`}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 transition-colors inline-flex items-center gap-1.5"
+                      >
+                        📞 โทร {detail.officialPhone}
+                      </a>
+                    )}
+                    {detail.website && (
+                      <a
+                        href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors inline-flex items-center gap-1"
+                      >
+                        เว็บไซต์โรงเรียน ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Multi-Year Calculator Card */}
+              <div className="bg-warm-cream border border-warm-accent rounded-2xl p-5 shadow-2xs">
                 <div className="text-sm font-bold text-warm-charcoal mb-1">Interactive Multi-Year Cost Calculator</div>
                 <div className="text-xs text-warm-charcoal/70">
-                  Calculate full journey cost projections with exact grade tiers, registration fees, uniforms, school bus transport, and lunch catering.
+                  คำนวณและจำลองค่าใช้จ่ายตลอดช่วงชั้นการศึกษา รวมค่าแรกเข้า ค่าชุด และค่าบำรุง
                 </div>
                 <button
                   onClick={onOpenCalculator}
-                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white bg-warm-bronze hover:bg-warm-bronze/90 transition-all shadow-xs"
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white bg-warm-bronze hover:bg-warm-bronze/90 transition-all shadow-xs cursor-pointer"
                 >
-                  Open Cost Calculator for {school.name} →
+                  เปิดเครื่องคำนวณค่าใช้จ่ายสำหรับ {school.name} →
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ── SAFETY & SECURITY ───────────────────────────────────────────── */}
-        {tab === "Safety & Security" && (
-          <div className="max-w-4xl space-y-6">
-            {/* Header Banner */}
-            <div className="bg-gradient-to-r from-teal-900 to-navy-900 rounded-3xl p-6 md:p-8 text-white shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 bg-teal-500/20 border border-teal-400/30 text-teal-300 text-xs font-semibold px-3 py-1 rounded-full">
-                    <span>🛡️ Verified School Safeguarding & Security Profile</span>
+        {/* ── GALLERY ──────────────────────────────────────────────────────── */}
+        {tab === "Gallery" && (
+          <div className="max-w-3xl mx-auto">
+            {detail.gallery && detail.gallery.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {detail.gallery.map((img, i) => (
+                  <div key={i} className="overflow-hidden rounded-2xl bg-slate-100 h-48">
+                    <img
+                      src={img.startsWith("http") ? img : `https://images.unsplash.com/${img}?w=600&h=400&fit=crop&auto=format`}
+                      alt={`${school.name} photo ${i + 1}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-bold">{school.name} Campus Safety</h2>
-                  <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
-                    {detail.safety?.summary ||
-                      "Our scraper continually verifies safety measures, child safeguarding compliance, health clinic readiness, and campus security policies."}
-                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-xs">
+                <div className="w-20 h-20 mx-auto mb-3 p-2 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center">
+                  {logoSrc && !logoFailed ? (
+                    <img
+                      src={logoSrc}
+                      alt={school.name}
+                      referrerPolicy="no-referrer"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-slate-400">🏫</span>
+                  )}
                 </div>
-                {detail.safety?.policyUrl && (
+                <h3 className="font-bold text-navy-900 text-base mb-1">ยังไม่มีรูปภาพแกลเลอรีในระบบ</h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto mb-4">
+                  ระบบแสดงเฉพาะรูปภาพที่ผ่านการตรวจสอบอย่างเป็นทางการ ท่านสามารถเข้าชมภาพบรรยากาศและอาคารสถานที่จริงได้จากเว็บไซต์ทางการของโรงเรียน
+                </p>
+                {detail.website && (
                   <a
-                    href={detail.safety.policyUrl}
+                    href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="shrink-0 flex items-center gap-2 bg-white text-navy-900 hover:bg-teal-50 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
                   >
-                    <span>Read Official Policy PDF</span>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
+                    เยี่ยมชมเว็บไซต์ทางการของโรงเรียน ↗
                   </a>
                 )}
-              </div>
-            </div>
-
-            {/* 4 Core Safety Pillars */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Pillar 1: Campus Security */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 text-lg">
-                    🛡️
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-navy-900 text-base">Campus Security & Access Control</h3>
-                    <span className="text-xs text-slate-500">Perimeter & Gate Security</span>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-slate-700">
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Security Guards:</strong> {detail.safety?.securityGuards || "24/7 Gate & Campus Guard Station"}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>CCTV Surveillance:</strong> {detail.safety?.cctv || "24-hour perimeter & common area CCTV recording"}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Visitor Control:</strong> {detail.safety?.visitorControl || "Mandatory ID registration & guest lanyard badge"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pillar 2: Healthcare & Nurse Clinic */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 text-lg">
-                    🩺
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-navy-900 text-base">Health, Medical & Clinic</h3>
-                    <span className="text-xs text-slate-500">Emergency & On-site Healthcare</span>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-slate-700">
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Medical Personnel:</strong> {detail.safety?.medicalNurse || "Full-time certified registered nurse on campus"}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>First-Aid & Emergency:</strong> Dedicated medical room with AED defibrillator and ambulance emergency lane protocol.</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pillar 3: Safeguarding & Child Protection Policy */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-700 text-lg">
-                    📜
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-navy-900 text-base">Child Protection & Safeguarding</h3>
-                    <span className="text-xs text-slate-500">Staff Screening & Student Well-being</span>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-slate-700">
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Safeguarding Policy:</strong> {detail.safety?.safeguardingPolicy || "Strict child protection policy aligned with international accreditation bodies."}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Staff Background Checks:</strong> 100% of teachers and non-academic staff undergo criminal background screening prior to appointment.</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pillar 4: Air Quality & Emergency Drills */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 text-lg">
-                    💨
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-navy-900 text-base">Air Quality & Emergency Response</h3>
-                    <span className="text-xs text-slate-500">PM2.5 Clean Air & Safety Drills</span>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-slate-700">
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Air Quality (PM2.5):</strong> {detail.safety?.airQualityPM25 || "Positive-pressure or HEPA filtration system across learning spaces."}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-teal-600 font-bold">✓</span>
-                    <span><strong>Drills & Protocols:</strong> {detail.safety?.emergencyDrill || "Scheduled fire evacuation, weather alert, and lockdown drills each term."}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Key Safety Highlights Checklist */}
-            {detail.safety?.highlights && detail.safety.highlights.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                <h3 className="font-bold text-navy-900 text-base mb-3 flex items-center gap-2">
-                  <span>📋 Key Safety & Policy Highlights</span>
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {detail.safety.highlights.map((h, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                      <span className="text-teal-600 font-bold mt-0.5">✦</span>
-                      <span>{h}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ── GALLERY ──────────────────────────────────────────────────────── */}
-        {tab === "Gallery" && (
-          <div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {detail.gallery.map((img, i) => (
-                <div
-                  key={i}
-                  className={`overflow-hidden rounded-2xl bg-slate-100 ${i === 0 ? "col-span-2 row-span-2" : ""}`}
-                  style={{ height: i === 0 ? 320 : 148 }}
-                >
-                  <img
-                    src={`https://images.unsplash.com/${img}?w=600&h=400&fit=crop&auto=format`}
-                    alt={`${school.name} campus photo ${i + 1}`}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-slate-400 text-center mt-4">
-              Representative campus photos. The live version will include school-verified photos and virtual tours.
-            </p>
-          </div>
-        )}
-
         {/* ── REVIEWS ──────────────────────────────────────────────────────── */}
         {tab === "Reviews" && (
-          <div className="max-w-2xl space-y-4">
-            {/* Rating summary */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 flex items-center gap-8">
-              <div className="text-center">
-                <div className="text-5xl font-bold text-navy-900">{school.rating}</div>
-                <StarRating rating={school.rating} size="lg" />
-                <div className="text-xs text-slate-500 mt-1">{school.reviewCount} reviews</div>
-              </div>
-              <div className="flex-1">
-                {[5, 4, 3, 2, 1].map((s) => {
-                  const pct = s === 5 ? 68 : s === 4 ? 22 : s === 3 ? 7 : s === 2 ? 2 : 1;
-                  return (
-                    <div key={s} className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-slate-500 w-2">{s}</span>
-                      <svg className="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <div className="flex-1 h-2 rounded-full bg-slate-100">
-                        <div className="h-2 rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+          <div className="max-w-2xl mx-auto space-y-4">
+            {detail.reviews && detail.reviews.length > 0 ? (
+              detail.reviews.map((r, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0"
+                      style={{ background: "#0f9488" }}
+                    >
+                      {r.avatar}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-navy-900">{r.author}</span>
+                        <span className="text-xs text-slate-400">{r.time}</span>
                       </div>
-                      <span className="text-xs text-slate-400">{pct}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {detail.reviews.map((r, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5">
-                <div className="flex items-start gap-3 mb-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0"
-                    style={{ background: "#0f9488" }}
-                  >
-                    {r.avatar}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-navy-900">{r.author}</span>
-                      <span className="text-xs text-slate-400">{r.time}</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <StarRating rating={r.rating} />
-                      <span className="text-xs text-slate-500">Child in {r.childYear}</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <StarRating rating={r.rating} />
+                        <span className="text-xs text-slate-500">Child in {r.childYear}</span>
+                      </div>
                     </div>
                   </div>
+                  <p className="text-sm text-slate-700 leading-relaxed">{r.text}</p>
                 </div>
-                <p className="text-sm text-slate-700 leading-relaxed">{r.text}</p>
+              ))
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-xs">
+                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+                  ★
+                </div>
+                <h3 className="font-bold text-navy-900 text-base mb-1">ยังไม่มีรีวิวสำหรับโรงเรียนนี้</h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto mb-5">
+                  ยังไม่มีผู้ปกครองเขียนรีวิวหรือแสดงความคิดเห็นสำหรับโรงเรียนนี้ในระบบ คุณสามารถร่วมเป็นคนแรกที่แบ่งปันประสบการณ์เพื่อเป็นประโยชน์ต่อผู้ปกครองท่านอื่นได้
+                </p>
+                <button className="px-5 py-2.5 rounded-xl text-xs font-semibold border border-teal-500 text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer">
+                  + เขียนรีวิวโรงเรียนนี้ (เข้าสู่ระบบ)
+                </button>
               </div>
-            ))}
-
-            <button className="w-full py-3 rounded-xl text-sm font-semibold border border-dashed border-slate-300 text-slate-500 hover:border-teal-400 hover:text-teal-600 transition-colors">
-              + Write a review (sign in required)
-            </button>
+            )}
           </div>
         )}
       </div>

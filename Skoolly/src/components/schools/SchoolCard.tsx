@@ -1,10 +1,24 @@
+import { useState } from "react";
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 
 export function formatTuition(n: number) {
-  if (!n || n <= 0) return "Contact school";
+  if (!n || n <= 0) return "ติดต่อโรงเรียน";
   if (n >= 1000000) return `฿${(n / 1000000).toFixed(1)}M`;
   return `฿${(n / 1000).toFixed(0)}K`;
+}
+
+export function getSchoolInitials(name: string): string {
+  if (!name) return "SCH";
+  const words = name
+    .replace(/[()]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !/^(of|and|the|in|at|for|co|ltd)$/i.test(w));
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  return words
+    .slice(0, 4)
+    .map((w) => w[0].toUpperCase())
+    .join("");
 }
 
 export function StarRating({ rating }: { rating: number }) {
@@ -37,44 +51,58 @@ export function SchoolCard({
   favorites,
   onToggleCompare,
   onToggleFavorite,
-  onRestrictedAction,
   onSchoolClick,
   onCompareLimitReached,
 }: SchoolCardProps) {
+  const [imgFailed, setImgFailed] = useState(false);
   const isCompared = compareIds.includes(school.id);
   const isFav = favorites.has(school.id);
   const compareAtLimit = compareIds.length >= MAX_COMPARE && !isCompared;
 
-  const imageSrc = school.image.startsWith("http")
-    ? school.image
-    : `https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`;
+  const logoSrc = (school.logoUrl && school.logoUrl.trim()) ? school.logoUrl : (school.image?.startsWith("http") ? school.image : null);
 
   return (
-    <div className="card-hover bg-warm-cream rounded-[2rem] overflow-hidden border border-warm-accent shadow-sm flex flex-col p-3">
-      {/* Cover image */}
-      <div className="relative h-56 bg-warm-accent rounded-[1.5rem] overflow-hidden cursor-pointer" onClick={() => onSchoolClick(school.id)}>
-        <img
-          src={imageSrc}
-          alt={`${school.name} campus`}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=350&fit=crop&auto=format";
-          }}
-        />
+    <div className="card-hover bg-warm-cream rounded-[2rem] overflow-hidden border border-warm-accent shadow-xs flex flex-col p-3 transition-all hover:shadow-md">
+      {/* ── Official School Logo Container (Replaced stock Unsplash photos) ── */}
+      <div
+        className="relative h-48 bg-gradient-to-b from-white via-warm-cream/40 to-warm-accent/20 rounded-[1.5rem] border border-warm-accent/40 flex items-center justify-center p-5 cursor-pointer group overflow-hidden"
+        onClick={() => onSchoolClick(school.id)}
+      >
+        {logoSrc && !imgFailed ? (
+          <img
+            src={logoSrc}
+            alt={`โลโก้ ${school.name}`}
+            referrerPolicy="no-referrer"
+            className="max-h-28 max-w-[82%] object-contain drop-shadow-xs transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center p-2 select-none">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-warm-accent/60 shadow-xs flex items-center justify-center text-warm-bronze font-bold text-xl tracking-wider mb-1.5 group-hover:scale-105 transition-transform">
+              {getSchoolInitials(school.name)}
+            </div>
+            <span className="text-[11px] font-semibold text-warm-charcoal/70 line-clamp-1 max-w-[180px]">{school.name}</span>
+            <span className="text-[10px] text-warm-charcoal/40 mt-0.5">ไม่มีโลโก้ในระบบ</span>
+          </div>
+        )}
+
+        {/* Badge in top-left (e.g. ISAT Member, Boarding School) */}
         {school.badge && (
-          <span className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze">
+          <span className="absolute top-3 left-3 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze shadow-xs select-none">
             {school.badge}
           </span>
         )}
+
+        {/* Favorite heart button in top-right */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite(school.id);
           }}
           title={isFav ? "Remove from saved" : "Save school"}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer"
-          style={{ background: isFav ? "#ef4444" : "rgba(250,248,245,0.9)", backdropFilter: "blur(4px)" }}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs border border-warm-accent/50 hover:scale-105 active:scale-95"
+          style={{ background: isFav ? "#ef4444" : "rgba(255,255,255,0.92)", backdropFilter: "blur(4px)" }}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isFav ? "white" : "none"} stroke={isFav ? "white" : "#1c1917"} strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -82,26 +110,43 @@ export function SchoolCard({
         </button>
       </div>
 
-      {/* Card body */}
+      {/* ── Card body ── */}
       <div className="p-3 flex flex-col gap-2.5 flex-1">
         <div>
-          <div className="flex items-start justify-between gap-2">
-            <button onClick={() => onSchoolClick(school.id)} className="font-bold text-warm-charcoal text-sm leading-snug text-left hover:text-warm-bronze transition-colors">
-              {school.name}
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5 mt-1 text-xs text-warm-charcoal/60">
+          <button
+            onClick={() => onSchoolClick(school.id)}
+            className="font-bold text-warm-charcoal text-sm leading-snug text-left hover:text-warm-bronze transition-colors line-clamp-2"
+          >
+            {school.name}
+          </button>
+          {school.nameTh && school.nameTh !== school.name && (
+            <div className="text-[11px] text-warm-charcoal/50 line-clamp-1 mt-0.5">
+              {school.nameTh}
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-warm-charcoal/60">
             <svg className="w-3 h-3 shrink-0 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>{school.location}</span>
+            <span className="line-clamp-1">{school.location}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="bg-warm-accent/50 text-warm-charcoal/80 px-2.5 py-0.5 rounded-md font-medium border border-warm-accent/30">{school.curriculum}</span>
-          <span className="bg-warm-accent/50 text-warm-charcoal/80 px-2.5 py-0.5 rounded-md font-medium border border-warm-accent/30">{school.language}</span>
+        <div className="flex items-center gap-2 text-xs flex-wrap">
+          <span className="bg-warm-accent/50 text-warm-charcoal/80 px-2.5 py-0.5 rounded-md font-medium border border-warm-accent/30">
+            {school.curriculum}
+          </span>
+          {school.isBoarding && (
+            <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
+              Boarding
+            </span>
+          )}
+          {school.language && (
+            <span className="bg-warm-accent/40 text-warm-charcoal/70 px-2 py-0.5 rounded-md font-medium border border-warm-accent/20">
+              {school.language}
+            </span>
+          )}
         </div>
 
         <div className="mt-auto pt-2.5 flex items-end justify-between border-t border-warm-accent/30">
@@ -114,23 +159,33 @@ export function SchoolCard({
                   <span className="text-xs font-normal text-warm-charcoal/50">/yr</span>
                 </>
               ) : (
-                <span className="text-sm font-semibold text-warm-charcoal/60">Contact school</span>
+                <span className="text-xs font-semibold text-warm-charcoal/60">Contact school</span>
               )}
             </div>
           </div>
           <div className="text-right">
-            <StarRating rating={school.rating} />
-            <div className="text-xs text-warm-charcoal/50 mt-0.5">{school.reviewCount} reviews</div>
+            {school.reviewCount > 0 && school.rating > 0 ? (
+              <>
+                <StarRating rating={school.rating} />
+                <div className="text-xs text-warm-charcoal/50 mt-0.5">{school.reviewCount} reviews</div>
+              </>
+            ) : (
+              <div className="text-[11px] text-warm-charcoal/50 py-1">ยังไม่มีรีวิว</div>
+            )}
           </div>
         </div>
 
-        <div className="text-[11px] text-warm-charcoal/60 flex items-center gap-1">
-          <svg className="w-3 h-3 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3" />
-          </svg>
-          {school.distance < 1 ? `${(school.distance * 1000).toFixed(0)} m away` : `${school.distance.toFixed(1)} km away`}
-          <span className="mx-1 text-warm-charcoal/30">·</span>
-          <span>{school.grades}</span>
+        <div className="text-[11px] text-warm-charcoal/60 flex items-center gap-1.5">
+          {school.distance > 0 && (
+            <>
+              <svg className="w-3 h-3 text-warm-bronze shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3" />
+              </svg>
+              <span>{school.distance < 1 ? `${(school.distance * 1000).toFixed(0)} m away` : `${school.distance.toFixed(1)} km away`}</span>
+              <span className="text-warm-charcoal/30">·</span>
+            </>
+          )}
+          <span className="truncate">{school.grades || "ไม่ระบุระดับชั้น"}</span>
         </div>
 
         {/* Compare */}
@@ -141,7 +196,7 @@ export function SchoolCard({
               onCompareLimitReached?.(school);
             }
           }}
-          className={`flex items-center gap-2 mt-1 text-xs select-none group ${compareAtLimit ? "cursor-pointer" : "cursor-pointer"}`}
+          className="flex items-center gap-2 mt-1 text-xs select-none group cursor-pointer"
           title={compareAtLimit ? `เลือกครบ ${MAX_COMPARE} โรงเรียนแล้ว (คลิกเพื่อเลือกลบและแทนที่)` : isCompared ? "นำออกจากเปรียบเทียบ" : "เพิ่มเข้าเปรียบเทียบ"}
         >
           <input
@@ -168,4 +223,3 @@ export function SchoolCard({
     </div>
   );
 }
-

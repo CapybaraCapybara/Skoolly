@@ -59,17 +59,26 @@ export function CompareLimitModal({
               className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-warm-accent/60 hover:border-warm-bronze transition-colors shadow-2xs"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={`https://images.unsplash.com/${s.image}?w=100&h=100&fit=crop&auto=format`}
-                  alt={s.name}
-                  className="w-11 h-11 rounded-lg object-cover shrink-0"
-                />
+                <div className="w-11 h-11 rounded-lg bg-slate-50 border border-warm-accent/40 flex items-center justify-center shrink-0 p-1">
+                  {s.logoUrl || (s.image?.startsWith("http") ? s.image : null) ? (
+                    <img
+                      src={s.logoUrl || s.image}
+                      alt={s.name}
+                      referrerPolicy="no-referrer"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-bold text-warm-bronze">
+                      {s.name.slice(0, 3).toUpperCase()}
+                    </span>
+                  )}
+                </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-warm-charcoal truncate">
                     {s.name}
                   </div>
                   <div className="text-[11px] text-warm-charcoal/60">
-                    {s.curriculum} · ฿{s.tuitionStart.toLocaleString()}/ปี
+                    {s.curriculum} · {s.tuitionStart > 0 ? `฿${s.tuitionStart.toLocaleString()}/ปี` : "ติดต่อโรงเรียน"}
                   </div>
                 </div>
               </div>

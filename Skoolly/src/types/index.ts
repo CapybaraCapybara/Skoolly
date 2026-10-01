@@ -14,17 +14,27 @@ export * from "./opec";
 export interface School {
   id: number;
   name: string;
+  nameTh?: string;
+  schoolCode?: string | null;
   curriculum: string;
   location: string;
   tuitionStart: number;
+  tuitionMax?: number | null;
   rating: number;
   reviewCount: number;
   distance: number;
   language: string;
   grades: string;
   image: string;
+  logoUrl?: string | null;
   badge?: string | null;
   lastUpdated?: string;
+  studentCount?: number | null;
+  teacherCount?: number | null;
+  isBoarding?: boolean | null;
+  isIsatMember?: boolean | null;
+  websiteUrl?: string | null;
+  phone?: string | null;
 }
 
 // ─── School Detail (extended — stored in DB, fetched on demand) ───────────────
@@ -58,6 +68,20 @@ export interface SchoolSafety {
 export interface SchoolDetail {
   founded: string;
   students: string;
+  teacherCount?: number | null;
+  studentTeacherRatio?: string | null;
+  levelRange?: string | null;
+  levelsOffered?: string[];
+  curriculums?: string[];
+  isBoarding?: boolean | null;
+  isIsatMember?: boolean | null;
+  officialPhone?: string | null;
+  officialEmail?: string | null;
+  facebookUrl?: string | null;
+  address?: string | null;
+  district?: string | null;
+  subdistrict?: string | null;
+  province?: string | null;
   accreditation: string[];
   website: string;
   about: string;
@@ -67,6 +91,8 @@ export interface SchoolDetail {
   reviews: SchoolReview[];
   safety?: SchoolSafety;
   lastUpdated?: string;
+  logoUrl?: string | null;
+  schoolCode?: string | null;
 }
 
 // ─── Filters (UI state only — not persisted) ──────────────────────────────────

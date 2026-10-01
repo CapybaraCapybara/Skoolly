@@ -120,27 +120,9 @@ function formatGrades(record: SupabaseSchoolRecord): string {
 function parseNumericId(
   record: SupabaseSchoolRecord,
   index: number,
-  seedSchools: School[],
   claimedIds?: Set<number>
 ): number {
-  // 1. Preserve seed ID if school matches existing seed (e.g. Bangkok Patana -> 1, NIST -> 2)
-  // Only claim if this seed ID hasn't already been taken by another campus
-  const enName = (record.name_en || "").toLowerCase();
-  const thName = (record.name_th || "").toLowerCase();
-  const matchedSeed = seedSchools.find((s) => {
-    if (claimedIds && claimedIds.has(s.id)) return false;
-    const sName = s.name.toLowerCase();
-    return (
-      (enName && (enName === sName || enName.includes(sName))) ||
-      (thName && (thName === sName || thName.includes(sName)))
-    );
-  });
-  if (matchedSeed && (!claimedIds || !claimedIds.has(matchedSeed.id))) {
-    claimedIds?.add(matchedSeed.id);
-    return matchedSeed.id;
-  }
-
-  // 2. Try parsing OPEC natural code if pure number
+  // Try parsing OPEC natural code if pure number
   if (record.opec_school_code && /^\d+$/.test(record.opec_school_code)) {
     const parsed = parseInt(record.opec_school_code, 10);
     if (!isNaN(parsed) && parsed > 0 && (!claimedIds || !claimedIds.has(parsed))) {
@@ -149,7 +131,7 @@ function parseNumericId(
     }
   }
 
-  // 3. Fallback deterministic index, ensuring uniqueness
+  // Fallback deterministic index, ensuring uniqueness
   let fallbackId = 1000 + index;
   while (claimedIds && claimedIds.has(fallbackId)) {
     fallbackId += 10000;
@@ -160,137 +142,153 @@ function parseNumericId(
 
 /**
  * Pure adapter: Converts Supabase DB row to Domain School interface
+ * STRICT: Only uses authentic database values. No mock ratings, distances, or stock images.
  */
 export function mapSupabaseToDomainSchool(
   record: SupabaseSchoolRecord,
   index: number,
-  seedSchools: School[],
   claimedIds?: Set<number>
 ): School {
-  const id = parseNumericId(record, index, seedSchools, claimedIds);
-  const fallback = seedSchools.find((s) => s.id === id);
+  const id = parseNumericId(record, index, claimedIds);
 
   const name = formatSchoolName(record.name_en, record.name_th);
+  const nameTh = record.name_th?.trim() || undefined;
+  const schoolCode = record.opec_school_code || null;
   const curriculum = normalizeCurriculum(record.curriculums);
   const location = formatLocation(record);
-  const tuitionStart = record.pub_tuition_min_thb ?? fallback?.tuitionStart ?? 0;
-  const rating = record.rating_avg ? Number(record.rating_avg.toFixed(1)) : fallback?.rating ?? 4.5;
-  const reviewCount = record.review_count ?? fallback?.reviewCount ?? 0;
-  const distance = fallback?.distance ?? Number((2 + (index % 15) * 0.8).toFixed(1));
-  const language = fallback?.language ?? "English";
+  const tuitionStart = record.pub_tuition_min_thb ?? 0;
+  const tuitionMax = record.pub_tuition_max_thb ?? null;
+  const rating = record.rating_avg ? Number(record.rating_avg.toFixed(1)) : 0;
+  const reviewCount = record.review_count ?? 0;
+  const distance = 0; // True distance only; 0 indicates not computed rather than fake mock formula
+  const language = record.curriculums && record.curriculums.length > 0 ? "English" : "English";
   const grades = formatGrades(record);
-  const image =
-    fallback?.image ||
-    (record.logo_url && record.logo_url.startsWith("http") && !record.logo_url.includes("opec.go.th")
-      ? record.logo_url
-      : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]);
+  
+  // Official OPEC PDC school logo from database
+  const logoUrl = record.logo_url || null;
+  const image = logoUrl || "";
 
   let badge: string | null = null;
   if (record.is_isat_member) {
     badge = "ISAT Member";
-  } else if (rating >= 4.7 && reviewCount > 10) {
+  } else if (record.is_boarding) {
+    badge = "Boarding School";
+  } else if (rating >= 4.7 && reviewCount >= 10) {
     badge = "Top Rated";
-  } else if (fallback?.badge) {
-    badge = fallback.badge;
   }
 
   const lastUpdated =
     record.pub_data_updated_at ||
     record.updated_at ||
-    fallback?.lastUpdated ||
-    "September 2026";
+    record.created_at ||
+    undefined;
 
   return {
     id,
     name,
+    nameTh,
+    schoolCode,
     curriculum,
     location,
     tuitionStart,
+    tuitionMax,
     rating,
     reviewCount,
     distance,
     language,
     grades,
     image,
+    logoUrl,
     badge,
     lastUpdated,
+    studentCount: record.student_count ?? null,
+    teacherCount: record.teacher_count ?? null,
+    isBoarding: record.is_boarding ?? false,
+    isIsatMember: record.is_isat_member ?? false,
+    websiteUrl: record.official_website_url || null,
+    phone: record.official_phone || record.official_mobile || null,
   };
 }
 
 /**
  * Pure adapter: Converts Supabase DB row to Domain SchoolDetail interface
+ * STRICT: Only factual verified data. No mock facilities, fake 24/7 security, or fake reviews.
  */
 export function mapSupabaseToDomainDetail(
   record: SupabaseSchoolRecord,
-  school: School,
-  fallbackDetail?: SchoolDetail
+  school: School
 ): SchoolDetail {
   const founded = record.year_established
     ? String(record.year_established)
-    : fallbackDetail?.founded || "N/A";
+    : "ไม่มีข้อมูล";
   const students = record.student_count
-    ? `${record.student_count.toLocaleString()} students`
-    : fallbackDetail?.students || "N/A";
+    ? `${record.student_count.toLocaleString()} คน`
+    : "ไม่มีข้อมูล";
+  const teacherCount = record.teacher_count ?? null;
+  const studentTeacherRatio =
+    record.student_count && record.teacher_count && record.teacher_count > 0
+      ? (record.student_count / record.teacher_count).toFixed(1)
+      : null;
+
   const accreditation =
     record.accreditations && record.accreditations.length > 0
       ? record.accreditations
-      : fallbackDetail?.accreditation ||
-        (record.is_isat_member ? ["ISAT", "ONESQA"] : ["ONESQA", "OPEC"]);
-  const website = record.official_website_url || fallbackDetail?.website || "";
-  const about =
-    fallbackDetail?.about ||
-    `${school.name} is an international school in ${record.province || "Thailand"}, offering high academic standards, comprehensive campus facilities, and supportive student care.`;
+      : record.is_isat_member
+      ? ["ISAT"]
+      : [];
 
-  const fees: SchoolFee[] = fallbackDetail?.fees ? [...fallbackDetail.fees] : [];
-  if (fees.length === 0) {
-    if (record.pub_tuition_min_thb) {
+  const website = record.official_website_url || "";
+  const logoUrl = record.logo_url || null;
+
+  const loc = [record.district, record.province].filter((p) => p && p.trim() && p !== "-").join(" ");
+  const curric = record.curriculums && record.curriculums.length > 0 ? record.curriculums.join(", ") : "นานาชาติ";
+  const levels = record.level_range || (record.levels_offered ? record.levels_offered.join(", ") : "");
+  const about = `${record.name_th ? record.name_th + " (" + school.name + ")" : school.name} เป็นโรงเรียนนานาชาติสังกัดสำนักงานคณะกรรมการส่งเสริมการศึกษาเอกชน (สช.) ตั้งอยู่ที่ ${record.address || loc || "ประเทศไทย"} จัดการเรียนการสอนตามหลักสูตร ${curric}${levels ? ` เปิดสอนระดับ ${levels}` : ""}${record.is_isat_member ? " และเป็นสมาชิกสมาคมโรงเรียนนานาชาติแห่งประเทศไทย (ISAT)" : ""}`;
+
+  const fees: SchoolFee[] = [];
+  if (record.pub_tuition_min_thb && record.pub_tuition_min_thb > 0) {
+    fees.push({
+      label: "ค่าธรรมเนียมการศึกษาเริ่มต้น (Starting Tuition)",
+      amount: `฿${record.pub_tuition_min_thb.toLocaleString()} / ปี`,
+    });
+    if (record.pub_tuition_max_thb && record.pub_tuition_max_thb > record.pub_tuition_min_thb) {
       fees.push({
-        label: "Annual Tuition (Starting)",
-        amount: `฿${record.pub_tuition_min_thb.toLocaleString()} / yr`,
+        label: "ค่าธรรมเนียมการศึกษาสูงสุด (Maximum Tuition)",
+        amount: `฿${record.pub_tuition_max_thb.toLocaleString()} / ปี`,
       });
-      if (record.pub_tuition_max_thb && record.pub_tuition_max_thb > record.pub_tuition_min_thb) {
-        fees.push({
-          label: "Annual Tuition (Senior / Max)",
-          amount: `฿${record.pub_tuition_max_thb.toLocaleString()} / yr`,
-        });
-      }
-    } else {
-      fees.push({ label: "Tuition", amount: "Contact school" });
     }
   }
 
-  const gallery = fallbackDetail?.gallery || [
-    school.image,
-    FALLBACK_IMAGES[(school.id + 1) % FALLBACK_IMAGES.length],
-    FALLBACK_IMAGES[(school.id + 2) % FALLBACK_IMAGES.length],
-  ];
+  // Strictly empty if not verified in database
+  const gallery: string[] = [];
+  const facilities: string[] = [];
+  const reviews: SchoolReview[] = [];
 
-  const facilities = fallbackDetail?.facilities || [
-    "Sports Complex & Playing Fields",
-    "Science & Technology Laboratories",
-    "Auditorium & Performing Arts Center",
-    "Library & Digital Learning Commons",
-    "Cafeteria & Clean Dining Space",
-  ];
-
-  const reviews: SchoolReview[] = fallbackDetail?.reviews || [];
-
-  const safety: SchoolDetail["safety"] = fallbackDetail?.safety || {
-    securityGuards: "24/7 Professional Security Guards Stationed & Patrol",
-    cctv: "Full CCTV Monitoring & Perimeter Surveillance",
-    medicalNurse: "Certified School Nurse & Medical Clinic On-site",
-    safeguardingPolicy: record.pub_has_safeguarding_policy
-      ? "Comprehensive Child Safeguarding & Welfare Policy Verified"
-      : "School Safety Code of Conduct",
-    visitorControl: "Strict Gated Entry & Visitor RFID Badge Verification",
-    emergencyDrill: "Termly evacuation, fire safety, and emergency response drills",
-    summary: "Campus safety protocols and student safeguarding standards maintained.",
-    highlights: ["24/7 Gated Entry", "Dedicated Nurse", "CCTV Coverage"],
-  };
+  const safety: SchoolDetail["safety"] = record.pub_has_safeguarding_policy
+    ? {
+        safeguardingPolicy: "ผ่านการตรวจสอบนโยบายคุ้มครองสวัสดิภาพเด็ก (Child Safeguarding Policy)",
+        summary: "โรงเรียนมีนโยบายคุ้มครองความปลอดภัยและสวัสดิภาพของนักเรียนตามเกณฑ์มาตรฐานการรับรองของ สช./ISAT",
+        highlights: ["Child Safeguarding Policy Verified"],
+      }
+    : undefined;
 
   return {
     founded,
     students,
+    teacherCount,
+    studentTeacherRatio,
+    levelRange: record.level_range || null,
+    levelsOffered: record.levels_offered || [],
+    curriculums: record.curriculums || [],
+    isBoarding: record.is_boarding ?? false,
+    isIsatMember: record.is_isat_member ?? false,
+    officialPhone: record.official_phone || record.official_mobile || null,
+    officialEmail: record.official_email || null,
+    facebookUrl: record.facebook_url || null,
+    address: record.address || null,
+    district: record.district || null,
+    subdistrict: record.subdistrict || null,
+    province: record.province || null,
     accreditation,
     website,
     about,
@@ -299,7 +297,9 @@ export function mapSupabaseToDomainDetail(
     facilities,
     reviews,
     safety,
-    lastUpdated: school.lastUpdated || "September 2026",
+    lastUpdated: record.pub_data_updated_at || record.updated_at || record.created_at || "ไม่มีข้อมูล",
+    logoUrl,
+    schoolCode: record.opec_school_code || null,
   };
 }
 
@@ -438,66 +438,35 @@ function applyScrapedItem(
 // ─── Main Aggregator ─────────────────────────────────────────────────────────
 
 async function loadMergedData(): Promise<MergedData> {
-  const seedSchools = initSeedSchools();
-  const seedDetails = initSeedDetails();
-
-  let schools: School[] = seedSchools;
-  let details: Record<number, SchoolDetail> = seedDetails;
-
   // ── Step 1: Attempt to load from Supabase via Anti-Corruption Layer ──
   try {
     const res = await getSupabaseSchools({ limit: 1000 });
     if (res && Array.isArray(res.schools) && res.schools.length > 0) {
-      console.info(`[schoolsApi] Connected to Supabase: loaded ${res.schools.length} schools.`);
+      console.info(`[schoolsApi] Connected to Supabase: loaded ${res.schools.length} real schools.`);
 
       const mappedSchools: School[] = [];
       const mappedDetails: Record<number, SchoolDetail> = {};
       const claimedIds = new Set<number>();
 
       res.schools.forEach((record, index) => {
-        const domainSchool = mapSupabaseToDomainSchool(record, index, seedSchools, claimedIds);
-        const fallbackDetail = seedDetails[domainSchool.id];
-        const domainDetail = mapSupabaseToDomainDetail(record, domainSchool, fallbackDetail);
+        const domainSchool = mapSupabaseToDomainSchool(record, index, claimedIds);
+        const domainDetail = mapSupabaseToDomainDetail(record, domainSchool);
 
         mappedSchools.push(domainSchool);
         mappedDetails[domainSchool.id] = domainDetail;
       });
 
-      // Preserve any seed schools not in Supabase
-      seedSchools.forEach((s) => {
-        if (!mappedSchools.some((ms) => ms.id === s.id)) {
-          mappedSchools.push(s);
-          if (seedDetails[s.id]) {
-            mappedDetails[s.id] = seedDetails[s.id];
-          }
-        }
-      });
-
-      schools = mappedSchools;
-      details = mappedDetails;
+      // ONLY return real schools from Supabase, NO fake mock seed schools injected!
+      return { schools: mappedSchools, details: mappedDetails };
     }
   } catch (error) {
-    console.debug("[schoolsApi] Supabase fetch unavailable, using seed data:", error);
-    schools = seedSchools;
-    details = seedDetails;
+    console.warn("[schoolsApi] Supabase fetch unavailable, using seed data fallback:", error);
   }
 
-  // ── Step 2: Dynamically overlay scraped results from results.json ──
-  try {
-    const res = await fetch("/results.json");
-    if (res.ok) {
-      const scraped = await res.json();
-      if (Array.isArray(scraped)) {
-        for (const item of scraped) {
-          applyScrapedItem(item, schools, details);
-        }
-      }
-    }
-  } catch (error) {
-    console.debug("[schoolsApi] scraper results.json not loaded:", error);
-  }
-
-  return { schools, details };
+  // Fallback ONLY if backend/database is completely unavailable
+  const seedSchools = initSeedSchools();
+  const seedDetails = initSeedDetails();
+  return { schools: seedSchools, details: seedDetails };
 }
 
 // ─── Public API Exports ──────────────────────────────────────────────────────
@@ -526,17 +495,24 @@ export async function getSchoolDetail(id: number): Promise<SchoolDetail | undefi
       {
         school_id: String(matchedSchool.id),
         slug: "",
-        name_th: matchedSchool.name,
+        name_th: matchedSchool.nameTh || matchedSchool.name,
         name_en: matchedSchool.name,
         status: "active",
         province: matchedSchool.location,
         levels_offered: [matchedSchool.grades],
         curriculums: [matchedSchool.curriculum],
+        opec_school_code: matchedSchool.schoolCode,
+        logo_url: matchedSchool.logoUrl,
+        official_website_url: matchedSchool.websiteUrl,
+        official_phone: matchedSchool.phone,
+        pub_tuition_min_thb: matchedSchool.tuitionStart,
+        pub_tuition_max_thb: matchedSchool.tuitionMax,
+        is_isat_member: matchedSchool.isIsatMember ?? false,
+        is_boarding: matchedSchool.isBoarding ?? false,
       } as SupabaseSchoolRecord,
-      matchedSchool,
-      data.details[1]
+      matchedSchool
     );
   }
 
-  return data.details[1];
+  return undefined;
 }

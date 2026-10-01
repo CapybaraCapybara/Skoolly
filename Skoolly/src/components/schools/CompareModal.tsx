@@ -88,12 +88,19 @@ export function CompareModal({
                     >
                       ✕
                     </button>
-                    <div className="relative h-28 rounded-xl overflow-hidden bg-warm-accent/40">
-                      <img
-                        src={`https://images.unsplash.com/${s.image}?w=400&h=200&fit=crop&auto=format`}
-                        alt={s.name}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="relative h-28 rounded-xl overflow-hidden bg-slate-50 border border-warm-accent/30 flex items-center justify-center p-2.5">
+                      {s.logoUrl || (s.image?.startsWith("http") ? s.image : null) ? (
+                        <img
+                          src={s.logoUrl || s.image}
+                          alt={s.name}
+                          referrerPolicy="no-referrer"
+                          className="max-h-full max-w-[85%] object-contain"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-warm-bronze/10 border border-warm-bronze/20 flex items-center justify-center text-warm-bronze font-bold text-sm">
+                          {s.name.slice(0, 3).toUpperCase()}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <h3
@@ -105,8 +112,14 @@ export function CompareModal({
                       >
                         {s.name}
                       </h3>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-amber-500 font-semibold">
-                        ★ {s.rating} <span className="text-warm-charcoal/50">({s.reviewCount} รีวิว)</span>
+                      <div className="flex items-center gap-1 mt-1 text-xs">
+                        {s.reviewCount > 0 && s.rating > 0 ? (
+                          <span className="text-amber-500 font-semibold">
+                            ★ {s.rating} <span className="text-warm-charcoal/50">({s.reviewCount} รีวิว)</span>
+                          </span>
+                        ) : (
+                          <span className="text-warm-charcoal/50 italic text-[11px]">ยังไม่มีรีวิว</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col gap-1.5 mt-2">
@@ -156,10 +169,16 @@ export function CompareModal({
                     key={`tuition-${s.id}`}
                     className="py-3 border-t border-warm-accent/40"
                   >
-                    <span className="text-base font-bold text-warm-bronze">
-                      ฿{s.tuitionStart.toLocaleString()}
-                    </span>
-                    <span className="text-xs text-warm-charcoal/60 ml-1">/ ปี</span>
+                    {s.tuitionStart > 0 ? (
+                      <>
+                        <span className="text-base font-bold text-warm-bronze">
+                          ฿{s.tuitionStart.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-warm-charcoal/60 ml-1">/ ปี</span>
+                      </>
+                    ) : (
+                      <span className="text-xs font-semibold text-warm-charcoal/60">ติดต่อโรงเรียน</span>
+                    )}
                   </div>
                 ))}
 
@@ -172,7 +191,7 @@ export function CompareModal({
                     key={`grades-${s.id}`}
                     className="py-3 border-t border-warm-accent/40 text-xs text-warm-charcoal/80"
                   >
-                    {s.grades || "Nursery – Year 13"}
+                    {s.grades || "ไม่ระบุระดับชั้น"}
                   </div>
                 ))}
 
@@ -198,7 +217,7 @@ export function CompareModal({
                     key={`dist-${s.id}`}
                     className="py-3 border-t border-warm-accent/40 text-xs text-warm-charcoal/80"
                   >
-                    {s.distance} กม. จากสุขุมวิท
+                    {s.distance > 0 ? `${s.distance} กม. จากสุขุมวิท` : "ไม่ระบุตำแหน่งเทียบ"}
                   </div>
                 ))}
 

@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { School } from "@/types";
-import { StarRating, formatTuition } from "@/components/schools/SchoolCard";
+import { StarRating, formatTuition, getSchoolInitials } from "@/components/schools/SchoolCard";
 
 interface FavoritesPageProps {
   schools: School[];
@@ -409,30 +409,32 @@ export function FavoritesPage({
                   const note = notes[school.id] || "";
                   const isEditingNote = activeNoteEditId === school.id;
 
-                  const imageSrc = school.image?.startsWith("http")
-                    ? school.image
-                    : `https://images.unsplash.com/${school.image}?w=600&h=350&fit=crop&auto=format`;
-
                   return (
                     <div
                       key={school.id}
                       className="group bg-white rounded-3xl border border-warm-accent shadow-sm hover:shadow-md hover:border-warm-bronze/40 transition-all flex flex-col overflow-hidden"
                     >
-                      {/* Image header */}
-                      <div className="relative h-48 bg-warm-accent overflow-hidden">
-                        <img
-                          src={imageSrc}
-                          alt={school.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                          onClick={() => onSchoolClick(school.id)}
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.src =
-                              "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=350&fit=crop&auto=format";
-                          }}
-                        />
-                        {/* Overlay gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
+                      {/* Logo header */}
+                      <div
+                        className="relative h-44 bg-gradient-to-b from-white via-warm-cream/40 to-warm-accent/20 border-b border-warm-accent/40 flex items-center justify-center p-4 cursor-pointer group"
+                        onClick={() => onSchoolClick(school.id)}
+                      >
+                        {school.logoUrl || (school.image?.startsWith("http") ? school.image : null) ? (
+                          <img
+                            src={school.logoUrl || school.image}
+                            alt={`โลโก้ ${school.name}`}
+                            referrerPolicy="no-referrer"
+                            className="max-h-24 max-w-[80%] object-contain drop-shadow-xs group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-center p-2 select-none">
+                            <div className="w-14 h-14 rounded-2xl bg-white border border-warm-accent shadow-xs flex items-center justify-center text-warm-bronze font-bold text-lg mb-1">
+                              {getSchoolInitials(school.name)}
+                            </div>
+                            <span className="text-[10px] text-warm-charcoal/40">ไม่มีโลโก้ในระบบ</span>
+                          </div>
+                        )}
 
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
@@ -457,24 +459,6 @@ export function FavoritesPage({
                         >
                           <Heart className="w-4 h-4 fill-current" />
                         </button>
-
-                        {/* Tuition on image */}
-                        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white pointer-events-none">
-                          <div>
-                            <span className="text-[10px] uppercase font-bold tracking-wider opacity-80">
-                              ค่าเทอมเริ่มต้น
-                            </span>
-                            <div className="text-base sm:text-lg font-bold font-serif leading-tight">
-                              {formatTuition(school.tuitionStart)}
-                              <span className="text-xs font-normal opacity-80"> /ปี</span>
-                            </div>
-                          </div>
-                          {school.rating > 0 && (
-                            <div className="bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md flex items-center gap-1 text-xs">
-                              <StarRating rating={school.rating} />
-                            </div>
-                          )}
-                        </div>
                       </div>
 
                       {/* Content Body */}
@@ -496,13 +480,38 @@ export function FavoritesPage({
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-warm-charcoal/70">
                             <span className="inline-flex items-center gap-1 bg-warm-cream px-2 py-0.5 rounded-md border border-warm-accent/50">
                               <GraduationCap className="w-3 h-3 text-warm-bronze" />
-                              {school.grades || "K-12"}
+                              {school.grades || "ไม่ระบุระดับชั้น"}
                             </span>
                             {school.language && (
                               <span className="bg-warm-cream px-2 py-0.5 rounded-md border border-warm-accent/50">
                                 {school.language}
                               </span>
                             )}
+                          </div>
+
+                          <div className="mt-3 pt-2.5 pb-1 flex items-end justify-between border-t border-warm-accent/40">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-warm-charcoal/50">
+                                ค่าเทอมเริ่มต้น
+                              </span>
+                              <div className="text-base font-bold text-warm-charcoal leading-tight">
+                                {school.tuitionStart > 0 ? (
+                                  <>
+                                    {formatTuition(school.tuitionStart)}
+                                    <span className="text-xs font-normal text-warm-charcoal/50"> /ปี</span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs font-semibold text-warm-charcoal/60">ติดต่อโรงเรียน</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              {school.reviewCount > 0 && school.rating > 0 ? (
+                                <StarRating rating={school.rating} />
+                              ) : (
+                                <span className="text-[11px] text-warm-charcoal/50 italic">ยังไม่มีรีวิว</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* ── Parent Memo Note Box ── */}
