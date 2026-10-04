@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { getSchools } from '@/api/schoolsApi';
+import type { School } from '@/types';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -63,6 +65,33 @@ export function Navbar({
   favoritesCount = 0,
   onFavorites,
 }: NavbarProps) {
+  const [schools, setSchools] = useState<School[]>([]);
+
+  useEffect(() => {
+    getSchools().then(setSchools).catch(() => setSchools([]));
+  }, []);
+
+  // Most common locations in the database, replacing a hand-picked list of areas
+  const topLocations = useMemo(() => {
+    const counts = new Map<string, number>();
+    schools.forEach((s) => {
+      if (s.location) counts.set(s.location, (counts.get(s.location) ?? 0) + 1);
+    });
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([loc]) => loc);
+  }, [schools]);
+
+  // Highest-rated school with real reviews; the card is hidden until one exists
+  const topSchool = useMemo(() => {
+    return (
+      schools
+        .filter((s) => s.reviewCount > 0 && s.rating > 0)
+        .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)[0] ?? null
+    );
+  }, [schools]);
+
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleMobileNav = (action?: () => void) => {
@@ -167,7 +196,7 @@ export function Navbar({
                         </div>
                         <h4 className="text-sm font-semibold text-warm-charcoal">By Location</h4>
                         <div className="flex flex-col gap-2 mt-1">
-                          {['Sukhumvit / Asok', 'Riverside / Silom', 'Lat Phrao', 'Nonthaburi'].map(
+                          {topLocations.map(
                             (loc) => (
                               <a
                                 key={loc}
@@ -181,6 +210,7 @@ export function Navbar({
                         </div>
                       </div>
 
+                      {topSchool && (
                       <div className="flex flex-col pl-6">
                         <h4 className="mb-4 text-xs text-warm-charcoal/60 uppercase">Top Ranked</h4>
                         <a
@@ -192,13 +222,13 @@ export function Navbar({
                               variant="outline"
                               className="mb-3 border-warm-accent bg-warm-cream text-warm-bronze text-xs"
                             >
-                              <Star className="size-3 mr-1 fill-current" /> Editor's Pick
+                              <Star className="size-3 mr-1 fill-current" /> Top Rated
                             </Badge>
                             <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">
-                              Bangkok Patana School
+                              {topSchool.name}
                             </h4>
                             <p className="text-xs text-warm-charcoal/70">
-                              British curriculum · 4.8★ · 312 parent reviews
+                              {topSchool.curriculum} curriculum · {topSchool.rating.toFixed(1)}★ · {topSchool.reviewCount.toLocaleString('en-US')} parent reviews
                             </p>
                           </div>
                           <div className="mt-3 flex items-center text-xs font-semibold text-warm-bronze">
@@ -207,6 +237,7 @@ export function Navbar({
                           </div>
                         </a>
                       </div>
+                      )}
                     </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>

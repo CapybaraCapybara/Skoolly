@@ -18,8 +18,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 interface PostCardProps {
   post: Post;
-  onLikePost: (id: number) => void;
-  onLikeComment: (postId: number, commentId: number) => void;
+  onLikePost: (id: string) => void;
+  onLikeComment: (postId: string, commentId: string) => void;
   onSchoolClick: (schoolId: number) => void;
 }
 
@@ -53,12 +53,14 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
               <span className="text-xs text-slate-400">{post.time}</span>
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <button
-                onClick={() => onSchoolClick(post.schoolId)}
-                className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline transition-colors"
-              >
-                🏫 {post.schoolTag}
-              </button>
+              {post.schoolTag && post.schoolId != null && (
+                <button
+                  onClick={() => onSchoolClick(post.schoolId!)}
+                  className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline transition-colors"
+                >
+                  🏫 {post.schoolTag}
+                </button>
+              )}
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[post.category]}`}
               >
@@ -122,12 +124,14 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
             <span className="font-medium">{post.comments.length} comments</span>
           </button>
 
-          <button
-            onClick={() => onSchoolClick(post.schoolId)}
-            className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-600 transition-colors font-medium"
-          >
-            View school →
-          </button>
+          {post.schoolId != null && (
+            <button
+              onClick={() => onSchoolClick(post.schoolId!)}
+              className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-600 transition-colors font-medium"
+            >
+              View school →
+            </button>
+          )}
         </div>
 
         {/* Comments */}

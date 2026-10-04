@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import type { Post } from "@/types";
-import { getPosts } from "@/api/forumApi";
+import type { Post, School } from "@/types";
+import { getForum, type ForumStats } from "@/api/forumApi";
+import { getSchools } from "@/api/schoolsApi";
 import { PostCard } from "@/components/forum/PostCard";
 
 const CATEGORIES = ["All", "Review", "Question", "Update", "Tips"];
@@ -11,24 +12,34 @@ interface ForumPageProps {
 
 export function ForumPage({ onSchoolClick }: ForumPageProps) {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [stats, setStats] = useState<ForumStats | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [schools, setSchools] = useState<School[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [newPostOpen, setNewPostOpen] = useState(false);
 
   // ── Fetch posts from the API layer on mount ────────────────────────────────
   useEffect(() => {
-    getPosts().then(setPosts);
+    getForum()
+      .then((data) => {
+        setPosts(data.posts);
+        setStats(data.stats);
+        setLoadState("ready");
+      })
+      .catch(() => setLoadState("error"));
+    getSchools().then(setSchools).catch(() => setSchools([]));
   }, []);
 
   const filtered =
     activeCategory === "All" ? posts : posts.filter((p) => p.category === activeCategory);
 
-  function likePost(postId: number) {
+  function likePost(postId: string) {
     setPosts((prev) =>
       prev.map((p) => (p.id === postId ? { ...p, liked: !p.liked } : p))
     );
   }
 
-  function likeComment(postId: number, commentId: number) {
+  function likeComment(postId: string, commentId: string) {
     setPosts((prev) =>
       prev.map((p) =>
         p.id !== postId
@@ -79,20 +90,22 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
 
       {/* Main content */}
       <div className="max-w-3xl mx-auto px-4 -mt-6 pb-20">
-        {/* Stats bar */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-3 mb-5 flex items-center gap-6 flex-wrap">
-          {[
-            ["1,240", "Parent members"],
-            ["340", "Active discussions"],
-            ["12K+", "Comments posted"],
-            ["48", "Schools discussed"],
-          ].map(([n, l]) => (
-            <div key={l} className="text-center">
-              <div className="font-bold text-navy-900 text-base">{n}</div>
-              <div className="text-xs text-slate-500">{l}</div>
-            </div>
-          ))}
-        </div>
+        {/* Stats bar — counts come from the database */}
+        {stats && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-3 mb-5 flex items-center gap-6 flex-wrap">
+            {[
+              [stats.members, "Parent members"],
+              [stats.posts, "Active discussions"],
+              [stats.comments, "Comments posted"],
+              [stats.schools, "Schools discussed"],
+            ].map(([n, l]) => (
+              <div key={l} className="text-center">
+                <div className="font-bold text-navy-900 text-base">{n.toLocaleString("en-US")}</div>
+                <div className="text-xs text-slate-500">{l}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Category filter */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
@@ -118,6 +131,18 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
 
         {/* Posts */}
         <div className="space-y-4">
+          {loadState === "loading" && (
+            <div className="py-16 text-center text-sm text-slate-400">กำลังโหลดกระทู้…</div>
+          )}
+          {loadState === "error" && (
+            <div className="py-16 text-center text-sm text-slate-500">โหลดกระทู้ไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้งภายหลัง</div>
+          )}
+          {loadState === "ready" && filtered.length === 0 && (
+            <div className="py-16 text-center">
+              <p className="font-semibold text-navy-900 mb-1">ยังไม่มีกระทู้{activeCategory !== "All" ? "ในหมวดนี้" : ""}</p>
+              <p className="text-sm text-slate-500">เริ่มตั้งกระทู้แรกเพื่อแบ่งปันประสบการณ์กับผู้ปกครองคนอื่น</p>
+            </div>
+          )}
           {filtered.map((post) => (
             <PostCard
               key={post.id}
@@ -150,15 +175,8 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
               />
               <select className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <option>Select school (optional)</option>
-                {[
-                  "Bangkok Patana School",
-                  "NIST International School",
-                  "Ruamrudee International",
-                  "Harrow International",
-                  "ISB Bangkok",
-                  "Shrewsbury International",
-                ].map((s) => (
-                  <option key={s}>{s}</option>
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
               <select className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-400">

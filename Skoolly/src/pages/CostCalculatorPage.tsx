@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CALCULATOR_SEED_SCHOOLS } from "@/lib/calculatorSeed";
+import { getPublishedFees } from "@/api/feesApi";
+import { getSchools } from "@/api/schoolsApi";
 import {
   ScrapedSchoolData,
   CalculatorState,
@@ -32,6 +33,8 @@ import {
   getSchoolAvailableAddons,
   getAddonAnnualMultiplier,
   CURRENCY_RATES,
+  loadLiveCurrencyRates,
+  type CurrencyRateInfo,
 } from "@/lib/calculatorUtils";
 
 interface CostCalculatorPageProps {
@@ -40,19 +43,14 @@ interface CostCalculatorPageProps {
   onSelectSchool?: (id: number) => void;
 }
 
-const DEFAULT_SCHOOLS: ScrapedSchoolData[] = CALCULATOR_SEED_SCHOOLS;
-
 export function CostCalculatorPage({
   initialSchoolId,
   onBack,
 }: CostCalculatorPageProps) {
-  const [schoolsData, setSchoolsData] = useState<ScrapedSchoolData[]>(DEFAULT_SCHOOLS);
-  const [selectedSchoolIndex, setSelectedSchoolIndex] = useState<number | null>(() => {
-    if (initialSchoolId && initialSchoolId > 0 && initialSchoolId <= DEFAULT_SCHOOLS.length) {
-      return initialSchoolId - 1;
-    }
-    return null;
-  });
+  const [schoolsData, setSchoolsData] = useState<ScrapedSchoolData[]>([]);
+  const [feesLoadState, setFeesLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [rateInfo, setRateInfo] = useState<CurrencyRateInfo>({ live: false, date: null });
+  const [selectedSchoolIndex, setSelectedSchoolIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [showYearlyTable, setShowYearlyTable] = useState<boolean>(true);
@@ -70,23 +68,35 @@ export function CostCalculatorPage({
     currency: "THB",
   });
 
-  // Dynamic fetch in case results.json was updated at runtime
+  // Published fees from the database; initialSchoolId is a schoolsApi id, matched by OPEC code
   useEffect(() => {
+    let cancelled = false;
     async function loadData() {
       try {
-        const res = await fetch("/results.json");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            setSchoolsData(data);
-          }
+        const data = await getPublishedFees();
+        if (cancelled) return;
+        setSchoolsData(data);
+        setFeesLoadState("ready");
+
+        if (initialSchoolId) {
+          const schools = await getSchools().catch(() => []);
+          const code = schools.find((s) => s.id === initialSchoolId)?.schoolCode;
+          const idx = code ? data.findIndex((d) => d.school_code === code) : -1;
+          if (!cancelled && idx >= 0) setSelectedSchoolIndex(idx);
         }
       } catch (err) {
-        console.debug("Runtime results.json fetch bypassed, using bundled seed data:", err);
+        console.error("[calculator] could not load published fees:", err);
+        if (!cancelled) setFeesLoadState("error");
       }
     }
     loadData();
-  }, []);
+    loadLiveCurrencyRates().then((info) => {
+      if (!cancelled) setRateInfo(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSchoolId]);
 
   const currentSchool =
     selectedSchoolIndex !== null && selectedSchoolIndex >= 0 && selectedSchoolIndex < schoolsData.length
@@ -498,6 +508,14 @@ export function CostCalculatorPage({
                 </button>
               ))}
             </div>
+            {calcState.currency !== "THB" && (
+              <span
+                className="hidden md:inline text-[10px] leading-tight text-warm-charcoal/50"
+                title="อัตราอ้างอิงของธนาคารกลางยุโรป (ECB) ผ่าน Frankfurter"
+              >
+                {rateInfo.live && rateInfo.date ? `อัตรา ณ ${rateInfo.date}` : "อัตราโดยประมาณ (ออฟไลน์)"}
+              </span>
+            )}
 
             <Button
               variant="outline"
@@ -554,7 +572,11 @@ export function CostCalculatorPage({
                   </h3>
                 </div>
                 <span className="text-xs text-warm-charcoal/50 font-medium">
-                  {schoolsData.length} schools available
+                  {feesLoadState === "loading"
+                    ? "กำลังโหลด…"
+                    : feesLoadState === "error"
+                      ? "โหลดข้อมูลค่าเทอมไม่สำเร็จ"
+                      : `${schoolsData.length} schools with published fees`}
                 </span>
               </div>
 

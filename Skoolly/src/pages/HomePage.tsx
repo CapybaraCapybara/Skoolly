@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Hero from "@/components/schools/Hero";
+import Hero, { type HeroStat } from "@/components/schools/Hero";
 import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
 import { SchoolMap, EXAMPLE_SAVED_LOCATION, APPROXIMATE_PIN_NOTE } from "@/components/schools/SchoolMap";
@@ -61,6 +61,25 @@ export function HomePage({
     getSchools().then(setSchools);
   }, []);
 
+  // Hero numbers come from the loaded schools so they always match the database
+  const heroStats = useMemo<HeroStat[]>(() => {
+    if (schools.length === 0) return [];
+    const totalReviews = schools.reduce((sum, s) => sum + (s.reviewCount || 0), 0);
+    const withFees = schools.filter((s) => s.tuitionStart > 0).length;
+    return [
+      { value: schools.length.toLocaleString("en-US"), label: "Registered Schools" },
+      { value: withFees.toLocaleString("en-US"), label: "With Published Fees" },
+      { value: totalReviews.toLocaleString("en-US"), label: "Parent Reviews" },
+    ];
+  }, [schools]);
+
+  const averageRating = useMemo(() => {
+    const rated = schools.filter((s) => s.reviewCount > 0 && s.rating > 0);
+    const weight = rated.reduce((sum, s) => sum + s.reviewCount, 0);
+    if (weight === 0) return null;
+    return rated.reduce((sum, s) => sum + s.rating * s.reviewCount, 0) / weight;
+  }, [schools]);
+
   // Reset to page 1 whenever any filter changes
   useEffect(() => {
     setCurrentPage(1);
@@ -101,10 +120,12 @@ export function HomePage({
           headingPrefix="Find the Right International"
           headingHighlight="School"
           headingSuffix="For Your Child in Thailand"
-          description="Compare 120+ accredited international schools by curriculum, cost, distance, and real parent reviews — with AI-powered personalised recommendations."
+          description={`Compare ${schools.length > 0 ? `${schools.length.toLocaleString("en-US")} ` : ""}international schools registered with OPEC by curriculum, cost, distance, and real parent reviews — with AI-powered personalised recommendations.`}
           primaryCtaLabel="Search Schools"
           primaryCtaHref="#schools"
           backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
+          stats={heroStats}
+          averageRating={averageRating}
         />
       </div>
 

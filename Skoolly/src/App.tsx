@@ -32,6 +32,10 @@ function parseHashView(): View {
   }
   if (hash === "forum") return "forum";
   if (hash === "calculator") return "calculator";
+  if (hash.startsWith("calculator/")) {
+    const schoolId = parseInt(hash.replace("calculator/", ""), 10);
+    if (!isNaN(schoolId)) return { type: "calculator", schoolId };
+  }
   if (hash === "favorites" || hash === "saved") return "favorites";
   if (hash.startsWith("school/")) {
     const id = parseInt(hash.replace("school/", ""), 10);
@@ -86,7 +90,8 @@ export default function App() {
 
   const goCalculator = useCallback((schoolId?: number) => {
     setView(schoolId ? { type: "calculator", schoolId } : "calculator");
-    window.location.hash = "calculator";
+    // Keep the school in the hash, otherwise the hashchange listener resets the view and drops it
+    window.location.hash = schoolId ? `calculator/${schoolId}` : "calculator";
     window.scrollTo(0, 0);
   }, []);
 

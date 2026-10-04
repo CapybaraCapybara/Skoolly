@@ -26,6 +26,8 @@ export interface ScrapedHiddenCost {
 
 export interface ScrapedSchoolData {
   school_name: string;
+  /** OPEC school code, used to open the calculator on a school chosen elsewhere */
+  school_code?: string | null;
   homepage_url?: string;
   status?: string;
   page_scraped?: string;
@@ -51,6 +53,8 @@ export interface CalculatorState {
 
 export type CurrencyCode = "THB" | "USD" | "GBP" | "EUR" | "SGD" | "CNY";
 
+// Rates below are offline fallbacks only; loadLiveCurrencyRates() overwrites them with the
+// latest ECB reference rates when the calculator opens.
 export const CURRENCY_RATES: Record<CurrencyCode, { rate: number; symbol: string; label: string }> = {
   THB: { rate: 1, symbol: "฿", label: "Thai Baht (THB)" },
   USD: { rate: 0.029, symbol: "$", label: "US Dollar (USD)" },
@@ -93,6 +97,35 @@ export interface CalculationResult {
   yearlySchedule: YearlyScheduleRow[];
 }
 
+export interface CurrencyRateInfo {
+  live: boolean;
+  /** Date the reference rates were published (YYYY-MM-DD), null when using fallbacks */
+  date: string | null;
+}
+
+const RATES_URL = "https://api.frankfurter.dev/v1/latest";
+
+/**
+ * Fetch today's THB reference rates (European Central Bank via Frankfurter, free, no key)
+ * and update CURRENCY_RATES in place. Keeps the fallback rates if the request fails.
+ */
+export async function loadLiveCurrencyRates(): Promise<CurrencyRateInfo> {
+  const codes = (Object.keys(CURRENCY_RATES) as CurrencyCode[]).filter((c) => c !== "THB");
+  try {
+    const res = await fetch(`${RATES_URL}?base=THB&symbols=${codes.join(",")}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data: { date?: string; rates?: Record<string, number> } = await res.json();
+    codes.forEach((code) => {
+      const rate = data.rates?.[code];
+      if (typeof rate === "number" && rate > 0) CURRENCY_RATES[code].rate = rate;
+    });
+    return { live: true, date: data.date ?? null };
+  } catch (err) {
+    console.debug("[calculator] live exchange rates unavailable, using fallback rates:", err);
+    return { live: false, date: null };
+  }
+}
+
 /**
  * Format currency amount with symbol safely
  */
@@ -111,45 +144,11 @@ export function formatCurrency(amountTHB: number, currency: CurrencyCode | strin
 }
 
 /**
- * Fallback grades when school tuition data is not broken down per grade
+ * Grades with published tuition. Returns an empty list rather than inventing tiers
+ * when a school has no per-grade fees.
  */
 export function getSchoolGrades(school?: ScrapedSchoolData): ScrapedTuitionGrade[] {
-  if (school?.tuition_by_grade && school.tuition_by_grade.length > 0) {
-    return school.tuition_by_grade;
-  }
-  const min = school?.tuition_min_thb || 520000;
-  const max = school?.tuition_max_thb || 750000;
-  const mid = Math.round((min + max) / 2);
-
-  return [
-    {
-      grade_level: "Early Years / Kindergarten",
-      order_start: 0,
-      order_end: 4,
-      display_name: "เตรียมอนุบาล–อ.3 (Early Years)",
-      level_code: "KINDERGARTEN",
-      annual_thb: min,
-      notes: "Standard Early Years rate"
-    },
-    {
-      grade_level: "Primary (Years 1–6 / Grades 1–5)",
-      order_start: 5,
-      order_end: 10,
-      display_name: "ป.1–ป.6 (Primary)",
-      level_code: "PRIMARY",
-      annual_thb: mid,
-      notes: "Standard Primary rate"
-    },
-    {
-      grade_level: "Secondary & High School",
-      order_start: 11,
-      order_end: 16,
-      display_name: "ม.1–ม.6 (Secondary)",
-      level_code: "UPPER_SECONDARY",
-      annual_thb: max,
-      notes: "Standard High School / Diploma rate"
-    },
-  ];
+  return school?.tuition_by_grade ?? [];
 }
 
 /**
@@ -228,8 +227,8 @@ export function calculateSchoolCosts(
     tuition_found: true,
     tuition_by_grade: [],
     hidden_costs: [],
-    tuition_min_thb: 500000,
-    tuition_max_thb: 800000,
+    tuition_min_thb: null,
+    tuition_max_thb: null,
   };
 
   const grades = getSchoolGrades(safeSchool);

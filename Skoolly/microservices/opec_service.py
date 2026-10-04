@@ -51,6 +51,7 @@ try:
         get_health_state,
     )
     from opec.enrich_from_isat import run_isat_enrichment
+    from opec.public_queries import fetch_published_fees, fetch_forum_posts
 except ImportError:
     from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
     from fetch_opec import fetch_opec_schools  # type: ignore
@@ -86,6 +87,7 @@ except ImportError:
         get_health_state,
     )
     from enrich_from_isat import run_isat_enrichment  # type: ignore
+    from public_queries import fetch_published_fees, fetch_forum_posts  # type: ignore
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
@@ -564,6 +566,22 @@ def trigger_sync_to_supabase(payload: Optional[SyncSupabasePayload] = None):
     publish_initial = payload.publish_initial if (payload and payload.publish_initial is not None) else True
     threading.Thread(target=run_sync_supabase_worker, args=(fetch_fresh, publish_initial), daemon=True).start()
     return {"status": "started"}
+
+@app.get("/api/public/fees")
+def get_public_fees():
+    """Published tuition / extra fees per school for the Cost Calculator."""
+    try:
+        return fetch_published_fees()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/public/forum/posts")
+def get_public_forum_posts(limit: int = 100):
+    """Approved forum posts with comments, plus community stats."""
+    try:
+        return fetch_forum_posts(limit=min(max(limit, 1), 500))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/supabase/schools")
 def get_supabase_schools_endpoint(

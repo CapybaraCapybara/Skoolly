@@ -30,7 +30,7 @@ interface SchoolDetailPageProps {
 
 // ─── Format date helper ───────────────────────────────────────────────────────
 function formatLastUpdated(val?: string | number): string {
-  if (!val || val === "ไม่มีข้อมูล") return "กันยายน 2569";
+  if (!val || val === "ไม่มีข้อมูล") return "ไม่มีข้อมูล";
   const str = String(val).trim();
   const parsed = Date.parse(str);
   if (!isNaN(parsed) && (str.includes("-") || str.includes("/"))) {

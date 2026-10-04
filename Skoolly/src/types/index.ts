@@ -114,7 +114,7 @@ export interface Filters {
 
 // ─── Forum (stored in DB) ─────────────────────────────────────────────────────
 export interface Comment {
-  id: number;
+  id: string;
   author: string;
   avatar: string;
   content: string;
@@ -124,12 +124,12 @@ export interface Comment {
 }
 
 export interface Post {
-  id: number;
+  id: string;
   author: string;
   avatar: string;
   role: string;
-  schoolTag: string;
-  schoolId: number;
+  schoolTag: string | null;
+  schoolId: number | null;
   category: "Review" | "Question" | "Update" | "Tips";
   title: string;
   content: string;

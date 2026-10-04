@@ -10,7 +10,7 @@ import type { Post } from "@/types";
 
 export const FORUM_POSTS_SEED: Post[] = [
   {
-    id: 1,
+    id: "1",
     author: "Nattaporn S.",
     avatar: "NP",
     role: "Parent · Year 7",
@@ -26,7 +26,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     image: "photo-1580582932707-520aed937b7b",
     comments: [
       {
-        id: 1,
+        id: "1",
         author: "Kanokwan T.",
         avatar: "KT",
         content:
@@ -36,7 +36,7 @@ export const FORUM_POSTS_SEED: Post[] = [
         liked: false,
       },
       {
-        id: 2,
+        id: "2",
         author: "Michael R.",
         avatar: "MR",
         content:
@@ -46,7 +46,7 @@ export const FORUM_POSTS_SEED: Post[] = [
         liked: false,
       },
       {
-        id: 3,
+        id: "3",
         author: "Supattra V.",
         avatar: "SV",
         content:
@@ -58,7 +58,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     ],
   },
   {
-    id: 2,
+    id: "2",
     author: "James & Priya L.",
     avatar: "JP",
     role: "Parent · Grade 4 & 6",
@@ -73,7 +73,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     liked: false,
     comments: [
       {
-        id: 4,
+        id: "4",
         author: "Pimchanok A.",
         avatar: "PA",
         content: "This is gold. What kind of reasoning tasks did you practice? Khan Academy?",
@@ -82,7 +82,7 @@ export const FORUM_POSTS_SEED: Post[] = [
         liked: false,
       },
       {
-        id: 5,
+        id: "5",
         author: "James & Priya L.",
         avatar: "JP",
         content:
@@ -94,7 +94,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     ],
   },
   {
-    id: 3,
+    id: "3",
     author: "Sirikanya B.",
     avatar: "SB",
     role: "Parent · Year 10",
@@ -109,7 +109,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     liked: false,
     comments: [
       {
-        id: 6,
+        id: "6",
         author: "David K.",
         avatar: "DK",
         content:
@@ -121,7 +121,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     ],
   },
   {
-    id: 4,
+    id: "4",
     author: "Anonymous Parent",
     avatar: "AP",
     role: "Parent · Grade 3",
@@ -136,7 +136,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     liked: false,
     comments: [
       {
-        id: 7,
+        id: "7",
         author: "Lisa M.",
         avatar: "LM",
         content:
@@ -146,7 +146,7 @@ export const FORUM_POSTS_SEED: Post[] = [
         liked: false,
       },
       {
-        id: 8,
+        id: "8",
         author: "Tanawat P.",
         avatar: "TP",
         content:
@@ -158,7 +158,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     ],
   },
   {
-    id: 5,
+    id: "5",
     author: "Charlotte H.",
     avatar: "CH",
     role: "Parent · Year 9",
@@ -173,7 +173,7 @@ export const FORUM_POSTS_SEED: Post[] = [
     liked: false,
     comments: [
       {
-        id: 9,
+        id: "9",
         author: "Robert F.",
         avatar: "RF",
         content:
@@ -183,7 +183,7 @@ export const FORUM_POSTS_SEED: Post[] = [
         liked: false,
       },
       {
-        id: 10,
+        id: "10",
         author: "Monthira J.",
         avatar: "MJ",
         content:
@@ -193,7 +193,7 @@ export const FORUM_POSTS_SEED: Post[] = [
         liked: false,
       },
       {
-        id: 11,
+        id: "11",
         author: "Charlotte H.",
         avatar: "CH",
         content:
