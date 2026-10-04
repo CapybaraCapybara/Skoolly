@@ -62,10 +62,11 @@ export function SchoolCard({
   const logoSrc = (school.logoUrl && school.logoUrl.trim()) ? school.logoUrl : (school.image?.startsWith("http") ? school.image : null);
 
   return (
-    <div className="card-hover bg-warm-cream rounded-[2rem] overflow-hidden border border-warm-accent shadow-xs flex flex-col p-3 transition-all hover:shadow-md">
-      {/* ── Official School Logo Container (Replaced stock Unsplash photos) ── */}
+    <div className="card-hover bg-warm-cream rounded-[1.5rem] overflow-hidden border border-warm-accent shadow-xs flex flex-col transition-all hover:shadow-md">
+      {/* ── Logo area: OPEC logos are white-background JPEGs cropped tight to the artwork,
+             so they sit on plain white with padding to blend in and keep clear of the edges ── */}
       <div
-        className="relative h-48 bg-gradient-to-b from-white via-warm-cream/40 to-warm-accent/20 rounded-[1.5rem] border border-warm-accent/40 flex items-center justify-center p-5 cursor-pointer group overflow-hidden"
+        className="relative h-44 bg-white border-b border-warm-accent/50 flex items-center justify-center px-12 pt-10 pb-6 cursor-pointer group"
         onClick={() => onSchoolClick(school.id)}
       >
         {logoSrc && !imgFailed ? (
@@ -73,23 +74,22 @@ export function SchoolCard({
             src={logoSrc}
             alt={`โลโก้ ${school.name}`}
             referrerPolicy="no-referrer"
-            className="max-h-28 max-w-[82%] object-contain drop-shadow-xs transition-transform duration-300 group-hover:scale-105"
+            className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onError={() => setImgFailed(true)}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-center p-2 select-none">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-warm-accent/60 shadow-xs flex items-center justify-center text-warm-bronze font-bold text-xl tracking-wider mb-1.5 group-hover:scale-105 transition-transform">
+          <div className="flex flex-col items-center justify-center text-center select-none">
+            <div className="w-16 h-16 rounded-2xl bg-warm-cream border border-warm-accent flex items-center justify-center text-warm-bronze font-bold text-xl tracking-wider group-hover:scale-105 transition-transform">
               {getSchoolInitials(school.name)}
             </div>
-            <span className="text-[11px] font-semibold text-warm-charcoal/70 line-clamp-1 max-w-[180px]">{school.name}</span>
-            <span className="text-[10px] text-warm-charcoal/40 mt-0.5">ไม่มีโลโก้ในระบบ</span>
+            <span className="text-[11px] text-warm-charcoal/60 mt-2">ไม่มีโลโก้ในระบบ</span>
           </div>
         )}
 
         {/* Badge in top-left (e.g. ISAT Member, Boarding School) */}
         {school.badge && (
-          <span className="absolute top-3 left-3 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze shadow-xs select-none">
+          <span className="absolute top-3 left-3 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze select-none">
             {school.badge}
           </span>
         )}
@@ -101,7 +101,7 @@ export function SchoolCard({
             onToggleFavorite(school.id);
           }}
           title={isFav ? "Remove from saved" : "Save school"}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs border border-warm-accent/50 hover:scale-105 active:scale-95"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border border-warm-accent hover:scale-105 active:scale-95"
           style={{ background: isFav ? "#ef4444" : "rgba(255,255,255,0.92)", backdropFilter: "blur(4px)" }}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isFav ? "white" : "none"} stroke={isFav ? "white" : "#14284b"} strokeWidth={2}>
@@ -111,30 +111,48 @@ export function SchoolCard({
       </div>
 
       {/* ── Card body ── */}
-      <div className="p-3 flex flex-col gap-2.5 flex-1">
+      <div className="p-4 flex flex-col gap-3 flex-1">
         <div>
           <button
             onClick={() => onSchoolClick(school.id)}
-            className="font-bold text-warm-charcoal text-sm leading-snug text-left hover:text-warm-bronze transition-colors line-clamp-2"
+            className="font-bold text-warm-charcoal text-[15px] leading-snug text-left hover:text-warm-bronze transition-colors line-clamp-2"
           >
             {school.name}
           </button>
           {school.nameTh && school.nameTh !== school.name && (
-            <div className="text-[11px] text-warm-charcoal/50 line-clamp-1 mt-0.5">
+            <div className="text-xs text-warm-charcoal/65 line-clamp-1 mt-0.5">
               {school.nameTh}
             </div>
           )}
-          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-warm-charcoal/60">
-            <svg className="w-3 h-3 shrink-0 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="line-clamp-1">{school.location}</span>
+
+          <div className="mt-2.5 space-y-1 text-xs text-warm-charcoal/80">
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="line-clamp-1">
+                {school.location}
+                {school.distance > 0 && (
+                  <span className="text-warm-charcoal/60">
+                    {" · "}
+                    {school.distance < 1 ? `${(school.distance * 1000).toFixed(0)} m` : `${school.distance.toFixed(1)} km`}
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 11.5v4.5c0 1.1 3.1 3 7 3s7-1.9 7-3v-4.5" />
+              </svg>
+              <span className="line-clamp-1">{school.grades || "ไม่ระบุระดับชั้น"}</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs flex-wrap">
-          <span className="bg-warm-accent/50 text-warm-charcoal/80 px-2.5 py-0.5 rounded-md font-medium border border-warm-accent/30">
+        <div className="flex items-center gap-1.5 text-xs flex-wrap">
+          <span className="bg-warm-accent/60 text-warm-charcoal px-2.5 py-0.5 rounded-md font-semibold">
             {school.curriculum}
           </span>
           {school.isBoarding && (
@@ -143,23 +161,23 @@ export function SchoolCard({
             </span>
           )}
           {school.language && (
-            <span className="bg-warm-accent/40 text-warm-charcoal/70 px-2 py-0.5 rounded-md font-medium border border-warm-accent/20">
+            <span className="bg-white text-warm-charcoal/80 px-2 py-0.5 rounded-md font-medium border border-warm-accent">
               {school.language}
             </span>
           )}
         </div>
 
-        <div className="mt-auto pt-2.5 flex items-end justify-between border-t border-warm-accent/30">
+        <div className="mt-auto pt-3 flex items-end justify-between border-t border-warm-accent/60">
           <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-warm-charcoal/50">Starting from</div>
-            <div className="font-extrabold text-warm-charcoal text-base">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-warm-charcoal/60">Starting from</div>
+            <div className="font-extrabold text-warm-charcoal text-base leading-tight mt-0.5">
               {school.tuitionStart > 0 ? (
                 <>
                   {formatTuition(school.tuitionStart)}
-                  <span className="text-xs font-normal text-warm-charcoal/50">/yr</span>
+                  <span className="text-xs font-normal text-warm-charcoal/60">/yr</span>
                 </>
               ) : (
-                <span className="text-xs font-semibold text-warm-charcoal/60">Contact school</span>
+                <span className="text-sm font-semibold text-warm-charcoal/75">Contact school</span>
               )}
             </div>
           </div>
@@ -167,25 +185,12 @@ export function SchoolCard({
             {school.reviewCount > 0 && school.rating > 0 ? (
               <>
                 <StarRating rating={school.rating} />
-                <div className="text-xs text-warm-charcoal/50 mt-0.5">{school.reviewCount} reviews</div>
+                <div className="text-xs text-warm-charcoal/60 mt-0.5">{school.reviewCount} reviews</div>
               </>
             ) : (
-              <div className="text-[11px] text-warm-charcoal/50 py-1">ยังไม่มีรีวิว</div>
+              <div className="text-xs text-warm-charcoal/60">ยังไม่มีรีวิว</div>
             )}
           </div>
-        </div>
-
-        <div className="text-[11px] text-warm-charcoal/60 flex items-center gap-1.5">
-          {school.distance > 0 && (
-            <>
-              <svg className="w-3 h-3 text-warm-bronze shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3" />
-              </svg>
-              <span>{school.distance < 1 ? `${(school.distance * 1000).toFixed(0)} m away` : `${school.distance.toFixed(1)} km away`}</span>
-              <span className="text-warm-charcoal/30">·</span>
-            </>
-          )}
-          <span className="truncate">{school.grades || "ไม่ระบุระดับชั้น"}</span>
         </div>
 
         {/* Compare */}

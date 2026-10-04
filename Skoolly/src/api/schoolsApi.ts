@@ -41,12 +41,24 @@ function normalizeCurriculum(curriculums?: string[]): string {
   if (!curriculums || curriculums.length === 0) return "International";
   const joined = curriculums.join(" ");
   if (/british|สหราชอาณาจักร|อังกฤษ|cambridge|igcse|a-level/i.test(joined)) return "British";
-  if (/american|สหรัฐอเมริกา|อเมริกัน|ap|common core/i.test(joined)) return "American";
+  // \bap\b: a bare "ap" also matched "Singapore" and "Japanese" and labelled them American
+  if (/american|สหรัฐอเมริกา|อเมริกัน|\bap\b|common core/i.test(joined)) return "American";
   if (/\bib\b|international baccalaureate|ibdp|pyp|myp/i.test(joined)) return "IB";
   if (/french|ฝรั่งเศส|lyc[eé]e/i.test(joined)) return "French";
   if (/singapore|สิงคโปร์/i.test(joined)) return "Singapore";
   if (/bilingual|สองภาษา|english\s*\/\s*thai/i.test(joined)) return "Bilingual";
-  return curriculums[0] || "International";
+  return curriculumLabel(curriculums[0]);
+}
+
+// OPEC values look like "อินเดีย (Indian)"; show the English name like the other chips
+function curriculumLabel(raw?: string): string {
+  const text = raw?.trim();
+  if (!text) return "International";
+  const english = text.match(/\(([^)]*[A-Za-z][^)]*)\)/)?.[1]?.trim();
+  if (english) return english;
+  if (/^ไทย|กระทรวงศึกษา/.test(text)) return "Thai";
+  if (/หลักสูตรเฉพาะ/.test(text)) return "Own Curriculum";
+  return text;
 }
 
 function toTitleCase(str: string): string {
