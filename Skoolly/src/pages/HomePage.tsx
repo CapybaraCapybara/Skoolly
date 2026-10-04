@@ -54,11 +54,17 @@ export function HomePage({
 }: HomePageProps) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [schools, setSchools] = useState<School[]>([]);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   // ── Fetch schools from the API layer on mount ──────────────────────────────
   useEffect(() => {
-    getSchools().then(setSchools);
+    getSchools()
+      .then((data) => {
+        setSchools(data);
+        setLoadState("ready");
+      })
+      .catch(() => setLoadState("error"));
   }, []);
 
   // Hero numbers come from the loaded schools so they always match the database
@@ -357,7 +363,14 @@ export function HomePage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
-            {paginatedSchools.length > 0
+            {loadState === "loading" ? (
+              <div className="col-span-full py-20 text-center text-sm text-slate-400">กำลังโหลดรายชื่อโรงเรียน…</div>
+            ) : loadState === "error" ? (
+              <div className="col-span-full py-20 text-center">
+                <h3 className="font-semibold text-warm-charcoal text-lg mb-1">โหลดข้อมูลโรงเรียนไม่สำเร็จ</h3>
+                <p className="text-slate-500 text-sm">เชื่อมต่อฐานข้อมูลไม่ได้ในขณะนี้ ลองรีเฟรชหน้าอีกครั้งภายหลัง</p>
+              </div>
+            ) : paginatedSchools.length > 0
               ? paginatedSchools.map((school) => (
                 <SchoolCard
                   key={school.id}

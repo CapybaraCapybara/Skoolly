@@ -8,16 +8,14 @@
  *    schemas or Supabase column names (e.g. opec_school_code, pub_tuition_min_thb).
  * 2. Single Domain Model: All database records are mapped through pure adapters
  *    into Domain Types (School, SchoolDetail).
- * 3. Resilient Fallback: If Supabase is unconfigured or offline, seamlessly
- *    falls back to seed data without UI degradation or runtime exceptions.
+ * 3. No Silent Fallback: If Supabase is unconfigured or offline, the getters
+ *    reject so the UI can tell the user, instead of showing sample schools.
  * 4. Versioning Preservation: Read paths only query published records;
  *    scraped enrichments overlay without mutating source database records directly.
  */
 
 import type { School, SchoolCoords, SchoolDetail, SchoolFee, SchoolReview } from "@/types";
 import type { SupabaseSchoolRecord } from "@/types/opec";
-import { SCHOOLS_SEED } from "@/api/mock/schools";
-import { SCHOOL_DETAILS_SEED } from "@/api/mock/schoolDetails";
 import { getSupabaseSchools } from "@/api/opecApi";
 
 type MergedData = {
@@ -25,49 +23,16 @@ type MergedData = {
   details: Record<number, SchoolDetail>;
 };
 
-const FALLBACK_IMAGES = [
-  "photo-1580582932707-520aed937b7b",
-  "photo-1523050854058-8df90110c9f1",
-  "photo-1509062522246-3755977927d7",
-  "photo-1541829070764-84a7d30dd3f3",
-  "photo-1562774053-701939374585",
-  "photo-1592280771190-3e2e4d571952",
-  "photo-1577896851231-70ef18881754",
-  "photo-1510531704581-5b2870972060",
-];
-
 // Cache the in-flight promise to avoid duplicate concurrent fetches on mount
 let mergedDataPromise: Promise<MergedData> | null = null;
 
 export function getMergedData(): Promise<MergedData> {
-  mergedDataPromise ??= loadMergedData();
+  mergedDataPromise ??= loadMergedData().catch((error) => {
+    // Drop the failed promise so the next caller retries instead of reusing the error
+    mergedDataPromise = null;
+    throw error;
+  });
   return mergedDataPromise;
-}
-
-// ─── Pure Initializers ────────────────────────────────────────────────────────
-
-function initSeedSchools(): School[] {
-  return SCHOOLS_SEED.map((s) => ({
-    ...s,
-    lastUpdated: s.lastUpdated || "September 2026",
-  }));
-}
-
-function initSeedDetails(): Record<number, SchoolDetail> {
-  return Object.keys(SCHOOL_DETAILS_SEED).reduce((acc, key) => {
-    const id = Number(key);
-    const detail = SCHOOL_DETAILS_SEED[id];
-    acc[id] = {
-      ...detail,
-      lastUpdated: detail?.lastUpdated || "September 2026",
-      fees: detail.fees.map((f) => ({ ...f })),
-      accreditation: [...detail.accreditation],
-      gallery: [...detail.gallery],
-      facilities: [...detail.facilities],
-      reviews: detail.reviews.map((r) => ({ ...r })),
-    };
-    return acc;
-  }, {} as Record<number, SchoolDetail>);
 }
 
 // ─── Anti-Corruption Layer (Mappers & Adapters) ──────────────────────────────
@@ -96,7 +61,7 @@ function formatSchoolName(nameEn?: string | null, nameTh?: string): string {
     }
     return trimmed;
   }
-  return nameTh?.trim() || "International School";
+  return nameTh?.trim() || "ไม่ระบุชื่อโรงเรียน";
 }
 
 function formatLocation(record: SupabaseSchoolRecord): string {
@@ -104,7 +69,7 @@ function formatLocation(record: SupabaseSchoolRecord): string {
   if (parts.length > 0) {
     return parts.join(", ");
   }
-  return record.address?.slice(0, 35) || "Bangkok, Thailand";
+  return record.address?.slice(0, 35) || "ไม่ระบุที่ตั้ง";
 }
 
 function formatGrades(record: SupabaseSchoolRecord): string {
@@ -114,7 +79,14 @@ function formatGrades(record: SupabaseSchoolRecord): string {
   if (record.levels_offered && record.levels_offered.length > 0) {
     return record.levels_offered.join(" – ");
   }
-  return "Pre-K–Grade 12";
+  return "ไม่ระบุระดับชั้น";
+}
+
+// OPEC has no language-of-instruction field, so infer it from the curriculum family
+function deriveLanguage(curriculum: string): string {
+  if (curriculum === "Bilingual") return "English / Thai";
+  if (curriculum === "French") return "French";
+  return "English";
 }
 
 function mapCoords(record: SupabaseSchoolRecord): SchoolCoords | undefined {
@@ -178,7 +150,7 @@ export function mapSupabaseToDomainSchool(
   const rating = record.rating_avg ? Number(record.rating_avg.toFixed(1)) : 0;
   const reviewCount = record.review_count ?? 0;
   const distance = 0; // True distance only; 0 indicates not computed rather than fake mock formula
-  const language = record.curriculums && record.curriculums.length > 0 ? "English" : "English";
+  const language = deriveLanguage(curriculum);
   const grades = formatGrades(record);
   
   // Official OPEC PDC school logo from database
@@ -321,170 +293,26 @@ export function mapSupabaseToDomainDetail(
   };
 }
 
-// ─── Scraped Data Mappers ────────────────────────────────────────────────────
-
-function parseScrapedFees(item: any): SchoolFee[] {
-  const fees: SchoolFee[] = [];
-
-  // 1. Grade tuition lines
-  if (Array.isArray(item.tuition_by_grade)) {
-    for (const g of item.tuition_by_grade) {
-      if (!g?.grade_level && !g?.display_name) continue;
-      const labelName = g.display_name || g.grade_level;
-      const amountText = g.annual_thb
-        ? `฿${g.annual_thb.toLocaleString()} / yr`
-        : g.semester_thb
-        ? `฿${(g.semester_thb * 2).toLocaleString()} / yr`
-        : "Contact school";
-      fees.push({ label: `Tuition (${labelName})`, amount: amountText });
-    }
-  }
-
-  // 2. Hidden / additional cost lines
-  if (Array.isArray(item.hidden_costs)) {
-    for (const c of item.hidden_costs) {
-      if (!c?.name) continue;
-      const note = c.notes ? ` (${c.notes})` : "";
-      const amountText = c.amount_thb ? `฿${c.amount_thb.toLocaleString()}` : "Contact school";
-      fees.push({ label: `${c.name}${note}`, amount: amountText });
-    }
-  }
-
-  return fees;
-}
-
-function mapSafetyInfo(
-  rawSafety: any,
-  fallback?: SchoolDetail["safety"],
-  pageUrl?: string
-): SchoolDetail["safety"] {
-  return {
-    securityGuards: rawSafety.security_guards
-      ? "24/7 Professional Security Guards Stationed & Patrol"
-      : "Standard Campus Security",
-    cctv: rawSafety.cctv_monitoring
-      ? "Full CCTV Monitoring & Perimeter Surveillance"
-      : "Campus Security System",
-    medicalNurse: rawSafety.nurse_medical_clinic
-      ? "Certified School Nurse & Medical Clinic On-site"
-      : "First-Aid Station",
-    safeguardingPolicy: rawSafety.child_safeguarding_policy
-      ? "Comprehensive Child Protection & Safeguarding Policy Verified"
-      : "School Safety Code of Conduct",
-    airQualityPM25: rawSafety.air_quality_pm25_protocol
-      ? "Automated PM2.5 Clean-Air Positive Pressure System"
-      : "Indoor Air Quality Monitored",
-    visitorControl: rawSafety.visitor_access_control
-      ? "Strict Gated Entry & Visitor RFID Badge Verification"
-      : "Controlled Campus Entry",
-    emergencyDrill: "Termly evacuation, fire safety, and emergency response drills",
-    summary:
-      rawSafety.policy_summary ||
-      fallback?.summary ||
-      "Comprehensive campus safety protocols and child safeguarding standards.",
-    highlights:
-      Array.isArray(rawSafety.highlights) && rawSafety.highlights.length > 0
-        ? rawSafety.highlights
-        : fallback?.highlights || [],
-    policyUrl: rawSafety.policy_url || fallback?.policyUrl || pageUrl,
-  };
-}
-
-function extractLastUpdated(item: any): string | null {
-  const val =
-    item.last_updated ??
-    item.lastUpdated ??
-    item.updated_at ??
-    item.updatedAt ??
-    item.scraped_at ??
-    item.last_scraped ??
-    item.date_updated;
-  return val ? String(val) : null;
-}
-
-function applyScrapedItem(
-  item: any,
-  schools: School[],
-  details: Record<number, SchoolDetail>
-): void {
-  if (!item || item.status !== "ok" || !item.school_name) return;
-
-  const targetName = item.school_name.toLowerCase();
-  const matchedSchool = schools.find((s) => {
-    const sName = s.name.toLowerCase();
-    return sName.includes(targetName) || targetName.includes(sName);
-  });
-
-  if (!matchedSchool) return;
-
-  // Update curriculum if detected
-  if (item.curriculum && item.curriculum.toLowerCase() !== "unclear") {
-    matchedSchool.curriculum = item.curriculum;
-  }
-
-  // Update starting tuition if detected
-  if (item.tuition_min_thb != null) {
-    matchedSchool.tuitionStart = item.tuition_min_thb;
-  }
-
-  const detailRecord = details[matchedSchool.id];
-  if (!detailRecord) return;
-
-  // Update fees
-  const newFees = parseScrapedFees(item);
-  if (newFees.length > 0) {
-    detailRecord.fees = newFees;
-  }
-
-  // Update safety & safeguarding
-  if (item.safety_and_security) {
-    detailRecord.safety = mapSafetyInfo(
-      item.safety_and_security,
-      detailRecord.safety,
-      item.page_scraped
-    );
-  }
-
-  // Update timestamps
-  const lastUpdated = extractLastUpdated(item);
-  if (lastUpdated) {
-    detailRecord.lastUpdated = lastUpdated;
-    matchedSchool.lastUpdated = lastUpdated;
-  }
-}
-
 // ─── Main Aggregator ─────────────────────────────────────────────────────────
 
 async function loadMergedData(): Promise<MergedData> {
-  // ── Step 1: Attempt to load from Supabase via Anti-Corruption Layer ──
-  try {
-    const res = await getSupabaseSchools({ limit: 1000 });
-    if (res && Array.isArray(res.schools) && res.schools.length > 0) {
-      console.info(`[schoolsApi] Connected to Supabase: loaded ${res.schools.length} real schools.`);
-
-      const mappedSchools: School[] = [];
-      const mappedDetails: Record<number, SchoolDetail> = {};
-      const claimedIds = new Set<number>();
-
-      res.schools.forEach((record, index) => {
-        const domainSchool = mapSupabaseToDomainSchool(record, index, claimedIds);
-        const domainDetail = mapSupabaseToDomainDetail(record, domainSchool);
-
-        mappedSchools.push(domainSchool);
-        mappedDetails[domainSchool.id] = domainDetail;
-      });
-
-      // ONLY return real schools from Supabase, NO fake mock seed schools injected!
-      return { schools: mappedSchools, details: mappedDetails };
-    }
-  } catch (error) {
-    console.warn("[schoolsApi] Supabase fetch unavailable, using seed data fallback:", error);
+  const res = await getSupabaseSchools({ limit: 1000 });
+  if (!res || !Array.isArray(res.schools)) {
+    throw new Error("Unexpected response from /api/supabase/schools");
   }
+  console.info(`[schoolsApi] Connected to Supabase: loaded ${res.schools.length} schools.`);
 
-  // Fallback ONLY if backend/database is completely unavailable
-  const seedSchools = initSeedSchools();
-  const seedDetails = initSeedDetails();
-  return { schools: seedSchools, details: seedDetails };
+  const schools: School[] = [];
+  const details: Record<number, SchoolDetail> = {};
+  const claimedIds = new Set<number>();
+
+  res.schools.forEach((record, index) => {
+    const domainSchool = mapSupabaseToDomainSchool(record, index, claimedIds);
+    schools.push(domainSchool);
+    details[domainSchool.id] = mapSupabaseToDomainDetail(record, domainSchool);
+  });
+
+  return { schools, details };
 }
 
 // ─── Public API Exports ──────────────────────────────────────────────────────
@@ -506,7 +334,7 @@ export async function getSchoolDetail(id: number): Promise<SchoolDetail | undefi
     return data.details[id];
   }
 
-  // Build detail dynamically from School if not in pre-seeded cache
+  // Build detail dynamically from School if not in the cached details
   const matchedSchool = data.schools.find((s) => s.id === id);
   if (matchedSchool) {
     return mapSupabaseToDomainDetail(

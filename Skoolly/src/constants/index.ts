@@ -3,8 +3,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * UI-only constants — filter option labels and limits.
  *
- * School seed data has been moved to src/db/schools.ts
- * School API access is via src/api/schoolsApi.ts
+ * School data comes from Supabase via src/api/schoolsApi.ts
  */
 
 export const CURRICULA = ["All Curricula", "British", "American", "IB", "French", "Bilingual"];

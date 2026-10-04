@@ -52,12 +52,30 @@ function formatLastUpdated(val?: string | number): string {
 export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: SchoolDetailPageProps) {
   const [tab, setTab] = useState("Overview");
   const [detail, setDetail] = useState<SchoolDetail | null>(null);
+  const [detailMissing, setDetailMissing] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
 
   // ── Fetch extended school detail from the API layer on mount ───────────────
   useEffect(() => {
-    getSchoolDetail(school.id).then((d) => setDetail(d ?? null));
+    setDetailMissing(false);
+    getSchoolDetail(school.id)
+      .then((d) => {
+        setDetail(d ?? null);
+        setDetailMissing(!d);
+      })
+      .catch(() => setDetailMissing(true));
   }, [school.id]);
+
+  if (detailMissing) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-3">
+        <div className="text-slate-500 text-sm">โหลดข้อมูลโรงเรียนนี้ไม่สำเร็จ</div>
+        <button onClick={onBack} className="text-sm font-semibold text-warm-bronze hover:underline">
+          ← กลับไปหน้ารายชื่อ
+        </button>
+      </div>
+    );
+  }
 
   if (!detail) {
     return (

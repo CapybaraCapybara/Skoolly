@@ -51,6 +51,7 @@ export default function App() {
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [authModal, setAuthModal] = useState<string | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
+  const [schoolsState, setSchoolsState] = useState<"loading" | "ready" | "error">("loading");
   const [compareModalOpen, setCompareModalOpen] = useState(false);
   const [replaceLimitSchool, setReplaceLimitSchool] = useState<School | null>(null);
 
@@ -65,7 +66,12 @@ export default function App() {
 
   // ── Fetch schools once at app level (used by CompareBar & SchoolDetailPage) ─
   useEffect(() => {
-    getSchools().then(setSchools);
+    getSchools()
+      .then((data) => {
+        setSchools(data);
+        setSchoolsState("ready");
+      })
+      .catch(() => setSchoolsState("error"));
   }, []);
 
   const goHome = useCallback(() => {
@@ -182,17 +188,29 @@ export default function App() {
       />
     );
   } else if (typeof view === "object" && view.type === "school") {
-    const school = schools.find((s) => s.id === view.id) ?? schools[0];
-    pageContent = school
-      ? (
-          <SchoolDetailPage
-            school={school}
-            onBack={goHome}
-            onForum={goForum}
-            onOpenCalculator={() => goCalculator(school.id)}
-          />
-        )
-      : null;
+    const school = schools.find((s) => s.id === view.id);
+    pageContent = school ? (
+      <SchoolDetailPage
+        school={school}
+        onBack={goHome}
+        onForum={goForum}
+        onOpenCalculator={() => goCalculator(school.id)}
+      />
+    ) : (
+      // No fallback to another school: an unknown id or a failed load says so
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-sm text-slate-500">
+        {schoolsState === "loading" ? (
+          "กำลังโหลดข้อมูลโรงเรียน…"
+        ) : (
+          <>
+            <span>{schoolsState === "error" ? "โหลดข้อมูลโรงเรียนไม่สำเร็จ" : "ไม่พบโรงเรียนนี้"}</span>
+            <button onClick={goHome} className="font-semibold text-warm-bronze hover:underline">
+              ← กลับไปหน้ารายชื่อ
+            </button>
+          </>
+        )}
+      </div>
+    );
   } else if (view === "favorites") {
     pageContent = (
       <FavoritesPage
