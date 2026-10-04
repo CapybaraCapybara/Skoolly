@@ -451,7 +451,7 @@ export function SupabaseAdminPage({
   const handleEnrichIsat = async () => {
     setActionLoading(true);
     try {
-      showToast("กำลังดึงและซิงค์ข้อมูลสมาคม ISAT (207 โรงเรียน) สู่ระบบ...");
+      showToast("กำลังดึงและซิงค์ข้อมูลสมาคม ISAT สู่ระบบ...");
       await postAction("/api/enrich/isat");
       pollProgress();
     } catch (err: any) {
@@ -561,6 +561,8 @@ export function SupabaseAdminPage({
     { step: 4, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification" },
   ];
   const pipelineBusy = isRunning || actionLoading;
+  // Members already matched in the DB — the ISAT directory size itself is only known during a sync
+  const isatMemberCount = schools.filter((s) => s.is_isat_member).length;
   const pillBtn =
     "inline-flex items-center gap-2 rounded-full border border-warm-accent bg-white/70 py-1.5 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze hover:text-warm-bronze disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
 
@@ -791,10 +793,15 @@ export function SupabaseAdminPage({
                 onClick={handleEnrichIsat}
                 disabled={pipelineBusy}
                 className={cn(pillBtn, "px-3.5")}
-                title="ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT 207 โรงเรียน): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ"
+                title={`ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ${isatMemberCount > 0 ? ` — ตอนนี้จับคู่เป็นสมาชิกแล้ว ${isatMemberCount} โรงเรียน` : ""}`}
               >
                 <Award className="size-4 text-warm-bronze" />
                 ซิงค์ ISAT
+                {isatMemberCount > 0 && (
+                  <span className="rounded-full bg-warm-card px-2 py-0.5 text-xs font-semibold tabular-nums text-warm-bronze">
+                    {isatMemberCount} รร.
+                  </span>
+                )}
               </button>
               <button
                 type="button"

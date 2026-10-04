@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 
 urllib3.disable_warnings()
 
+PER_PAGE = 150
+MAX_PAGES = 20
+
 def fetch_isat_schools() -> List[Dict[str, Any]]:
     session = requests.Session()
     session.headers.update({
@@ -30,8 +33,10 @@ def fetch_isat_schools() -> List[Dict[str, Any]]:
 
     schools: List[Dict[str, Any]] = []
 
-    # Two requests with 150 perPage covers all 207 schools
-    for page in [1, 2]:
+    # ISAT doesn't report a total in the response, so page through until a page comes back empty
+    # (MAX_PAGES only guards against an endless loop if the site changes behaviour)
+    for page in range(1, MAX_PAGES + 1):
+        page_count = 0
         data = {
             'req_type': 'TabSearch',
             'nav_name': 'getSearch',
@@ -45,7 +50,7 @@ def fetch_isat_schools() -> List[Dict[str, Any]]:
             'code_ver': 202407201,
             'var_order_seed': '1789288894',
             'var_search_text': '',
-            'var_perPage': '150'
+            'var_perPage': str(PER_PAGE)
         }
 
         res = session.post('https://www.isat.or.th/search/AjaxForm/nav', data=data, headers=headers, verify=False, timeout=25)
@@ -62,6 +67,7 @@ def fetch_isat_schools() -> List[Dict[str, Any]]:
             boxes = soup.find_all('div', class_='schoolBox')
 
             for h3, box in zip(headings, boxes):
+                page_count += 1
                 name = h3.text.strip()
                 
                 # Logo
@@ -121,6 +127,9 @@ def fetch_isat_schools() -> List[Dict[str, Any]]:
                     'website': website,
                     'phone': phone
                 })
+
+        if page_count == 0:
+            break
 
     # Deduplicate by name just in case
     seen = set()

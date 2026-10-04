@@ -258,7 +258,7 @@ def run_full_pipeline_worker():
     """Runs complete 5-step data pipeline in the recommended optimal order:
        1. OPEC Fetch & Sync
        2. Enrich School Names EN
-       3. Enrich ISAT (207 schools)
+       3. Enrich ISAT (all member schools)
        4. Fetch Official Websites
        5. Enrich GPS Coordinates
     """
@@ -290,7 +290,7 @@ def run_full_pipeline_worker():
         # ----------------------------------------------------
         # STEP 3: Enrich ISAT
         # ----------------------------------------------------
-        update_progress("⚡ [Full Pipeline 3/5] ซิงค์ข้อมูลสมาคม ISAT (207 รร.)...", 45, 100, "[ขั้นตอน 3/5] เริ่มต้นดึงและจับคู่ข้อมูลสมาคม ISAT...")
+        update_progress("⚡ [Full Pipeline 3/5] ซิงค์ข้อมูลสมาคม ISAT...", 45, 100, "[ขั้นตอน 3/5] เริ่มต้นดึงและจับคู่ข้อมูลสมาคม ISAT...")
         run_isat_enrichment(apply_to_db=True, progress_callback=update_progress)
         records = load_schools()
         set_current_schools(records)
@@ -893,7 +893,7 @@ def enrich_isat():
         if scraper_state["is_running"]:
             return JSONResponse(status_code=400, content={"status": "already_running"})
         scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มซิงค์ข้อมูลสมาคม ISAT (207 รร.)..."
+        scraper_state["task"] = "กำลังเริ่มซิงค์ข้อมูลสมาคม ISAT..."
         scraper_state["current"] = 1
         scraper_state["total"] = 100
         scraper_state["percent"] = 1
