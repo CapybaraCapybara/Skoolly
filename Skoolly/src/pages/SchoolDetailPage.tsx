@@ -548,7 +548,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   <div className="flex items-start gap-3 mb-3">
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0"
-                      style={{ background: "#0f9488" }}
+                      style={{ background: "#456ca6" }}
                     >
                       {r.avatar}
                     </div>

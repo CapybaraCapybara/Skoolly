@@ -56,9 +56,9 @@ export function SchoolMap() {
       const homeIcon = L.divIcon({
         html: `<div style="
           width:36px;height:36px;border-radius:50% 50% 50% 0;
-          background:#1c1917;
+          background:#14284b;
           transform:rotate(-45deg);
-          border:3px solid #faf8f5;
+          border:3px solid #f8f6f1;
           box-shadow:0 3px 12px rgba(28,25,23,0.3);
         ">
           <div style="
@@ -80,9 +80,9 @@ export function SchoolMap() {
         .addTo(map)
         .bindPopup(
           `<div style="font-family:system-ui;min-width:160px">
-            <div style="font-weight:700;color:#1c1917;margin-bottom:2px">${EXAMPLE_SAVED_LOCATION.name}</div>
+            <div style="font-weight:700;color:#14284b;margin-bottom:2px">${EXAMPLE_SAVED_LOCATION.name}</div>
             <div style="font-size:12px;color:#78716c">${EXAMPLE_SAVED_LOCATION.address}</div>
-            <div style="font-size:11px;margin-top:6px;color:#ab8e72;font-weight:600">📍 Your saved location</div>
+            <div style="font-size:11px;margin-top:6px;color:#b8913a;font-weight:600">📍 Your saved location</div>
           </div>`,
           { maxWidth: 220 }
         )
@@ -91,13 +91,13 @@ export function SchoolMap() {
       // School markers — an exact pin is a solid pill; an approximate one is dashed and muted
       const schoolIcon = (rating: number, approximate: boolean) => L.divIcon({
         html: `<div style="
-          background:${approximate ? "rgba(250,248,245,0.85)" : "#faf8f5"};
-          border:2px ${approximate ? "dashed #a8a29e" : "solid #ab8e72"};
+          background:${approximate ? "rgba(250,248,245,0.85)" : "#f8f6f1"};
+          border:2px ${approximate ? "dashed #a8a29e" : "solid #b8913a"};
           border-radius:20px;
           padding:3px 8px;
           font-size:11px;
           font-weight:${approximate ? 600 : 700};
-          color:${approximate ? "#78716c" : "#1c1917"};
+          color:${approximate ? "#78716c" : "#14284b"};
           white-space:nowrap;
           box-shadow:0 2px 8px rgba(28,25,23,0.12);
           display:flex;align-items:center;gap:3px;
@@ -129,8 +129,8 @@ export function SchoolMap() {
               .addTo(map)
               .bindPopup(
                 `<div style="font-family:system-ui;min-width:180px">
-                  <div style="font-weight:700;color:#1c1917;margin-bottom:3px">${name}</div>
-                  <div style="font-size:12px;color:#ab8e72;font-weight:600">${fee}</div>
+                  <div style="font-weight:700;color:#14284b;margin-bottom:3px">${name}</div>
+                  <div style="font-size:12px;color:#b8913a;font-weight:600">${fee}</div>
                   <div style="font-size:12px;color:#78716c;margin-top:2px">${ratingText}${distKm} km from you</div>
                   ${approximate ? `<div style="font-size:11px;color:#b45309;margin-top:4px">${APPROXIMATE_PIN_NOTE}</div>` : ""}
                 </div>`,
@@ -140,7 +140,7 @@ export function SchoolMap() {
             if (approximate) {
               marker.bindTooltip(
                 `<div style="font-family:system-ui">
-                  <div style="font-weight:600;color:#1c1917">${name}</div>
+                  <div style="font-weight:600;color:#14284b">${name}</div>
                   <div style="font-size:11px;color:#b45309">${APPROXIMATE_PIN_NOTE}</div>
                 </div>`,
                 { direction: "top", offset: [0, -12] }
@@ -153,8 +153,8 @@ export function SchoolMap() {
       // Draw radius circle from saved location (10 km)
       L.circle([EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng], {
         radius: 10000,
-        color: "#ab8e72",
-        fillColor: "#ab8e72",
+        color: "#b8913a",
+        fillColor: "#b8913a",
         fillOpacity: 0.04,
         weight: 1.5,
         dashArray: "6 4",

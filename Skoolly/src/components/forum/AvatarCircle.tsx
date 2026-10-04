@@ -6,9 +6,9 @@
  */
 
 const AVATAR_COLORS: Record<string, string> = {
-  NP: "#0f9488", JP: "#7c3aed", SB: "#d97706", AP: "#64748b",
+  NP: "#456ca6", JP: "#7c3aed", SB: "#d97706", AP: "#64748b",
   CH: "#dc2626", KT: "#0891b2", MR: "#059669", SV: "#7c3aed",
-  PA: "#d97706", DK: "#1d4ed8", LM: "#be185d", TP: "#0f9488",
+  PA: "#d97706", DK: "#1d4ed8", LM: "#be185d", TP: "#456ca6",
   RF: "#7c3aed", MJ: "#dc2626",
 };
 
@@ -18,7 +18,7 @@ interface AvatarCircleProps {
 }
 
 export function AvatarCircle({ initials, size = "md" }: AvatarCircleProps) {
-  const bg = AVATAR_COLORS[initials] ?? "#152d55";
+  const bg = AVATAR_COLORS[initials] ?? "#233a5e";
   const sz =
     size === "sm"
       ? "w-7 h-7 text-xs"

@@ -26,7 +26,9 @@ import {
   ExternalLink,
   RefreshCw,
   Eye,
+  BookOpen,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { OpecSchoolRecord, ScraperProgressState, PendingVersionRecord } from "@/types/opec";
 import {
   getSupabaseSchools,
@@ -514,365 +516,307 @@ export function SupabaseAdminPage({
 
   const isRunning = Boolean(progress?.is_running);
 
+  const navSections: {
+    label: string;
+    items: { tab: AdminTab; label: string; icon: typeof LayoutDashboard; badge?: number; highlight?: boolean; onSelect?: () => void }[];
+  }[] = [
+    {
+      label: "เมนูหลัก",
+      items: [
+        { tab: "dashboard", label: "ภาพรวม (Dashboard)", icon: LayoutDashboard },
+        { tab: "schools", label: "รายชื่อโรงเรียน", icon: School, badge: schools.length },
+        {
+          tab: "approvals",
+          label: "รออนุมัติค่าเทอม",
+          icon: Stamp,
+          badge: pendingVersions.length,
+          highlight: pendingVersions.length > 0,
+          onSelect: loadPendingVersions,
+        },
+      ],
+    },
+    {
+      label: "ระบบจัดการ",
+      items: [
+        { tab: "verify", label: "ตรวจรับรอง URL", icon: CheckCircle2 },
+        { tab: "reviews", label: "รีวิวผู้ปกครอง", icon: MessageSquare },
+        { tab: "tickets", label: "แจ้งปัญหา", icon: Ticket },
+        { tab: "ai-logs", label: "AI & Scraper Logs", icon: Bot },
+        { tab: "audit-log", label: "ประวัติการแก้ไข", icon: ShieldCheck },
+        { tab: "users", label: "ผู้ใช้งาน", icon: Users },
+      ],
+    },
+  ];
+  const navItems = navSections.flatMap((s) => s.items);
+  const activeNav = navItems.find((i) => i.tab === activeTab) ?? navItems[0];
+  const selectTab = (item: (typeof navItems)[number]) => {
+    setActiveTab(item.tab);
+    item.onSelect?.();
+  };
+
+  const pipelineSteps = [
+    { step: 1, label: "ดึงข้อมูล OPEC", onClick: () => setIsSyncConfirmOpen(true), title: "ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database" },
+    { step: 2, label: "เติมชื่อ EN", onClick: handleEnrichNamesEn, title: "ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ" },
+    { step: 3, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริง" },
+    { step: 4, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification" },
+  ];
+  const pipelineBusy = isRunning || actionLoading;
+  const pillBtn =
+    "inline-flex items-center gap-2 rounded-full border border-warm-accent bg-white/70 py-1.5 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze hover:text-warm-bronze disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
+
   return (
-    <div className="min-h-screen bg-[#faf8f5] text-[#1c1917] font-sans flex flex-col antialiased">
-      {/* Top Banner Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#e2d8c7] px-4 sm:px-6 lg:px-10 py-3 shadow-[0_2px_10px_rgba(28,25,23,0.04)] space-y-2.5">
-        {/* Row 1: Brand & Back Button & Mode Tabs */}
-        <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-2.5 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/50 text-[#1c1917] transition-all flex items-center gap-2 text-xs font-bold shadow-xs hover:shadow-sm"
-              title="กลับสู่ Skoolly Parent Portal"
-            >
-              <ArrowLeft className="w-4 h-4 text-[#ab8e72]" />
-              <span className="hidden sm:inline">สู่หน้าหลัก Skoolly</span>
-            </button>
-
-            <div className="h-6 w-px bg-[#eae0d0] hidden sm:block" />
-
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#ab8e72] text-white flex items-center justify-center shadow-xs shrink-0">
-                <Layers className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-sm md:text-base font-bold text-[#1c1917] tracking-tight">
-                    ระบบบริหารจัดการข้อมูลโรงเรียนนานาชาติ
-                  </h1>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#eae0d0]/70 text-[#78593a] font-bold border border-[#eae0d0]">
-                    สช. OPEC Pro
-                  </span>
-                </div>
-                <p className="text-[11px] text-[#78716c] hidden sm:block">
-                  เชื่อมต่อ API สช. (school.opec.go.th) 100% พร้อมระบบค้นหา Official Website & GPS อัตโนมัติ
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Supabase Database Active Status Badge & Management Trigger */}
-          <button
-            type="button"
-            onClick={handleOpenSupabaseModal}
-            className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-[#eae0d0] hover:border-emerald-300 hover:bg-emerald-50/40 text-left transition-all shadow-xs hover:shadow-sm cursor-pointer group"
-            title="คลิกเพื่อจัดการและตรวจสอบการเชื่อมต่อ Supabase Database"
+    <div className="min-h-screen bg-warm-bg text-warm-charcoal flex flex-col antialiased">
+      {/* Top navbar — same floating pill as the parent-facing Navbar */}
+      <header className="sticky top-0 z-40 w-full py-2.5 sm:py-3.5 bg-warm-bg/95 border-b border-warm-accent/30 backdrop-blur-md">
+        <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
+          <nav
+            aria-label="Admin Navigation"
+            className="flex h-14 sm:h-16 items-center justify-between gap-3 rounded-full border border-warm-accent bg-warm-cream/95 px-2.5 sm:px-4 shadow-xs"
           >
-            <div className="w-7 h-7 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Database className="w-4 h-4" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={onBack}
+                className="flex items-center gap-2 pl-1 sm:pl-2 pr-1 hover:opacity-85 transition-opacity shrink-0 cursor-pointer"
+                aria-label="กลับหน้าหลัก Skoolly"
+              >
+                <div className="flex h-8 w-8 sm:h-8.5 sm:w-8.5 items-center justify-center rounded-xl text-white bg-warm-bronze shadow-2xs">
+                  <BookOpen className="size-4" />
+                </div>
+                <span className="text-base sm:text-lg font-bold tracking-tight text-warm-charcoal">
+                  Skool<span className="text-warm-bronze">ly</span>
+                </span>
+              </button>
+              <span className="rounded-full bg-warm-charcoal px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-white shrink-0">
+                Admin
+              </span>
+              <span className="hidden lg:block h-5 w-px bg-warm-accent" />
+              <span className="hidden lg:block truncate text-sm font-medium text-warm-charcoal/70">
+                ระบบจัดการข้อมูลโรงเรียนนานาชาติ
+              </span>
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-[#1c1917] group-hover:text-emerald-900 transition-colors">Supabase Cloud DB</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] text-emerald-700 font-medium">จัดการฐานข้อมูล</span>
-                <span className="text-[10px] text-emerald-600">⚙️</span>
-              </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleOpenSupabaseModal}
+                className="inline-flex items-center gap-2 rounded-full border border-warm-accent bg-white/70 px-3 sm:px-3.5 py-2 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze cursor-pointer"
+                title="จัดการและตรวจสอบการเชื่อมต่อ Supabase Database"
+              >
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+                <Database className="size-4 text-warm-bronze" />
+                <span className="hidden sm:inline">Supabase</span>
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center gap-1.5 rounded-full bg-warm-charcoal px-3 sm:px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 cursor-pointer"
+                title="กลับสู่หน้าเว็บไซต์ Skoolly"
+              >
+                <ArrowLeft className="size-4" />
+                <span className="hidden sm:inline">กลับหน้าเว็บไซต์</span>
+              </button>
             </div>
-          </button>
-        </div>
-
-        {/* Row 2: Action Pipeline & Utility Toolbar */}
-        <div className="w-full max-w-[1720px] mx-auto flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-[#e8dfd2]">
-          {/* Pipeline Group: Steps 1-4 */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-bold text-[#78716c] uppercase tracking-wider mr-1 hidden sm:inline">
-              Data Pipeline:
-            </span>
-
-            {/* 1. ดึงข้อมูล OPEC */}
-            <button
-              type="button"
-              onClick={() => setIsSyncConfirmOpen(true)}
-              disabled={isRunning || actionLoading}
-              className="px-3.5 py-2 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-              title="ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database"
-            >
-              <CloudDownload className="w-4 h-4" />
-              <span>1. ดึงข้อมูล OPEC</span>
-            </button>
-
-            {/* 2. เติมชื่อ EN */}
-            <button
-              type="button"
-              onClick={handleEnrichNamesEn}
-              disabled={isRunning || actionLoading}
-              className="px-3.5 py-2 rounded-xl bg-[#ab8e72] hover:bg-[#96775d] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-              title="ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ"
-            >
-              <Languages className="w-4 h-4" />
-              <span>2. เติมชื่อ EN</span>
-            </button>
-
-            {/* 3. ปักหมุด GPS */}
-            <button
-              type="button"
-              onClick={handleEnrichGps}
-              disabled={isRunning || actionLoading}
-              className="px-3.5 py-2 rounded-xl bg-[#0f9488] hover:bg-[#0d7d72] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-              title="ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริงและข้อมูล Google Places"
-            >
-              <MapPin className="w-4 h-4" />
-              <span>3. ปักหมุด GPS</span>
-            </button>
-
-            {/* 4. ค้นหา Website */}
-            <button
-              type="button"
-              onClick={handleEnrichWebsites}
-              disabled={isRunning || actionLoading}
-              className="px-3.5 py-2 rounded-xl bg-[#25508a] hover:bg-[#1d4070] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
-              title="ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification"
-            >
-              <Globe className="w-4 h-4" />
-              <span>4. ค้นหา Website</span>
-            </button>
-
-            {/* ตรวจรับรอง URL */}
-            <button
-              type="button"
-              onClick={() => setIsUrlVerificationModalOpen(true)}
-              className="px-3 py-2 rounded-xl bg-teal-50 border border-teal-200 hover:bg-teal-100 text-teal-800 text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-              title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
-            >
-              <ShieldCheck className="w-4 h-4 text-teal-600" />
-              <span>ตรวจรับรอง URL</span>
-            </button>
-
-            {/* ซิงค์สมาคม ISAT */}
-            <button
-              type="button"
-              onClick={handleEnrichIsat}
-              disabled={isRunning || actionLoading}
-              className="px-3 py-2 rounded-xl bg-[#1e3a8a]/10 border border-[#1e3a8a]/30 hover:bg-[#1e3a8a]/20 text-[#1e3a8a] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
-              title="ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT 207 โรงเรียน): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ"
-            >
-              <Award className="w-4 h-4 text-[#1e3a8a]" />
-              <span>ซิงค์ ISAT (207 รร.)</span>
-            </button>
-          </div>
-
-          {/* Utility Group: Auto-Enrich, Export, Danger */}
-          <div className="flex items-center gap-2">
-            {/* Auto-Enrich */}
-            <button
-              type="button"
-              onClick={handleAutoEnrichAll}
-              disabled={isRunning || actionLoading}
-              className="px-3 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/60 text-[#78593a] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
-              title="รันระบบอัตโนมัติครบทุกขั้นตอน: เติมชื่อ EN -> GPS -> Website"
-            >
-              <Wand2 className="w-4 h-4" />
-              <span>Auto-Enrich</span>
-            </button>
-
-            <div className="h-5 w-px bg-[#eae0d0]" />
-
-            {/* Export CSV */}
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              className="p-2 rounded-xl bg-white border border-[#eae0d0] hover:bg-[#faf5ee] text-[#1c1917] transition-all shadow-xs"
-              title="ส่งออกไฟล์ CSV"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-
-            {/* Run Full Pipeline Button */}
-            <button
-              type="button"
-              onClick={handleRunFullPipeline}
-              disabled={isRunning || actionLoading}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white text-xs font-black shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all flex items-center gap-1.5 disabled:opacity-50 active:scale-95"
-              title="รัน Data Pipeline ครบทุกขั้นตอนในปุ่มเดียว: OPEC -> เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS"
-            >
-              <Zap className={`w-4 h-4 ${isRunning ? "animate-bounce" : "fill-current"}`} />
-              <span>รันครบทุกขั้นตอน (Full Pipeline)</span>
-            </button>
-
-            {/* Clear Database button */}
-            <button
-              type="button"
-              onClick={() => setIsClearConfirmOpen(true)}
-              disabled={isRunning || actionLoading}
-              className="p-2 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 transition-all shadow-xs disabled:opacity-50"
-              title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          </nav>
         </div>
       </header>
 
-      {/* Main Layout: Wide Fluid Container */}
-      <div className="flex-1 flex w-full max-w-[1720px] mx-auto p-4 sm:p-6 lg:p-10 gap-6">
+      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex gap-6 lg:gap-8">
         {/* Sidebar Nav */}
-        <aside className="w-64 hidden md:flex flex-col gap-3 flex-shrink-0">
-          <div className="bg-white border border-[#e5dcce] rounded-3xl p-3.5 shadow-sm space-y-1.5 sticky top-36">
-            <div className="px-3 py-1.5 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">เมนูหลัก (Navigation)</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("dashboard")}
-              className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center gap-3 ${
-                activeTab === "dashboard"
-                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <LayoutDashboard className={`w-4 h-4 ${activeTab === "dashboard" ? "text-amber-400" : "text-[#a8a29e]"}`} />
-              <span>Executive Dashboard</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("schools")}
-              className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between ${
-                activeTab === "schools"
-                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <School className={`w-4 h-4 ${activeTab === "schools" ? "text-amber-400" : "text-[#a8a29e]"}`} />
-                <span>รายชื่อโรงเรียน</span>
+        <aside className="w-60 hidden md:block flex-shrink-0">
+          <div className="sticky top-28 rounded-[2rem] border border-warm-accent bg-warm-cream p-3 shadow-xs">
+            {navSections.map((section) => (
+              <div key={section.label} className="pb-1">
+                <p className="px-4 pt-3 pb-2 text-xs font-bold uppercase tracking-wider text-warm-charcoal/45">
+                  {section.label}
+                </p>
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const active = activeTab === item.tab;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.tab}
+                        type="button"
+                        onClick={() => selectTab(item)}
+                        className={cn(
+                          "w-full flex items-center justify-between gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer",
+                          active
+                            ? "bg-warm-charcoal text-white"
+                            : "text-warm-charcoal/75 hover:bg-warm-accent/50 hover:text-warm-charcoal"
+                        )}
+                      >
+                        <span className="flex items-center gap-3 min-w-0">
+                          <Icon className={cn("size-4 shrink-0", active ? "text-warm-bronze" : "text-warm-charcoal/45")} />
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        {item.badge !== undefined && (
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
+                              item.highlight
+                                ? "bg-warm-bronze text-white"
+                                : active
+                                  ? "bg-white/15 text-white"
+                                  : "bg-warm-accent/60 text-warm-charcoal/70"
+                            )}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                activeTab === "schools" ? "bg-white/20 text-white" : "bg-[#f5efe6] text-[#78716c]"
-              }`}>
-                {schools.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("approvals");
-                loadPendingVersions();
-              }}
-              className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-between ${
-                activeTab === "approvals"
-                  ? "bg-[#1c1917] text-white shadow-sm ring-1 ring-black/10"
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Stamp className={`w-4 h-4 ${activeTab === "approvals" ? "text-amber-400" : "text-amber-600"}`} />
-                <span>รออนุมัติค่าเทอม</span>
-              </div>
-              {pendingVersions.length > 0 ? (
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-black animate-pulse">
-                  {pendingVersions.length}
-                </span>
-              ) : (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                  activeTab === "approvals" ? "bg-white/20 text-white" : "bg-[#f5efe6] text-[#78716c]"
-                }`}>
-                  0
-                </span>
-              )}
-            </button>
-
-            <div className="pt-2 pb-1 px-3">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#a8a29e]">ระบบจัดการ (Operations)</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("verify")}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
-                activeTab === "verify" 
-                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <CheckCircle2 className="w-4 h-4 text-teal-600" />
-              <span>ตรวจรับรอง URL</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("reviews")}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
-                activeTab === "reviews" 
-                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <MessageSquare className="w-4 h-4 text-amber-600" />
-              <span>รีวิวผู้ปกครอง (Reviews)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("tickets")}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
-                activeTab === "tickets" 
-                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <Ticket className="w-4 h-4 text-orange-600" />
-              <span>แจ้งปัญหา (Tickets)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("ai-logs")}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
-                activeTab === "ai-logs" 
-                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <Bot className="w-4 h-4 text-blue-600" />
-              <span>AI & Scraper Logs</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("audit-log")}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
-                activeTab === "audit-log" 
-                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>ประวัติการแก้ไข (Audit)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("users")}
-              className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-3 ${
-                activeTab === "users" 
-                  ? "bg-[#faf5ee] border border-[#d6c7b2] text-[#1c1917] font-bold shadow-2xs" 
-                  : "text-[#57534e] hover:bg-[#faf6f0] hover:text-[#1c1917]"
-              }`}
-            >
-              <Users className="w-4 h-4 text-indigo-600" />
-              <span>ผู้ใช้งาน (Users)</span>
-            </button>
+            ))}
           </div>
         </aside>
 
-        {/* Content Area - Fluid width */}
+        {/* Content Area */}
         <main className="flex-1 min-w-0 space-y-6">
+          {/* Page heading — deep green banner with gold eyebrow */}
+          <div className="relative overflow-hidden rounded-[2rem] bg-warm-charcoal px-6 py-7 sm:px-8 sm:py-8 text-white shadow-md">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full border-[28px] border-warm-bronze/15"
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute right-24 -bottom-20 size-40 rounded-full bg-warm-bronze/10"
+            />
+            <div className="relative">
+              <span className="text-xs font-bold tracking-widest text-warm-bronze uppercase">
+                Admin Console · สช. OPEC
+              </span>
+              <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">
+                {activeNav.label}
+              </h1>
+              <p className="mt-1.5 text-sm text-white/70 max-w-2xl">
+                เชื่อมต่อ API สช. (school.opec.go.th) พร้อมระบบค้นหา Official Website และพิกัด GPS อัตโนมัติ
+              </p>
+            </div>
+          </div>
+
+          {/* Mobile tab strip (sidebar is hidden below md) */}
+          <div className="md:hidden -mx-4 px-4 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            {navItems.map((item) => (
+              <button
+                key={item.tab}
+                type="button"
+                onClick={() => selectTab(item)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                  activeTab === item.tab
+                    ? "border-warm-charcoal bg-warm-charcoal text-white"
+                    : "border-warm-accent bg-warm-cream text-warm-charcoal/75"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Data Pipeline */}
+          <section className="rounded-[2rem] border border-warm-accent bg-warm-cream p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-warm-charcoal">Data Pipeline</h2>
+                <p className="text-sm text-warm-charcoal/60">ดึงและเติมข้อมูลทีละขั้น หรือรันครบทุกขั้นในปุ่มเดียว</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  className="flex size-9 items-center justify-center rounded-full border border-warm-accent bg-white/70 text-warm-charcoal transition-colors hover:border-warm-bronze hover:text-warm-bronze cursor-pointer"
+                  title="ส่งออกไฟล์ CSV"
+                >
+                  <Download className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsClearConfirmOpen(true)}
+                  disabled={pipelineBusy}
+                  className="flex size-9 items-center justify-center rounded-full border border-rose-200 bg-white/70 text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
+                  title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRunFullPipeline}
+                  disabled={pipelineBusy}
+                  className="inline-flex items-center gap-2 rounded-full bg-warm-charcoal px-4 sm:px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-warm-charcoal/90 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  title="รัน Data Pipeline ครบทุกขั้นตอน: OPEC -> เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS"
+                >
+                  <Zap className={cn("size-4 text-warm-bronze", isRunning ? "animate-pulse" : "fill-current")} />
+                  <span>รันครบทุกขั้นตอน</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-warm-accent/60">
+              {pipelineSteps.map((s) => (
+                <button
+                  key={s.step}
+                  type="button"
+                  onClick={s.onClick}
+                  disabled={pipelineBusy}
+                  className={cn(pillBtn, "pl-1.5 pr-4")}
+                  title={s.title}
+                >
+                  <span className="flex size-6 items-center justify-center rounded-full bg-warm-card text-xs font-bold text-warm-bronze">
+                    {s.step}
+                  </span>
+                  {s.label}
+                </button>
+              ))}
+
+              <span className="hidden sm:block h-6 w-px bg-warm-accent mx-1" />
+
+              <button
+                type="button"
+                onClick={() => setIsUrlVerificationModalOpen(true)}
+                className={cn(pillBtn, "px-3.5")}
+                title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
+              >
+                <ShieldCheck className="size-4 text-warm-bronze" />
+                ตรวจรับรอง URL
+              </button>
+              <button
+                type="button"
+                onClick={handleEnrichIsat}
+                disabled={pipelineBusy}
+                className={cn(pillBtn, "px-3.5")}
+                title="ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT 207 โรงเรียน): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ"
+              >
+                <Award className="size-4 text-warm-bronze" />
+                ซิงค์ ISAT
+              </button>
+              <button
+                type="button"
+                onClick={handleAutoEnrichAll}
+                disabled={pipelineBusy}
+                className={cn(pillBtn, "px-3.5")}
+                title="รันอัตโนมัติ: เติมชื่อ EN -> GPS -> Website"
+              >
+                <Wand2 className="size-4 text-warm-bronze" />
+                Auto-Enrich
+              </button>
+            </div>
+          </section>
+
           {/* Real-time Activity Console */}
           <OpecActivityConsole state={progress} onClearLogs={handleClearLogs} />
 
           {/* Loading Indicator */}
           {loading ? (
             <div className="py-24 text-center">
-              <Loader2 className="w-8 h-8 text-[#0f9488] animate-spin mx-auto mb-3" />
-              <p className="text-xs text-[#1c1917]/60">กำลังโหลดฐานข้อมูลโรงเรียนนานาชาติจาก Supabase...</p>
+              <Loader2 className="w-8 h-8 text-[#456ca6] animate-spin mx-auto mb-3" />
+              <p className="text-xs text-warm-charcoal/60">กำลังโหลดฐานข้อมูลโรงเรียนนานาชาติจาก Supabase...</p>
             </div>
           ) : (
             <>
@@ -880,7 +824,6 @@ export function SupabaseAdminPage({
                 <OpecDashboard
                   schools={schools}
                   onOpenDrillDown={openDrillDown}
-                  onGoToSchoolsTable={() => setActiveTab("schools")}
                 />
               )}
 
@@ -896,16 +839,16 @@ export function SupabaseAdminPage({
               {activeTab === "approvals" && (
                 <div className="space-y-6">
                   {/* Header Card */}
-                  <div className="bg-white border border-[#eae0d0] rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center">
                         <Stamp className="w-6 h-6" />
                       </div>
                       <div>
-                        <h2 className="text-base font-bold text-[#1c1917] flex items-center gap-2">
+                        <h2 className="text-base font-bold text-warm-charcoal flex items-center gap-2">
                           <span>ศูนย์ตรวจสอบและอนุมัติค่าเทอม (Tuition Approvals & Diff View)</span>
                           {pendingVersions.length > 0 && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-[#1c1917]">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-warm-charcoal">
                               {pendingVersions.length} รายการ
                             </span>
                           )}
@@ -921,7 +864,7 @@ export function SupabaseAdminPage({
                         type="button"
                         onClick={loadPendingVersions}
                         disabled={isPendingLoading}
-                        className="px-3.5 py-2 rounded-xl bg-[#faf5ee] border border-[#eae0d0] hover:bg-[#eae0d0]/60 text-[#1c1917] text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="px-3.5 py-2 rounded-xl bg-warm-cream border border-warm-accent hover:bg-warm-accent/60 text-warm-charcoal text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isPendingLoading ? "animate-spin" : ""}`} />
                         <span>รีเฟรช</span>
@@ -931,17 +874,17 @@ export function SupabaseAdminPage({
 
                   {/* List / Empty State */}
                   {isPendingLoading ? (
-                    <div className="bg-white border border-[#eae0d0] rounded-3xl p-16 text-center shadow-xs">
+                    <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-16 text-center shadow-xs">
                       <Loader2 className="w-8 h-8 text-amber-600 animate-spin mx-auto mb-3" />
                       <p className="text-xs text-[#78716c]">กำลังโหลดรายการค่าเทอมที่รอตรวจสอบ...</p>
                     </div>
                   ) : pendingVersions.length === 0 ? (
-                    <div className="bg-white border border-[#eae0d0] rounded-3xl p-12 text-center shadow-xs space-y-4">
+                    <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs space-y-4">
                       <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
                         <CheckCircle2 className="w-8 h-8" />
                       </div>
                       <div className="max-w-md mx-auto space-y-1">
-                        <h3 className="text-sm font-bold text-[#1c1917]">
+                        <h3 className="text-sm font-bold text-warm-charcoal">
                           ไม่มีรายการค่าเทอมที่รอตรวจสอบในขณะนี้
                         </h3>
                         <p className="text-xs text-[#78716c] leading-relaxed">
@@ -951,7 +894,7 @@ export function SupabaseAdminPage({
                       <button
                         type="button"
                         onClick={() => setActiveTab("schools")}
-                        className="px-4 py-2 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold shadow-xs transition-all inline-flex items-center gap-2 cursor-pointer"
+                        className="px-4 py-2 rounded-full bg-warm-charcoal hover:bg-black text-white text-xs font-bold shadow-xs transition-all inline-flex items-center gap-2 cursor-pointer"
                       >
                         <School className="w-4 h-4 text-amber-400" />
                         <span>ไปที่หน้ารายชื่อโรงเรียน</span>
@@ -970,27 +913,27 @@ export function SupabaseAdminPage({
                         return (
                           <div
                             key={v.version_id}
-                            className="bg-white border border-[#eae0d0] hover:border-amber-400/60 rounded-3xl p-5 sm:p-6 shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-5"
+                            className="bg-warm-cream border border-warm-accent hover:border-amber-400/60 rounded-[2rem] p-5 sm:p-6 shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-5"
                           >
                             <div className="flex items-start gap-4">
-                              <div className="w-12 h-12 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] flex items-center justify-center shrink-0 text-[#ab8e72] font-black text-sm">
+                              <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent flex items-center justify-center shrink-0 text-warm-bronze font-bold text-sm">
                                 {v.province ? v.province.substring(0, 2) : "รร"}
                               </div>
                               <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black uppercase">
+                                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[11px] font-bold uppercase">
                                     Version {v.version_number} (Draft)
                                   </span>
-                                  <span className="text-[11px] font-mono text-[#78716c]">
+                                  <span className="text-xs font-mono text-[#78716c]">
                                     {v.opec_school_code}
                                   </span>
                                   {v.province && (
-                                    <span className="text-[11px] text-[#78716c]">
+                                    <span className="text-xs text-[#78716c]">
                                       📍 {v.province} {v.district ? `(${v.district})` : ""}
                                     </span>
                                   )}
                                   {confScore !== null && (
-                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
                                       confScore >= 80
                                         ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                                         : "bg-amber-100 text-amber-800 border border-amber-200"
@@ -1000,7 +943,7 @@ export function SupabaseAdminPage({
                                   )}
                                 </div>
 
-                                <h3 className="text-base font-bold text-[#1c1917]">{v.name_th}</h3>
+                                <h3 className="text-base font-bold text-warm-charcoal">{v.name_th}</h3>
                                 {v.name_en && (
                                   <p className="text-xs text-[#78716c] font-medium">{v.name_en}</p>
                                 )}
@@ -1016,19 +959,19 @@ export function SupabaseAdminPage({
                                         : "ตามตารางระดับชั้น"}
                                     </strong>
                                   </div>
-                                  <span className="text-[#eae0d0]">•</span>
+                                  <span className="text-warm-accent">•</span>
                                   <div>
                                     <span className="text-[#a8a29e]">ระดับชั้น: </span>
                                     <strong>{v.fees?.length || 0} ระดับ</strong>
                                   </div>
-                                  <span className="text-[#eae0d0]">•</span>
+                                  <span className="text-warm-accent">•</span>
                                   <div>
                                     <span className="text-[#a8a29e]">ค่าใช้จ่ายแฝง: </span>
                                     <strong>{v.extra_fees?.length || 0} รายการ</strong>
                                   </div>
                                   {v.safety?.child_safeguarding_policy && (
                                     <>
-                                      <span className="text-[#eae0d0]">•</span>
+                                      <span className="text-warm-accent">•</span>
                                       <span className="text-emerald-700 font-medium">🛡️ Child Safeguarding Policy</span>
                                     </>
                                   )}
@@ -1042,7 +985,7 @@ export function SupabaseAdminPage({
                                   href={v.scraped_page_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="p-2.5 rounded-xl bg-[#faf5ee] hover:bg-[#eae0d0] text-[#78716c] hover:text-[#1c1917] transition-all"
+                                  className="p-2.5 rounded-xl bg-warm-cream hover:bg-warm-accent text-[#78716c] hover:text-warm-charcoal transition-all"
                                   title="เปิดดูหน้าเว็บต้นทาง"
                                 >
                                   <ExternalLink className="w-4 h-4" />
@@ -1051,7 +994,7 @@ export function SupabaseAdminPage({
                               <button
                                 type="button"
                                 onClick={() => setReviewingVersion(v)}
-                                className="px-4 py-2.5 rounded-xl bg-[#1c1917] hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                className="px-4 py-2.5 rounded-full bg-warm-charcoal hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                               >
                                 <Eye className="w-4 h-4 text-amber-400" />
                                 <span>ตรวจสอบ Diff & อนุมัติ</span>
@@ -1066,14 +1009,14 @@ export function SupabaseAdminPage({
               )}
 
               {activeTab === "verify" && (
-                <div className="bg-white border border-[#eae0d0] rounded-3xl p-8 sm:p-10 shadow-xs space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#eae0d0] pb-6">
+                <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-8 sm:p-10 shadow-xs space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-accent pb-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center">
                         <ShieldCheck className="w-6 h-6" />
                       </div>
                       <div>
-                        <h2 className="text-base font-bold text-[#1c1917]">
+                        <h2 className="text-base font-bold text-warm-charcoal">
                           ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Verification Center)
                         </h2>
                         <p className="text-xs text-[#78716c] mt-0.5">
@@ -1092,21 +1035,21 @@ export function SupabaseAdminPage({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-2xl bg-[#faf5ee] border border-[#eae0d0]">
-                      <span className="text-[11px] font-bold text-[#78593a]">การตรวจสอบอัตโนมัติ</span>
-                      <p className="text-xs text-[#1c1917]/70 mt-1">
+                    <div className="p-4 rounded-2xl bg-warm-cream border border-warm-accent">
+                      <span className="text-xs font-bold text-[#7a5f1f]">การตรวจสอบอัตโนมัติ</span>
+                      <p className="text-xs text-warm-charcoal/70 mt-1">
                         บอทตรวจสอบสถาปัตยกรรมโดเมน (.ac.th, .sch.id, .edu) และ SSL/TLS ป้องกันลิงก์ปลอมหรือโดเมนหมดอายุ
                       </p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-[#faf5ee] border border-[#eae0d0]">
-                      <span className="text-[11px] font-bold text-[#78593a]">2-Way Synced Registry</span>
-                      <p className="text-xs text-[#1c1917]/70 mt-1">
+                    <div className="p-4 rounded-2xl bg-warm-cream border border-warm-accent">
+                      <span className="text-xs font-bold text-[#7a5f1f]">2-Way Synced Registry</span>
+                      <p className="text-xs text-warm-charcoal/70 mt-1">
                         ข้อมูลที่ได้รับการรับรองจะถูกบันทึกสู่ Supabase Cloud และซิงค์กลับสู่ schoolAndURL.txt อัตโนมัติ
                       </p>
                     </div>
-                    <div className="p-4 rounded-2xl bg-[#faf5ee] border border-[#eae0d0]">
-                      <span className="text-[11px] font-bold text-[#78593a]">Human-in-the-loop</span>
-                      <p className="text-xs text-[#1c1917]/70 mt-1">
+                    <div className="p-4 rounded-2xl bg-warm-cream border border-warm-accent">
+                      <span className="text-xs font-bold text-[#7a5f1f]">Human-in-the-loop</span>
+                      <p className="text-xs text-warm-charcoal/70 mt-1">
                         แอดมินสามารถคลิกทดสอบเปิดลิงก์สด แก้ไข URL ได้ทันที และกดปุ่มรับรอง (Verify) ด้วยตนเอง
                       </p>
                     </div>
@@ -1115,14 +1058,14 @@ export function SupabaseAdminPage({
               )}
 
               {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "approvals" && activeTab !== "verify" && (
-                <div className="bg-white border border-[#eae0d0] rounded-3xl p-12 text-center shadow-xs">
-                  <div className="w-12 h-12 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] text-[#ab8e72] flex items-center justify-center mx-auto mb-3">
+                <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent text-warm-bronze flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#1c1917] capitalize">
+                  <h3 className="text-sm font-bold text-warm-charcoal capitalize">
                     {activeTab} Management Module
                   </h3>
-                  <p className="text-xs text-[#1c1917]/60 mt-1 max-w-sm mx-auto">
+                  <p className="text-xs text-warm-charcoal/60 mt-1 max-w-sm mx-auto">
                     เชื่อมต่อกับฐานข้อมูล Supabase PostgreSQL (Cloud Database) เรียบร้อยแล้ว
                   </p>
                 </div>
@@ -1220,8 +1163,8 @@ export function SupabaseAdminPage({
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-[#1c1917] text-white text-xs font-bold shadow-xl border border-white/10 animate-slideUp flex items-center gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-[#0f9488]" />
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-warm-charcoal text-white text-xs font-bold shadow-xl border border-white/10 animate-slideUp flex items-center gap-2.5">
+          <CheckCircle2 className="w-4 h-4 text-[#456ca6]" />
           <span>{toast}</span>
         </div>
       )}

@@ -140,29 +140,29 @@ export function OpecSchoolDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-warm-charcoal/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#faf8f5] border border-[#eae0d0] rounded-3xl w-full max-w-5xl my-auto max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn text-[#1c1917]">
+      <div className="bg-white/70 border border-warm-accent rounded-3xl w-full max-w-5xl my-auto max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn text-warm-charcoal">
         {/* =========================================================================
             1. TOP HEADER (Exact format from user's reference image)
            ========================================================================= */}
-        <div className="p-4 sm:p-5 border-b border-[#eae0d0] flex items-center justify-between bg-white shadow-xs shrink-0">
+        <div className="p-4 sm:p-5 border-b border-warm-accent flex items-center justify-between bg-white shadow-xs shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
             {/* School Crest / Logo Avatar */}
             {school.school_logo_url ? (
               <img
                 src={school.school_logo_url}
                 alt="Logo"
-                className="w-12 h-12 rounded-xl object-contain border border-[#eae0d0] bg-[#faf8f5] p-1 shadow-xs shrink-0"
+                className="w-12 h-12 rounded-xl object-contain border border-warm-accent bg-white/70 p-1 shadow-xs shrink-0"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = "none";
                 }}
               />
             ) : (
-              <div className="w-12 h-12 rounded-xl bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center border border-[#2563eb]/20 shadow-xs shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-warm-bronze/10 text-warm-bronze flex items-center justify-center border border-warm-bronze/20 shadow-xs shrink-0">
                 <GraduationCap className="w-6 h-6" />
               </div>
             )}
@@ -170,22 +170,22 @@ export function OpecSchoolDetailModal({
             <div className="min-w-0">
               {/* Thai Name & Badges Row */}
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-bold text-[#1c1917] tracking-tight truncate">
+                <h2 className="text-lg sm:text-xl font-bold text-warm-charcoal tracking-tight truncate">
                   {school.school_name_th || "—"}
                 </h2>
 
-                <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe]">
+                <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-warm-cream text-warm-bronze border border-warm-accent">
                   รหัส สช: {school.school_code || "—"}
                 </span>
 
                 {school.province && (
-                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-[#f5f5f4] text-[#57534e] border border-[#e7e5e4]">
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-[#f5f5f4] text-[#57534e] border border-[#e7e5e4]">
                     {school.province}
                   </span>
                 )}
 
                 <span
-                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-md border ${
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
                     school.government_support && school.government_support.includes("รับ") && !school.government_support.includes("ไม่")
                       ? "bg-amber-50 text-amber-800 border-amber-200"
                       : "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
@@ -195,19 +195,19 @@ export function OpecSchoolDetailModal({
                 </span>
 
                 {school.is_isat_member && (
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-[#1e3a8a]/10 text-[#1e3a8a] border border-[#1e3a8a]/30">
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#456ca6]/10 text-[#456ca6] border border-[#456ca6]/30">
                     ISAT Member
                   </span>
                 )}
 
                 {school.is_boarding && (
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
                     Boarding School
                   </span>
                 )}
 
                 {school.year_established && (
-                  <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
+                  <span className="text-xs font-medium px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
                     ก่อตั้ง พ.ศ. {school.year_established + 543} (ค.ศ. {school.year_established})
                   </span>
                 )}
@@ -217,7 +217,7 @@ export function OpecSchoolDetailModal({
                     {school.accreditations.map((acc, idx) => (
                       <span
                         key={idx}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200"
+                        className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200"
                         title={`มาตรฐานการรับรองสากล: ${acc}`}
                       >
                         {acc}
@@ -239,7 +239,7 @@ export function OpecSchoolDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl hover:bg-[#eae0d0]/50 text-[#78716c] hover:text-[#1c1917] transition-colors shrink-0"
+            className="p-2 rounded-xl hover:bg-warm-accent/50 text-[#78716c] hover:text-warm-charcoal transition-colors shrink-0"
             title="ปิดหน้าต่าง (กด Esc ได้)"
           >
             <X className="w-5 h-5" />
@@ -249,14 +249,14 @@ export function OpecSchoolDetailModal({
         {/* =========================================================================
             2. SCROLLABLE LANDSCAPE BODY (2-Column Grid matching reference image)
            ========================================================================= */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 scrollbar-thin bg-[#faf8f5]">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 scrollbar-thin bg-white/70">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4.5">
             {/* -------------------------------------------------------------
                 CARD 1: ระดับชั้นที่เปิดสอน & หลักสูตร (Top Left)
                ------------------------------------------------------------- */}
-            <div className="bg-white border border-[#eae0d0] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center gap-2 pb-2.5 border-b border-[#eae0d0]/80 text-[#2563eb] font-bold text-xs uppercase tracking-wide">
-                <GraduationCap className="w-4 h-4 text-[#2563eb]" />
+            <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                <GraduationCap className="w-4 h-4 text-warm-bronze" />
                 <span>ระดับชั้นที่เปิดสอน & หลักสูตร</span>
               </div>
 
@@ -272,7 +272,7 @@ export function OpecSchoolDetailModal({
                       return (
                         <span
                           key={lvl}
-                          className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 transition-all ${
+                          className={`px-2.5 py-0.5 rounded-md text-xs font-medium flex items-center gap-1 transition-all ${
                             isActive
                               ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0] font-semibold"
                               : "bg-[#f5f5f4] text-[#a8a29e] border border-[#e7e5e4] opacity-60"
@@ -291,7 +291,7 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     ช่วงระดับชั้นรวม:
                   </span>
-                  <span className="font-bold text-[#2563eb] text-right">
+                  <span className="font-bold text-warm-bronze text-right">
                     {school.level_range && school.level_range !== "ไม่ระบุ"
                       ? school.level_range
                       : activeLevels.length > 0
@@ -310,7 +310,7 @@ export function OpecSchoolDetailModal({
                       school.curriculums.map((c, i) => (
                         <span
                           key={i}
-                          className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe] text-right"
+                          className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-warm-cream text-warm-bronze border border-warm-accent text-right"
                         >
                           {c}
                         </span>
@@ -331,7 +331,7 @@ export function OpecSchoolDetailModal({
                       {school.accreditations.map((acc, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-200"
+                          className="px-2 py-0.5 rounded-md text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200"
                         >
                           {acc}
                         </span>
@@ -345,7 +345,7 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     การรับเงินอุดหนุน:
                   </span>
-                  <span className="font-semibold text-[#1c1917] text-right">
+                  <span className="font-semibold text-warm-charcoal text-right">
                     {school.government_support || "ไม่รับเงินอุดหนุน"}
                   </span>
                 </div>
@@ -355,29 +355,29 @@ export function OpecSchoolDetailModal({
             {/* -------------------------------------------------------------
                 CARD 2: จำนวนนักเรียน ครู และบุคลากร (Top Right)
                ------------------------------------------------------------- */}
-            <div className="bg-white border border-[#eae0d0] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center gap-2 pb-2.5 border-b border-[#eae0d0]/80 text-[#2563eb] font-bold text-xs uppercase tracking-wide">
-                <Users className="w-4 h-4 text-[#2563eb]" />
+            <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                <Users className="w-4 h-4 text-warm-bronze" />
                 <span>จำนวนนักเรียน ครู และบุคลากร</span>
               </div>
 
               {/* 2 Side-by-side Metric Highlight Boxes */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 bg-[#f0fdf4] border border-[#bbf7d0] rounded-xl p-3 text-center shadow-2xs">
-                  <div className="text-xl sm:text-2xl font-black text-[#16a34a]">
+                  <div className="text-xl sm:text-2xl font-bold text-[#16a34a]">
                     {studentCount > 0 ? `${studentCount.toLocaleString()} คน` : "—"}
                   </div>
-                  <div className="text-[11px] text-[#166534] font-medium mt-0.5 flex items-center justify-center gap-1">
+                  <div className="text-xs text-[#166534] font-medium mt-0.5 flex items-center justify-center gap-1">
                     <GraduationCap className="w-3.5 h-3.5" />
                     <span>จำนวนนักเรียนทั้งหมด</span>
                   </div>
                 </div>
 
-                <div className="flex-1 bg-[#eff6ff] border border-[#bfdbfe] rounded-xl p-3 text-center shadow-2xs">
-                  <div className="text-xl sm:text-2xl font-black text-[#2563eb]">
+                <div className="flex-1 bg-warm-cream border border-warm-accent rounded-xl p-3 text-center shadow-2xs">
+                  <div className="text-xl sm:text-2xl font-bold text-warm-bronze">
                     {teacherCount > 0 ? `${teacherCount.toLocaleString()} คน` : "—"}
                   </div>
-                  <div className="text-[11px] text-[#1e40af] font-medium mt-0.5 flex items-center justify-center gap-1">
+                  <div className="text-xs text-[#96752a] font-medium mt-0.5 flex items-center justify-center gap-1">
                     <Users className="w-3.5 h-3.5" />
                     <span>จำนวนครูและบุคลากร</span>
                   </div>
@@ -390,7 +390,7 @@ export function OpecSchoolDetailModal({
                   คณะผู้บริหารโรงเรียน:
                 </div>
                 {admins.length > 0 ? (
-                  <div className="space-y-1 pl-1 text-[#1c1917] font-medium leading-relaxed">
+                  <div className="space-y-1 pl-1 text-warm-charcoal font-medium leading-relaxed">
                     {admins.map((admin, idx) => (
                       <div key={idx} className="flex items-baseline gap-1.5">
                         <span className="text-[#78716c]">•</span>
@@ -407,9 +407,9 @@ export function OpecSchoolDetailModal({
             {/* -------------------------------------------------------------
                 CARD 3: ที่ตั้ง & ภูมิศาสตร์ (Middle Left)
                ------------------------------------------------------------- */}
-            <div className="bg-white border border-[#eae0d0] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center gap-2 pb-2.5 border-b border-[#eae0d0]/80 text-[#2563eb] font-bold text-xs uppercase tracking-wide">
-                <Building2 className="w-4 h-4 text-[#2563eb]" />
+            <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                <Building2 className="w-4 h-4 text-warm-bronze" />
                 <span>ที่ตั้ง & ภูมิศาสตร์</span>
               </div>
 
@@ -418,7 +418,7 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     รหัสโรงเรียน สช.:
                   </span>
-                  <span className="font-mono font-bold text-[#2563eb] text-right">
+                  <span className="font-mono font-bold text-warm-bronze text-right">
                     {school.school_code || "—"}
                   </span>
                 </div>
@@ -427,7 +427,7 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     จังหวัด:
                   </span>
-                  <span className="font-semibold text-[#1c1917] text-right">
+                  <span className="font-semibold text-warm-charcoal text-right">
                     {school.province || "—"}
                   </span>
                 </div>
@@ -436,7 +436,7 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     เขต / อำเภอ:
                   </span>
-                  <span className="font-medium text-[#1c1917] text-right">
+                  <span className="font-medium text-warm-charcoal text-right">
                     {school.district || "—"}
                   </span>
                 </div>
@@ -445,16 +445,16 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     แขวง / ตำบล:
                   </span>
-                  <span className="font-medium text-[#1c1917] text-right">
+                  <span className="font-medium text-warm-charcoal text-right">
                     {school.subdistrict || "—"}
                   </span>
                 </div>
 
-                <div className="flex items-start justify-between gap-2 pt-1 border-t border-[#eae0d0]/60">
+                <div className="flex items-start justify-between gap-2 pt-1 border-t border-warm-accent/60">
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     ที่อยู่เต็ม (สช.):
                   </span>
-                  <span className="font-medium text-[#1c1917] text-right leading-relaxed flex-1">
+                  <span className="font-medium text-warm-charcoal text-right leading-relaxed flex-1">
                     {school.address || "—"}
                   </span>
                 </div>
@@ -464,9 +464,9 @@ export function OpecSchoolDetailModal({
             {/* -------------------------------------------------------------
                 CARD 4: เว็บไซต์ & ช่องทางออนไลน์ (Middle Right)
                ------------------------------------------------------------- */}
-            <div className="bg-white border border-[#eae0d0] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center gap-2 pb-2.5 border-b border-[#eae0d0]/80 text-[#2563eb] font-bold text-xs uppercase tracking-wide">
-                <Globe className="w-4 h-4 text-[#2563eb]" />
+            <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                <Globe className="w-4 h-4 text-warm-bronze" />
                 <span>เว็บไซต์ & ช่องทางออนไลน์</span>
               </div>
 
@@ -483,14 +483,14 @@ export function OpecSchoolDetailModal({
                           href={school.website.startsWith("http") ? school.website : `https://${school.website}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-bold text-[#2563eb] hover:underline truncate max-w-[240px]"
+                          className="font-bold text-warm-bronze hover:underline truncate max-w-[240px]"
                         >
                           {school.website}
                         </a>
                         <button
                           type="button"
                           onClick={() => handleCopyWebsite(school.website!)}
-                          className="p-1 rounded-lg hover:bg-[#faf5ee] border border-[#eae0d0] text-[#78716c] hover:text-[#1c1917] transition-colors"
+                          className="p-1 rounded-lg hover:bg-warm-cream border border-warm-accent text-[#78716c] hover:text-warm-charcoal transition-colors"
                           title="คัดลอก URL เว็บไซต์"
                         >
                           {copiedWeb ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -507,7 +507,7 @@ export function OpecSchoolDetailModal({
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                     แหล่งข้อมูลเว็บไซต์:
                   </span>
-                  <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-md bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe]">
+                  <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-warm-cream text-warm-bronze border border-warm-accent">
                     {school.website_source || "Not Found"}
                   </span>
                 </div>
@@ -522,7 +522,7 @@ export function OpecSchoolDetailModal({
                       href={school.opec_profile_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold text-[#2563eb] hover:underline inline-flex items-center gap-1 text-right"
+                      className="font-semibold text-warm-bronze hover:underline inline-flex items-center gap-1 text-right"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>เปิดหน้า สช. (school.opec.go.th)</span>
@@ -568,7 +568,7 @@ export function OpecSchoolDetailModal({
                         href={school.tiktok}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#1c1917] hover:underline font-semibold"
+                        className="text-warm-charcoal hover:underline font-semibold"
                       >
                         TikTok
                       </a>
@@ -594,26 +594,26 @@ export function OpecSchoolDetailModal({
             {/* -------------------------------------------------------------
                 CARD 5: การติดต่อ & พิกัดแผนที่ (Spans full 2 columns)
                ------------------------------------------------------------- */}
-            <div className="lg:col-span-2 bg-white border border-[#eae0d0] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
-              <div className="flex items-center gap-2 pb-2.5 border-b border-[#eae0d0]/80 text-[#2563eb] font-bold text-xs uppercase tracking-wide">
-                <Phone className="w-4 h-4 text-[#2563eb]" />
+            <div className="lg:col-span-2 bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                <Phone className="w-4 h-4 text-warm-bronze" />
                 <span>การติดต่อ & พิกัดแผนที่</span>
               </div>
 
               <div className="space-y-3.5 text-xs">
                 {/* 3 Contact Columns Top */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-[#faf8f5] border border-[#eae0d0]/60">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-white/70 border border-warm-accent/60">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[#78716c] font-medium">เบอร์โทรศัพท์:</span>
-                    <span className="font-bold text-[#1c1917] text-sm">{school.telephone || "—"}</span>
+                    <span className="font-bold text-warm-charcoal text-sm">{school.telephone || "—"}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[#78716c] font-medium">เบอร์มือถือ:</span>
-                    <span className="font-semibold text-[#1c1917]">{school.mobile || "—"}</span>
+                    <span className="font-semibold text-warm-charcoal">{school.mobile || "—"}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[#78716c] font-medium">อีเมลติดต่อ:</span>
-                    <span className="font-semibold text-[#1c1917] truncate">{school.email || "—"}</span>
+                    <span className="font-semibold text-warm-charcoal truncate">{school.email || "—"}</span>
                   </div>
                 </div>
 
@@ -623,7 +623,7 @@ export function OpecSchoolDetailModal({
                     <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                       พิกัด GPS (Lat, Lon):
                     </span>
-                    <span className="font-mono font-bold text-[#1c1917] text-right">
+                    <span className="font-mono font-bold text-warm-charcoal text-right">
                       {hasGps ? `${lat}, ${lon}` : "—"}
                     </span>
                   </div>
@@ -655,7 +655,7 @@ export function OpecSchoolDetailModal({
                     <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
                       แหล่งที่มา GPS:
                     </span>
-                    <span className="font-semibold text-[#1c1917] text-right">
+                    <span className="font-semibold text-warm-charcoal text-right">
                       {gpsSource || "OPEC Official"}
                     </span>
                   </div>
@@ -669,7 +669,7 @@ export function OpecSchoolDetailModal({
                         href={`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3.5 py-2 bg-white hover:bg-[#faf5ee] border border-[#eae0d0] text-[#1c1917] rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors"
+                        className="px-3.5 py-2 bg-white hover:bg-warm-cream border border-warm-accent text-warm-charcoal rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors"
                       >
                         <MapPin className="w-4 h-4 text-rose-500" />
                         <span>เปิดดูใน Google Maps {isApproxGps ? "(พิกัดคร่าวๆ)" : ""}</span>
@@ -686,9 +686,9 @@ export function OpecSchoolDetailModal({
                 CARD 6: ข้อมูลประวัติ วิสัยทัศน์ & อัตลักษณ์ (Optional)
                ------------------------------------------------------------- */}
             {hasExtra && (
-              <div className="lg:col-span-2 bg-white border border-[#eae0d0] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
-                <div className="flex items-center gap-2 pb-2.5 border-b border-[#eae0d0]/80 text-[#2563eb] font-bold text-xs uppercase tracking-wide">
-                  <School className="w-4 h-4 text-[#2563eb]" />
+              <div className="lg:col-span-2 bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+                <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                  <School className="w-4 h-4 text-warm-bronze" />
                   <span>ประวัติ วิสัยทัศน์ & อัตลักษณ์โรงเรียน</span>
                 </div>
 
@@ -696,7 +696,7 @@ export function OpecSchoolDetailModal({
                   {school.school_history && (
                     <div className="flex flex-col gap-1">
                       <span className="text-[#78716c] font-medium">ประวัติโรงเรียน:</span>
-                      <p className="text-[#1c1917] font-medium leading-relaxed pl-2 border-l-2 border-[#2563eb]/40">
+                      <p className="text-warm-charcoal font-medium leading-relaxed pl-2 border-l-2 border-warm-bronze/40">
                         {school.school_history}
                       </p>
                     </div>
@@ -705,7 +705,7 @@ export function OpecSchoolDetailModal({
                   {(school.vision || school.mission) && (
                     <div className="flex flex-col gap-1 pt-1">
                       <span className="text-[#78716c] font-medium">วิสัยทัศน์ / พันธกิจ:</span>
-                      <p className="text-[#1c1917] font-medium leading-relaxed pl-2 border-l-2 border-[#0f9488]/40">
+                      <p className="text-warm-charcoal font-medium leading-relaxed pl-2 border-l-2 border-[#456ca6]/40">
                         {[school.vision, school.mission ? `พันธกิจ: ${school.mission}` : ""].filter(Boolean).join(" / ")}
                       </p>
                     </div>
@@ -714,7 +714,7 @@ export function OpecSchoolDetailModal({
                   {(school.uniqueness || school.identity || school.maxim) && (
                     <div className="flex flex-col gap-1 pt-1">
                       <span className="text-[#78716c] font-medium">เอกลักษณ์ / อัตลักษณ์:</span>
-                      <p className="text-[#1c1917] font-medium pl-2 border-l-2 border-[#ab8e72]/40">
+                      <p className="text-warm-charcoal font-medium pl-2 border-l-2 border-warm-bronze/40">
                         {[school.uniqueness, school.identity, school.maxim].filter(Boolean).join(" | ")}
                       </p>
                     </div>
@@ -723,7 +723,7 @@ export function OpecSchoolDetailModal({
                   {school.tags && (
                     <div className="flex flex-col gap-1 pt-1">
                       <span className="text-[#78716c] font-medium">แท็ก / ป้ายกำกับ:</span>
-                      <p className="text-[#1c1917] font-medium">{school.tags}</p>
+                      <p className="text-warm-charcoal font-medium">{school.tags}</p>
                     </div>
                   )}
                 </div>
@@ -736,9 +736,9 @@ export function OpecSchoolDetailModal({
             <button
               type="button"
               onClick={() => setShowJson(!showJson)}
-              className="text-xs font-bold text-[#78716c] hover:text-[#1c1917] flex items-center gap-1.5 py-1 transition-colors"
+              className="text-xs font-bold text-[#78716c] hover:text-warm-charcoal flex items-center gap-1.5 py-1 transition-colors"
             >
-              <FileJson className="w-4 h-4 text-[#ab8e72]" />
+              <FileJson className="w-4 h-4 text-warm-bronze" />
               <span>{showJson ? "ซ่อน Raw JSON ข้อมูลดิบ" : "ดูข้อมูลดิบ สช. (Raw JSON)"}</span>
             </button>
             {showJson && (
@@ -746,12 +746,12 @@ export function OpecSchoolDetailModal({
                 <button
                   type="button"
                   onClick={handleCopyJson}
-                  className="absolute top-3 right-3 p-1.5 bg-[#2d2825] hover:bg-[#3d3835] text-[#eae0d0] rounded-lg text-xs flex items-center gap-1 transition-colors"
+                  className="absolute top-3 right-3 p-1.5 bg-[#2d2825] hover:bg-[#3d3835] text-warm-accent rounded-lg text-xs flex items-center gap-1 transition-colors"
                 >
-                  {copiedJson ? <Check className="w-3.5 h-3.5 text-[#0f9488]" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedJson ? <Check className="w-3.5 h-3.5 text-[#456ca6]" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedJson ? "คัดลอกแล้ว" : "คัดลอก JSON"}</span>
                 </button>
-                <pre className="bg-[#1c1917] text-[#eae0d0] p-4 rounded-2xl text-xs font-mono overflow-x-auto max-h-60 border border-[#2d2825]">
+                <pre className="bg-warm-charcoal text-warm-accent p-4 rounded-2xl text-xs font-mono overflow-x-auto max-h-60 border border-[#2d2825]">
                   {JSON.stringify(school, null, 2)}
                 </pre>
               </div>
@@ -762,18 +762,18 @@ export function OpecSchoolDetailModal({
         {/* =========================================================================
             3. FOOTER ACTION BAR
            ========================================================================= */}
-        <div className="p-3.5 sm:p-4.5 border-t border-[#eae0d0] bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="text-[11px] text-[#78716c] flex items-center flex-wrap gap-2">
+        <div className="p-3.5 sm:p-4.5 border-t border-warm-accent bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-[#78716c] flex items-center flex-wrap gap-2">
             <span>
               ดึงข้อมูลเมื่อ:{" "}
-              <strong className="text-[#1c1917] font-semibold">
+              <strong className="text-warm-charcoal font-semibold">
                 {formatDisplayDate(school.fetched_at || school.last_updated)}
               </strong>
             </span>
             <span className="text-[#d6c7b2]">•</span>
             <span>
               อัปเดตล่าสุด:{" "}
-              <strong className="text-[#1c1917] font-semibold">
+              <strong className="text-warm-charcoal font-semibold">
                 {formatDisplayDate(school.last_updated || school.fetched_at)}
               </strong>
             </span>
@@ -783,7 +783,7 @@ export function OpecSchoolDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-white hover:bg-[#faf5ee] border border-[#eae0d0] text-[#1c1917] rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+              className="px-4 py-2 bg-white hover:bg-warm-cream border border-warm-accent text-warm-charcoal rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-[#78716c]" />
               <span>ปิดหน้าต่าง (Esc)</span>
@@ -792,9 +792,9 @@ export function OpecSchoolDetailModal({
             <button
               type="button"
               onClick={() => onEditWebsite(school)}
-              className="px-4 py-2 bg-[#faf5ee] hover:bg-[#eae0d0]/50 border border-[#eae0d0] text-[#1c1917] rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+              className="px-4 py-2 bg-warm-cream hover:bg-warm-accent/50 border border-warm-accent text-warm-charcoal rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
             >
-              <Edit className="w-3.5 h-3.5 text-[#ab8e72]" />
+              <Edit className="w-3.5 h-3.5 text-warm-bronze" />
               <span>แก้ไข Official Website</span>
             </button>
 
@@ -802,7 +802,7 @@ export function OpecSchoolDetailModal({
               <button
                 type="button"
                 onClick={() => onResolveSchoolWebsite(school.school_code)}
-                className="px-4 py-2 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-warm-bronze hover:bg-[#96752a] text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>ค้นหาเฉพาะโรงเรียนนี้</span>
@@ -813,7 +813,7 @@ export function OpecSchoolDetailModal({
               <button
                 type="button"
                 onClick={() => onScrapeTuition(school)}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+                className="px-4 py-2 bg-warm-bronze hover:bg-[#96752a] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
                 title="เริ่มดึงข้อมูลค่าเทอมและนโยบายความปลอดภัยจากเว็บไซต์ทางการ"
               >
                 <Sparkles className="w-3.5 h-3.5 fill-current" />

@@ -47,20 +47,20 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-warm-charcoal/60 backdrop-blur-xs animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white border border-[#eae0d0] rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
         {/* Header */}
-        <div className="p-5 border-b border-[#eae0d0] bg-[#faf5ee] flex items-center justify-between">
+        <div className="p-5 border-b border-warm-accent bg-warm-cream flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#ab8e72]/15 text-[#ab8e72] flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-warm-bronze/15 text-warm-bronze flex items-center justify-center shadow-xs">
               <Globe className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-[#1c1917] text-base">แก้ไข Official Website</h3>
+              <h3 className="font-bold text-warm-charcoal text-base">แก้ไข Official Website</h3>
               <p className="text-xs text-[#78716c] truncate max-w-[220px]">
                 {school.school_name_th}
               </p>
@@ -69,7 +69,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-[#eae0d0]/50 text-[#78716c] hover:text-[#1c1917] transition-colors"
+            className="p-1.5 rounded-full hover:bg-warm-accent/50 text-[#78716c] hover:text-warm-charcoal transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -78,7 +78,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white">
           <div>
-            <label className="block text-xs font-bold text-[#1c1917] mb-1.5">
+            <label className="block text-xs font-bold text-warm-charcoal mb-1.5">
               URL เว็บไซต์ทางการ (Official Website):
             </label>
             <input
@@ -86,7 +86,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="https://www.example.ac.th"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#eae0d0] bg-[#faf8f5] text-[#1c1917] text-sm focus:outline-none focus:ring-2 focus:ring-[#ab8e72]/50 placeholder:text-[#a8a29e]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-warm-accent bg-white/70 text-warm-charcoal text-sm focus:outline-none focus:ring-2 focus:ring-warm-bronze/50 placeholder:text-[#a8a29e]"
               autoFocus
             />
             <p className="text-xs text-[#78716c] mt-1.5">
@@ -104,16 +104,16 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-[#78716c] hover:bg-[#faf5ee] border border-[#eae0d0] rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-bold text-[#78716c] hover:bg-warm-cream border border-warm-accent rounded-xl transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-5 py-2 text-xs font-bold bg-[#1c1917] hover:bg-[#1c1917]/85 text-white rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              className="px-5 py-2 text-xs font-bold bg-warm-charcoal hover:bg-warm-charcoal/85 text-white rounded-full shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
             >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-[#ab8e72]" />}
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-warm-bronze" />}
               <span>{isSaving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}</span>
             </button>
           </div>

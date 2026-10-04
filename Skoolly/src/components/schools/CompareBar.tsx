@@ -49,7 +49,7 @@ export function CompareBar({
             onClick={onCompareClick}
             disabled={compareIds.length < 2}
             className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-all"
-            style={{ background: "linear-gradient(135deg,#0f9488,#0d7d72)" }}
+            style={{ background: "linear-gradient(135deg,#456ca6,#36578b)" }}
           >
             Compare Schools →
           </button>

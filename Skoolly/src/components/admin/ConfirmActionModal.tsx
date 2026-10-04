@@ -62,7 +62,7 @@ export function ConfirmActionModal({
       );
     }
     return (
-      <div className="w-12 h-12 rounded-2xl bg-[#faf5ee] border border-[#eae0d0] text-[#ab8e72] flex items-center justify-center shrink-0">
+      <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent text-warm-bronze flex items-center justify-center shrink-0">
         <HelpCircle className="w-6 h-6" />
       </div>
     );
@@ -75,22 +75,22 @@ export function ConfirmActionModal({
     if (variant === "warning") {
       return "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-200/50 shadow-md focus:ring-amber-500";
     }
-    return "bg-[#0f9488] hover:bg-[#0d7d72] text-white shadow-teal-200/50 shadow-md focus:ring-teal-500";
+    return "bg-[#456ca6] hover:bg-[#36578b] text-white shadow-teal-200/50 shadow-md focus:ring-teal-500";
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-warm-charcoal/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isLoading) onClose();
       }}
     >
-      <div className="relative w-full max-w-md bg-white border border-[#eae0d0] rounded-3xl p-6 shadow-2xl transition-all scale-100">
+      <div className="relative w-full max-w-md bg-warm-cream border border-warm-accent rounded-[2rem] p-6 shadow-2xl transition-all scale-100">
         <button
           type="button"
           onClick={onClose}
           disabled={isLoading}
-          className="absolute top-4 right-4 p-2 rounded-xl text-[#1c1917]/40 hover:text-[#1c1917] hover:bg-[#faf8f5] transition-colors disabled:opacity-40"
+          className="absolute top-4 right-4 p-2 rounded-xl text-warm-charcoal/40 hover:text-warm-charcoal hover:bg-white transition-colors disabled:opacity-40"
           title="ปิด (Esc)"
         >
           <X className="w-4 h-4" />
@@ -100,10 +100,10 @@ export function ConfirmActionModal({
           {renderIcon()}
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold text-[#1c1917] leading-snug">
+            <h3 className="text-base font-bold text-warm-charcoal leading-snug">
               {title}
             </h3>
-            <p className="text-xs text-[#1c1917]/70 mt-1.5 leading-relaxed whitespace-pre-line">
+            <p className="text-xs text-warm-charcoal/70 mt-1.5 leading-relaxed whitespace-pre-line">
               {description}
             </p>
           </div>
@@ -114,7 +114,7 @@ export function ConfirmActionModal({
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 rounded-xl border border-[#eae0d0] bg-[#faf5ee] hover:bg-[#eae0d0]/50 text-[#1c1917] text-xs font-semibold transition-all disabled:opacity-50"
+            className="px-4 py-2 rounded-xl border border-warm-accent bg-warm-cream hover:bg-warm-accent/50 text-warm-charcoal text-xs font-semibold transition-all disabled:opacity-50"
           >
             {cancelText}
           </button>

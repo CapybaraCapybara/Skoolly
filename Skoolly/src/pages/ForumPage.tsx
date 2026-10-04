@@ -47,7 +47,7 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
     <div className="min-h-screen bg-slate-50">
       {/* Forum header */}
       <div
-        style={{ background: "linear-gradient(160deg,#0a1628 0%,#152d55 60%,#0d7d72 100%)" }}
+        style={{ background: "linear-gradient(160deg,#0c1a33 0%,#233a5e 60%,#36578b 100%)" }}
         className="pt-10 pb-14 px-4"
       >
         <div className="max-w-3xl mx-auto text-center">
@@ -67,7 +67,7 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
           <button
             onClick={() => setNewPostOpen(true)}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white shadow-lg transition-all hover:opacity-90"
-            style={{ background: "linear-gradient(135deg,#0f9488,#0d7d72)" }}
+            style={{ background: "linear-gradient(135deg,#456ca6,#36578b)" }}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -107,7 +107,7 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
               }`}
               style={
                 activeCategory === cat
-                  ? { background: "linear-gradient(135deg,#0f9488,#152d55)" }
+                  ? { background: "linear-gradient(135deg,#456ca6,#233a5e)" }
                   : {}
               }
             >
@@ -184,7 +184,7 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
               <button
                 onClick={() => setNewPostOpen(false)}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
-                style={{ background: "linear-gradient(135deg,#0f9488,#152d55)" }}
+                style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}
               >
                 Post discussion
               </button>

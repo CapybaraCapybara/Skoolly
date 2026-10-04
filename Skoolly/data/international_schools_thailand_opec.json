@@ -178,7 +178,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St. Andrews International School, Sathorn",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 2,
@@ -362,7 +369,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Korean International School of Bangkok",
+    "is_boarding": false,
+    "year_established": 2001,
+    "accreditations": []
   },
   {
     "no": 3,
@@ -619,7 +631,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kids' Academy International Pre-School",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 5,
@@ -734,7 +753,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Heathfield International School",
+    "is_boarding": false,
+    "year_established": 2004,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 6,
@@ -884,7 +911,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Anglo Singapore International School",
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "CIS"
+    ]
   },
   {
     "no": 7,
@@ -999,7 +1035,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Pan-Asia International School",
+    "is_boarding": true,
+    "year_established": 2004,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 8,
@@ -1109,7 +1152,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "British Columbia International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2006,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 9,
@@ -1272,7 +1323,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Wells International School - On Nut",
+    "is_boarding": false,
+    "year_established": 1999,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 10,
@@ -1449,7 +1508,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St. Andrews International School, Dusit",
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 11,
@@ -1607,7 +1674,15 @@
       "label": "เขตบางนา กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Montessori Academy Bangkok International School",
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 12,
@@ -1738,7 +1813,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kensington International School",
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "NDNA"
+    ]
   },
   {
     "no": 13,
@@ -1853,7 +1935,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Anglo Singapore International School Sukhumvit 31",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 14,
@@ -2021,7 +2111,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kids Kingdom International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 15,
@@ -2247,7 +2344,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kidz Village International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": []
   },
   {
     "no": 17,
@@ -2381,7 +2483,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Niva American International School",
+    "is_boarding": false,
+    "year_established": 1991,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 18,
@@ -2495,7 +2604,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ramkhamhaeng Advent International School",
+    "is_boarding": true,
+    "year_established": 1999,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "ISO"
+    ]
   },
   {
     "no": 19,
@@ -2614,7 +2732,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Traill International School",
+    "is_boarding": false,
+    "year_established": 1966,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 20,
@@ -2716,7 +2842,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "RC International School",
+    "is_boarding": false,
+    "year_established": 1998,
+    "accreditations": []
   },
   {
     "no": 21,
@@ -2818,7 +2949,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Mulberryhouse International Pre-School",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 22,
@@ -3025,7 +3163,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Ruamrudee International School",
+    "is_boarding": true,
+    "year_established": 1957,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 23,
@@ -3321,7 +3467,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Harrow International School Bangkok",
+    "is_boarding": true,
+    "year_established": 1998,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 25,
@@ -3451,7 +3604,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Garden International School Bangkok",
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 26,
@@ -3572,7 +3732,13 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "RBIS International School",
+    "is_boarding": false,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 27,
@@ -3821,7 +3987,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Thai - Japanese Association School",
+    "is_boarding": false,
+    "year_established": 1974,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 29,
@@ -3932,7 +4105,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "KIS International School",
+    "is_boarding": false,
+    "year_established": 1998,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 30,
@@ -4356,7 +4537,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Prep International Kindergarten",
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 32,
@@ -4493,7 +4681,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "International Pioneers School",
+    "is_boarding": false,
+    "year_established": 1998,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 33,
@@ -4717,7 +4912,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "International Community School",
+    "is_boarding": false,
+    "year_established": 1993,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "ACSI"
+    ]
   },
   {
     "no": 35,
@@ -4851,7 +5055,13 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Brighton College International School Bangkok Vibhavadi",
+    "is_boarding": false,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 36,
@@ -5009,7 +5219,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Shrewsbury International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 37,
@@ -5138,7 +5355,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kincaid International School of Bangkok",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "MSA-CESS",
+      "AI"
+    ]
   },
   {
     "no": 38,
@@ -5244,7 +5470,14 @@
       "label": "เขตประเวศ กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Talents International Pre-school",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 39,
@@ -5508,7 +5741,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Modern International School Bangkok",
+    "is_boarding": false,
+    "year_established": 1997,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 41,
@@ -5757,7 +5997,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "KiddyKare International Kindergarten",
+    "is_boarding": false,
+    "year_established": 1994,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 43,
@@ -5881,7 +6128,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Melodies International Kindergarten",
+    "is_boarding": false,
+    "year_established": 1981,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 44,
@@ -5999,7 +6253,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "BSB British International Primary School",
+    "is_boarding": false,
+    "year_established": 1992,
+    "accreditations": []
   },
   {
     "no": 45,
@@ -6166,7 +6425,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bangkok Christian International School",
+    "is_boarding": false,
+    "year_established": 1997,
+    "accreditations": [
+      "ONESQA",
+      "Cognia"
+    ]
   },
   {
     "no": 46,
@@ -6433,7 +6700,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "NIST International School",
+    "is_boarding": false,
+    "year_established": 1992,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC"
+    ]
   },
   {
     "no": 48,
@@ -6594,7 +6870,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "The Early Learning Centre International School",
+    "is_boarding": false,
+    "year_established": 1985,
+    "accreditations": [
+      "ACS WASC",
+      "CIS"
+    ]
   },
   {
     "no": 49,
@@ -6685,7 +6969,14 @@
       "label": "เขตวัฒนา กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Future Steps International School Bangkok",
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 50,
@@ -6795,7 +7086,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "XCL American School of Bangkok",
+    "is_boarding": true,
+    "year_established": 1983,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 51,
@@ -7116,7 +7414,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Wells International School - Bang Na",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 53,
@@ -7269,7 +7575,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bangkok International Preparatory and Secondary School",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 54,
@@ -7372,7 +7686,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ekamai International School",
+    "is_boarding": false,
+    "year_established": 1957,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "Adventist Accrediting Association (AAA)"
+    ]
   },
   {
     "no": 55,
@@ -7576,7 +7899,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Singapore International School of Bangkok",
+    "is_boarding": true,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 56,
@@ -7849,7 +8180,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St Andrews International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "EDT",
+      "IQM (Inclusion Quality Mark)"
+    ]
   },
   {
     "no": 57,
@@ -8068,7 +8408,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Lycée Français International de Bangkok",
+    "is_boarding": false,
+    "year_established": 1957,
+    "accreditations": [
+      "AEFE (Agency for French Education Abroad)"
+    ]
   },
   {
     "no": 59,
@@ -8369,7 +8716,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bangkok Patana School",
+    "is_boarding": false,
+    "year_established": 1957,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 61,
@@ -8475,7 +8830,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Charter International School",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "CIS"
+    ]
   },
   {
     "no": 62,
@@ -8657,7 +9021,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Wells International School",
+    "is_boarding": false,
+    "year_established": 2003,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 63,
@@ -8785,7 +9156,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bangkok Adventist International School",
+    "is_boarding": false,
+    "year_established": 1946,
+    "accreditations": [
+      "ONESQA",
+      "Adventist Accrediting Association (AAA) - Member of the Seventh-day Adventist International School System"
+    ]
   },
   {
     "no": 64,
@@ -8894,7 +9273,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Keerapat International School",
+    "is_boarding": false,
+    "year_established": 2005,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 65,
@@ -9091,7 +9478,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Beaconhouse Yamsaard International School",
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 66,
@@ -9295,7 +9689,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ascot International School",
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 68,
@@ -9454,7 +9855,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bromsgrove International School Thailand",
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 69,
@@ -9564,7 +9973,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Aster International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 70,
@@ -9689,7 +10105,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kevalee International School",
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 71,
@@ -9899,7 +10322,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St. Andrews International School, Bangna",
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "EDT"
+    ]
   },
   {
     "no": 72,
@@ -10061,7 +10493,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Australian International School Bangkok Sukhumvit 20",
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": []
   },
   {
     "no": 73,
@@ -10319,7 +10756,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Glory Singapore International School",
+    "is_boarding": false,
+    "year_established": 2008,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 75,
@@ -10586,7 +11030,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Crescent International School",
+    "is_boarding": false,
+    "year_established": 2008,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 77,
@@ -10720,7 +11172,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Berkeley International School",
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 78,
@@ -10916,7 +11376,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Regent's International School Bangkok - Rama 9",
+    "is_boarding": true,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 79,
@@ -11030,7 +11498,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "The Tiny Seeds International Pre-school",
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": []
   },
   {
     "no": 80,
@@ -11164,7 +11637,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "ABC Pathways International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 81,
@@ -11259,7 +11739,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Annabel's Early Years International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2006,
+    "accreditations": [
+      "ONESQA",
+      "NDNA"
+    ]
   },
   {
     "no": 82,
@@ -11482,7 +11970,11 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Prep Montessori International Kindergarten",
+    "is_boarding": false,
+    "accreditations": []
   },
   {
     "no": 83,
@@ -11669,7 +12161,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Australian International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 84,
@@ -11800,7 +12299,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Brighton College International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 85,
@@ -11891,7 +12398,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Acacia International Preschool Sukhumvit Bangkok",
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 86,
@@ -12010,7 +12524,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Raintree International School",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "NDNA"
+    ]
   },
   {
     "no": 87,
@@ -12105,7 +12627,15 @@
       "label": "เขตยานนาวา กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "La Petite Ecole International Kindergarten School Bangkok",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "AEFE"
+    ]
   },
   {
     "no": 88,
@@ -12295,7 +12825,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Singapore International School Thonburi",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 89,
@@ -12417,7 +12955,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Associe International Kindergarten Bangkok 35",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 90,
@@ -12551,7 +13096,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Central International School",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 91,
@@ -12854,7 +13406,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Shrewsbury International School Bangkok City Campus",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 93,
@@ -13003,7 +13562,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Wellington College International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 94,
@@ -13144,7 +13711,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Double Trees Ratchaphruek International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 95,
@@ -13273,7 +13847,18 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "BASIS International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA",
+      "MSA-CESS",
+      "Cognia",
+      "AI",
+      "NDNA"
+    ]
   },
   {
     "no": 96,
@@ -13373,7 +13958,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Hummingbird International School",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "NDNA"
+    ]
   },
   {
     "no": 97,
@@ -13539,7 +14132,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kids' Academy International School Srinakarin",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": []
   },
   {
     "no": 98,
@@ -13646,7 +14244,14 @@
       "label": "เขตคลองเตย กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Raintree International School Sukhumvit",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 99,
@@ -13754,7 +14359,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Canadian International School of Thailand",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 100,
@@ -13862,7 +14474,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Centurion International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 101,
@@ -13996,7 +14615,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Little Koala International Kindergarten School Ramintra",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 102,
@@ -14154,7 +14780,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "King's College International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 103,
@@ -14290,7 +14924,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Roong Aroon International School",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": []
   },
   {
     "no": 104,
@@ -14455,7 +15094,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ruamrudee International School Early Years Campus",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": []
   },
   {
     "no": 105,
@@ -14572,7 +15216,12 @@
       "label": "เขตประเวศ กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Dadi Thai Srinakarin International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": []
   },
   {
     "no": 106,
@@ -14655,7 +15304,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "British Mandarin International School",
+    "is_boarding": false,
+    "year_established": 2564,
+    "accreditations": []
   },
   {
     "no": 107,
@@ -15111,7 +15765,14 @@
       "label": "เขตวัฒนา กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Astra Academy International School",
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 111,
@@ -15290,7 +15951,14 @@
       "label": "เขตคลองเตย กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Finland International School of Thailand: Hei Bangkok (Sukhumvit)",
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 113,
@@ -15424,7 +16092,12 @@
       "label": "เขตยานนาวา กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Double Trees Rama 3 International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": []
   },
   {
     "no": 114,
@@ -15536,7 +16209,12 @@
       "label": "เขตคลองเตย กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Little Koala International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": []
   },
   {
     "no": 115,
@@ -15729,7 +16407,14 @@
       "label": "เขตจตุจักร กรุงเทพมหานคร"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Oakbury International School",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 117,
@@ -16139,7 +16824,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kids Kingdom Ruamrudee International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 120,
@@ -16448,7 +17138,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "SBS International School Bangkok",
+    "is_boarding": false,
+    "year_established": 2025,
+    "accreditations": []
   },
   {
     "no": 123,
@@ -17346,7 +18041,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Thai - Singapore International School",
+    "is_boarding": false,
+    "year_established": 2007,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 133,
@@ -17450,7 +18152,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bangkok-Chicago Christian International School",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": []
   },
   {
     "no": 134,
@@ -17649,7 +18356,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Thai Sikh International School",
+    "is_boarding": false,
+    "year_established": 1985,
+    "accreditations": []
   },
   {
     "no": 135,
@@ -17791,7 +18503,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Thai - Chinese International School",
+    "is_boarding": false,
+    "year_established": 1995,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 136,
@@ -17998,7 +18718,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "The American School of Bangkok",
+    "is_boarding": true,
+    "year_established": 1983,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 137,
@@ -18138,7 +18865,17 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Concordian International School",
+    "is_boarding": false,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC",
+      "International Baccalaureate"
+    ]
   },
   {
     "no": 138,
@@ -18344,7 +19081,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Singapore International School Suvarnabhumi",
+    "is_boarding": false,
+    "year_established": 2013,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 139,
@@ -18550,7 +19294,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Raffles American International School",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 140,
@@ -18772,7 +19524,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "D-PREP International School",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 141,
@@ -19094,7 +19854,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Hampton International School",
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": []
   },
   {
     "no": 144,
@@ -19258,7 +20023,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "International School Bangkok",
+    "is_boarding": false,
+    "year_established": 1951,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 145,
@@ -19414,7 +20187,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Magic Years International School",
+    "is_boarding": false,
+    "year_established": 1990,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 146,
@@ -19597,7 +20377,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St. Andrews International School, Samakee",
+    "is_boarding": false,
+    "year_established": 2000,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 147,
@@ -19720,7 +20508,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Dragon International School",
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 148,
@@ -19872,7 +20667,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Denla British International School",
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "COBIS"
+    ]
   },
   {
     "no": 149,
@@ -19999,7 +20802,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ruamrudee International School Ratchapruek Campus",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 150,
@@ -20163,7 +20974,14 @@
       "label": "ตำบลตลาดขวัญ อำเภอเมืองนนทบุรี จังหวัดนนทบุรี"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "International Christian School Nonthaburi",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 151,
@@ -20319,7 +21137,12 @@
       "label": "ตำบลคลองพระอุดม อำเภอปากเกร็ด จังหวัดนนทบุรี"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Singapore International School Nonthaburi",
+    "is_boarding": false,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 152,
@@ -20394,7 +21217,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "THM International School",
+    "is_boarding": false,
+    "year_established": 2024,
+    "accreditations": []
   },
   {
     "no": 153,
@@ -20637,7 +21465,12 @@
       "label": "ตำบลบางพูด อำเภอปากเกร็ด จังหวัดนนทบุรี"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Knightsbridge House International School Nonthaburi",
+    "is_boarding": false,
+    "year_established": 2025,
+    "accreditations": []
   },
   {
     "no": 155,
@@ -20922,7 +21755,13 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Sathit Pathum Demonstration School",
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 158,
@@ -21043,7 +21882,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Global Indian International School",
+    "is_boarding": false,
+    "year_established": 2007,
+    "accreditations": []
   },
   {
     "no": 159,
@@ -21126,7 +21970,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Thai International School",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 160,
@@ -21220,7 +22072,12 @@
       "label": "ตำบลลำไทร อำเภอลำลูกกา จังหวัดปทุมธานี"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "KIS International School Reignwood Park",
+    "is_boarding": true,
+    "year_established": 2024,
+    "accreditations": []
   },
   {
     "no": 161,
@@ -21310,7 +22167,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Crestview International School",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": []
   },
   {
     "no": 162,
@@ -21426,7 +22288,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Manorom International Christian School",
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "AI"
+    ]
   },
   {
     "no": 163,
@@ -21542,7 +22412,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "California Prep International School",
+    "is_boarding": true,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 164,
@@ -21668,7 +22546,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Saint John Mary International School",
+    "is_boarding": true,
+    "year_established": 2004,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 165,
@@ -21893,7 +22779,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Adventist International Mission School",
+    "is_boarding": false,
+    "year_established": 2002,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 167,
@@ -22037,7 +22930,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Tara Pattana International School",
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 168,
@@ -22203,7 +23104,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Regents International School Pattaya",
+    "is_boarding": true,
+    "year_established": 1995,
+    "accreditations": []
   },
   {
     "no": 169,
@@ -22278,7 +23184,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "International School Eastern Seaboard",
+    "is_boarding": false,
+    "year_established": 1994,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 170,
@@ -22455,7 +23369,18 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Thai - Japanese Association School Sriracha",
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA",
+      "Ministry of Education",
+      "Culture",
+      "Sports",
+      "Science and Technology JAPAN"
+    ]
   },
   {
     "no": 171,
@@ -22551,7 +23476,13 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Mooltripakdee International School",
+    "is_boarding": false,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 172,
@@ -22666,7 +23597,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Tonlew International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": []
   },
   {
     "no": 173,
@@ -22770,7 +23706,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "International School of Chonburi",
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA",
+      "NEASC"
+    ]
   },
   {
     "no": 174,
@@ -22931,7 +23875,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Rugby School Thailand",
+    "is_boarding": true,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "EDT",
+      "COBIS"
+    ]
   },
   {
     "no": 175,
@@ -23178,7 +24131,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kids Avenue International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 177,
@@ -23460,7 +24420,12 @@
       "label": "ตำบลนาเกลือ อำเภอบางละมุง จังหวัดชลบุรี"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Lovell International School",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": []
   },
   {
     "no": 180,
@@ -23821,7 +24786,18 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St. Andrews International School, Green Valley",
+    "is_boarding": false,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA",
+      "EDT",
+      "LPPA",
+      "FOBISIA",
+      "ISQM"
+    ]
   },
   {
     "no": 184,
@@ -23952,7 +24928,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Garden International School, Rayong",
+    "is_boarding": true,
+    "year_established": 1994,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 185,
@@ -24050,7 +25033,12 @@
       "label": "ตำบลหนองตะพาน อำเภอบ้านค่าย จังหวัดระยอง"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Belfry International School",
+    "is_boarding": false,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 186,
@@ -24145,7 +25133,12 @@
       "label": "ตำบลหนองตะพาน อำเภอบ้านค่าย จังหวัดระยอง"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Singapore International School Rayong",
+    "is_boarding": false,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 187,
@@ -24475,7 +25468,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Korat Adventist International School",
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 190,
@@ -24576,7 +25576,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Anglo Singapore International School Nakhon Ratchasima",
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": []
   },
   {
     "no": 191,
@@ -24692,7 +25697,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "St. Stephen's International School Khao Yai",
+    "is_boarding": true,
+    "year_established": 1995,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 192,
@@ -24793,7 +25806,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Wesley International School",
+    "is_boarding": true,
+    "year_established": 2015,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 193,
@@ -24907,7 +25928,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ubon Adventist International Mission School",
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": []
   },
   {
     "no": 194,
@@ -25073,7 +26099,13 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Khon Kaen International School",
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 196,
@@ -25283,7 +26315,12 @@
       "label": "ตำบลในเมือง อำเภอเมืองขอนแก่น จังหวัดขอนแก่น"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Asia Singapore International School",
+    "is_boarding": false,
+    "year_established": 2025,
+    "accreditations": []
   },
   {
     "no": 198,
@@ -25394,7 +26431,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "American Prime International School",
+    "is_boarding": false,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 199,
@@ -25495,7 +26537,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Udon Thani International School",
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "CIS"
+    ]
   },
   {
     "no": 200,
@@ -25627,7 +26676,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "International Community School Udon Thani",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "ACSI"
+    ]
   },
   {
     "no": 201,
@@ -25847,7 +26905,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Silver Fern International School",
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "CIS",
+      "ONESQA Candidate"
+    ]
   },
   {
     "no": 203,
@@ -25938,7 +27004,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Chiang Mai International School",
+    "is_boarding": false,
+    "year_established": 1954,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 204,
@@ -26133,7 +27207,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Lanna International School",
+    "is_boarding": false,
+    "year_established": 1993,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 205,
@@ -26252,7 +27334,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Nakornpayap International School",
+    "is_boarding": false,
+    "year_established": 1993,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 206,
@@ -26376,7 +27466,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Prem Tinsulanonda International School",
+    "is_boarding": true,
+    "year_established": 2001,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC"
+    ]
   },
   {
     "no": 207,
@@ -26568,7 +27667,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "American Pacific International School",
+    "is_boarding": true,
+    "year_established": 1997,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 208,
@@ -26711,7 +27817,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Grace International School",
+    "is_boarding": false,
+    "year_established": 1999,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 209,
@@ -26817,7 +27931,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Christian German School Chiang Mai",
+    "is_boarding": false,
+    "year_established": 1994,
+    "accreditations": [
+      "BLI"
+    ]
   },
   {
     "no": 210,
@@ -27029,7 +28150,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "American Pacific International School (Primary)",
+    "is_boarding": false,
+    "year_established": 2000,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 211,
@@ -27136,7 +28264,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Hana Christian International Kindergarten",
+    "is_boarding": false,
+    "year_established": 2007,
+    "accreditations": []
   },
   {
     "no": 212,
@@ -27332,7 +28465,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Singapore International School Chiangmai",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 214,
@@ -27442,7 +28583,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Unity Concord International School",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 215,
@@ -27595,7 +28744,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Panyaden International School",
+    "is_boarding": false,
+    "year_established": 2011,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 216,
@@ -27693,7 +28850,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Esara International School",
+    "is_boarding": false,
+    "year_established": 2012,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 217,
@@ -27809,7 +28974,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Meritton British International School",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": []
   },
   {
     "no": 218,
@@ -27918,7 +29088,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Americana Chinese International School",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": []
   },
   {
     "no": 219,
@@ -28025,7 +29200,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bright Seeds International Kindergarten School",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 220,
@@ -28174,7 +29356,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Satit International Bilingual School of Rangsit University Chiangmai",
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 221,
@@ -28346,7 +29536,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Varee Chiangmai International School",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "EDT"
+    ]
   },
   {
     "no": 222,
@@ -28435,7 +29632,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Northern International Montessori School",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": []
   },
   {
     "no": 223,
@@ -28576,7 +29778,11 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "British Concordance International School",
+    "is_boarding": false,
+    "accreditations": []
   },
   {
     "no": 224,
@@ -28692,7 +29898,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Chiangmai Cedar International School",
+    "is_boarding": false,
+    "year_established": 2024,
+    "accreditations": []
   },
   {
     "no": 225,
@@ -28783,7 +29994,12 @@
       "label": "ตำบลวัดเกต อำเภอเมืองเชียงใหม่ จังหวัดเชียงใหม่"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Windfield French International School Chiang Mai",
+    "is_boarding": false,
+    "year_established": 2024,
+    "accreditations": []
   },
   {
     "no": 226,
@@ -28932,7 +30148,12 @@
       "label": "ตำบลสันปูเลย อำเภอดอยสะเก็ด จังหวัดเชียงใหม่"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Mill Hill International School Thailand",
+    "is_boarding": false,
+    "year_established": 2025,
+    "accreditations": []
   },
   {
     "no": 228,
@@ -29017,7 +30238,12 @@
       "label": "ตำบลหนองควาย อำเภอหางดง จังหวัดเชียงใหม่"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Cariad International School",
+    "is_boarding": false,
+    "year_established": 2025,
+    "accreditations": []
   },
   {
     "no": 229,
@@ -29673,7 +30899,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Chiang Rai International School",
+    "is_boarding": true,
+    "year_established": 2010,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 236,
@@ -29821,7 +31055,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Chiang Rai International Christian School",
+    "is_boarding": false,
+    "year_established": 1998,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC",
+      "ACSI (Association of Christian Schools International)"
+    ]
   },
   {
     "no": 237,
@@ -29910,7 +31153,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "One Hope International School",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": []
   },
   {
     "no": 238,
@@ -30087,7 +31335,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "TCE International School",
+    "is_boarding": false,
+    "year_established": 2020,
+    "accreditations": []
   },
   {
     "no": 240,
@@ -30387,7 +31640,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Norwich International School Bangkok",
+    "is_boarding": false,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 243,
@@ -30500,7 +31760,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Hua Hin International School",
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 244,
@@ -30886,7 +32154,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Krabi International School",
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": []
   },
   {
     "no": 248,
@@ -31258,7 +32531,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "British International School, Phuket",
+    "is_boarding": true,
+    "year_established": 1996,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "NEASC"
+    ]
   },
   {
     "no": 251,
@@ -31360,7 +32642,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "QSI International School of Phuket",
+    "is_boarding": false,
+    "year_established": 2000,
+    "accreditations": [
+      "ONESQA",
+      "MSA-CESS"
+    ]
   },
   {
     "no": 252,
@@ -31475,7 +32765,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "UWC Thailand International School",
+    "is_boarding": true,
+    "year_established": 2009,
+    "accreditations": []
   },
   {
     "no": 253,
@@ -31669,7 +32964,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "HeadStart International School",
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 254,
@@ -31761,7 +33064,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Kajonkiet International School, Phuket",
+    "is_boarding": false,
+    "year_established": 2013,
+    "accreditations": [
+      "ACS WASC"
+    ]
   },
   {
     "no": 255,
@@ -31909,7 +33219,13 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Lighthouse at Phuket International School",
+    "is_boarding": false,
+    "accreditations": [
+      "Cambridge and AAIS (Alberta Accredited International School)"
+    ]
   },
   {
     "no": 256,
@@ -32019,7 +33335,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Oak Meadow International School",
+    "is_boarding": false,
+    "year_established": 2016,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "ISAT"
+    ]
   },
   {
     "no": 257,
@@ -32333,7 +33658,16 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Berda Claude International School of Phuket",
+    "is_boarding": false,
+    "year_established": 2017,
+    "accreditations": [
+      "ONESQA",
+      "CIS",
+      "AEFE"
+    ]
   },
   {
     "no": 260,
@@ -32663,7 +33997,12 @@
       "label": "ตำบลฉลอง อำเภอเมืองภูเก็ต จังหวัดภูเก็ต"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Ruamrudee International School Phuket",
+    "is_boarding": false,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 263,
@@ -32794,7 +34133,12 @@
       "label": "ตำบลเชิงทะเล อำเภอถลาง จังหวัดภูเก็ต"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "HeadStart International School, Cherngtalay",
+    "is_boarding": false,
+    "year_established": 2010,
+    "accreditations": []
   },
   {
     "no": 264,
@@ -33740,7 +35084,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "International School of Samui",
+    "is_boarding": true,
+    "year_established": 2006,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 274,
@@ -33857,7 +35209,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Suratthani International School",
+    "is_boarding": false,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "Cognia"
+    ]
   },
   {
     "no": 275,
@@ -34090,7 +35450,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "PBISS International School",
+    "is_boarding": false,
+    "year_established": 2005,
+    "accreditations": [
+      "ONESQA",
+      "ACS WASC"
+    ]
   },
   {
     "no": 277,
@@ -34190,7 +35558,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Greenacre International School",
+    "is_boarding": false,
+    "year_established": 2018,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 278,
@@ -34298,7 +35674,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Si Ri Panya International School",
+    "is_boarding": false,
+    "year_established": 2019,
+    "accreditations": [
+      "ONESQA",
+      "EDT"
+    ]
   },
   {
     "no": 279,
@@ -34388,7 +35772,16 @@
       "label": "ตำบลมะเร็ต อำเภอเกาะสมุย จังหวัดสุราษฎร์ธานี"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Windfield International School",
+    "is_boarding": false,
+    "year_established": 2021,
+    "accreditations": [
+      "ONESQA",
+      "NEASC",
+      "AEFE"
+    ]
   },
   {
     "no": 280,
@@ -34482,7 +35875,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Daniel International School",
+    "is_boarding": true,
+    "year_established": 2023,
+    "accreditations": []
   },
   {
     "no": 281,
@@ -34577,7 +35975,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Balance International School Suratthani",
+    "is_boarding": false,
+    "year_established": 2024,
+    "accreditations": []
   },
   {
     "no": 282,
@@ -34731,7 +36134,12 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": false,
-    "gps_confidence": "low"
+    "gps_confidence": "low",
+    "is_isat_member": true,
+    "isat_school_name": "Unicorn British International School",
+    "is_boarding": false,
+    "year_established": 2025,
+    "accreditations": []
   },
   {
     "no": 284,
@@ -34962,7 +36370,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Theodore International School",
+    "is_boarding": true,
+    "year_established": 2014,
+    "accreditations": [
+      "Cognia"
+    ]
   },
   {
     "no": 286,
@@ -35166,7 +36581,14 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "American Prep International School",
+    "is_boarding": false,
+    "year_established": 2009,
+    "accreditations": [
+      "ONESQA"
+    ]
   },
   {
     "no": 288,
@@ -35294,7 +36716,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Bloomsbury International School Hatyai",
+    "is_boarding": true,
+    "year_established": 2014,
+    "accreditations": [
+      "ONESQA",
+      "CIS"
+    ]
   },
   {
     "no": 289,
@@ -35414,7 +36844,15 @@
     },
     "gps_method": "consensus-v2",
     "gps_verified": true,
-    "gps_confidence": "high"
+    "gps_confidence": "high",
+    "is_isat_member": true,
+    "isat_school_name": "Southern International School Hat Yai",
+    "is_boarding": false,
+    "year_established": 2015,
+    "accreditations": [
+      "EDT",
+      "NDNA"
+    ]
   },
   {
     "no": 290,
@@ -35519,6 +36957,11 @@
       "label": "ตำบลพะตง อำเภอหาดใหญ่ จังหวัดสงขลา"
     },
     "gps_method": "consensus-v2",
-    "gps_confidence": "medium"
+    "gps_confidence": "medium",
+    "is_isat_member": true,
+    "isat_school_name": "Wonder Valley International School",
+    "is_boarding": false,
+    "year_established": 2022,
+    "accreditations": []
   }
 ]

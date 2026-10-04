@@ -25,7 +25,7 @@ export function NoResults({ onReset }: NoResultsProps) {
       <button
         onClick={onReset}
         className="px-5 py-2 rounded-lg text-sm font-semibold text-white"
-        style={{ background: "linear-gradient(135deg,#0f9488,#0d7d72)" }}
+        style={{ background: "linear-gradient(135deg,#456ca6,#36578b)" }}
       >
         Reset all filters
       </button>

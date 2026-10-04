@@ -167,7 +167,7 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
                   <button
                     onClick={() => setNewComment("")}
                     className="px-3 py-2 rounded-xl text-xs font-semibold text-white transition-all"
-                    style={{ background: "linear-gradient(135deg,#0f9488,#152d55)" }}
+                    style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}
                   >
                     Post
                   </button>

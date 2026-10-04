@@ -34,7 +34,7 @@ export function AuthModal({ reason, onClose }: AuthModalProps) {
         <h3 className="font-display text-2xl text-center text-navy-900 mb-2">Sign in to continue</h3>
         <p className="text-sm text-slate-500 text-center mb-6">{reason}</p>
         <div className="space-y-3">
-          <button className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ background: "linear-gradient(135deg,#0f9488,#0d7d72)" }}>
+          <button className="w-full py-3 rounded-xl font-semibold text-white text-sm" style={{ background: "linear-gradient(135deg,#456ca6,#36578b)" }}>
             Create a free account
           </button>
           <button className="w-full py-3 rounded-xl font-semibold text-navy-800 text-sm border border-slate-200 hover:bg-slate-50 transition-colors">

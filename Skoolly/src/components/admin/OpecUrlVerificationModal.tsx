@@ -212,24 +212,24 @@ export function OpecUrlVerificationModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-warm-charcoal/60 backdrop-blur-xs animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#faf8f5] border border-[#eae0d0] rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="bg-white/70 border border-warm-accent rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
         {/* Top Header */}
-        <div className="px-6 py-4 border-b border-[#eae0d0] bg-white flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="px-6 py-4 border-b border-warm-accent bg-white flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#0f9488]/10 text-[#0f9488] flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#456ca6]/10 text-[#456ca6] flex items-center justify-center shadow-xs shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-[#1c1917] tracking-tight">
+                <h2 className="text-base font-bold text-warm-charcoal tracking-tight">
                   ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ
                 </h2>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#0f9488]/10 text-[#0f9488] border border-[#0f9488]/20">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#456ca6]/10 text-[#456ca6] border border-[#456ca6]/20">
                   Supabase Registry
                 </span>
               </div>
@@ -246,7 +246,7 @@ export function OpecUrlVerificationModal({
               type="button"
               onClick={handleRunHealthCheck}
               disabled={healthCheckState?.is_running || isStartingHealthCheck}
-              className="px-4 py-2 rounded-xl bg-[#1c1917] hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 rounded-full bg-warm-charcoal hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
               title="ตรวจสอบสถานะการเข้าถึงของทุกลิงก์ (Link Health Check)"
             >
               {healthCheckState?.is_running || isStartingHealthCheck ? (
@@ -266,7 +266,7 @@ export function OpecUrlVerificationModal({
               type="button"
               onClick={handleBulkSync}
               disabled={isSyncingAll}
-              className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-[#1c1917] border border-[#eae0d0] text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-warm-charcoal border border-warm-accent text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               title="ซิงค์ข้อมูล URL 284 แห่งจาก schoolAndURL.txt เข้าสู่ Supabase"
             >
               {isSyncingAll ? (
@@ -282,7 +282,7 @@ export function OpecUrlVerificationModal({
               type="button"
               onClick={loadData}
               disabled={loading}
-              className="p-2 rounded-xl bg-white border border-[#eae0d0] hover:bg-stone-50 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white border border-warm-accent hover:bg-stone-50 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
               title="รีเฟรชข้อมูล"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -302,9 +302,9 @@ export function OpecUrlVerificationModal({
 
         {/* Live Progress Banner when running health check */}
         {healthCheckState?.is_running && (
-          <div className="bg-[#faf5ee] border-b border-[#eae0d0] px-6 py-2.5 flex items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-2 text-[#1c1917] font-medium">
-              <Loader2 className="w-4 h-4 animate-spin text-[#0f9488]" />
+          <div className="bg-warm-cream border-b border-warm-accent px-6 py-2.5 flex items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-2 text-warm-charcoal font-medium">
+              <Loader2 className="w-4 h-4 animate-spin text-[#456ca6]" />
               <span>
                 กำลังสแกนลิงก์ทั้ง {healthCheckState.total} แห่งพร้อมกัน... (ตรวจแล้ว {healthCheckState.current}/{healthCheckState.total})
               </span>
@@ -312,11 +312,11 @@ export function OpecUrlVerificationModal({
             <div className="flex items-center gap-3 w-48 sm:w-64">
               <div className="flex-1 h-2 bg-stone-200/70 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#0f9488] to-emerald-500 rounded-full transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-[#456ca6] to-emerald-500 rounded-full transition-all duration-300"
                   style={{ width: `${healthCheckState.percent}%` }}
                 />
               </div>
-              <span className="text-[11px] font-mono font-bold text-[#0f9488] w-10 text-right">
+              <span className="text-xs font-mono font-bold text-[#456ca6] w-10 text-right">
                 {healthCheckState.percent}%
               </span>
             </div>
@@ -342,46 +342,46 @@ export function OpecUrlVerificationModal({
         )}
 
         {/* 4 Clean Executive Metric Cards */}
-        <div className="px-6 py-4 bg-[#faf5ee]/60 border-b border-[#eae0d0] shrink-0">
+        <div className="px-6 py-4 bg-warm-cream/60 border-b border-warm-accent shrink-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
             {/* Card 1: Total Schools */}
-            <div className="p-4 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
+            <div className="p-4 bg-white rounded-2xl border border-warm-accent shadow-xs">
               <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
                 <span>โรงเรียนทั้งหมด</span>
                 <School className="w-4 h-4 text-stone-400" />
               </div>
-              <div className="text-2xl font-black text-[#1c1917] tracking-tight mt-1.5">
+              <div className="text-2xl font-bold text-warm-charcoal tracking-tight mt-1.5">
                 {data?.total ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[11px] text-stone-500 mt-1">
+              <div className="text-xs text-stone-500 mt-1">
                 มีเว็บไซต์ {data?.with_website ?? 0} · ไม่มี {data?.missing_count ?? 0} แห่ง
               </div>
             </div>
 
             {/* Card 2: Verified Official */}
-            <div className="p-4 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
+            <div className="p-4 bg-white rounded-2xl border border-warm-accent shadow-xs">
               <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
                 <span>รับรองทางการแล้ว</span>
-                <ShieldCheck className="w-4 h-4 text-[#0f9488]" />
+                <ShieldCheck className="w-4 h-4 text-[#456ca6]" />
               </div>
-              <div className="text-2xl font-black text-[#0f9488] tracking-tight mt-1.5">
+              <div className="text-2xl font-bold text-[#456ca6] tracking-tight mt-1.5">
                 {data?.verified_count ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[11px] text-[#0f9488] font-medium mt-1">
+              <div className="text-xs text-[#456ca6] font-medium mt-1">
                 Ground Truth ใน Database
               </div>
             </div>
 
             {/* Card 3: Healthy Online */}
-            <div className="p-4 bg-white rounded-2xl border border-[#eae0d0] shadow-xs">
+            <div className="p-4 bg-white rounded-2xl border border-warm-accent shadow-xs">
               <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
                 <span>สถานะออนไลน์ปกติ</span>
                 <Activity className="w-4 h-4 text-emerald-600" />
               </div>
-              <div className="text-2xl font-black text-emerald-700 tracking-tight mt-1.5">
+              <div className="text-2xl font-bold text-emerald-700 tracking-tight mt-1.5">
                 {data?.healthy_count ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[11px] text-emerald-600 font-medium mt-1">
+              <div className="text-xs text-emerald-600 font-medium mt-1">
                 Online / HTTP 200 OK
               </div>
             </div>
@@ -392,7 +392,7 @@ export function OpecUrlVerificationModal({
               className={`p-4 rounded-2xl border transition-all cursor-pointer shadow-xs ${
                 (data?.broken_count ?? 0) > 0
                   ? "bg-rose-50/50 border-rose-200 hover:border-rose-300"
-                  : "bg-white border-[#eae0d0]"
+                  : "bg-white border-warm-accent"
               }`}
             >
               <div className="flex items-center justify-between text-xs font-medium">
@@ -406,13 +406,13 @@ export function OpecUrlVerificationModal({
                 />
               </div>
               <div
-                className={`text-2xl font-black tracking-tight mt-1.5 ${
+                className={`text-2xl font-bold tracking-tight mt-1.5 ${
                   (data?.broken_count ?? 0) > 0 ? "text-rose-700" : "text-stone-700"
                 }`}
               >
                 {data?.broken_count ?? 0} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
-              <div className="text-[11px] mt-1 flex items-center gap-1 font-medium text-rose-600">
+              <div className="text-xs mt-1 flex items-center gap-1 font-medium text-rose-600">
                 {(data?.broken_count ?? 0) > 0 ? (
                   <>
                     <span>ดูรายการลิงก์เสีย</span>
@@ -427,19 +427,19 @@ export function OpecUrlVerificationModal({
         </div>
 
         {/* Toolbar: Segmented Tabs & Search */}
-        <div className="px-6 py-3.5 bg-white border-b border-[#eae0d0] flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center bg-[#faf5ee] p-1 rounded-2xl border border-[#eae0d0] text-xs font-medium">
+        <div className="px-6 py-3.5 bg-white border-b border-warm-accent flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center bg-warm-cream p-1 rounded-2xl border border-warm-accent text-xs font-medium">
             <button
               type="button"
               onClick={() => setActiveTab("all")}
               className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "all"
-                  ? "bg-white text-[#1c1917] font-bold shadow-xs border border-[#eae0d0]"
+                  ? "bg-white text-warm-charcoal font-bold shadow-xs border border-warm-accent"
                   : "text-stone-600 hover:text-stone-900"
               }`}
             >
               <span>ทั้งหมด</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-stone-200/70 text-stone-700">
+              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-mono bg-stone-200/70 text-stone-700">
                 {data?.total ?? 0}
               </span>
             </button>
@@ -455,7 +455,7 @@ export function OpecUrlVerificationModal({
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>รับรองแล้ว</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-100 text-emerald-800">
+              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-mono bg-emerald-100 text-emerald-800">
                 {data?.verified_count ?? 0}
               </span>
             </button>
@@ -474,7 +474,7 @@ export function OpecUrlVerificationModal({
               <AlertTriangle className={`w-3.5 h-3.5 ${activeTab === "broken" ? "text-white" : "text-rose-600"}`} />
               <span>พบปัญหา</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono ${
+                className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono ${
                   activeTab === "broken"
                     ? "bg-white/20 text-white"
                     : (data?.broken_count ?? 0) > 0
@@ -497,7 +497,7 @@ export function OpecUrlVerificationModal({
                 }`}
               >
                 <span>รอรับรอง</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-100 text-amber-800">
+                <span className="px-1.5 py-0.5 rounded-full text-[11px] font-mono bg-amber-100 text-amber-800">
                   {pendingCount}
                 </span>
               </button>
@@ -513,7 +513,7 @@ export function OpecUrlVerificationModal({
               }`}
             >
               <span>ไม่มีเว็บไซต์</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono bg-stone-200/70 text-stone-700">
+              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-mono bg-stone-200/70 text-stone-700">
                 {data?.missing_count ?? 0}
               </span>
             </button>
@@ -526,7 +526,7 @@ export function OpecUrlVerificationModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ค้นหาชื่อโรงเรียน หรือ URL..."
-              className="w-full pl-9 pr-3.5 py-1.5 rounded-xl bg-white border border-[#eae0d0] text-xs text-[#1c1917] focus:outline-none focus:ring-2 focus:ring-[#0f9488]/30 placeholder:text-stone-400 shadow-xs"
+              className="w-full pl-9 pr-3.5 py-1.5 rounded-xl bg-white border border-warm-accent text-xs text-warm-charcoal focus:outline-none focus:ring-2 focus:ring-[#456ca6]/30 placeholder:text-stone-400 shadow-xs"
             />
           </div>
         </div>
@@ -545,10 +545,10 @@ export function OpecUrlVerificationModal({
             </div>
           )}
 
-          <div className="bg-white border border-[#eae0d0] rounded-2xl overflow-hidden shadow-xs">
+          <div className="bg-white border border-warm-accent rounded-2xl overflow-hidden shadow-xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-[#faf5ee] border-b border-[#eae0d0] text-stone-600 font-semibold">
+                <tr className="bg-warm-cream border-b border-warm-accent text-stone-600 font-semibold">
                   <th className="py-3 px-4 min-w-[240px]">โรงเรียนนานาชาติ</th>
                   <th className="py-3 px-3 w-28">จังหวัด</th>
                   <th className="py-3 px-4 min-w-[280px]">Official Website & ลิงก์</th>
@@ -556,11 +556,11 @@ export function OpecUrlVerificationModal({
                   <th className="py-3 px-4 w-28 text-center">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#eae0d0]/60">
+              <tbody className="divide-y divide-warm-accent/60">
                 {loading ? (
                   <tr>
                     <td colSpan={5} className="py-16 text-center text-stone-500">
-                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#0f9488] mb-2" />
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#456ca6] mb-2" />
                       กำลังโหลดข้อมูลทะเบียนเว็บไซต์...
                     </td>
                   </tr>
@@ -581,21 +581,21 @@ export function OpecUrlVerificationModal({
                         className={`transition-colors ${
                           item.is_broken
                             ? "bg-rose-50/25 hover:bg-rose-50/50"
-                            : "hover:bg-[#faf5ee]/50"
+                            : "hover:bg-warm-cream/50"
                         }`}
                       >
                         {/* School Name & Code */}
                         <td className="py-3 px-4">
                           <div className="flex items-start gap-2">
                             <div className="space-y-0.5">
-                              <div className="font-bold text-[#1c1917] leading-snug">
+                              <div className="font-bold text-warm-charcoal leading-snug">
                                 {item.school_name_th}
                               </div>
-                              <div className="text-[11px] text-stone-500 truncate max-w-sm">
+                              <div className="text-xs text-stone-500 truncate max-w-sm">
                                 {item.school_name_en || "—"}
                               </div>
                               <div className="pt-0.5">
-                                <span className="font-mono text-[10px] text-[#78593a] bg-[#faf5ee] px-1.5 py-0.5 rounded border border-[#eae0d0]">
+                                <span className="font-mono text-[11px] text-[#7a5f1f] bg-warm-cream px-1.5 py-0.5 rounded border border-warm-accent">
                                   {item.school_code}
                                 </span>
                               </div>
@@ -617,14 +617,14 @@ export function OpecUrlVerificationModal({
                                 value={editUrlValue}
                                 onChange={(e) => setEditUrlValue(e.target.value)}
                                 placeholder="https://www.example.ac.th"
-                                className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-[#0f9488] bg-white focus:outline-none shadow-xs"
+                                className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-[#456ca6] bg-white focus:outline-none shadow-xs"
                                 autoFocus
                               />
                               <button
                                 type="button"
                                 onClick={() => handleSaveEdit(item.school_code)}
                                 disabled={isActing}
-                                className="px-2.5 py-1 rounded-lg bg-[#0f9488] text-white font-semibold hover:bg-[#0d7d72] transition-colors cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg bg-[#456ca6] text-white font-semibold hover:bg-[#36578b] transition-colors cursor-pointer"
                               >
                                 {isActing ? <Loader2 className="w-3 h-3 animate-spin" /> : "บันทึก"}
                               </button>
@@ -650,7 +650,7 @@ export function OpecUrlVerificationModal({
                                   className={`inline-flex items-center gap-1.5 font-medium hover:underline max-w-[260px] truncate ${
                                     item.is_broken
                                       ? "text-rose-700 font-semibold"
-                                      : "text-[#25508a]"
+                                      : "text-[#456ca6]"
                                   }`}
                                   title="คลิกเพื่อเปิดหน้าเว็บไซต์"
                                 >
@@ -663,7 +663,7 @@ export function OpecUrlVerificationModal({
                               <div className="flex items-center gap-1.5">
                                 {item.is_broken ? (
                                   <span
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 font-mono"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 font-mono"
                                     title={`ข้อผิดพลาด: ${item.error_reason || "เปิดไม่ติด"} (ตรวจเมื่อ: ${item.last_checked_at_display || "ล่าสุด"})`}
                                   >
                                     <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" />
@@ -671,19 +671,19 @@ export function OpecUrlVerificationModal({
                                   </span>
                                 ) : item.http_status ? (
                                   <span
-                                    className="inline-flex items-center gap-1.5 text-[10px] font-mono text-emerald-700"
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-700"
                                     title={`สถานะ HTTP ${item.http_status} (ตรวจเมื่อ: ${item.last_checked_at_display || "ล่าสุด"})`}
                                   >
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                                     <span>200 OK</span>
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] text-stone-400">ยังไม่ได้ตรวจ</span>
+                                  <span className="text-[11px] text-stone-400">ยังไม่ได้ตรวจ</span>
                                 )}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-stone-400 italic text-[11px]">
+                            <span className="text-stone-400 italic text-xs">
                               — ไม่มีเว็บไซต์ —
                             </span>
                           )}
@@ -693,13 +693,13 @@ export function OpecUrlVerificationModal({
                         <td className="py-3 px-3.5">
                           {item.status === "verified" ? (
                             <div>
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                 <span>รับรองแล้ว</span>
                               </span>
                               {item.verified_at_display && (
                                 <div
-                                  className="text-[10px] text-stone-400 mt-0.5"
+                                  className="text-[11px] text-stone-400 mt-0.5"
                                   title={`รับรองโดย: ${item.verified_by || "Admin"}`}
                                 >
                                   {item.verified_at_display.split(" ")[0]}
@@ -707,11 +707,11 @@ export function OpecUrlVerificationModal({
                               )}
                             </div>
                           ) : item.status === "opec" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                               จาก สช.
                             </span>
                           ) : item.status === "probed" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warm-card text-warm-charcoal border border-warm-accent">
                               บอทตรวจพบ
                             </span>
                           ) : (
@@ -731,7 +731,7 @@ export function OpecUrlVerificationModal({
                                 }
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 rounded-lg text-stone-400 hover:text-[#25508a] hover:bg-stone-100 transition-colors"
+                                className="p-1.5 rounded-lg text-stone-400 hover:text-[#456ca6] hover:bg-stone-100 transition-colors"
                                 title="เปิดเว็บไซต์ในแท็บใหม่"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -743,7 +743,7 @@ export function OpecUrlVerificationModal({
                                 type="button"
                                 onClick={() => handleVerify(item)}
                                 disabled={isActing}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                                className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] flex items-center gap-1 transition-all cursor-pointer"
                                 title="กดยืนยันว่าเป็นเว็บไซต์ทางการที่ถูกต้อง (Verified Official)"
                               >
                                 {isActing ? (
@@ -780,14 +780,14 @@ export function OpecUrlVerificationModal({
         </div>
 
         {/* Bottom Footer */}
-        <div className="px-6 py-3.5 bg-[#faf5ee]/70 border-t border-[#eae0d0] flex items-center justify-between text-xs text-stone-500 shrink-0">
+        <div className="px-6 py-3.5 bg-warm-cream/70 border-t border-warm-accent flex items-center justify-between text-xs text-stone-500 shrink-0">
           <div>
             แสดง {filteredItems.length} จาก {data?.total ?? 0} โรงเรียน
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-white border border-[#eae0d0] hover:bg-stone-50 text-stone-700 font-semibold transition-all shadow-xs cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-white border border-warm-accent hover:bg-stone-50 text-stone-700 font-semibold transition-all shadow-xs cursor-pointer"
           >
             ปิดหน้าต่าง
           </button>

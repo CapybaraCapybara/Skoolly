@@ -160,7 +160,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
   }
 
   return (
-    <div className="bg-white border border-[#eae0d0] rounded-3xl p-4 sm:p-5 shadow-xs transition-all space-y-3.5">
+    <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-4 sm:p-5 shadow-xs transition-all space-y-3.5">
       {/* ── Top Header Row ────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Left: Task Name and Animated Status */}
@@ -168,7 +168,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           <div
             className={`w-9 h-9 rounded-2xl flex items-center justify-center shadow-xs shrink-0 transition-all ${
               state.is_running
-                ? "bg-[#ab8e72]/15 text-[#ab8e72] border border-[#ab8e72]/30"
+                ? "bg-warm-bronze/15 text-warm-bronze border border-warm-bronze/30"
                 : "bg-emerald-50 text-emerald-700 border border-emerald-200"
             }`}
           >
@@ -181,11 +181,11 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-bold text-[#1c1917] tracking-tight">
+              <span className="text-xs sm:text-sm font-bold text-warm-charcoal tracking-tight">
                 {state.task || (state.is_running ? "Data Pipeline กำลังประมวลผล..." : "เสร็จสิ้นกระบวนการ")}
               </span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
                   state.is_running
                     ? "bg-amber-50 text-amber-800 border-amber-200 animate-pulse"
                     : "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -194,7 +194,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
                 {state.is_running ? "RUNNING" : "COMPLETED"}
               </span>
             </div>
-            <p className="text-[11px] text-[#78716c]">
+            <p className="text-xs text-[#78716c]">
               บันทึกกิจกรรมเรียลไทม์ (Live Pipeline Telemetry)
             </p>
           </div>
@@ -203,11 +203,11 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
         {/* Right: Actions Toolbar */}
         <div className="flex items-center gap-2 text-xs">
           {/* Progress Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#faf5ee] border border-[#eae0d0] font-mono font-bold text-[#78593a]">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-warm-cream border border-warm-accent font-mono font-bold text-[#7a5f1f]">
             <span>{state.current || 0}</span>
             <span className="text-[#a8a29e]">/</span>
             <span>{state.total || 0}</span>
-            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md text-[10px] ml-1">
+            <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md text-[11px] ml-1">
               {state.percent || 0}%
             </span>
           </div>
@@ -216,11 +216,11 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           <button
             type="button"
             onClick={handleCopy}
-            className="p-2 bg-white hover:bg-[#faf5ee] border border-[#eae0d0] rounded-xl text-[#1c1917] transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+            className="p-2 bg-white hover:bg-warm-cream border border-warm-accent rounded-xl text-warm-charcoal transition-all flex items-center gap-1 shadow-xs cursor-pointer"
             title="คัดลอกบันทึก Log ที่กำลังแสดงอยู่"
           >
-            <Copy className="w-3.5 h-3.5 text-[#ab8e72]" />
-            <span className="hidden sm:inline font-semibold text-[11px]">
+            <Copy className="w-3.5 h-3.5 text-warm-bronze" />
+            <span className="hidden sm:inline font-semibold text-xs">
               {copied ? "คัดลอกแล้ว!" : "คัดลอก"}
             </span>
           </button>
@@ -229,7 +229,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 bg-white hover:bg-[#faf5ee] border border-[#eae0d0] rounded-xl text-[#78716c] hover:text-[#1c1917] transition-all shadow-xs cursor-pointer"
+            className="p-2 bg-white hover:bg-warm-cream border border-warm-accent rounded-xl text-[#78716c] hover:text-warm-charcoal transition-all shadow-xs cursor-pointer"
             title={isExpanded ? "ย่อขนาดกล่อง" : "ขยายกล่อง Log"}
           >
             {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -239,7 +239,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 bg-white hover:bg-[#faf5ee] border border-[#eae0d0] rounded-xl text-[#78716c] hover:text-[#1c1917] transition-all shadow-xs cursor-pointer"
+            className="p-2 bg-white hover:bg-warm-cream border border-warm-accent rounded-xl text-[#78716c] hover:text-warm-charcoal transition-all shadow-xs cursor-pointer"
             title={isCollapsed ? "แสดงหน้าต่าง Log" : "พับเก็บหน้าต่าง Log"}
           >
             {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
@@ -258,16 +258,16 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
       </div>
 
       {/* ── Visual Progress Bar ───────────────────────────────────── */}
-      <div className="w-full h-2 bg-[#eae0d0]/60 rounded-full overflow-hidden border border-[#eae0d0]/80">
+      <div className="w-full h-2 bg-warm-accent/60 rounded-full overflow-hidden border border-warm-accent/80">
         <div
-          className="h-full bg-gradient-to-r from-[#ab8e72] via-[#0f9488] to-[#25508a] transition-all duration-300 rounded-full"
+          className="h-full bg-gradient-to-r from-warm-bronze via-[#456ca6] to-[#456ca6] transition-all duration-300 rounded-full"
           style={{ width: `${Math.max(state.percent || 0, 3)}%` }}
         />
       </div>
 
       {/* ── Structured Console Box ────────────────────────────────── */}
       {!isCollapsed && (
-        <div className="bg-[#181615] rounded-2xl border border-[#2e2a28] shadow-inner overflow-hidden flex flex-col">
+        <div className="bg-[#0f1f3b] rounded-2xl border border-[#2e2a28] shadow-inner overflow-hidden flex flex-col">
           {/* Sub-toolbar: Level Filters, Search Input, Auto-Scroll toggle */}
           <div className="bg-[#24201e] px-3.5 py-2 border-b border-[#2e2a28] flex flex-wrap items-center justify-between gap-2.5 text-xs text-[#d6cec7]">
             {/* Level Filter Tabs */}
@@ -275,9 +275,9 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
               <button
                 type="button"
                 onClick={() => setSelectedLevel("all")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   selectedLevel === "all"
-                    ? "bg-[#ab8e72] text-white shadow-xs"
+                    ? "bg-warm-bronze text-white shadow-xs"
                     : "text-[#a8a29e] hover:text-white hover:bg-white/5"
                 }`}
               >
@@ -287,7 +287,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
               <button
                 type="button"
                 onClick={() => setSelectedLevel("success")}
-                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                   selectedLevel === "success"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-emerald-400/80 hover:text-emerald-300 hover:bg-emerald-950/40"
@@ -300,7 +300,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
               <button
                 type="button"
                 onClick={() => setSelectedLevel("warning")}
-                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                   selectedLevel === "warning"
                     ? "bg-amber-600 text-white shadow-xs"
                     : "text-amber-400/80 hover:text-amber-300 hover:bg-amber-950/40"
@@ -313,7 +313,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
               <button
                 type="button"
                 onClick={() => setSelectedLevel("error")}
-                className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                   selectedLevel === "error"
                     ? "bg-rose-600 text-white shadow-xs"
                     : "text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/40"
@@ -334,7 +334,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
                   placeholder="ค้นหาใน Log..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-7 pr-3 py-1 rounded-lg bg-[#181615] border border-[#3d3834] text-[#eae0d0] placeholder-[#78716c] text-[11px] focus:outline-none focus:border-[#ab8e72] transition-colors w-32 sm:w-44 font-mono"
+                  className="pl-7 pr-3 py-1 rounded-lg bg-[#0f1f3b] border border-[#3d3834] text-warm-accent placeholder-[#78716c] text-xs focus:outline-none focus:border-warm-bronze transition-colors w-32 sm:w-44 font-mono"
                 />
               </div>
 
@@ -342,10 +342,10 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
               <button
                 type="button"
                 onClick={() => setAutoScroll(!autoScroll)}
-                className={`px-2 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1 border transition-all cursor-pointer ${
+                className={`px-2 py-1 rounded-lg text-xs font-mono flex items-center gap-1 border transition-all cursor-pointer ${
                   autoScroll
                     ? "bg-teal-950/60 text-teal-400 border-teal-800/80"
-                    : "bg-[#181615] text-[#78716c] border-[#3d3834]"
+                    : "bg-[#0f1f3b] text-[#78716c] border-[#3d3834]"
                 }`}
                 title={autoScroll ? "ปิดการเลื่อนลงอัตโนมัติ" : "เปิดการเลื่อนลงอัตโนมัติเมื่อมีข้อความใหม่"}
               >
@@ -358,14 +358,14 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           {/* Log Lines Container */}
           <div
             ref={logContainerRef}
-            className={`font-mono text-[11px] sm:text-xs p-3 overflow-y-auto space-y-1 select-text scrollbar-thin ${
+            className={`font-mono text-xs sm:text-xs p-3 overflow-y-auto space-y-1 select-text scrollbar-thin ${
               isExpanded ? "h-[30rem]" : "h-52"
             }`}
           >
             {filteredLogs.length > 0 ? (
               filteredLogs.map((log) => {
-                let badgeColor = "text-[#ab8e72] bg-[#ab8e72]/10 border-[#ab8e72]/30";
-                let icon = <Info className="w-3 h-3 text-[#ab8e72]" />;
+                let badgeColor = "text-warm-bronze bg-warm-bronze/10 border-warm-bronze/30";
+                let icon = <Info className="w-3 h-3 text-warm-bronze" />;
                 let rowBg = "hover:bg-white/[0.03]";
 
                 if (log.level === "success") {
@@ -388,8 +388,8 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
                     className={`flex items-start gap-2.5 px-2.5 py-1 rounded-lg transition-colors group ${rowBg}`}
                   >
                     {/* Line Index & Timestamp */}
-                    <div className="flex items-center gap-1.5 shrink-0 text-[#78716c] text-[10px] select-none pt-0.5">
-                      <span className="w-6 text-right font-mono text-[#57534e] group-hover:text-[#ab8e72]">
+                    <div className="flex items-center gap-1.5 shrink-0 text-[#78716c] text-[11px] select-none pt-0.5">
+                      <span className="w-6 text-right font-mono text-[#57534e] group-hover:text-warm-bronze">
                         {log.id + 1}
                       </span>
                       {log.timestamp && (
@@ -406,13 +406,13 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
 
                     {/* School Code Tag if found */}
                     {log.schoolCode && (
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold font-mono bg-blue-950/60 text-blue-300 border border-blue-800/40 shrink-0">
+                      <span className="px-1.5 py-0.2 rounded text-[11px] font-bold font-mono bg-blue-950/60 text-blue-300 border border-blue-800/40 shrink-0">
                         {log.schoolCode}
                       </span>
                     )}
 
                     {/* Main Log Text */}
-                    <div className="flex-1 leading-relaxed text-[#eae0d0] break-words">
+                    <div className="flex-1 leading-relaxed text-warm-accent break-words">
                       {log.message}
                     </div>
                   </div>

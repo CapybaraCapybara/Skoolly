@@ -128,7 +128,7 @@ export default function App() {
     return (
       <Suspense
         fallback={
-          <div className="min-h-screen grid place-items-center bg-[#faf8f5] text-xs text-[#1c1917]/60">
+          <div className="min-h-screen grid place-items-center bg-[#f8f6f1] text-xs text-[#14284b]/60">
             กำลังโหลดระบบบริหารจัดการฐานข้อมูล (Admin Database)...
           </div>
         }

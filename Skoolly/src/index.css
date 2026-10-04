@@ -1,35 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;600;700&display=swap');
 @import 'leaflet/dist/leaflet.css';
 @import 'tailwindcss';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
   --font-display: 'Instrument Serif', Georgia, serif;
-  --font-sans: 'DM Sans', system-ui, sans-serif;
+  /* DM Sans has no Thai glyphs; IBM Plex Sans Thai Looped (looped, more formal) fills them in so Thai text matches across user & admin pages */
+  --font-sans: 'DM Sans', 'IBM Plex Sans Thai Looped', system-ui, sans-serif;
 
-  --color-navy-950: #0a1628;
-  --color-navy-900: #0f2240;
-  --color-navy-800: #152d55;
-  --color-navy-700: #1d3d6e;
-  --color-navy-600: #25508a;
-  --color-teal-600: #0d7d72;
-  --color-teal-500: #0f9488;
-  --color-teal-400: #14b3a5;
+  /* "navy" and "teal" keep their names for existing class usage but now carry the navy / steel-blue family */
+  --color-navy-950: #0c1a33;
+  --color-navy-900: #14284b;
+  --color-navy-800: #233a5e;
+  --color-navy-700: #2c4772;
+  --color-navy-600: #36578b;
+  --color-teal-50: #eef3fa;
+  --color-teal-100: #dae4f3;
+  --color-teal-200: #b8cbe6;
+  --color-teal-300: #8eaad4;
+  --color-teal-400: #6488bf;
+  --color-teal-500: #456ca6;
+  --color-teal-600: #36578b;
+  --color-teal-700: #2c4772;
+  --color-teal-800: #233a5e;
+  --color-teal-900: #1c2f4d;
   --color-amber-400: #f59e0b;
   --color-amber-300: #fbbf24;
   --color-slate-50: #fdfbf7;
 
-  /* Custom Warm Theme based on Dwello */
-  --color-warm-bg: #faf8f5;
-  --color-warm-card: #f3ece3;
-  --color-warm-accent: #eae0d0;
-  --color-warm-charcoal: #1c1917;
-  --color-warm-bronze: #ab8e72;
-  --color-warm-cream: #faf5ee;
+  /* Brand theme: navy + gold on ivory.
+     Token names are historical: "charcoal" is the primary navy, "bronze" is the gold accent. */
+  --color-warm-bg: #f8f6f1;
+  --color-warm-card: #efe9dc;
+  --color-warm-accent: #e3dccd;
+  --color-warm-charcoal: #14284b;
+  --color-warm-bronze: #b8913a;
+  --color-warm-cream: #fcfaf5;
 }
 
 * {
@@ -46,9 +55,9 @@ html::-webkit-scrollbar {
 }
 
 body {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  background-color: #faf8f5;
-  color: #1c1917;
+  font-family: 'DM Sans', 'IBM Plex Sans Thai Looped', system-ui, sans-serif;
+  background-color: #f8f6f1;
+  color: #14284b;
 }
 
 .font-display {
@@ -57,7 +66,7 @@ body {
 
 
 input[type="range"] {
-  accent-color: #0f9488;
+  accent-color: #456ca6;
 }
 
 .compare-bar {
@@ -93,7 +102,7 @@ input[type="range"] {
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(15, 34, 64, 0.12);
+  box-shadow: 0 12px 40px rgba(20, 40, 75, 0.14);
 }
 
 .modal-overlay {
@@ -113,8 +122,7 @@ input[type="range"] {
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-heading: 'DM Sans', 'IBM Plex Sans Thai Looped', system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
