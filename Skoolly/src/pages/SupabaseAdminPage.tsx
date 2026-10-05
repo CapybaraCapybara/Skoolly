@@ -5,6 +5,7 @@ import {
   Trash2,
   Download,
   LayoutDashboard,
+  Workflow,
   School,
   CheckCircle2,
   MessageSquare,
@@ -62,7 +63,7 @@ interface SupabaseAdminPageProps {
   onBack: () => void;
 }
 
-type AdminTab = "dashboard" | "schools" | "approvals" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
+type AdminTab = "dashboard" | "schools" | "approvals" | "pipeline" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
 
 export function SupabaseAdminPage({
   onBack,
@@ -538,6 +539,7 @@ export function SupabaseAdminPage({
     {
       label: "ระบบจัดการ",
       items: [
+        { tab: "pipeline", label: "Data Pipeline", icon: Workflow },
         { tab: "verify", label: "ตรวจรับรอง URL", icon: CheckCircle2 },
         { tab: "reviews", label: "รีวิวผู้ปกครอง", icon: MessageSquare },
         { tab: "tickets", label: "แจ้งปัญหา", icon: Ticket },
@@ -722,102 +724,129 @@ export function SupabaseAdminPage({
             ))}
           </div>
 
-          {/* Data Pipeline */}
-          <section className="rounded-[2rem] border border-warm-accent bg-warm-cream p-4 sm:p-5 shadow-xs space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-bold text-warm-charcoal">Data Pipeline</h2>
-                <p className="text-sm text-warm-charcoal/60">ดึงและเติมข้อมูลทีละขั้น หรือรันครบทุกขั้นในปุ่มเดียว</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportCsv}
-                  className="flex size-9 items-center justify-center rounded-full border border-warm-accent bg-white/70 text-warm-charcoal transition-colors hover:border-warm-bronze hover:text-warm-bronze cursor-pointer"
-                  title="ส่งออกไฟล์ CSV"
-                >
-                  <Download className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsClearConfirmOpen(true)}
-                  disabled={pipelineBusy}
-                  className="flex size-9 items-center justify-center rounded-full border border-rose-200 bg-white/70 text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
-                  title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRunFullPipeline}
-                  disabled={pipelineBusy}
-                  className="inline-flex items-center gap-2 rounded-full bg-warm-charcoal px-4 sm:px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-warm-charcoal/90 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                  title="รัน Data Pipeline ครบทุกขั้นตอน: OPEC -> เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS"
-                >
-                  <Zap className={cn("size-4 text-warm-bronze", isRunning ? "animate-pulse" : "fill-current")} />
-                  <span>รันครบทุกขั้นตอน</span>
-                </button>
-              </div>
-            </div>
+          {/* Running-job strip on other tabs, so progress stays visible without the full pipeline card */}
+          {activeTab !== "pipeline" && isRunning && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("pipeline")}
+              className="w-full flex items-center gap-4 rounded-full border border-warm-accent bg-warm-cream px-5 py-3 text-left shadow-xs transition-colors hover:border-warm-bronze cursor-pointer"
+            >
+              <Loader2 className="size-4 shrink-0 animate-spin text-warm-bronze" />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-warm-charcoal">{progress?.task || "กำลังทำงาน..."}</span>
+              <span className="hidden sm:block h-1.5 w-32 shrink-0 overflow-hidden rounded-full bg-warm-accent">
+                <span className="block h-full rounded-full bg-warm-bronze transition-all" style={{ width: `${progress?.percent ?? 0}%` }} />
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-warm-charcoal">{progress?.percent ?? 0}%</span>
+              <span className="shrink-0 text-sm font-medium text-warm-bronze">ดูรายละเอียด</span>
+            </button>
+          )}
 
-            <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-warm-accent/60">
-              {pipelineSteps.map((s) => (
-                <button
-                  key={s.step}
-                  type="button"
-                  onClick={s.onClick}
-                  disabled={pipelineBusy}
-                  className={cn(pillBtn, "pl-1.5 pr-4")}
-                  title={s.title}
-                >
-                  <span className="flex size-6 items-center justify-center rounded-full bg-warm-card text-xs font-bold text-warm-bronze">
-                    {s.step}
-                  </span>
-                  {s.label}
-                </button>
-              ))}
+          {activeTab === "pipeline" && (
+            <>
+              {/* Data Pipeline */}
+              <section className="rounded-[2rem] border border-warm-accent bg-warm-cream p-4 sm:p-5 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-bold text-warm-charcoal">Data Pipeline</h2>
+                    <p className="text-sm text-warm-charcoal/60">ดึงและเติมข้อมูลทีละขั้น หรือรันครบทุกขั้นในปุ่มเดียว</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportCsv}
+                      className="flex size-9 items-center justify-center rounded-full border border-warm-accent bg-white/70 text-warm-charcoal transition-colors hover:border-warm-bronze hover:text-warm-bronze cursor-pointer"
+                      title="ส่งออกไฟล์ CSV"
+                    >
+                      <Download className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsClearConfirmOpen(true)}
+                      disabled={pipelineBusy}
+                      className="flex size-9 items-center justify-center rounded-full border border-rose-200 bg-white/70 text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
+                      title="ล้างข้อมูลใน Supabase Database ทั้งหมด"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRunFullPipeline}
+                      disabled={pipelineBusy}
+                      className="inline-flex items-center gap-2 rounded-full bg-warm-charcoal px-4 sm:px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-warm-charcoal/90 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                      title="รัน Data Pipeline ครบทุกขั้นตอน: OPEC -> เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS"
+                    >
+                      <Zap className={cn("size-4 text-warm-bronze", isRunning ? "animate-pulse" : "fill-current")} />
+                      <span>รันครบทุกขั้นตอน</span>
+                    </button>
+                  </div>
+                </div>
 
-              <span className="hidden sm:block h-6 w-px bg-warm-accent mx-1" />
+                <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-warm-accent/60">
+                  {pipelineSteps.map((s) => (
+                    <button
+                      key={s.step}
+                      type="button"
+                      onClick={s.onClick}
+                      disabled={pipelineBusy}
+                      className={cn(pillBtn, "pl-1.5 pr-4")}
+                      title={s.title}
+                    >
+                      <span className="flex size-6 items-center justify-center rounded-full bg-warm-card text-xs font-bold text-warm-bronze">
+                        {s.step}
+                      </span>
+                      {s.label}
+                    </button>
+                  ))}
 
-              <button
-                type="button"
-                onClick={() => setIsUrlVerificationModalOpen(true)}
-                className={cn(pillBtn, "px-3.5")}
-                title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
-              >
-                <ShieldCheck className="size-4 text-warm-bronze" />
-                ตรวจรับรอง URL
-              </button>
-              <button
-                type="button"
-                onClick={handleEnrichIsat}
-                disabled={pipelineBusy}
-                className={cn(pillBtn, "px-3.5")}
-                title={`ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ${isatMemberCount > 0 ? ` — ตอนนี้จับคู่เป็นสมาชิกแล้ว ${isatMemberCount} โรงเรียน` : ""}`}
-              >
-                <Award className="size-4 text-warm-bronze" />
-                ซิงค์ ISAT
-                {isatMemberCount > 0 && (
-                  <span className="rounded-full bg-warm-card px-2 py-0.5 text-xs font-semibold tabular-nums text-warm-bronze">
-                    {isatMemberCount} รร.
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleAutoEnrichAll}
-                disabled={pipelineBusy}
-                className={cn(pillBtn, "px-3.5")}
-                title="รันอัตโนมัติ: เติมชื่อ EN -> GPS -> Website"
-              >
-                <Wand2 className="size-4 text-warm-bronze" />
-                Auto-Enrich
-              </button>
-            </div>
-          </section>
+                  <span className="hidden sm:block h-6 w-px bg-warm-accent mx-1" />
 
-          {/* Real-time Activity Console */}
-          <OpecActivityConsole state={progress} onClearLogs={handleClearLogs} />
+                  <button
+                    type="button"
+                    onClick={() => setIsUrlVerificationModalOpen(true)}
+                    className={cn(pillBtn, "px-3.5")}
+                    title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
+                  >
+                    <ShieldCheck className="size-4 text-warm-bronze" />
+                    ตรวจรับรอง URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleEnrichIsat}
+                    disabled={pipelineBusy}
+                    className={cn(pillBtn, "px-3.5")}
+                    title={`ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ${isatMemberCount > 0 ? ` — ตอนนี้จับคู่เป็นสมาชิกแล้ว ${isatMemberCount} โรงเรียน` : ""}`}
+                  >
+                    <Award className="size-4 text-warm-bronze" />
+                    ซิงค์ ISAT
+                    {isatMemberCount > 0 && (
+                      <span className="rounded-full bg-warm-card px-2 py-0.5 text-xs font-semibold tabular-nums text-warm-bronze">
+                        {isatMemberCount} รร.
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAutoEnrichAll}
+                    disabled={pipelineBusy}
+                    className={cn(pillBtn, "px-3.5")}
+                    title="รันอัตโนมัติ: เติมชื่อ EN -> GPS -> Website"
+                  >
+                    <Wand2 className="size-4 text-warm-bronze" />
+                    Auto-Enrich
+                  </button>
+                </div>
+              </section>
+
+              {/* Real-time Activity Console */}
+              <OpecActivityConsole state={progress} onClearLogs={handleClearLogs} />
+              {/* The console hides itself until something has run */}
+              {!isRunning && !progress?.task && !progress?.logs?.length && (
+                <p className="rounded-[2rem] border border-dashed border-warm-accent px-6 py-8 text-center text-sm text-warm-charcoal/60">
+                  ยังไม่มีงานที่รันในรอบนี้ — log การทำงานจะแสดงตรงนี้เมื่อเริ่มขั้นตอนใดขั้นตอนหนึ่ง
+                </p>
+              )}
+            </>
+          )}
 
           {/* Loading Indicator */}
           {loading ? (
@@ -1064,7 +1093,7 @@ export function SupabaseAdminPage({
                 </div>
               )}
 
-              {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "approvals" && activeTab !== "verify" && (
+              {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "approvals" && activeTab !== "pipeline" && activeTab !== "verify" && (
                 <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs">
                   <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent text-warm-bronze flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
