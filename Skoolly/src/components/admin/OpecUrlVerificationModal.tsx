@@ -217,7 +217,7 @@ export function OpecUrlVerificationModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white/70 border border-warm-accent rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
         {/* Top Header */}
         <div className="px-6 py-4 border-b border-warm-accent bg-white flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">

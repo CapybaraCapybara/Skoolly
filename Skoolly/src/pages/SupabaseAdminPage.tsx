@@ -1154,11 +1154,6 @@ export function SupabaseAdminPage({
         status={supabaseStatus}
         onClose={() => setIsSupabaseModalOpen(false)}
         onRefreshStatus={fetchSupabaseStatus}
-        onStartSync={() => {
-          setIsSupabaseModalOpen(false);
-          setIsSyncConfirmOpen(true);
-        }}
-        isSyncing={isRunning || actionLoading}
       />
 
       {/* Official URL Verification & Registry Modal */}

@@ -145,7 +145,7 @@ export function OpecSchoolDetailModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white/70 border border-warm-accent rounded-3xl w-full max-w-5xl my-auto max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn text-warm-charcoal">
+      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-5xl my-auto max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn text-warm-charcoal">
         {/* =========================================================================
             1. TOP HEADER (Exact format from user's reference image)
            ========================================================================= */}
