@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { AuthProvider } from './lib/auth'
 import './index.css'
 
 interface Props {
@@ -60,7 +61,9 @@ class ErrorBoundary extends Component<Props, State> {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 )

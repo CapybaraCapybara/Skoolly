@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { getSchools } from '@/api/schoolsApi';
+import { useAuth } from '@/lib/auth';
 import type { School } from '@/types';
 import {
   NavigationMenu,
@@ -65,6 +66,7 @@ export function Navbar({
   favoritesCount = 0,
   onFavorites,
 }: NavbarProps) {
+  const { user, profile, signOut } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
 
   useEffect(() => {
@@ -417,25 +419,55 @@ export function Navbar({
               </button>
             )}
 
-            {/* User Profile Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onLogin}
-              className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50 size-8 sm:size-8.5 shrink-0"
-              title="บัญชีผู้ใช้ (Account)"
-              aria-label="User Account"
-            >
-              <User className="size-4" />
-            </Button>
+            {/* User Profile / Auth State */}
+            {user ? (
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full bg-warm-card border border-warm-accent/80 text-xs font-medium text-warm-charcoal shadow-2xs">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="avatar"
+                      className="w-5 h-5 rounded-full object-cover border border-warm-accent"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-warm-charcoal text-white flex items-center justify-center text-[10px] font-bold">
+                      {(profile?.display_name || user.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="hidden md:inline max-w-[90px] truncate text-[11px] font-semibold text-warm-charcoal">
+                    {profile?.display_name || user.email?.split('@')[0]}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => signOut()}
+                    className="text-[10px] text-gray-400 hover:text-red-600 transition-colors ml-0.5 cursor-pointer font-medium"
+                    title="ออกจากระบบ (Sign Out)"
+                  >
+                    ออก
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onLogin}
+                  className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50 size-8 sm:size-8.5 shrink-0 cursor-pointer"
+                  title="เข้าสู่ระบบ (Sign In)"
+                  aria-label="User Account"
+                >
+                  <User className="size-4" />
+                </Button>
 
-            {/* Sign Up Free (Visible on >= sm / 640px) */}
-            <Button
-              onClick={onSignUp}
-              className="hidden sm:inline-flex rounded-full px-3.5 lg:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap shadow-xs transition-all shrink-0 cursor-pointer"
-            >
-              Sign Up Free
-            </Button>
+                <Button
+                  onClick={onSignUp}
+                  className="hidden sm:inline-flex rounded-full px-3.5 lg:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap shadow-xs transition-all shrink-0 cursor-pointer"
+                >
+                  Sign Up Free
+                </Button>
+              </>
+            )}
 
             {/* ── 4. MOBILE & TABLET DRAWER (Visible on < lg / < 1024px) ───────── */}
             <div className="lg:hidden">

@@ -9,6 +9,7 @@ import { AuthModal } from "@/components/layout/AuthModal";
 import { CompareBar } from "@/components/schools/CompareBar";
 import { CompareModal } from "@/components/schools/CompareModal";
 import { CompareLimitModal } from "@/components/schools/CompareLimitModal";
+import { LoginPage } from "@/pages/LoginPage";
 import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 
@@ -37,6 +38,7 @@ function parseHashView(): View {
     if (!isNaN(schoolId)) return { type: "calculator", schoolId };
   }
   if (hash === "favorites" || hash === "saved") return "favorites";
+  if (hash === "login" || hash === "signin" || hash === "signup") return "login";
   if (hash.startsWith("school/")) {
     const id = parseInt(hash.replace("school/", ""), 10);
     if (!isNaN(id)) return { type: "school", id };
@@ -113,6 +115,12 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  const goLogin = useCallback((mode?: "signin" | "signup") => {
+    setView("login");
+    window.location.hash = mode === "signup" ? "signup" : "login";
+    window.scrollTo(0, 0);
+  }, []);
+
   const clearAllFavorites = useCallback(() => {
     setFavorites(new Set());
   }, []);
@@ -134,6 +142,11 @@ export default function App() {
     });
   }
 
+  // If in login view, render dedicated LoginPage in full screen
+  if (view === "login") {
+    return <LoginPage onNavigateHome={goHome} />;
+  }
+
   // If in admin view, render Database AdminPage in full screen
   if (view === "admin" || view === "supabase-admin") {
     return (
@@ -152,8 +165,8 @@ export default function App() {
   const navBar = (
     <div className="sticky top-0 z-30 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: "blur(12px)" }}>
       <Navbar
-        onSignUp={() => showAuth("Create a free account to access personalised AI recommendations, save schools, and compare unlimited options.")}
-        onLogin={() => showAuth("Sign in to your Skoolly account.")}
+        onSignUp={() => goLogin("signup")}
+        onLogin={() => goLogin("signin")}
         compareCount={compareIds.length}
         favoritesCount={favorites.size}
         onFavorites={goFavorites}
