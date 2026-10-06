@@ -5,7 +5,6 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Sparkles,
   ShieldCheck,
   Download,
   Share2,
@@ -474,7 +473,7 @@ export function CostCalculatorPage({
               onClick={onBack}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-warm-charcoal/70 hover:text-warm-bronze transition-colors px-3 py-1.5 rounded-full border border-warm-accent bg-warm-cream cursor-pointer"
             >
-              <ArrowLeft className="size-3.5" /> Back
+              <ArrowLeft className="size-3.5" /> ย้อนกลับ
             </button>
             <div className="h-4 w-px bg-warm-accent" />
             <div className="flex items-center gap-2">
@@ -483,11 +482,8 @@ export function CostCalculatorPage({
               </div>
               <div>
                 <h1 className="text-base font-bold text-warm-charcoal tracking-tight leading-none">
-                  Tuition & Cost Calculator
+                  คำนวณค่าใช้จ่าย
                 </h1>
-                <span className="text-[11px] text-warm-charcoal/60">
-                  Direct formula calculation · Real scraped fee schedules
-                </span>
               </div>
             </div>
           </div>
@@ -523,7 +519,7 @@ export function CostCalculatorPage({
               onClick={handlePrint}
               className="hidden sm:inline-flex rounded-full border-warm-accent bg-warm-cream text-warm-charcoal hover:bg-warm-accent/50 text-xs gap-1.5 cursor-pointer"
             >
-              <Download className="size-3.5" /> Export PDF
+              <Download className="size-3.5" /> บันทึก PDF
             </Button>
             <Button
               variant="outline"
@@ -532,31 +528,14 @@ export function CostCalculatorPage({
               className="rounded-full border-warm-accent bg-warm-cream text-warm-charcoal hover:bg-warm-accent/50 text-xs gap-1.5 cursor-pointer"
             >
               <Share2 className="size-3.5" />
-              {copiedNotification ? "Link Copied!" : "Share"}
+              {copiedNotification ? "คัดลอกลิงก์แล้ว" : "แชร์"}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* ── HERO BANNER ──────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-4">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-warm-accent/50">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-warm-accent/50 text-warm-charcoal mb-2 border border-warm-accent">
-              <Sparkles className="size-3.5 text-warm-bronze" /> 100% Transparent Fee Schedules
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-medium text-warm-charcoal tracking-tight">
-              Plan your child's complete schooling budget
-            </h2>
-            <p className="text-sm text-warm-charcoal/70 mt-1.5 max-w-2xl">
-              Calculate total education expenses from early years to graduation. Includes accurate tuition tiers, mandatory admission fees, bus transport, catering, and sibling discounts.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* ── MAIN 2-COLUMN LAYOUT ────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* ════════ LEFT COLUMN: CONFIGURATION CONTROLS (7 Cols) ════════════ */}
           <div className="lg:col-span-7 flex flex-col gap-6">
@@ -568,7 +547,7 @@ export function CostCalculatorPage({
                     <Building2 className="size-4" />
                   </div>
                   <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                    1. Select International School
+                    1. เลือกโรงเรียน
                   </h3>
                 </div>
                 <span className="text-xs text-warm-charcoal/50 font-medium">
@@ -576,7 +555,7 @@ export function CostCalculatorPage({
                     ? "กำลังโหลด…"
                     : feesLoadState === "error"
                       ? "โหลดข้อมูลค่าเทอมไม่สำเร็จ"
-                      : `${schoolsData.length} schools with published fees`}
+                      : `มีข้อมูลค่าเทอม ${schoolsData.length} แห่ง`}
                 </span>
               </div>
 
@@ -592,7 +571,7 @@ export function CostCalculatorPage({
                       setIsDropdownOpen(true);
                     }}
                     onFocus={() => setIsDropdownOpen(true)}
-                    placeholder="Search school name or curriculum (e.g. Patana, British, IB)..."
+                    placeholder="ค้นหาชื่อโรงเรียนหรือหลักสูตร"
                     className="w-full rounded-2xl border border-warm-accent bg-warm-card pl-10 pr-10 py-3 text-sm font-medium text-warm-charcoal placeholder:text-warm-charcoal/40 focus:border-warm-bronze focus:outline-none transition-colors"
                   />
                   {searchQuery ? (
@@ -633,14 +612,9 @@ export function CostCalculatorPage({
                             className={`w-full text-left px-4 py-3 flex items-center justify-between gap-3 transition-colors hover:bg-warm-card/80 cursor-pointer ${isSelected ? "bg-warm-card font-bold text-warm-bronze" : "text-warm-charcoal"
                               }`}
                           >
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-sm font-semibold text-warm-charcoal">
-                                {sch.school_name}
-                              </span>
-                              <span className="text-xs text-warm-charcoal/60">
-                                {sch.curriculum ? `${sch.curriculum} Curriculum` : "International"}
-                              </span>
-                            </div>
+                            <span className="text-sm font-semibold text-warm-charcoal">
+                              {sch.school_name}
+                            </span>
                             <div className="flex items-center gap-2 shrink-0">
                               <Badge variant="outline" className="text-[11px] px-2 py-0.5 border-warm-accent bg-warm-cream text-warm-charcoal">
                                 {sch.curriculum || "International"}
@@ -652,7 +626,7 @@ export function CostCalculatorPage({
                       })
                     ) : (
                       <div className="p-4 text-center text-xs text-warm-charcoal/60">
-                        No schools found matching "{searchQuery}"
+                        ไม่พบโรงเรียนที่ตรงกับ "{searchQuery}"
                       </div>
                     )}
                   </div>
@@ -672,11 +646,11 @@ export function CostCalculatorPage({
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-warm-charcoal/70 mt-1">
                         <span className="font-semibold text-warm-bronze">
-                          {currentSchool.curriculum ? `หลักสูตร ${currentSchool.curriculum}` : "International Curriculum"}
+                          {currentSchool.curriculum ? `หลักสูตร ${currentSchool.curriculum}` : "หลักสูตรนานาชาติ"}
                         </span>
                         <span>·</span>
                         <span className="text-warm-charcoal/60">
-                          {grades.length} ระดับชั้นปี
+                          {grades.length} ชั้นปี
                         </span>
                         {currentSchool.page_scraped && (
                           <>
@@ -687,7 +661,7 @@ export function CostCalculatorPage({
                               rel="noreferrer"
                               className="text-warm-charcoal/60 underline hover:text-warm-bronze"
                             >
-                              ตารางค่าเทอมทางการ ↗
+                              หน้าค่าเทอมของโรงเรียน ↗
                             </a>
                           </>
                         )}
@@ -727,10 +701,10 @@ export function CostCalculatorPage({
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                      2. Educational Journey (เส้นทางการศึกษา)
+                      2. ช่วงชั้นที่จะเรียน
                     </h3>
                     <span className="text-[11px] text-warm-charcoal/60">
-                      คลิกเลือกช่วงชั้น หรือคลิกที่ชั้นปีบนไทม์ไลน์เพื่อกำหนดระยะเวลาเรียน
+                      กดเลือกช่วงชั้นหรือชั้นปีบนไทม์ไลน์
                     </span>
                   </div>
                 </div>
@@ -934,7 +908,7 @@ export function CostCalculatorPage({
 
                   <div className="flex items-center gap-3">
                     <Badge className="bg-warm-bronze text-white px-3 py-1 rounded-full font-bold text-xs shadow-2xs">
-                      ระยะเวลา {calcState.durationYears} ปีการศึกษา
+                      {calcState.durationYears} ปี
                     </Badge>
                     <span className="text-[11px] text-warm-charcoal/60 hidden sm:inline">
                       (ค่าเทอมปีแรก {formatCurrency(grades[calcState.startingGradeIndex]?.annual_thb || 0, curr)})
@@ -954,13 +928,10 @@ export function CostCalculatorPage({
                     >
                       <GraduationCap className="size-4" />
                       <span>
-                        {showTuitionTiers ? "ซ่อนตารางค่าเทอมมาตรฐาน" : "ดูตารางค่าเทอมมาตรฐานทุกระดับชั้น"} ({grades.length} ชั้นปี)
+                        {showTuitionTiers ? "ซ่อนค่าเทอมรายชั้น" : "ดูค่าเทอมทุกชั้น"} ({grades.length} ชั้นปี)
                       </span>
                       {showTuitionTiers ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                     </button>
-                    <span className="text-[10px] text-warm-charcoal/50 font-medium">
-                      เทียบระดับชั้นไทย (อ.1 – ม.6)
-                    </span>
                   </div>
 
                   {showTuitionTiers && (
@@ -969,8 +940,8 @@ export function CostCalculatorPage({
                         <table className="w-full text-left text-xs">
                           <thead className="sticky top-0 bg-warm-card border-b border-warm-accent text-[11px] text-warm-charcoal/70 z-10">
                             <tr>
-                              <th className="py-2.5 px-3 font-semibold">ระดับชั้นมาตรฐาน (ระบบไทย)</th>
-                              <th className="py-2.5 px-3 font-semibold">ชื่อตามหลักสูตรโรงเรียน</th>
+                              <th className="py-2.5 px-3 font-semibold">ชั้น (เทียบระบบไทย)</th>
+                              <th className="py-2.5 px-3 font-semibold">ชื่อชั้นของโรงเรียน</th>
                               <th className="py-2.5 px-3 font-semibold text-right">ค่าเทอม/ปี</th>
                               <th className="py-2.5 px-3 font-semibold text-center">เลือกคำนวณ</th>
                             </tr>
@@ -1030,7 +1001,7 @@ export function CostCalculatorPage({
               )}
             </div>
 
-            {/* 3. One-Time Mandatory Admission Fees (Non-optional, Mandatory for Enrollment) */}
+            {/* 3. One-time admission fees */}
             <div className="p-6 rounded-3xl border border-warm-accent bg-warm-cream shadow-xs">
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
@@ -1038,15 +1009,12 @@ export function CostCalculatorPage({
                     <ShieldCheck className="size-4" />
                   </div>
                   <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                    3. One-Time Mandatory Admission Fees (ค่าแรกเข้าภาคบังคับ)
+                    3. ค่าแรกเข้า
                   </h3>
                 </div>
-                <Badge className="bg-warm-charcoal text-white text-[10px] px-2.5 py-0.5 rounded-full font-semibold">
-                  บังคับชำระ (Mandatory)
-                </Badge>
               </div>
               <p className="text-xs text-warm-charcoal/70 mb-4">
-                รายการค่าธรรมเนียมแรกเข้าภาคบังคับ ชำระเฉพาะปีแรกที่เข้าเรียน ไม่สามารถข้ามได้เนื่องจากเป็นเงื่อนไขในการขึ้นทะเบียนนักเรียน
+                จ่ายครั้งเดียวในปีแรก
               </p>
 
               {/* Cards showing the 3 mandatory fees */}
@@ -1056,17 +1024,8 @@ export function CostCalculatorPage({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-warm-charcoal">
-                        Application Fee
+                        ค่าสมัคร
                       </span>
-                      {mandatoryAppFee !== null ? (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                          บังคับ
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-warm-charcoal/60 bg-warm-accent/40 border border-warm-accent px-1.5 py-0.5 rounded">
-                          ไม่มีระบุในเอกสาร
-                        </span>
-                      )}
                     </div>
                     <div className="text-sm font-extrabold text-warm-charcoal mt-1">
                       {mandatoryAppFee !== null ? (
@@ -1078,10 +1037,8 @@ export function CostCalculatorPage({
                       )}
                     </div>
                   </div>
-                  <span className="text-[10px] text-warm-charcoal/60 mt-2 block">
-                    {mandatoryAppFee !== null
-                      ? "ค่าสมัครและประเมินพัฒนาการ (ไม่คืนเงิน)"
-                      : "ไม่มีระบุในเอกสารทางการ (โปรดติดต่อโรงเรียน)"}
+                  <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
+                    {mandatoryAppFee !== null ? "ไม่คืนเงิน" : "ไม่ระบุในเอกสาร"}
                   </span>
                 </div>
 
@@ -1090,17 +1047,8 @@ export function CostCalculatorPage({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-warm-charcoal">
-                        Entrance Fee
+                        ค่าแรกเข้า
                       </span>
-                      {mandatoryRegFee !== null ? (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                          บังคับ
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-warm-charcoal/60 bg-warm-accent/40 border border-warm-accent px-1.5 py-0.5 rounded">
-                          ไม่มีระบุในเอกสาร
-                        </span>
-                      )}
                     </div>
                     <div className="text-sm font-extrabold text-warm-charcoal mt-1">
                       {mandatoryRegFee !== null ? (
@@ -1112,10 +1060,8 @@ export function CostCalculatorPage({
                       )}
                     </div>
                   </div>
-                  <span className="text-[10px] text-warm-charcoal/60 mt-2 block">
-                    {mandatoryRegFee !== null
-                      ? "ค่าแรกเข้าและสิทธิ์ขึ้นทะเบียน (ไม่คืนเงิน)"
-                      : "ไม่มีระบุในเอกสารทางการ (โปรดติดต่อโรงเรียน)"}
+                  <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
+                    {mandatoryRegFee !== null ? "ไม่คืนเงิน" : "ไม่ระบุในเอกสาร"}
                   </span>
                 </div>
 
@@ -1124,17 +1070,8 @@ export function CostCalculatorPage({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-bold text-warm-charcoal">
-                        Refundable Deposit
+                        เงินประกัน
                       </span>
-                      {mandatoryDeposit !== null ? (
-                        <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded">
-                          คืนเงินได้
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-warm-charcoal/60 bg-warm-accent/40 border border-warm-accent px-1.5 py-0.5 rounded">
-                          ไม่มีระบุในเอกสาร
-                        </span>
-                      )}
                     </div>
                     <div className="text-sm font-extrabold text-warm-charcoal mt-1">
                       {mandatoryDeposit !== null ? (
@@ -1146,37 +1083,27 @@ export function CostCalculatorPage({
                       )}
                     </div>
                   </div>
-                  <span className="text-[10px] text-warm-charcoal/60 mt-2 block">
-                    {mandatoryDeposit !== null
-                      ? "เงินมัดจำความเสียหาย (คืนเมื่อลาออก/จบ)"
-                      : "ไม่มีระบุในเอกสารทางการ (โปรดติดต่อโรงเรียน)"}
+                  <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
+                    {mandatoryDeposit !== null ? "คืนเมื่อลาออกหรือจบ" : "ไม่ระบุในเอกสาร"}
                   </span>
                 </div>
               </div>
 
-              {/* Official Refundable Deposit Scraped Note (Or contact school if not present) */}
-              {currentSchool?.hidden_costs?.find((c) => /deposit/i.test(c.name) && !/boarding/i.test(c.name))?.notes ? (
+              {/* Deposit conditions from the school's fee document, when it has any */}
+              {currentSchool?.hidden_costs?.find((c) => /deposit/i.test(c.name) && !/boarding/i.test(c.name))?.notes && (
                 <div className="p-3.5 rounded-2xl border border-warm-accent/70 bg-warm-bg/70 text-xs text-warm-charcoal/80 flex items-start gap-2.5">
                   <Info className="size-4 text-warm-bronze shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-warm-charcoal">เงื่อนไขจากเอกสารทางการ:</span>
+                    <span className="font-bold text-warm-charcoal">เงื่อนไขเงินประกัน</span>
                     <p className="text-[11px] text-warm-charcoal/70 mt-0.5">
                       {currentSchool.hidden_costs.find((c) => /deposit/i.test(c.name) && !/boarding/i.test(c.name))?.notes}
                     </p>
                   </div>
                 </div>
-              ) : (
-                <div className="p-3.5 rounded-2xl border border-warm-accent/70 bg-warm-bg/60 text-xs text-warm-charcoal/70 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Info className="size-4 text-warm-charcoal/40 shrink-0" />
-                    <span className="text-[11px]">ไม่มีข้อมูลเงื่อนไขเงินมัดจำระบุในเอกสารทางการ</span>
-                  </div>
-                  <span className="text-xs font-semibold text-warm-bronze shrink-0">ติดต่อโรงเรียน</span>
-                </div>
               )}
             </div>
 
-            {/* 4. Add-on Services (Rendered Dynamically Based on School's Actual Scraped Data) */}
+            {/* 4. Add-on services listed by the school */}
             <div className="p-6 rounded-3xl border border-warm-accent bg-warm-cream shadow-xs">
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
@@ -1184,15 +1111,15 @@ export function CostCalculatorPage({
                     <Layers className="size-4" />
                   </div>
                   <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                    4. Add-on Services (ค่าบริการเสริม)
+                    4. บริการเสริม
                   </h3>
                 </div>
                 <span className="text-xs text-warm-charcoal/60">
-                  {availableAddons.length} รายการที่โรงเรียนมีระบุ
+                  {availableAddons.length} รายการ
                 </span>
               </div>
               <p className="text-xs text-warm-charcoal/70 mb-4">
-                สามารถเลือกติ๊กเฉพาะรายการที่ต้องการใช้บริการได้
+                เลือกเฉพาะรายการที่จะใช้
               </p>
 
               {availableAddons.length > 0 ? (
@@ -1252,22 +1179,19 @@ export function CostCalculatorPage({
                 <div className="p-6 rounded-2xl border border-warm-accent/70 bg-warm-bg/60 text-center flex flex-col items-center gap-1.5">
                   <Info className="size-5 text-warm-charcoal/40" />
                   <span className="text-xs font-semibold text-warm-charcoal">
-                    โรงเรียนนี้ไม่มีรายการค่าบริการเสริมระบุในเอกสารค่าธรรมเนียมทางการ
+                    ไม่มีรายการบริการเสริมในเอกสารค่าเทอม
                   </span>
-                  <p className="text-[11px] text-warm-charcoal/60 max-w-md">
-                    ค่าบริการเสริม เช่น รถรับส่ง หรืออาหารกลางวัน อาจรวมอยู่ในค่าเทอมหลักแล้ว หรือจัดการโดยผู้ให้บริการภายนอก โปรดติดต่อโรงเรียนโดยตรง
-                  </p>
                 </div>
               )}
             </div>
 
-            {/* 5. Sibling & Family Discounts (Rendered Dynamically Based on School's Policy) */}
+            {/* 5. Discounts the school publishes */}
             <div className="p-6 rounded-3xl border border-warm-accent bg-warm-cream shadow-xs">
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <Users className="size-4 text-warm-bronze" />
                   <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                    5. Sibling & Family Discount (ส่วนลดครอบครัว)
+                    5. ส่วนลด
                   </h3>
                 </div>
               </div>
@@ -1276,7 +1200,7 @@ export function CostCalculatorPage({
               {hasPatanaSiblingDiscount ? (
                 <div className="space-y-3">
                   <p className="text-xs text-warm-charcoal/70">
-                    โรงเรียนนี้มีระบุส่วนลดค่าแรกเข้าสำหรับบุตรคนที่สองและคนถัดไปอย่างเป็นทางการในเอกสาร:
+                    ส่วนลดค่าแรกเข้าสำหรับบุตรคนที่สองขึ้นไป
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
@@ -1287,11 +1211,11 @@ export function CostCalculatorPage({
                         }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-warm-charcoal">บุตรคนแรก (First Child)</span>
+                        <span className="text-xs font-bold text-warm-charcoal">บุตรคนแรก</span>
                         {calcState.childTier === "first_child" && <Check className="size-3.5 text-warm-bronze" />}
                       </div>
                       <span className="text-[11px] text-warm-charcoal/60 mt-1">
-                        ค่าแรกเข้าอัตราปกติ: ฿250,000
+                        ค่าแรกเข้า ฿250,000
                       </span>
                     </button>
 
@@ -1303,11 +1227,11 @@ export function CostCalculatorPage({
                         }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-900">บุตรคนที่สองขึ้นไป (Second Child)</span>
+                        <span className="text-xs font-bold text-emerald-900">บุตรคนที่สองขึ้นไป</span>
                         <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">ลด ฿50,000</Badge>
                       </div>
                       <span className="text-[11px] text-emerald-800/80 mt-1">
-                        ค่าแรกเข้าลดเหลือ: ฿200,000 (ตามประกาศทางการ)
+                        ค่าแรกเข้า ฿200,000
                       </span>
                     </button>
                   </div>
@@ -1316,7 +1240,7 @@ export function CostCalculatorPage({
                 /* Case 2: Harrow alumni discount */
                 <div className="space-y-3">
                   <p className="text-xs text-warm-charcoal/70">
-                    โรงเรียนนี้มีระบุส่วนลดค่าแรกเข้าสำหรับบุตรของศิษย์เก่าในเอกสารทางการ:
+                    ส่วนลดค่าแรกเข้าสำหรับบุตรศิษย์เก่า
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
@@ -1327,11 +1251,11 @@ export function CostCalculatorPage({
                         }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-warm-charcoal">นักเรียนทั่วไป (Standard Student)</span>
+                        <span className="text-xs font-bold text-warm-charcoal">นักเรียนทั่วไป</span>
                         {calcState.childTier !== "alumni" && <Check className="size-3.5 text-warm-bronze" />}
                       </div>
                       <span className="text-[11px] text-warm-charcoal/60 mt-1">
-                        ค่าแรกเข้าอัตราปกติ: ฿225,000
+                        ค่าแรกเข้า ฿225,000
                       </span>
                     </button>
 
@@ -1343,25 +1267,22 @@ export function CostCalculatorPage({
                         }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-900">บุตรของศิษย์เก่า (Alumni Family)</span>
+                        <span className="text-xs font-bold text-emerald-900">บุตรศิษย์เก่า</span>
                         <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">ลด ฿100,000</Badge>
                       </div>
                       <span className="text-[11px] text-emerald-800/80 mt-1">
-                        ค่าแรกเข้าลดเหลือ: ฿125,000 (ตามประกาศทางการ)
+                        ค่าแรกเข้า ฿125,000
                       </span>
                     </button>
                   </div>
                 </div>
               ) : (
-                /* Case 3: School has no official sibling discount entry in scraped results ("อันไหนไม่มีก็ว่างไว้") */
+                /* Case 3: the school publishes no discount */
                 <div className="p-6 rounded-2xl border border-warm-accent/70 bg-warm-bg/60 text-center flex flex-col items-center gap-1.5">
                   <Info className="size-5 text-warm-charcoal/40" />
                   <span className="text-xs font-semibold text-warm-charcoal">
-                    ไม่มีรายการส่วนลดพี่น้องระบุในตารางค่าธรรมเนียมทางการของโรงเรียนนี้
+                    โรงเรียนไม่ได้ประกาศส่วนลด
                   </span>
-                  <p className="text-[11px] text-warm-charcoal/60 max-w-md">
-                    โรงเรียนไม่ได้ระบุอัตราส่วนลดพี่น้องในประกาศสาธารณะ (ว่างไว้ — ไม่มีตัวเลือกส่วนลดให้เลือก เงื่อนไขส่วนลดเป็นไปตามการพิจารณาของฝ่ายรับสมัคร)
-                  </p>
                 </div>
               )}
             </div>
@@ -1376,7 +1297,7 @@ export function CostCalculatorPage({
               <div className="relative z-10 flex flex-col gap-5">
                 <div className="flex items-center justify-between">
                   <Badge className="bg-warm-bronze text-white text-xs px-2.5 py-0.5 border-0 rounded-full font-medium">
-                    {calcState.durationYears}-Year Projected Total
+                    รวม {calcState.durationYears} ปี
                   </Badge>
                   <span className="text-xs text-white/60 font-medium line-clamp-1">
                     {currentSchool?.school_name || "ยังไม่ได้เลือกโรงเรียน"}
@@ -1388,7 +1309,7 @@ export function CostCalculatorPage({
                     {results ? formatCurrency(results.totalJourneyCostTHB, curr) : "฿0"}
                   </div>
                   <span className="text-xs text-white/60 mt-1 block">
-                    {currentSchool ? `Calculated over ${calcState.durationYears} school years (${curr})` : "กรุณาเลือกโรงเรียนเพื่อเริ่มคำนวณงบประมาณ"}
+                    {currentSchool ? `${calcState.durationYears} ปีการศึกษา (${curr})` : "เลือกโรงเรียนเพื่อเริ่มคำนวณ"}
                   </span>
                 </div>
 
@@ -1396,7 +1317,7 @@ export function CostCalculatorPage({
                 <div className="grid grid-cols-3 gap-2 pt-4 border-t border-white/10">
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
                     <span className="text-[10px] text-white/60 block uppercase font-medium">
-                      Year 1 Upfront
+                      ปีแรก
                     </span>
                     <span className="text-xs font-bold text-white mt-0.5 block">
                       {results ? formatCurrency(results.year1CostTHB, curr) : "฿0"}
@@ -1405,7 +1326,7 @@ export function CostCalculatorPage({
 
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
                     <span className="text-[10px] text-white/60 block uppercase font-medium">
-                      Annual Avg
+                      เฉลี่ยต่อปี
                     </span>
                     <span className="text-xs font-bold text-white mt-0.5 block">
                       {results ? formatCurrency(results.averageAnnualCostTHB, curr) : "฿0"}
@@ -1414,7 +1335,7 @@ export function CostCalculatorPage({
 
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
                     <span className="text-[10px] text-white/60 block uppercase font-medium">
-                      Monthly Equiv.
+                      เฉลี่ยต่อเดือน
                     </span>
                     <span className="text-xs font-bold text-white mt-0.5 block">
                       {results ? formatCurrency(results.monthlyEquivalentTHB, curr) : "฿0"}
@@ -1425,10 +1346,7 @@ export function CostCalculatorPage({
                 {/* Visual Distribution Bar */}
                 {results && results.totalJourneyCostTHB > 0 && (
                   <div className="pt-2">
-                    <div className="flex justify-between text-[11px] text-white/70 mb-1.5 font-medium">
-                      <span>Expense Allocation</span>
-                      <span>100% Verified</span>
-                    </div>
+                    <div className="text-[11px] text-white/70 mb-1.5 font-medium">สัดส่วนค่าใช้จ่าย</div>
                     <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden flex gap-0.5">
                       <div
                         style={{
@@ -1437,7 +1355,7 @@ export function CostCalculatorPage({
                           )}%`,
                         }}
                         className="bg-warm-bronze"
-                        title="Tuition"
+                        title="ค่าเทอม"
                       />
                       <div
                         style={{
@@ -1446,7 +1364,7 @@ export function CostCalculatorPage({
                           )}%`,
                         }}
                         className="bg-teal-500"
-                        title="One-Time Mandatory Admission"
+                        title="ค่าแรกเข้า"
                       />
                       <div
                         style={{
@@ -1455,19 +1373,19 @@ export function CostCalculatorPage({
                           )}%`,
                         }}
                         className="bg-amber-400"
-                        title="Selected Add-on Services"
+                        title="บริการเสริม"
                       />
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-[10px] text-white/70 mt-2">
                       <span className="flex items-center gap-1">
-                        <span className="size-2 rounded-full bg-warm-bronze" /> Base Tuition (
+                        <span className="size-2 rounded-full bg-warm-bronze" /> ค่าเทอม (
                         {Math.round(
                           (results.totalTuitionTHB / results.totalJourneyCostTHB) * 100
                         )}
                         %)
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="size-2 rounded-full bg-teal-500" /> Mandatory (
+                        <span className="size-2 rounded-full bg-teal-500" /> ค่าแรกเข้า (
                         {Math.round(
                           (results.oneTimeTotalTHB / results.totalJourneyCostTHB) * 100
                         )}
@@ -1475,7 +1393,7 @@ export function CostCalculatorPage({
                       </span>
                       {results.totalAddonsTHB > 0 && (
                         <span className="flex items-center gap-1">
-                          <span className="size-2 rounded-full bg-amber-400" /> Add-ons (
+                          <span className="size-2 rounded-full bg-amber-400" /> บริการเสริม (
                           {Math.round(
                             (results.totalAddonsTHB / results.totalJourneyCostTHB) * 100
                           )}
@@ -1492,10 +1410,10 @@ export function CostCalculatorPage({
             <div className="p-6 rounded-3xl border border-warm-accent bg-warm-cream shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                  Itemized Cost Breakdown
+                  รายการค่าใช้จ่าย
                 </h3>
                 <span className="text-[11px] font-semibold text-warm-charcoal/60">
-                  {results?.lineItems?.length ?? 0} line items
+                  {results?.lineItems?.length ?? 0} รายการ
                 </span>
               </div>
 
@@ -1520,7 +1438,7 @@ export function CostCalculatorPage({
                           {formatCurrency(Math.abs(item.totalAmountTHB), curr)}
                         </span>
                         <span className="text-[10px] text-warm-charcoal/50 block">
-                          {item.isOneTime ? "one-time" : `over ${calcState.durationYears} yrs`}
+                          {item.isOneTime ? "ครั้งเดียว" : `${calcState.durationYears} ปี`}
                         </span>
                       </div>
                     </div>
@@ -1541,10 +1459,10 @@ export function CostCalculatorPage({
               >
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-bold text-warm-charcoal uppercase tracking-wider">
-                    Year-by-Year Schedule
+                    รายปี
                   </h3>
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-warm-accent">
-                    {calcState.durationYears} Years
+                    {calcState.durationYears} ปี
                   </Badge>
                 </div>
                 <button className="text-warm-charcoal/60 hover:text-warm-bronze cursor-pointer">
@@ -1558,9 +1476,9 @@ export function CostCalculatorPage({
                     <thead>
                       <tr className="border-b border-warm-accent text-warm-charcoal/60 text-[11px]">
                         <th className="pb-2 font-medium">ปีที่</th>
-                        <th className="pb-2 font-medium">ระดับชั้น (Grade)</th>
+                        <th className="pb-2 font-medium">ชั้น</th>
                         <th className="pb-2 font-medium">ค่าเทอม</th>
-                        <th className="pb-2 font-medium">บริการ & แรกเข้า</th>
+                        <th className="pb-2 font-medium">แรกเข้าและบริการเสริม</th>
                         <th className="pb-2 font-medium text-right">ยอดรวม</th>
                       </tr>
                     </thead>
@@ -1602,7 +1520,7 @@ export function CostCalculatorPage({
                       ) : (
                         <tr>
                           <td colSpan={5} className="py-6 text-center text-xs text-warm-charcoal/50">
-                            ยังไม่มีข้อมูลกำหนดการรายปี
+                            ยังไม่มีข้อมูล
                           </td>
                         </tr>
                       )}
@@ -1619,7 +1537,7 @@ export function CostCalculatorPage({
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-warm-charcoal/95 backdrop-blur-md text-white border-t border-white/10 p-3 px-4 shadow-2xl flex items-center justify-between">
         <div>
           <span className="text-[10px] text-white/60 uppercase font-semibold block">
-            {calcState.durationYears}-Year Projected Total ({curr})
+            รวม {calcState.durationYears} ปี ({curr})
           </span>
           <span className="text-base font-extrabold text-white">
             {results ? formatCurrency(results.totalJourneyCostTHB, curr) : "฿0"}

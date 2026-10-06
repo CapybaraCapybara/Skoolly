@@ -161,7 +161,7 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Share your thoughts…"
+                  placeholder="Write a comment"
                   className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && newComment.trim()) setNewComment("");

@@ -62,18 +62,9 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
         className="pt-10 pb-14 px-4"
       >
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-xs font-medium text-teal-300 mb-5">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-            </svg>
-            Parent Community · Talk Forum
-          </div>
-          <h1 className="font-display text-3xl md:text-4xl text-white mb-3">
-            Real talk from <span className="italic text-teal-300">real parents</span>
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Parent Forum</h1>
           <p className="text-slate-300 text-sm max-w-lg mx-auto mb-7">
-            Share your school experiences, ask questions, and help other families make confident
-            choices. No school PR — just honest parent voices.
+            Questions and school experiences from other parents.
           </p>
           <button
             onClick={() => setNewPostOpen(true)}
@@ -94,10 +85,10 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
         {stats && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-3 mb-5 flex items-center gap-6 flex-wrap">
             {[
-              [stats.members, "Parent members"],
-              [stats.posts, "Active discussions"],
-              [stats.comments, "Comments posted"],
-              [stats.schools, "Schools discussed"],
+              [stats.members, "Members"],
+              [stats.posts, "Posts"],
+              [stats.comments, "Comments"],
+              [stats.schools, "Schools"],
             ].map(([n, l]) => (
               <div key={l} className="text-center">
                 <div className="font-bold text-navy-900 text-base">{n.toLocaleString("en-US")}</div>
@@ -132,15 +123,14 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
         {/* Posts */}
         <div className="space-y-4">
           {loadState === "loading" && (
-            <div className="py-16 text-center text-sm text-slate-400">กำลังโหลดกระทู้…</div>
+            <div className="py-16 text-center text-sm text-slate-400">Loading posts…</div>
           )}
           {loadState === "error" && (
-            <div className="py-16 text-center text-sm text-slate-500">โหลดกระทู้ไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้งภายหลัง</div>
+            <div className="py-16 text-center text-sm text-slate-500">Couldn't load posts. Please try again later.</div>
           )}
           {loadState === "ready" && filtered.length === 0 && (
             <div className="py-16 text-center">
-              <p className="font-semibold text-navy-900 mb-1">ยังไม่มีกระทู้{activeCategory !== "All" ? "ในหมวดนี้" : ""}</p>
-              <p className="text-sm text-slate-500">เริ่มตั้งกระทู้แรกเพื่อแบ่งปันประสบการณ์กับผู้ปกครองคนอื่น</p>
+              <p className="font-semibold text-navy-900">No posts{activeCategory !== "All" ? " in this category" : ""} yet</p>
             </div>
           )}
           {filtered.map((post) => (
@@ -166,11 +156,11 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
             className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="font-display text-xl text-navy-900 mb-4">Start a discussion</h3>
+            <h3 className="text-xl font-bold text-navy-900 mb-4">Start a discussion</h3>
             <div className="space-y-3">
               <input
                 type="text"
-                placeholder="Title — e.g. 'Our experience at NIST after 1 year'"
+                placeholder="Title"
                 className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
               />
               <select className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-400">
@@ -188,7 +178,7 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
               </select>
               <textarea
                 rows={4}
-                placeholder="Share your thoughts, experience, or question…"
+                placeholder="Write your post"
                 className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
               />
             </div>
@@ -204,7 +194,7 @@ export function ForumPage({ onSchoolClick }: ForumPageProps) {
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
                 style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}
               >
-                Post discussion
+                Post
               </button>
             </div>
           </div>

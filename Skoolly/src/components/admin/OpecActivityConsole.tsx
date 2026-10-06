@@ -182,7 +182,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm font-bold text-warm-charcoal tracking-tight">
-                {state.task || (state.is_running ? "Data Pipeline กำลังประมวลผล..." : "เสร็จสิ้นกระบวนการ")}
+                {state.task || (state.is_running ? "กำลังทำงาน…" : "เสร็จแล้ว")}
               </span>
               <span
                 className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
@@ -195,7 +195,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
               </span>
             </div>
             <p className="text-xs text-[#78716c]">
-              บันทึกกิจกรรมเรียลไทม์ (Live Pipeline Telemetry)
+              Log การทำงาน
             </p>
           </div>
         </div>
@@ -221,7 +221,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           >
             <Copy className="w-3.5 h-3.5 text-warm-bronze" />
             <span className="hidden sm:inline font-semibold text-xs">
-              {copied ? "คัดลอกแล้ว!" : "คัดลอก"}
+              {copied ? "คัดลอกแล้ว" : "คัดลอก"}
             </span>
           </button>
 
@@ -424,7 +424,7 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
                 <p className="text-xs">
                   {searchTerm
                     ? "ไม่พบข้อความที่ตรงกับการค้นหา"
-                    : "พร้อมรับคำสั่งประมวลผล..."}
+                    : "ยังไม่มี log"}
                 </p>
               </div>
             )}

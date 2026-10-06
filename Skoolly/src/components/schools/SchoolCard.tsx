@@ -72,18 +72,15 @@ export function SchoolCard({
         {logoSrc && !imgFailed ? (
           <img
             src={logoSrc}
-            alt={`โลโก้ ${school.name}`}
+            alt={`${school.name} logo`}
             referrerPolicy="no-referrer"
             className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onError={() => setImgFailed(true)}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-center select-none">
-            <div className="w-16 h-16 rounded-2xl bg-warm-cream border border-warm-accent flex items-center justify-center text-warm-bronze font-bold text-xl tracking-wider group-hover:scale-105 transition-transform">
-              {getSchoolInitials(school.name)}
-            </div>
-            <span className="text-[11px] text-warm-charcoal/60 mt-2">ไม่มีโลโก้ในระบบ</span>
+          <div className="w-16 h-16 rounded-2xl bg-warm-cream border border-warm-accent flex items-center justify-center text-warm-bronze font-bold text-xl tracking-wider select-none group-hover:scale-105 transition-transform">
+            {getSchoolInitials(school.name)}
           </div>
         )}
 
@@ -146,7 +143,7 @@ export function SchoolCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 11.5v4.5c0 1.1 3.1 3 7 3s7-1.9 7-3v-4.5" />
               </svg>
-              <span className="line-clamp-1">{school.grades || "ไม่ระบุระดับชั้น"}</span>
+              <span className="line-clamp-1">{school.grades || "Grades not listed"}</span>
             </div>
           </div>
         </div>
@@ -169,7 +166,9 @@ export function SchoolCard({
 
         <div className="mt-auto pt-3 flex items-end justify-between border-t border-warm-accent/60">
           <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-warm-charcoal/60">Starting from</div>
+            <div className="text-[11px] uppercase font-bold tracking-wider text-warm-charcoal/60">
+              {school.tuitionStart > 0 ? "Tuition from" : "Tuition"}
+            </div>
             <div className="font-extrabold text-warm-charcoal text-base leading-tight mt-0.5">
               {school.tuitionStart > 0 ? (
                 <>
@@ -177,7 +176,7 @@ export function SchoolCard({
                   <span className="text-xs font-normal text-warm-charcoal/60">/yr</span>
                 </>
               ) : (
-                <span className="text-sm font-semibold text-warm-charcoal/75">Contact school</span>
+                <span className="text-sm font-semibold text-warm-charcoal/75">Not published</span>
               )}
             </div>
           </div>
@@ -188,7 +187,7 @@ export function SchoolCard({
                 <div className="text-xs text-warm-charcoal/60 mt-0.5">{school.reviewCount} reviews</div>
               </>
             ) : (
-              <div className="text-xs text-warm-charcoal/60">ยังไม่มีรีวิว</div>
+              <div className="text-xs text-warm-charcoal/60">No reviews yet</div>
             )}
           </div>
         </div>
@@ -202,7 +201,7 @@ export function SchoolCard({
             }
           }}
           className="flex items-center gap-2 mt-1 text-xs select-none group cursor-pointer"
-          title={compareAtLimit ? `เลือกครบ ${MAX_COMPARE} โรงเรียนแล้ว (คลิกเพื่อเลือกลบและแทนที่)` : isCompared ? "นำออกจากเปรียบเทียบ" : "เพิ่มเข้าเปรียบเทียบ"}
+          title={compareAtLimit ? `You already have ${MAX_COMPARE} schools. Click to swap one.` : undefined}
         >
           <input
             type="checkbox"
@@ -216,11 +215,11 @@ export function SchoolCard({
             className="w-4 h-4 rounded accent-warm-bronze border-warm-accent cursor-pointer"
           />
           <span className={`transition-colors font-medium ${isCompared ? "text-warm-bronze font-bold" : "text-warm-charcoal/80 group-hover:text-warm-bronze"}`}>
-            {isCompared ? "อยู่ในรายการเปรียบเทียบ" : "Add to Compare"}
+            {isCompared ? "Added to compare" : "Add to compare"}
           </span>
           {compareAtLimit && (
-            <span className="ml-auto text-[10px] font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
-              3/3 เต็ม (สลับ)
+            <span className="ml-auto text-[11px] font-semibold text-warm-charcoal/60">
+              {MAX_COMPARE}/{MAX_COMPARE} · swap
             </span>
           )}
         </div>

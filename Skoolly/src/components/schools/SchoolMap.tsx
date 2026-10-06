@@ -3,16 +3,15 @@ import type { Map as LeafletMap } from "leaflet";
 import { getSchools } from "@/api/schoolsApi";
 import { formatTuition } from "@/components/schools/SchoolCard";
 
-// Example saved location — Sukhumvit, Bangkok
-// For production, replace with the user's real saved location
+// Example location (Sukhumvit, Bangkok) until users can save their own
 export const EXAMPLE_SAVED_LOCATION = {
-  name: "Your Saved Location",
+  name: "Example location",
   address: "Sukhumvit Rd, Khlong Toei, Bangkok 10110",
   lat: 13.7306,
   lng: 100.5688,
 };
 
-export const APPROXIMATE_PIN_NOTE = "ตำแหน่งโดยประมาณ";
+export const APPROXIMATE_PIN_NOTE = "Approximate location";
 
 export function SchoolMap() {
   const mapRef = useRef<LeafletMap | null>(null);
@@ -82,11 +81,9 @@ export function SchoolMap() {
           `<div style="font-family:system-ui;min-width:160px">
             <div style="font-weight:700;color:#14284b;margin-bottom:2px">${EXAMPLE_SAVED_LOCATION.name}</div>
             <div style="font-size:12px;color:#78716c">${EXAMPLE_SAVED_LOCATION.address}</div>
-            <div style="font-size:11px;margin-top:6px;color:#b8913a;font-weight:600">📍 Your saved location</div>
           </div>`,
           { maxWidth: 220 }
-        )
-        .openPopup();
+        );
 
       // School markers — an exact pin is a solid pill; an approximate one is dashed and muted
       const schoolIcon = (rating: number, approximate: boolean) => L.divIcon({
@@ -119,7 +116,7 @@ export function SchoolMap() {
             const name = escapeHtml(school.name);
             const distKm = getDistance(EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng, lat, lng);
             const fee =
-              school.tuitionStart > 0 ? `From ${formatTuition(school.tuitionStart)}/yr` : "Contact school for fees";
+              school.tuitionStart > 0 ? `From ${formatTuition(school.tuitionStart)}/yr` : "Fees not published";
             const ratingText = school.rating > 0 ? `⭐ ${school.rating} · ` : "";
 
             const marker = L.marker([lat, lng], {
@@ -131,7 +128,7 @@ export function SchoolMap() {
                 `<div style="font-family:system-ui;min-width:180px">
                   <div style="font-weight:700;color:#14284b;margin-bottom:3px">${name}</div>
                   <div style="font-size:12px;color:#b8913a;font-weight:600">${fee}</div>
-                  <div style="font-size:12px;color:#78716c;margin-top:2px">${ratingText}${distKm} km from you</div>
+                  <div style="font-size:12px;color:#78716c;margin-top:2px">${ratingText}${distKm} km away</div>
                   ${approximate ? `<div style="font-size:11px;color:#b45309;margin-top:4px">${APPROXIMATE_PIN_NOTE}</div>` : ""}
                 </div>`,
                 { maxWidth: 220 }

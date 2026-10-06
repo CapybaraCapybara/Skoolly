@@ -36,19 +36,13 @@ export function CompareModal({
         <div className="flex items-center justify-between px-6 py-5 border-b border-warm-accent/40 bg-white/60">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-warm-bronze text-white text-xs font-bold">
-                ⚖️
-              </span>
               <h2 className="text-lg sm:text-xl font-bold text-warm-charcoal">
-                เปรียบเทียบโรงเรียนนานาชาติ
+                เปรียบเทียบโรงเรียน
               </h2>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-warm-accent text-warm-charcoal">
-                {selectedSchools.length} / {MAX_COMPARE} แห่ง (Guest Mode)
+                {selectedSchools.length}/{MAX_COMPARE}
               </span>
             </div>
-            <p className="text-xs text-warm-charcoal/60 mt-1">
-              เปรียบเทียบข้อมูลหลักแบบเคียงข้างกันเพื่อช่วยให้คุณตัดสินใจได้ง่ายขึ้น
-            </p>
           </div>
           <button
             onClick={onClose}
@@ -62,7 +56,7 @@ export function CompareModal({
         <div className="flex-1 overflow-x-auto overflow-y-auto p-4 sm:p-6">
           {selectedSchools.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-sm text-warm-charcoal/60">ไม่มีโรงเรียนที่เลือกเปรียบเทียบ</p>
+              <p className="text-sm text-warm-charcoal/60">ยังไม่ได้เลือกโรงเรียน ติ๊ก Add to compare บนการ์ดโรงเรียนเพื่อเลือก</p>
             </div>
           ) : (
             <div className="min-w-[640px]">
@@ -74,7 +68,7 @@ export function CompareModal({
               >
                 {/* School Cards / Images Header */}
                 <div className="pt-2 font-bold text-xs uppercase tracking-wider text-warm-charcoal/50">
-                  โรงเรียนที่เลือก
+                  โรงเรียน
                 </div>
                 {selectedSchools.map((s) => (
                   <div
@@ -84,7 +78,7 @@ export function CompareModal({
                     <button
                       onClick={() => onRemove(s.id)}
                       className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-black/60 text-white hover:bg-rose-600 flex items-center justify-center text-xs transition-colors"
-                      title="นำโรงเรียนนี้ออก"
+                      title="เอาออก"
                     >
                       ✕
                     </button>
@@ -139,15 +133,15 @@ export function CompareModal({
                         }}
                         className="w-full py-1.5 px-2 rounded-lg text-xs font-semibold text-white bg-warm-bronze hover:opacity-90 transition-opacity"
                       >
-                        คำนวณค่าเทอม
+                        คำนวณค่าใช้จ่าย
                       </button>
                     </div>
                   </div>
                 ))}
 
-                {/* Row: หลักสูตร (Curriculum) */}
+                {/* Row: curriculum */}
                 <div className="py-3 font-semibold text-xs text-warm-charcoal/70 border-t border-warm-accent/40 flex items-center">
-                  หลักสูตร (Curriculum)
+                  หลักสูตร
                 </div>
                 {selectedSchools.map((s) => (
                   <div
@@ -160,9 +154,9 @@ export function CompareModal({
                   </div>
                 ))}
 
-                {/* Row: ค่าเทอมเริ่มต้น (Tuition) */}
+                {/* Row: tuition */}
                 <div className="py-3 font-semibold text-xs text-warm-charcoal/70 border-t border-warm-accent/40 flex items-center">
-                  ค่าเทอมเริ่มต้น / ปี
+                  ค่าเทอมเริ่มต้นต่อปี
                 </div>
                 {selectedSchools.map((s) => (
                   <div
@@ -174,54 +168,54 @@ export function CompareModal({
                         <span className="text-base font-bold text-warm-bronze">
                           ฿{s.tuitionStart.toLocaleString()}
                         </span>
-                        <span className="text-xs text-warm-charcoal/60 ml-1">/ ปี</span>
+                        <span className="text-xs text-warm-charcoal/60 ml-1">/ปี</span>
                       </>
                     ) : (
-                      <span className="text-xs font-semibold text-warm-charcoal/60">ติดต่อโรงเรียน</span>
+                      <span className="text-xs font-semibold text-warm-charcoal/60">ไม่มีข้อมูล</span>
                     )}
                   </div>
                 ))}
 
-                {/* Row: ช่วงชั้น (Grades) */}
+                {/* Row: grades */}
                 <div className="py-3 font-semibold text-xs text-warm-charcoal/70 border-t border-warm-accent/40 flex items-center">
-                  ระดับชั้นที่เปิดสอน
+                  ระดับชั้น
                 </div>
                 {selectedSchools.map((s) => (
                   <div
                     key={`grades-${s.id}`}
                     className="py-3 border-t border-warm-accent/40 text-xs text-warm-charcoal/80"
                   >
-                    {s.grades || "ไม่ระบุระดับชั้น"}
+                    {s.grades || "ไม่มีข้อมูล"}
                   </div>
                 ))}
 
-                {/* Row: ทำเลที่ตั้ง (Location) */}
+                {/* Row: location */}
                 <div className="py-3 font-semibold text-xs text-warm-charcoal/70 border-t border-warm-accent/40 flex items-center">
-                  ทำเลที่ตั้ง
+                  ที่ตั้ง
                 </div>
                 {selectedSchools.map((s) => (
                   <div
                     key={`loc-${s.id}`}
                     className="py-3 border-t border-warm-accent/40 text-xs text-warm-charcoal/80 flex items-center gap-1"
                   >
-                    <span>📍 {s.location}</span>
+                    <span>{s.location}</span>
                   </div>
                 ))}
 
-                {/* Row: ระยะทาง (Distance) */}
+                {/* Row: distance */}
                 <div className="py-3 font-semibold text-xs text-warm-charcoal/70 border-t border-warm-accent/40 flex items-center">
-                  ระยะทางโดยประมาณ
+                  ระยะทาง
                 </div>
                 {selectedSchools.map((s) => (
                   <div
                     key={`dist-${s.id}`}
                     className="py-3 border-t border-warm-accent/40 text-xs text-warm-charcoal/80"
                   >
-                    {s.distance > 0 ? `${s.distance} กม. จากสุขุมวิท` : "ไม่ระบุตำแหน่งเทียบ"}
+                    {s.distance > 0 ? `${s.distance} กม. จากสุขุมวิท` : "ไม่มีข้อมูล"}
                   </div>
                 ))}
 
-                {/* Row: ภาษาที่ใช้สอน (Language) */}
+                {/* Row: language */}
                 <div className="py-3 font-semibold text-xs text-warm-charcoal/70 border-t border-warm-accent/40 flex items-center">
                   ภาษาที่ใช้สอน
                 </div>
@@ -239,24 +233,21 @@ export function CompareModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-warm-accent/40 bg-white/60">
-          <div className="flex items-center gap-2 text-xs text-warm-charcoal/70">
-            <span>💡 ข้อมูลเปรียบเทียบนี้แสดงชั่วคราวสำหรับ Guest</span>
-          </div>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-warm-accent/40 bg-white/60">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {onSaveComparison && (
               <button
                 onClick={onSaveComparison}
-                className="flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold border border-warm-bronze text-warm-bronze hover:bg-warm-bronze/10 transition-colors"
+                className="flex-1 sm:flex-initial px-4 py-2 rounded-full text-xs font-bold border border-warm-accent text-warm-charcoal hover:border-warm-bronze hover:text-warm-bronze transition-colors cursor-pointer"
               >
-                บันทึกชุดเปรียบเทียบนี้
+                บันทึก
               </button>
             )}
             <button
               onClick={onClose}
-              className="flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-bold bg-warm-charcoal text-white hover:bg-warm-charcoal/90 transition-colors"
+              className="flex-1 sm:flex-initial px-5 py-2 rounded-full text-xs font-bold bg-warm-charcoal text-white hover:bg-warm-charcoal/90 transition-colors cursor-pointer"
             >
-              ปิดหน้าต่าง
+              ปิด
             </button>
           </div>
         </div>

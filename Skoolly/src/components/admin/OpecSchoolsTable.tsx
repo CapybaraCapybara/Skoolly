@@ -168,11 +168,11 @@ export function OpecSchoolsTable({
 
   const statFilterLabels: Record<StatFilter, string> = {
     all: "โรงเรียนทั้งหมด",
-    has_website: "มี Official Website แล้ว",
+    has_website: "มีเว็บไซต์แล้ว",
     missing_en: "ยังไม่มีชื่อภาษาอังกฤษ",
     missing_gps: "ยังไม่มีพิกัด GPS ระดับอาคาร",
     provinces: "จัดเรียงตามจังหวัด",
-    missing_website: "ยังไม่มี Official Website",
+    missing_website: "ยังไม่มีเว็บไซต์",
   };
 
   return (
@@ -333,7 +333,7 @@ export function OpecSchoolsTable({
         <div className="p-3.5 bg-warm-cream border border-warm-accent rounded-2xl flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5 text-xs text-warm-charcoal font-medium">
             <Filter className="w-4 h-4 text-warm-bronze" />
-            <span>กำลังกรองตามการ์ด: <strong>{statFilterLabels[activeStatFilter]}</strong></span>
+            <span>กรอง: <strong>{statFilterLabels[activeStatFilter]}</strong></span>
             <span className="px-2.5 py-0.5 bg-warm-charcoal text-white rounded-full text-xs font-bold">
               {filteredSchools.length} แห่ง
             </span>
@@ -393,8 +393,8 @@ export function OpecSchoolsTable({
               <option value="name_th_desc">ชื่อโรงเรียน (ฮ ➔ ก)</option>
               <option value="province_asc">เรียงตามจังหวัด (ก ➔ ฮ)</option>
               <option value="province_desc">เรียงตามจังหวัด (ฮ ➔ ก)</option>
-              <option value="completion_asc">⚠️ ขาดข้อมูลเยอะสุดก่อน</option>
-              <option value="completion_desc">✅ ข้อมูลครบถ้วนก่อน</option>
+              <option value="completion_asc">ขาดข้อมูลมากสุดก่อน</option>
+              <option value="completion_desc">ข้อมูลครบก่อน</option>
               <option value="students_desc">จำนวนนักเรียน (มาก ➔ น้อย)</option>
               <option value="students_asc">จำนวนนักเรียน (น้อย ➔ มาก)</option>
             </select>
@@ -441,7 +441,7 @@ export function OpecSchoolsTable({
                   title="คลิกเพื่อจัดเรียงตามชื่อโรงเรียน"
                 >
                   <div className="flex items-center gap-1">
-                    <span>ชื่อโรงเรียน (ไทย & อังกฤษ)</span>
+                    <span>ชื่อโรงเรียน</span>
                     <ArrowUpDown className={`w-3 h-3 ${sortBy.startsWith("name") ? "text-warm-bronze" : "text-[#a8a29e]"}`} />
                   </div>
                 </th>
@@ -461,7 +461,7 @@ export function OpecSchoolsTable({
                   title="คลิกเพื่อจัดเรียงตามความสมบูรณ์ของข้อมูล"
                 >
                   <div className="flex items-center gap-1">
-                    <span>สถานะความสมบูรณ์ของข้อมูล</span>
+                    <span>ความครบของข้อมูล</span>
                     <ArrowUpDown className={`w-3 h-3 ${sortBy.startsWith("completion") ? "text-warm-bronze" : "text-[#a8a29e]"}`} />
                   </div>
                 </th>
@@ -514,28 +514,28 @@ export function OpecSchoolsTable({
                         {isComplete ? (
                           <span className="inline-flex items-center gap-1.5 text-teal-800 font-bold text-xs bg-teal-50 px-3 py-1 rounded-full border border-teal-200 shadow-2xs">
                             <CheckCircle2 className="w-3.5 h-3.5 text-teal-600" />
-                            <span>ข้อมูลครบถ้วนสมบูรณ์</span>
+                            <span>ข้อมูลครบ</span>
                           </span>
                         ) : (
                           <div className="flex flex-wrap items-center gap-1.5">
                             {!hasEnName && (
                               <span className="inline-flex items-center gap-1 text-amber-800 font-bold text-[11px] bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                                ⚠️ ขาดชื่อ EN
+                                ขาดชื่อ EN
                               </span>
                             )}
                             {!hasWebsite && (
                               <span className="inline-flex items-center gap-1 text-rose-800 font-bold text-[11px] bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
-                                ⚠️ ขาดเว็บ
+                                ขาดเว็บไซต์
                               </span>
                             )}
                             {!hasGps && (
                               <span className="inline-flex items-center gap-1 text-red-800 font-bold text-[11px] bg-red-50 px-2 py-0.5 rounded-md border border-red-200">
-                                ⚠️ ขาด GPS
+                                ขาด GPS
                               </span>
                             )}
                             {isApproxGps && (
-                              <span className="inline-flex items-center gap-1 text-warm-bronze font-bold text-[11px] bg-warm-card px-2 py-0.5 rounded-md border border-warm-accent" title="พิกัดปัจจุบันเป็นระดับตำบล/อำเภอ หรือประมาณการ">
-                                📍 GPS ประมาณการ
+                              <span className="inline-flex items-center gap-1 text-warm-bronze font-bold text-[11px] bg-warm-card px-2 py-0.5 rounded-md border border-warm-accent" title="พิกัดระดับตำบลหรืออำเภอ">
+                                GPS โดยประมาณ
                               </span>
                             )}
                           </div>
@@ -547,7 +547,6 @@ export function OpecSchoolsTable({
                             type="button"
                             onClick={() => onSelectSchool(s)}
                             className="px-3 py-1.5 bg-white/70 hover:bg-warm-charcoal hover:text-white border border-warm-accent text-warm-charcoal rounded-full text-xs font-semibold whitespace-nowrap transition-colors inline-flex items-center gap-1"
-                            title="ดูรายละเอียดเชิงลึกและจัดการข้อมูล"
                           >
                             <Eye className="w-3.5 h-3.5 text-warm-bronze" />
                             <span>ดูข้อมูล</span>
@@ -591,7 +590,7 @@ export function OpecSchoolsTable({
             >
               <option value={25}>25 รายการ</option>
               <option value={50}>50 รายการ</option>
-              <option value={100}>100 รายการ (แนะนำ)</option>
+              <option value={100}>100 รายการ</option>
               <option value={200}>200 รายการ</option>
               <option value={1000}>แสดงทั้งหมด ({schools.length} โรงเรียน)</option>
             </select>
