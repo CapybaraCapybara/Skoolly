@@ -1,189 +1,301 @@
 import { useEffect, useRef } from "react";
-import type { Map as LeafletMap } from "leaflet";
-import { getSchools } from "@/api/schoolsApi";
+import L from "leaflet";
+import type { School } from "@/types";
 import { formatTuition } from "@/components/schools/SchoolCard";
 
-// Example location (Sukhumvit, Bangkok) until users can save their own
-export const EXAMPLE_SAVED_LOCATION = {
-  name: "Example location",
-  address: "Sukhumvit Rd, Khlong Toei, Bangkok 10110",
-  lat: 13.7306,
-  lng: 100.5688,
-};
-
-export const APPROXIMATE_PIN_NOTE = "Approximate location";
-
-export function SchoolMap() {
-  const mapRef = useRef<LeafletMap | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    // Guard against HMR double-mount ("Map container already initialized")
-    if ((el as any)._leaflet_id) return;
-
-    import("leaflet").then((L) => {
-      if (!containerRef.current || (containerRef.current as any)._leaflet_id) return;
-
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      });
-
-      const map = L.map(containerRef.current!, {
-        center: [EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng],
-        zoom: 12,
-        zoomControl: true,
-        scrollWheelZoom: false,
-      });
-
-      mapRef.current = map;
-
-      // OpenStreetMap tiles — no API key needed.
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · ' +
-          '<a href="https://overturemaps.org">Overture Maps Foundation</a> · กรมการปกครอง',
-        maxZoom: 19,
-      }).addTo(map);
-
-      // Saved location marker (home pin)
-      const homeIcon = L.divIcon({
-        html: `<div style="
-          width:36px;height:36px;border-radius:50% 50% 50% 0;
-          background:#14284b;
-          transform:rotate(-45deg);
-          border:3px solid #f8f6f1;
-          box-shadow:0 3px 12px rgba(28,25,23,0.3);
-        ">
-          <div style="
-            position:absolute;inset:0;display:flex;align-items:center;
-            justify-content:center;transform:rotate(45deg);
-          ">
-            <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' viewBox='0 0 24 24'>
-              <path d='M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z'/>
-            </svg>
-          </div>
-        </div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        className: "",
-      });
-
-      // Keep the home pin above school pins, which can now be dense around it
-      L.marker([EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng], { icon: homeIcon, zIndexOffset: 1000 })
-        .addTo(map)
-        .bindPopup(
-          `<div style="font-family:system-ui;min-width:160px">
-            <div style="font-weight:700;color:#14284b;margin-bottom:2px">${EXAMPLE_SAVED_LOCATION.name}</div>
-            <div style="font-size:12px;color:#78716c">${EXAMPLE_SAVED_LOCATION.address}</div>
-          </div>`,
-          { maxWidth: 220 }
-        );
-
-      // School markers — an exact pin is a solid pill; an approximate one is dashed and muted
-      const schoolIcon = (rating: number, approximate: boolean) => L.divIcon({
-        html: `<div style="
-          background:${approximate ? "rgba(250,248,245,0.85)" : "#f8f6f1"};
-          border:2px ${approximate ? "dashed #a8a29e" : "solid #b8913a"};
-          border-radius:20px;
-          padding:3px 8px;
-          font-size:11px;
-          font-weight:${approximate ? 600 : 700};
-          color:${approximate ? "#78716c" : "#14284b"};
-          white-space:nowrap;
-          box-shadow:0 2px 8px rgba(28,25,23,0.12);
-          display:flex;align-items:center;gap:3px;
-        ">${approximate ? "≈ " : ""}${rating > 0 ? `⭐ ${rating}` : "🏫"}</div>`,
-        iconSize: approximate ? [62, 24] : [52, 24],
-        iconAnchor: approximate ? [31, 12] : [26, 12],
-        className: "",
-      });
-
-      // Real pins from school_data.schools via schoolsApi; schools without usable coordinates have no coords
-      getSchools()
-        .then((schools) => {
-          if (mapRef.current !== map) return;
-
-          schools.forEach((school) => {
-            if (!school.coords) return;
-            const { lat, lng, precision } = school.coords;
-            const approximate = precision === "Approximate";
-            const name = escapeHtml(school.name);
-            const distKm = getDistance(EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng, lat, lng);
-            const fee =
-              school.tuitionStart > 0 ? `From ${formatTuition(school.tuitionStart)}/yr` : "Fees not published";
-            const ratingText = school.rating > 0 ? `⭐ ${school.rating} · ` : "";
-
-            const marker = L.marker([lat, lng], {
-              icon: schoolIcon(school.rating, approximate),
-              zIndexOffset: approximate ? 0 : 500,
-            })
-              .addTo(map)
-              .bindPopup(
-                `<div style="font-family:system-ui;min-width:180px">
-                  <div style="font-weight:700;color:#14284b;margin-bottom:3px">${name}</div>
-                  <div style="font-size:12px;color:#b8913a;font-weight:600">${fee}</div>
-                  <div style="font-size:12px;color:#78716c;margin-top:2px">${ratingText}${distKm} km away</div>
-                  ${approximate ? `<div style="font-size:11px;color:#b45309;margin-top:4px">${APPROXIMATE_PIN_NOTE}</div>` : ""}
-                </div>`,
-                { maxWidth: 220 }
-              );
-
-            if (approximate) {
-              marker.bindTooltip(
-                `<div style="font-family:system-ui">
-                  <div style="font-weight:600;color:#14284b">${name}</div>
-                  <div style="font-size:11px;color:#b45309">${APPROXIMATE_PIN_NOTE}</div>
-                </div>`,
-                { direction: "top", offset: [0, -12] }
-              );
-            }
-          });
-        })
-        .catch((error) => console.debug("[SchoolMap] school pins unavailable:", error));
-
-      // Draw radius circle from saved location (10 km)
-      L.circle([EXAMPLE_SAVED_LOCATION.lat, EXAMPLE_SAVED_LOCATION.lng], {
-        radius: 10000,
-        color: "#b8913a",
-        fillColor: "#b8913a",
-        fillOpacity: 0.04,
-        weight: 1.5,
-        dashArray: "6 4",
-      }).addTo(map);
-    });
-
-    return () => {
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      className="w-full h-full rounded-2xl overflow-hidden"
-      style={{ minHeight: 400 }}
-    />
-  );
+export interface MapPoint {
+  lat: number;
+  lng: number;
 }
 
-// School names come from the database and are rendered as popup HTML
+// Example location (Sukhumvit, Bangkok) until the visitor shares or picks their own
+export const EXAMPLE_LOCATION = {
+  lat: 13.7306,
+  lng: 100.5688,
+  label: "Sukhumvit, Bangkok",
+};
+
+export type MapSelection = { id: number; from: "map" | "list" } | null;
+
+interface SchoolMapProps {
+  /** Schools to draw; ones without coordinates are skipped */
+  schools: School[];
+  center: MapPoint;
+  radiusKm: number;
+  nearbyIds: Set<number>;
+  distances: Map<number, number>;
+  selected: MapSelection;
+  hoveredId: number | null;
+  onSelect: (id: number) => void;
+  onPopupClose: (id: number) => void;
+  onHover: (id: number | null) => void;
+  onCenterChange: (point: MapPoint) => void;
+  onOpenSchool: (id: number) => void;
+}
+
+const NAVY = "#14284b";
+const GOLD = "#b8913a";
+const MUTED = "#8f9bb0";
+const IVORY = "#f8f6f1";
+
+type PinState = "selected" | "hovered" | "near" | "far";
+
+function pinStyle(state: PinState, approximate: boolean): L.CircleMarkerOptions {
+  if (state === "selected") {
+    return { radius: 10, color: "#ffffff", weight: 3, dashArray: "", fillColor: GOLD, fillOpacity: 1 };
+  }
+  if (state === "hovered") {
+    return approximate
+      ? { radius: 9, color: GOLD, weight: 2.5, dashArray: "3 3", fillColor: IVORY, fillOpacity: 1 }
+      : { radius: 9, color: "#ffffff", weight: 2, dashArray: "", fillColor: GOLD, fillOpacity: 1 };
+  }
+  if (state === "near") {
+    return approximate
+      ? { radius: 7, color: NAVY, weight: 2, dashArray: "3 3", fillColor: IVORY, fillOpacity: 1 }
+      : { radius: 7, color: "#ffffff", weight: 2, dashArray: "", fillColor: NAVY, fillOpacity: 1 };
+  }
+  return approximate
+    ? { radius: 5, color: MUTED, weight: 1.5, dashArray: "2 2", fillColor: IVORY, fillOpacity: 0.8 }
+    : { radius: 5, color: "#ffffff", weight: 1, dashArray: "", fillColor: MUTED, fillOpacity: 0.8 };
+}
+
+export function formatDistance(km: number) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+}
+
+// School names come from the database and are rendered as popup / tooltip HTML
 function escapeHtml(text: string) {
   return text.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 }
 
-function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1);
+const homeIcon = L.divIcon({
+  html: `<div style="
+    width:32px;height:32px;border-radius:50% 50% 50% 0;
+    background:${NAVY};transform:rotate(-45deg);
+    border:3px solid ${IVORY};box-shadow:0 3px 10px rgba(20,40,75,0.35);">
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(45deg);">
+      <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='white' viewBox='0 0 24 24'><path d='M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z'/></svg>
+    </div>
+  </div>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  className: "",
+});
+
+export function SchoolMap(props: SchoolMapProps) {
+  const { schools, center, radiusKm, nearbyIds, selected, hoveredId } = props;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const homeRef = useRef<L.Marker | null>(null);
+  const circleRef = useRef<L.Circle | null>(null);
+  const layerRef = useRef<L.LayerGroup | null>(null);
+  const pinsRef = useRef(new Map<number, { marker: L.CircleMarker; approximate: boolean }>());
+  // Hover / selection are drawn as rings in their own pane instead of restyling and re-ordering the pins:
+  // moving a pin's SVG node while it is under the pointer makes the browser drop its mouseout,
+  // which left tooltips stuck open
+  const hoverRingRef = useRef<L.CircleMarker | null>(null);
+  const selectRingRef = useRef<L.CircleMarker | null>(null);
+  const tooltipPinRef = useRef<L.CircleMarker | null>(null);
+  // Leaflet handlers are bound once; they read the latest props through this ref
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  // ── Create the map once ────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const map = L.map(el, {
+      center: [center.lat, center.lng],
+      zoom: 12,
+      scrollWheelZoom: true,
+      // One wheel notch = one zoom level (Leaflet's default of 60 jumps two levels per notch)
+      wheelPxPerZoomLevel: 120,
+    });
+
+    const activePane = map.createPane("pinsActive");
+    activePane.style.zIndex = "450"; // above the pins (400), below the house pin and tooltips
+    activePane.style.pointerEvents = "none";
+    hoverRingRef.current = L.circleMarker([0, 0], { pane: "pinsActive", interactive: false });
+    selectRingRef.current = L.circleMarker([0, 0], { pane: "pinsActive", interactive: false });
+
+    // The wheel zooms the map, except while the page is being scrolled past it: if the wheel was just
+    // turning outside the map, it keeps scrolling the page until the visitor pauses for a moment
+    let lastPageWheel = 0;
+    const onWindowWheel = (e: WheelEvent) => {
+      if (!el.contains(e.target as Node)) lastPageWheel = performance.now();
+    };
+    const onMapWheel = (e: WheelEvent) => {
+      const now = performance.now();
+      if (now - lastPageWheel < 300) {
+        lastPageWheel = now;
+        e.stopPropagation(); // Leaflet never sees it, so the browser scrolls the page as usual
+      }
+    };
+    const wheelGuard = el.parentElement ?? el;
+    window.addEventListener("wheel", onWindowWheel, { capture: true, passive: true });
+    wheelGuard.addEventListener("wheel", onMapWheel, { capture: true, passive: true });
+
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · ' +
+        '<a href="https://overturemaps.org">Overture Maps Foundation</a> · กรมการปกครอง',
+      maxZoom: 19,
+    }).addTo(map);
+
+    const circle = L.circle([center.lat, center.lng], {
+      radius: radiusKm * 1000,
+      color: GOLD,
+      weight: 1.5,
+      dashArray: "6 4",
+      fillColor: GOLD,
+      fillOpacity: 0.06,
+      interactive: false,
+    }).addTo(map);
+
+    layerRef.current = L.layerGroup().addTo(map);
+
+    const home = L.marker([center.lat, center.lng], {
+      icon: homeIcon,
+      draggable: true,
+      zIndexOffset: 1000,
+      title: "Drag to move",
+    }).addTo(map);
+    home.on("drag", () => circle.setLatLng(home.getLatLng()));
+    home.on("dragend", () => {
+      const p = home.getLatLng();
+      propsRef.current.onCenterChange({ lat: p.lat, lng: p.lng });
+    });
+
+    map.on("popupopen", (e) => {
+      const button = e.popup.getElement()?.querySelector<HTMLButtonElement>("[data-open-school]");
+      button?.addEventListener("click", () => propsRef.current.onOpenSchool(Number(button.dataset.openSchool)));
+    });
+
+    mapRef.current = map;
+    homeRef.current = home;
+    circleRef.current = circle;
+    map.fitBounds(circle.getBounds(), { padding: [12, 12] });
+
+    return () => {
+      window.removeEventListener("wheel", onWindowWheel, { capture: true });
+      wheelGuard.removeEventListener("wheel", onMapWheel, { capture: true });
+      map.remove();
+      mapRef.current = null;
+      layerRef.current = null;
+      hoverRingRef.current = null;
+      selectRingRef.current = null;
+      tooltipPinRef.current = null;
+      pinsRef.current.clear();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── School pins ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const layer = layerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    pinsRef.current.clear();
+
+    schools.forEach((school) => {
+      if (!school.coords) return;
+      const approximate = school.coords.precision === "Approximate";
+      const marker = L.circleMarker([school.coords.lat, school.coords.lng], pinStyle("far", approximate))
+        .bindTooltip(escapeHtml(school.name), { direction: "top", offset: [0, -8] })
+        .bindPopup(() => popupHtml(school, propsRef.current.distances.get(school.id)), {
+          maxWidth: 240,
+          offset: [0, -6],
+        });
+      marker.on("click", () => propsRef.current.onSelect(school.id));
+      marker.on("mouseover", () => propsRef.current.onHover(school.id));
+      marker.on("mouseout", () => propsRef.current.onHover(null));
+      marker.on("popupopen", () => marker.closeTooltip());
+      marker.on("popupclose", () => propsRef.current.onPopupClose(school.id));
+      layer.addLayer(marker);
+      pinsRef.current.set(school.id, { marker, approximate });
+    });
+  }, [schools]);
+
+  // ── Pin styling: in range or further away ─────────────────────────────────
+  // Runs only when the radius or location changes, never on hover
+  useEffect(() => {
+    pinsRef.current.forEach(({ marker, approximate }, id) => {
+      const near = nearbyIds.has(id);
+      marker.setStyle(pinStyle(near ? "near" : "far", approximate));
+      if (near) marker.bringToFront();
+    });
+  }, [schools, nearbyIds]);
+
+  // ── Hover: ring on top, plus the name when the hover comes from the list ──
+  useEffect(() => {
+    const map = mapRef.current;
+    const ring = hoverRingRef.current;
+    if (!map || !ring) return;
+    const pin = hoveredId != null && hoveredId !== selected?.id ? pinsRef.current.get(hoveredId) : undefined;
+
+    if (tooltipPinRef.current && tooltipPinRef.current !== pin?.marker) tooltipPinRef.current.closeTooltip();
+    tooltipPinRef.current = pin?.marker ?? null;
+
+    if (pin) {
+      ring.setLatLng(pin.marker.getLatLng());
+      ring.setStyle(pinStyle("hovered", pin.approximate));
+      if (!map.hasLayer(ring)) ring.addTo(map);
+      pin.marker.openTooltip();
+    } else {
+      ring.remove();
+    }
+  }, [schools, hoveredId, selected]);
+
+  // ── Location and radius ────────────────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    const circle = circleRef.current;
+    const home = homeRef.current;
+    if (!map || !circle || !home) return;
+    home.setLatLng([center.lat, center.lng]);
+    circle.setLatLng([center.lat, center.lng]);
+    circle.setRadius(radiusKm * 1000);
+    map.fitBounds(circle.getBounds(), { padding: [12, 12] });
+  }, [center.lat, center.lng, radiusKm]);
+
+  // ── Selection: open the popup, and fly to the school when picked from the list ─
+  useEffect(() => {
+    const map = mapRef.current;
+    const ring = selectRingRef.current;
+    if (!map || !ring) return;
+    const pin = selected ? pinsRef.current.get(selected.id) : undefined;
+    if (!selected || !pin) {
+      ring.remove();
+      map.closePopup();
+      return;
+    }
+    const target = pin.marker.getLatLng();
+    ring.setLatLng(target);
+    ring.setStyle(pinStyle("selected", pin.approximate));
+    if (!map.hasLayer(ring)) ring.addTo(map);
+    if (selected.from === "list" && (map.getZoom() < 14 || !map.getBounds().pad(-0.1).contains(target))) {
+      map.once("moveend", () => pin.marker.openPopup());
+      map.flyTo(target, Math.max(map.getZoom(), 14), { duration: 0.6 });
+    } else {
+      pin.marker.openPopup();
+    }
+  }, [selected]);
+
+  return <div ref={containerRef} className="w-full h-full" />;
+}
+
+function popupHtml(school: School, km: number | undefined) {
+  const fee = school.tuitionStart > 0 ? `From ${formatTuition(school.tuitionStart)}/yr` : "Fees not published";
+  const meta = [km != null ? formatDistance(km) : null, school.curriculum].filter(Boolean).join(" · ");
+  const approximate =
+    school.coords?.precision === "Approximate" ? `<div class="sk-popup-note">Approximate location</div>` : "";
+  return `<div class="sk-popup">
+    <div class="sk-popup-name">${escapeHtml(school.name)}</div>
+    <div class="sk-popup-meta">${escapeHtml(meta)}</div>
+    <div class="sk-popup-fee">${fee}</div>
+    ${approximate}
+    <button type="button" class="sk-popup-link" data-open-school="${school.id}">View school →</button>
+  </div>`;
 }

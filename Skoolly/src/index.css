@@ -244,7 +244,69 @@ input[type="range"] {
   }
 }
 
-/* Custom Leaflet style matching Dwello warm beige theme */
+/* Leaflet: muted basemap so the school pins stand out, and popups in the site's font */
+.leaflet-container {
+  font-family: inherit;
+  background: #f1efe9;
+}
 .leaflet-container .leaflet-tile-pane {
-  filter: sepia(0.4) hue-rotate(5deg) contrast(0.95) saturate(0.85);
+  filter: grayscale(1) sepia(0.12) contrast(0.88) brightness(1.06);
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(20, 40, 75, 0.16);
+}
+.leaflet-popup-content {
+  margin: 12px 16px;
+  line-height: 1.45;
+}
+.leaflet-tooltip {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #14284b;
+  border-radius: 8px;
+  border-color: #e3dccd;
+}
+.leaflet-marker-draggable {
+  cursor: grab;
+}
+.leaflet-container .leaflet-control-attribution {
+  font-size: 10px;
+}
+.sk-popup-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #14284b;
+}
+.sk-popup-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.sk-popup-fee {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b8913a;
+}
+.sk-popup-note {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #b45309;
+}
+.sk-popup-link {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #14284b;
+  cursor: pointer;
+}
+.sk-popup-link:hover {
+  color: #b8913a;
+  text-decoration: underline;
 }

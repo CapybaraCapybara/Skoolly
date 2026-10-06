@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, BookOpen, Calculator, ChevronLeft, ChevronRight, Home, MessageSquare } from "lucide-react";
+import { ArrowRight, BookOpen, Calculator, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import Hero, { type HeroStat } from "@/components/schools/Hero";
 import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
-import { SchoolMap, EXAMPLE_SAVED_LOCATION, APPROXIMATE_PIN_NOTE } from "@/components/schools/SchoolMap";
+import { NearbySchools } from "@/components/schools/NearbySchools";
 import type { School, Filters } from "@/types";
 import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";
@@ -336,61 +336,7 @@ export function HomePage({
       {/* ── MAP ───────────────────────────────────────────────────────────── */}
       <section className="py-12 border-t border-warm-accent/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-warm-charcoal">Schools Near You</h2>
-              <p className="text-warm-charcoal/60 text-sm mt-1">Within 10 km of the location below</p>
-            </div>
-            <div className="flex items-center gap-3 rounded-full border border-warm-accent bg-warm-cream pl-2 pr-4 py-2">
-              <div className="flex size-8 items-center justify-center rounded-full bg-warm-charcoal text-white shrink-0">
-                <Home className="size-4" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-warm-charcoal">{EXAMPLE_SAVED_LOCATION.name}</div>
-                <div className="text-xs text-warm-charcoal/60">{EXAMPLE_SAVED_LOCATION.address}</div>
-              </div>
-              <button
-                onClick={() => onRestrictedAction("Sign in to set your own location.")}
-                className="ml-1 text-xs font-semibold text-warm-bronze hover:underline shrink-0 cursor-pointer"
-              >
-                Change
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div className="lg:col-span-2 isolate rounded-[2rem] overflow-hidden border border-warm-accent" style={{ height: 440 }}>
-              <SchoolMap />
-            </div>
-
-            <div className="rounded-[2rem] border border-warm-accent bg-warm-cream p-5 self-start">
-              <h3 className="text-sm font-bold text-warm-charcoal mb-4">Legend</h3>
-              <div className="space-y-3.5">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-warm-charcoal text-white shrink-0">
-                    <Home className="size-4" />
-                  </div>
-                  <span className="text-xs text-warm-charcoal">Your location</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 flex justify-center shrink-0">
-                    <span className="bg-warm-cream border-2 border-warm-bronze rounded-full px-2 py-0.5 text-xs">🏫</span>
-                  </div>
-                  <span className="text-xs text-warm-charcoal">School, click for details</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 flex justify-center shrink-0">
-                    <span className="border-2 border-dashed border-stone-400 rounded-full px-1.5 py-0.5 text-xs text-stone-500">≈🏫</span>
-                  </div>
-                  <span className="text-xs text-warm-charcoal">{APPROXIMATE_PIN_NOTE}, pinned to the district</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 shrink-0 border-t-[1.5px] border-dashed border-warm-bronze" />
-                  <span className="text-xs text-warm-charcoal">10 km radius</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <NearbySchools schools={schools} onOpenSchool={onSchoolClick} />
         </div>
       </section>
 
