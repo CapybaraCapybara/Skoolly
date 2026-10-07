@@ -23,7 +23,6 @@ import re
 import json
 import time
 import requests
-import threading
 from data_manager import load_schools, save_schools
 
 # Disable SSL warnings
@@ -190,6 +189,9 @@ THAI_TO_EN_TOKEN_MAP = {
     'วันเดอร์แวลี่ย์': 'Wonder Valley'
 }
 
+THAI_CHARS = re.compile(r"[\u0E00-\u0E7F]")
+
+
 def is_garbled_name(name):
     """Detects whether an English name is a broken transliteration, HTTP error, or generic spam"""
     if not name or len(name.strip()) < 3:
@@ -206,7 +208,7 @@ def clean_school_en_name(raw_name):
     """Cleans and formats an English school name with standard casing and acronym preservation"""
     if not raw_name:
         return ""
-    name = str(raw_name).strip()
+    name = THAI_CHARS.sub('', str(raw_name)).strip()   # OPEC left a stray Thai mark in one name
     name = name.replace('&amp;', '&').replace('&quot;', '"').replace('&#39;', "'").replace('&#8211;', '-').replace('&#8212;', '—')
     name = re.sub(r'[\r\n\t]+', ' ', name)
     name = re.sub(r'\s+', ' ', name)
@@ -409,20 +411,26 @@ def dynamic_resolve_school_en_name(school):
             return clean_school_en_name(web_en)
 
     # === Tier 4: Morphological & Linguistic Standard Transliteration ===
+    # A word missing from THAI_TO_EN_TOKEN_MAP stays in Thai; no name beats a half-Thai one.
     morph_en = transliterate_thai_school_to_en(th_name)
-    if morph_en and not is_garbled_name(morph_en):
+    if morph_en and not is_garbled_name(morph_en) and not THAI_CHARS.search(morph_en):
         return clean_school_en_name(morph_en)
 
     return ""
 
+def needs_en_name(name):
+    """Empty, garbled, or carrying Thai characters: worth resolving again."""
+    name = str(name or "").strip()
+    return not name or is_garbled_name(name) or bool(THAI_CHARS.search(name))
+
+
 def enrich_single_school_name_en(school):
     """Enriches English name for a single school record"""
-    cur_en = str(school.get("school_name_en") or "").strip()
-    if cur_en and not is_garbled_name(cur_en):
+    if not needs_en_name(school.get("school_name_en")):
         return school, {}
 
     resolved_en = dynamic_resolve_school_en_name(school)
-    if resolved_en:
+    if resolved_en and resolved_en != school.get("school_name_en"):
         changes = {"school_name_en": resolved_en}
         school.update(changes)
         return school, changes
@@ -438,50 +446,42 @@ def enrich_all_school_names_en(update_progress, on_save_callback=None):
         update_progress("ไม่พบข้อมูลโรงเรียน", 100, 100, "กรุณากดดึงข้อมูล OPEC (ปุ่ม 1) ก่อน!")
         return []
 
-    targets = [s for s in schools if not str(s.get("school_name_en") or "").strip() or is_garbled_name(s.get("school_name_en"))]
+    targets = [s for s in schools if needs_en_name(s.get("school_name_en"))]
     total_tasks = len(targets)
 
     if total_tasks == 0:
         # Verify Supabase database synchronization
         synced_sb = 0
+        has_db = False
         try:
             from supabase_sync import update_supabase_school_names_en, get_current_dsn
-            if get_current_dsn():
+            has_db = bool(get_current_dsn())
+            if has_db:
                 update_progress("กำลังตรวจสอบความสมบูรณ์ใน Supabase...", 100, 100, "กำลังตรวจสอบชื่อภาษาอังกฤษในตาราง school_data.schools...")
                 synced_sb = update_supabase_school_names_en(schools, update_progress)
         except Exception as e:
             print("[Supabase Sync Check]", e)
 
-        if synced_sb > 0:
-            msg = f"ซิงค์ชื่อภาษาอังกฤษทางการลงสู่ Supabase สำเร็จ (+{synced_sb} แห่ง, รวม 100% ครบถ้วน)"
-            update_progress("ซิงค์ชื่อภาษาอังกฤษสู่ Supabase เรียบร้อยแล้ว", 100, 100, msg)
-        else:
-            msg = f"โรงเรียนทั้งหมด {len(schools)} แห่ง ในระบบและ Supabase มีชื่อภาษาอังกฤษ (Official English Name) ครบถ้วน 100% แล้ว!"
-            update_progress("ชื่อภาษาอังกฤษสมบูรณ์ครบถ้วนแล้ว", 100, 100, msg)
+        msg = f"โรงเรียนทั้ง {len(schools)} แห่งมีชื่อภาษาอังกฤษแล้ว " + (
+            f"บันทึกชื่อที่ต่างจาก Supabase {synced_sb} แห่ง" if has_db else "(ยังไม่ได้ตั้งค่า Supabase จึงไม่ได้ซิงค์)")
+        update_progress("เติมชื่อภาษาอังกฤษเสร็จแล้ว", 100, 100, msg)
         return schools
 
     update_progress(f"กำลังประมวลผลชื่อภาษาอังกฤษ ({total_tasks} แห่ง)", 0, total_tasks, f"เริ่มต้นกระบวนการเติมชื่อภาษาอังกฤษทางการ {total_tasks} แห่ง...")
 
-    completed = 0
     enriched_count = 0
-    lock = threading.Lock()
 
     for idx, s in enumerate(targets, 1):
         th_name = s.get("school_name_th", "")
         resolved_en = dynamic_resolve_school_en_name(s)
-        
-        with lock:
-            if resolved_en:
-                s["school_name_en"] = resolved_en
-                s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-                enriched_count += 1
-                msg = f"[ชื่อ EN: {idx}/{total_tasks}] เติมชื่อสำเร็จ: {th_name} -> {resolved_en}"
-            else:
-                msg = f"[ชื่อ EN: {idx}/{total_tasks}] ไม่พบชื่อ: {th_name}"
-                
-            completed += 1
-            update_progress(f"กำลังประมวลผลชื่อภาษาอังกฤษ ({completed}/{total_tasks})", completed, total_tasks, msg)
-            time.sleep(0.04)
+        if resolved_en:
+            s["school_name_en"] = resolved_en
+            s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            enriched_count += 1
+            msg = f"[ชื่อ EN: {idx}/{total_tasks}] เติมชื่อสำเร็จ: {th_name} -> {resolved_en}"
+        else:
+            msg = f"[ชื่อ EN: {idx}/{total_tasks}] ไม่พบชื่อ: {th_name}"
+        update_progress(f"กำลังประมวลผลชื่อภาษาอังกฤษ ({idx}/{total_tasks})", idx, total_tasks, msg)
 
     save_schools(schools)
     if on_save_callback:
@@ -494,15 +494,14 @@ def enrich_all_school_names_en(update_progress, on_save_callback=None):
         if get_current_dsn():
             update_progress("กำลังซิงค์ชื่อ EN สู่ Supabase...", total_tasks, total_tasks, "กำลังบันทึกชื่อภาษาอังกฤษลงตาราง school_data.schools ใน Supabase...")
             supabase_synced = update_supabase_school_names_en(schools, update_progress)
-            update_progress("บันทึกลง Supabase เรียบร้อยแล้ว", total_tasks, total_tasks, f"บันทึกชื่อ EN สู่ Supabase สำเร็จ (+{supabase_synced} แห่ง)")
+            update_progress("บันทึกลง Supabase เรียบร้อยแล้ว", total_tasks, total_tasks, f"บันทึกชื่อ EN ที่เปลี่ยนลง Supabase {supabase_synced} แห่ง")
     except Exception as e:
         print("[Supabase Sync Error]", e)
 
     summary_msg = (
-        f"ประมวลผลชื่อภาษาอังกฤษ (Official English Name) เสร็จสมบูรณ์!\n"
-        f"  - เติมชื่อภาษาอังกฤษทางการ: +{enriched_count} แห่ง\n"
-        f"  - บันทึกลง Supabase (school_data.schools): +{supabase_synced} แห่ง\n"
-        f"  - ฐานข้อมูลและ Local Data สมบูรณ์ครบถ้วน 100.0% Complete"
+        f"เติมชื่อภาษาอังกฤษเสร็จแล้ว\n"
+        f"  - เติมชื่อได้: {enriched_count} จาก {total_tasks} แห่งที่ยังไม่มีหรือชื่อเพี้ยน\n"
+        f"  - บันทึกลง Supabase (school_data.schools): {supabase_synced} แห่ง"
     )
-    update_progress("เติมชื่อภาษาอังกฤษเสร็จสมบูรณ์!", total_tasks, total_tasks, summary_msg)
+    update_progress("เติมชื่อภาษาอังกฤษเสร็จแล้ว", total_tasks, total_tasks, summary_msg)
     return schools

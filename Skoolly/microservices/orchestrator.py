@@ -11,14 +11,20 @@ class SagaRequest(BaseModel):
     school_name: str
     homepage_url: str
 
-def post_json(url: str, data: Dict[str, Any]):
+# Seconds. A scrape loads pages with Playwright and may wait out several Gemini rate-limit
+# back-offs; validation and saving are quick. batch_scrape_runner.py waits a little longer
+# than the whole saga, so it never gives up on a school that is still being saved.
+SCRAPE_TIMEOUT_S = 300
+STEP_TIMEOUT_S = 60
+
+def post_json(url: str, data: Dict[str, Any], timeout: float = STEP_TIMEOUT_S):
     req = urllib.request.Request(
         url,
         data=json.dumps(data).encode('utf-8'),
         headers={'Content-Type': 'application/json'}
     )
     try:
-        with urllib.request.urlopen(req, timeout=90000) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
             return response.status, json.loads(response.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         try:
@@ -48,7 +54,7 @@ def orchestrate_scrape_school(req: SagaRequest):
     code, scraper_resp = post_json("http://127.0.0.1:8001/scrape", {
         "school_name": req.school_name,
         "homepage_url": req.homepage_url
-    })
+    }, timeout=SCRAPE_TIMEOUT_S)
     
     if code != 200 or scraper_resp.get("status") == "failed":
         log_step("SCRAPER_EXECUTE", "failed", scraper_resp)

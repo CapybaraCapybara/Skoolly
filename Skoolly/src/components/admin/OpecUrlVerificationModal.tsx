@@ -82,11 +82,11 @@ export function OpecUrlVerificationModal({
     setIsStartingHealthCheck(true);
     try {
       await triggerWebsiteHealthCheck();
-      showMsg("เริ่มต้นระบบตรวจสอบสุขภาพเว็บไซต์ (Link Health Check)...");
+      showMsg("เริ่มตรวจลิงก์ทั้งหมด");
       const status = await getWebsiteHealthCheckStatus();
       setHealthCheckState(status);
     } catch (err: any) {
-      showMsg(err.message || "เกิดข้อผิดพลาดในการเริ่มตรวจสุขภาพ", "error");
+      showMsg(err.message || "เริ่มตรวจลิงก์ไม่สำเร็จ", "error");
     } finally {
       setIsStartingHealthCheck(false);
     }
@@ -103,7 +103,7 @@ export function OpecUrlVerificationModal({
           if (!status.is_running) {
             await loadData();
             if (onDataChanged) onDataChanged();
-            showMsg(status.message || "ตรวจสุขภาพเว็บไซต์เสร็จสิ้น!");
+            showMsg(status.message || "ตรวจลิงก์เสร็จแล้ว");
           }
         } catch (e) {
           // ignore polling errors
@@ -118,13 +118,13 @@ export function OpecUrlVerificationModal({
   // Handle single URL verify
   const handleVerify = async (item: WebsiteRegistryItem) => {
     if (!item.website) {
-      showMsg("ไม่สามารถรับรองได้เนื่องจากยังไม่มี URL เว็บไซต์", "error");
+      showMsg("ยังไม่มี URL จึงรับรองไม่ได้", "error");
       return;
     }
     setActionLoadingCode(item.school_code);
     try {
       await verifySchoolWebsite(item.school_code, item.website, true);
-      showMsg(`รับรองเว็บไซต์ทางการสำหรับ "${item.school_name_th}" สำเร็จ`);
+      showMsg(`รับรองเว็บไซต์ของ ${item.school_name_th} แล้ว`);
       await loadData();
       if (onDataChanged) onDataChanged();
     } catch (err: any) {
@@ -139,7 +139,7 @@ export function OpecUrlVerificationModal({
     setActionLoadingCode(schoolCode);
     try {
       await verifySchoolWebsite(schoolCode, editUrlValue.trim(), true);
-      showMsg(`บันทึกและรับรอง URL โรงเรียน [${schoolCode}] สำเร็จ`);
+      showMsg(`บันทึกและรับรอง URL ของ ${schoolCode} แล้ว`);
       setEditingCode(null);
       setEditUrlValue("");
       await loadData();
@@ -155,7 +155,7 @@ export function OpecUrlVerificationModal({
   const handleBulkSync = async () => {
     if (
       !window.confirm(
-        "ต้องการซิงค์รายชื่อเว็บไซต์ทั้งหมด 284 โรงเรียนจาก reference/schoolAndURL.txt เข้าสู่ระบบและ Supabase ใช่หรือไม่?"
+        "ซิงค์ URL จาก reference/schoolAndURL.txt เข้า Supabase หรือไม่?"
       )
     ) {
       return;
@@ -163,7 +163,7 @@ export function OpecUrlVerificationModal({
     setIsSyncingAll(true);
     try {
       const res = await syncWebsiteRegistryFromText();
-      showMsg(`ซิงค์ข้อมูลจาก schoolAndURL.txt สำเร็จ! (Local: +${res.synced_local}, Supabase: +${res.synced_supabase} แห่ง)`);
+      showMsg(`ซิงค์แล้ว (ในเครื่อง +${res.synced_local}, Supabase +${res.synced_supabase})`);
       await loadData();
       if (onDataChanged) onDataChanged();
     } catch (err: any) {
@@ -227,14 +227,11 @@ export function OpecUrlVerificationModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-warm-charcoal tracking-tight">
-                  ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ
+                  ตรวจรับรองเว็บไซต์
                 </h2>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#456ca6]/10 text-[#456ca6] border border-[#456ca6]/20">
-                  Supabase Registry
-                </span>
               </div>
               <p className="text-xs text-[#78716c] mt-0.5">
-                Official Website Registry & Link Health Monitor · ข้อมูลจะถูกบันทึกถาวร ไม่สูญหายเมื่อ Re-scrape
+                ผลที่รับรองแล้วเก็บถาวร ไม่หายเมื่อ scrape ใหม่
               </p>
             </div>
           </div>
@@ -247,7 +244,7 @@ export function OpecUrlVerificationModal({
               onClick={handleRunHealthCheck}
               disabled={healthCheckState?.is_running || isStartingHealthCheck}
               className="px-4 py-2 rounded-full bg-warm-charcoal hover:bg-stone-800 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-              title="ตรวจสอบสถานะการเข้าถึงของทุกลิงก์ (Link Health Check)"
+              title="ตรวจว่าทุกลิงก์ยังเปิดได้"
             >
               {healthCheckState?.is_running || isStartingHealthCheck ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
@@ -257,7 +254,7 @@ export function OpecUrlVerificationModal({
               <span>
                 {healthCheckState?.is_running
                   ? `กำลังตรวจ (${healthCheckState.percent}%)`
-                  : "ตรวจสุขภาพทุกลิงก์"}
+                  : "ตรวจทุกลิงก์"}
               </span>
             </button>
 
@@ -267,7 +264,7 @@ export function OpecUrlVerificationModal({
               onClick={handleBulkSync}
               disabled={isSyncingAll}
               className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-warm-charcoal border border-warm-accent text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              title="ซิงค์ข้อมูล URL 284 แห่งจาก schoolAndURL.txt เข้าสู่ Supabase"
+              title="ซิงค์ URL จาก schoolAndURL.txt เข้า Supabase"
             >
               {isSyncingAll ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-500" />
@@ -293,7 +290,7 @@ export function OpecUrlVerificationModal({
               type="button"
               onClick={onClose}
               className="p-2 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
-              title="ปิดหน้าต่าง"
+              title="ปิด"
             >
               <X className="w-5 h-5" />
             </button>
@@ -306,7 +303,7 @@ export function OpecUrlVerificationModal({
             <div className="flex items-center gap-2 text-warm-charcoal font-medium">
               <Loader2 className="w-4 h-4 animate-spin text-[#456ca6]" />
               <span>
-                กำลังสแกนลิงก์ทั้ง {healthCheckState.total} แห่งพร้อมกัน... (ตรวจแล้ว {healthCheckState.current}/{healthCheckState.total})
+                กำลังตรวจลิงก์ {healthCheckState.current}/{healthCheckState.total}
               </span>
             </div>
             <div className="flex items-center gap-3 w-48 sm:w-64">
@@ -368,21 +365,21 @@ export function OpecUrlVerificationModal({
                 {data?.verified_count ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
               <div className="text-xs text-[#456ca6] font-medium mt-1">
-                Ground Truth ใน Database
+                บันทึกใน Supabase
               </div>
             </div>
 
             {/* Card 3: Healthy Online */}
             <div className="p-4 bg-white rounded-2xl border border-warm-accent shadow-xs">
               <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
-                <span>สถานะออนไลน์ปกติ</span>
+                <span>เปิดได้ปกติ</span>
                 <Activity className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="text-2xl font-bold text-emerald-700 tracking-tight mt-1.5">
                 {data?.healthy_count ?? "—"} <span className="text-xs font-normal text-stone-400">แห่ง</span>
               </div>
               <div className="text-xs text-emerald-600 font-medium mt-1">
-                Online / HTTP 200 OK
+                HTTP 200
               </div>
             </div>
 
@@ -397,7 +394,7 @@ export function OpecUrlVerificationModal({
             >
               <div className="flex items-center justify-between text-xs font-medium">
                 <span className={(data?.broken_count ?? 0) > 0 ? "text-rose-800" : "text-stone-500"}>
-                  พบปัญหาต้องตรวจสอบ
+                  มีปัญหา
                 </span>
                 <AlertTriangle
                   className={`w-4 h-4 ${
@@ -539,7 +536,7 @@ export function OpecUrlVerificationModal({
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>
-                  <strong>พบเว็บไซต์ที่เข้าถึงไม่ได้ {data?.broken_count ?? 0} แห่ง</strong> (DNS Error, Server Error, หรือ Connection Timeout) คุณสามารถคลิกไอคอน ✏️ เพื่อแก้ไข URL ใหม่ได้ทันที
+                  <strong>เปิดไม่ได้ {data?.broken_count ?? 0} แห่ง</strong> กดไอคอนดินสอเพื่อแก้ URL
                 </span>
               </div>
             </div>
@@ -549,9 +546,9 @@ export function OpecUrlVerificationModal({
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-warm-cream border-b border-warm-accent text-stone-600 font-semibold">
-                  <th className="py-3 px-4 min-w-[240px]">โรงเรียนนานาชาติ</th>
+                  <th className="py-3 px-4 min-w-[240px]">โรงเรียน</th>
                   <th className="py-3 px-3 w-28">จังหวัด</th>
-                  <th className="py-3 px-4 min-w-[280px]">Official Website & ลิงก์</th>
+                  <th className="py-3 px-4 min-w-[280px]">เว็บไซต์</th>
                   <th className="py-3 px-3.5 w-32">การรับรอง</th>
                   <th className="py-3 px-4 w-28 text-center">จัดการ</th>
                 </tr>
@@ -561,13 +558,13 @@ export function OpecUrlVerificationModal({
                   <tr>
                     <td colSpan={5} className="py-16 text-center text-stone-500">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#456ca6] mb-2" />
-                      กำลังโหลดข้อมูลทะเบียนเว็บไซต์...
+                      กำลังโหลด…
                     </td>
                   </tr>
                 ) : filteredItems.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-stone-500">
-                      ไม่พบข้อมูลโรงเรียนตามเงื่อนไขที่ค้นหา
+                      ไม่พบโรงเรียนที่ตรงกับคำค้นหา
                     </td>
                   </tr>
                 ) : (
@@ -684,7 +681,7 @@ export function OpecUrlVerificationModal({
                             </div>
                           ) : (
                             <span className="text-stone-400 italic text-xs">
-                              — ไม่มีเว็บไซต์ —
+                              ไม่มีเว็บไซต์
                             </span>
                           )}
                         </td>
@@ -712,7 +709,7 @@ export function OpecUrlVerificationModal({
                             </span>
                           ) : item.status === "probed" ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warm-card text-warm-charcoal border border-warm-accent">
-                              บอทตรวจพบ
+                              ค้นหาอัตโนมัติ
                             </span>
                           ) : (
                             <span className="text-stone-300">—</span>
@@ -744,7 +741,7 @@ export function OpecUrlVerificationModal({
                                 onClick={() => handleVerify(item)}
                                 disabled={isActing}
                                 className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] flex items-center gap-1 transition-all cursor-pointer"
-                                title="กดยืนยันว่าเป็นเว็บไซต์ทางการที่ถูกต้อง (Verified Official)"
+                                title="ยืนยันว่าเป็นเว็บไซต์ทางการ"
                               >
                                 {isActing ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -789,7 +786,7 @@ export function OpecUrlVerificationModal({
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl bg-white border border-warm-accent hover:bg-stone-50 text-stone-700 font-semibold transition-all shadow-xs cursor-pointer"
           >
-            ปิดหน้าต่าง
+            ปิด
           </button>
         </div>
       </div>

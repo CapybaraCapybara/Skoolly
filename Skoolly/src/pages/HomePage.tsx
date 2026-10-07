@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, BookOpen, Calculator, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import Hero, { type HeroStat } from "@/components/schools/Hero";
 import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
-import { SchoolMap, EXAMPLE_SAVED_LOCATION, APPROXIMATE_PIN_NOTE } from "@/components/schools/SchoolMap";
+import { NearbySchools } from "@/components/schools/NearbySchools";
 import type { School, Filters } from "@/types";
 import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";
@@ -73,8 +73,8 @@ export function HomePage({
     const totalReviews = schools.reduce((sum, s) => sum + (s.reviewCount || 0), 0);
     const withFees = schools.filter((s) => s.tuitionStart > 0).length;
     return [
-      { value: schools.length.toLocaleString("en-US"), label: "Registered Schools" },
-      { value: withFees.toLocaleString("en-US"), label: "With Published Fees" },
+      { value: schools.length.toLocaleString("en-US"), label: "Schools" },
+      { value: withFees.toLocaleString("en-US"), label: "With Fee Data" },
       { value: totalReviews.toLocaleString("en-US"), label: "Parent Reviews" },
     ];
   }, [schools]);
@@ -122,11 +122,11 @@ export function HomePage({
       {/* ── HERO (Hero — nav hidden via CSS override) ───────────────────── */}
       <div className="[&_nav]:hidden">
         <Hero
-          eyebrow="AI-POWERED SCHOOL MATCHING · THAILAND"
+          eyebrow="School directory · Thailand"
           headingPrefix="Find the Right International"
           headingHighlight="School"
-          headingSuffix="For Your Child in Thailand"
-          description={`Compare ${schools.length > 0 ? `${schools.length.toLocaleString("en-US")} ` : ""}international schools registered with OPEC by curriculum, cost, distance, and real parent reviews — with AI-powered personalised recommendations.`}
+          headingSuffix="For Your Child"
+          description={`Compare fees, curricula and locations across ${schools.length > 0 ? `${schools.length.toLocaleString("en-US")} ` : ""}licensed international schools.`}
           primaryCtaLabel="Search Schools"
           primaryCtaHref="#schools"
           backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
@@ -198,7 +198,7 @@ export function HomePage({
               {/* Tuition Range */}
               <div className="sm:col-span-2 lg:col-span-2">
                 <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">
-                  Max Annual Tuition — <span className="text-warm-bronze font-bold">{formatTuition(filters.tuitionMax * 1000)}</span>
+                  Max Annual Tuition: <span className="text-warm-bronze font-bold">{formatTuition(filters.tuitionMax * 1000)}</span>
                 </label>
                 <div className="flex items-center gap-3 py-2">
                   <span className="text-xs text-warm-charcoal/50 shrink-0">฿100K</span>
@@ -238,137 +238,30 @@ export function HomePage({
       </section>
 
 
-      {/* ── PREMIUM FEATURES ──────────────────────────────────────────────── */}
-      <section className="py-14 bg-warm-charcoal">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-3 py-1 text-xs font-semibold text-warm-bronze mb-3">
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              Premium Features
-            </div>
-            <h2 className="font-sans text-3xl font-bold text-white mb-2">Make smarter decisions with AI</h2>
-            <p className="text-white/70 text-sm max-w-md mx-auto">Create a free account to unlock personalised recommendations and financial planning tools.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* AI Chatbot */}
-            <div
-              className="relative group rounded-[2rem] overflow-hidden border border-warm-accent bg-warm-cream cursor-pointer transition-all hover:shadow-lg p-6 flex flex-col"
-              onClick={() => onRestrictedAction("Create a free account to access the AI School Advisor — get personalised recommendations based on your child's age, learning style, and your family's priorities.")}
-            >
-              <div className="absolute top-0 right-0 bg-warm-charcoal text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                </svg>
-                Account Required
-              </div>
-              <div className="flex-1">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-warm-charcoal text-white">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                </div>
-                <h3 className="font-bold text-warm-charcoal text-lg mb-2">AI School Advisor</h3>
-                <p className="text-warm-charcoal/70 text-sm mb-4 leading-relaxed">
-                  Chat with our AI to get personalised school shortlists based on your child's learning style, your commute, and your family's priorities.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {["Personalised ranking", "Chat interface", "Saved conversations"].map((tag) => (
-                    <span key={tag} className="text-xs bg-warm-accent/50 text-warm-charcoal/80 border border-warm-accent/30 px-2.5 py-0.5 rounded-full font-medium">{tag}</span>
-                  ))}
-                </div>
-                {/* Mock chat preview */}
-                <div className="mt-4 rounded-xl bg-white/70 border border-warm-accent p-3 space-y-2 opacity-60 pointer-events-none select-none">
-                  <div className="flex gap-2 items-start">
-                    <div className="w-5 h-5 rounded-full bg-warm-bronze shrink-0 mt-0.5 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                    </div>
-                    <div className="text-xs text-warm-charcoal bg-white rounded-lg px-2.5 py-1.5 border border-warm-accent max-w-[80%]">
-                      Based on your priorities, I recommend Bangkok Patana School...
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <button className="mt-6 w-full py-3 rounded-full text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 transition-all active:scale-[0.98]">
-                Unlock AI Advisor →
-              </button>
-            </div>
-
-            {/* Cost Calculator */}
-            <div
-              className="relative group rounded-[2rem] overflow-hidden border border-warm-accent bg-warm-cream cursor-pointer transition-all hover:shadow-lg p-6 flex flex-col"
-              onClick={onOpenCalculator}
-            >
-              <div className="absolute top-0 right-0 bg-warm-bronze text-white text-[10px] font-bold px-3 py-1.5 rounded-bl-xl flex items-center gap-1.5">
-                Direct Access
-              </div>
-              <div className="flex-1">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-warm-bronze text-white">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="font-bold text-warm-charcoal text-lg mb-2">Personalised Cost Calculator</h3>
-                <p className="text-warm-charcoal/70 text-sm mb-4 leading-relaxed">
-                  Get a complete 12-year cost projection including tuition, registration, uniforms, transport, ECA, and exam fees — in THB or your home currency.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {["12-year projection", "Multi-currency", "PDF export"].map((tag) => (
-                    <span key={tag} className="text-xs bg-warm-accent/50 text-warm-charcoal/80 border border-warm-accent/30 px-2.5 py-0.5 rounded-full font-medium">{tag}</span>
-                  ))}
-                </div>
-                {/* Mock cost bars */}
-                <div className="mt-4 rounded-xl bg-white/70 border border-warm-accent p-3 opacity-60 pointer-events-none select-none">
-                  {[["Tuition", 82], ["Transport", 22], ["Activities", 15]].map(([label, pct]) => (
-                    <div key={label as string} className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs text-warm-charcoal/50 w-16 shrink-0">{label}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-warm-accent">
-                        <div className="h-1.5 rounded-full bg-warm-bronze" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <button className="mt-6 w-full py-3 rounded-full text-sm font-semibold text-warm-charcoal border border-warm-charcoal hover:bg-warm-charcoal/5 transition-all active:scale-[0.98]">
-                Open Cost Calculator →
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
       {/* ── SCHOOL LISTINGS ───────────────────────────────────────────────────── */}
-      <section id="schools" className="py-10 pb-28">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="schools" className="py-12 scroll-mt-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
             <div>
-              <h2 className="font-display text-2xl sm:text-3xl text-navy-900 font-bold">International Schools in Thailand</h2>
-              <p className="text-slate-500 text-sm mt-1">
-                {filteredSchools.length} school{filteredSchools.length !== 1 ? "s" : ""} match your criteria
-                {compareIds.length > 0 && <span className="ml-2 text-teal-600 font-medium">· {compareIds.length} selected to compare</span>}
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-warm-charcoal">International Schools in Thailand</h2>
+              <p className="text-warm-charcoal/60 text-sm mt-1">
+                {filteredSchools.length} school{filteredSchools.length !== 1 ? "s" : ""}
                 {filteredSchools.length > ITEMS_PER_PAGE && (
-                  <span className="ml-2 text-slate-400">· Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</span>
+                  <> · showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</>
                 )}
+                {compareIds.length > 0 && <span className="text-warm-bronze font-medium"> · {compareIds.length} selected to compare</span>}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <svg className="w-3.5 h-3.5 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-              </svg>
-              <span>Guest compare limit: {MAX_COMPARE} schools</span>
-            </div>
+            <span className="text-xs text-warm-charcoal/60">Compare up to {MAX_COMPARE} schools</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {loadState === "loading" ? (
-              <div className="col-span-full py-20 text-center text-sm text-slate-400">กำลังโหลดรายชื่อโรงเรียน…</div>
+              <div className="col-span-full py-20 text-center text-sm text-warm-charcoal/50">Loading schools…</div>
             ) : loadState === "error" ? (
               <div className="col-span-full py-20 text-center">
-                <h3 className="font-semibold text-warm-charcoal text-lg mb-1">โหลดข้อมูลโรงเรียนไม่สำเร็จ</h3>
-                <p className="text-slate-500 text-sm">เชื่อมต่อฐานข้อมูลไม่ได้ในขณะนี้ ลองรีเฟรชหน้าอีกครั้งภายหลัง</p>
+                <h3 className="font-semibold text-warm-charcoal text-lg mb-1">Couldn't load schools</h3>
+                <p className="text-warm-charcoal/60 text-sm">Please try refreshing the page in a moment.</p>
               </div>
             ) : paginatedSchools.length > 0
               ? paginatedSchools.map((school) => (
@@ -388,195 +281,122 @@ export function HomePage({
             }
           </div>
 
-          {/* ── 9 PER PAGE PAGINATION CONTROLS ─────────────────────────────────── */}
           {filteredSchools.length > 0 && totalPages > 1 && (
-            <div className="mt-12 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                {/* Previous Button */}
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
-                  title="หน้าก่อนหน้า"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Previous</span>
-                </button>
+            <div className="mt-12 flex items-center gap-1.5 flex-wrap justify-center">
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3.5 h-9 rounded-full text-xs font-semibold border border-warm-accent bg-warm-cream text-warm-charcoal hover:border-warm-bronze disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Previous</span>
+              </button>
 
-                {/* Page Number Pills */}
-                {getPageNumbers(currentPage, totalPages).map((p, idx) => {
-                  if (p === "...") {
-                    return (
-                      <span
-                        key={`ellipsis-${idx}`}
-                        className="px-2 py-1 text-slate-400 font-mono text-xs select-none"
-                      >
-                        ...
-                      </span>
-                    );
-                  }
-                  const pageNum = Number(p);
-                  const isActive = pageNum === currentPage;
+              {getPageNumbers(currentPage, totalPages).map((p, idx) => {
+                if (p === "...") {
                   return (
-                    <button
-                      key={`page-${pageNum}`}
-                      type="button"
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`min-w-[36px] h-9 px-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
-                        isActive
-                          ? "bg-warm-charcoal text-white shadow-xs scale-105"
-                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                      }`}
-                      title={`หน้าที่ ${pageNum}`}
-                    >
-                      {pageNum}
-                    </button>
+                    <span key={`ellipsis-${idx}`} className="px-1.5 text-xs text-warm-charcoal/40 select-none">
+                      …
+                    </span>
                   );
-                })}
+                }
+                const pageNum = Number(p);
+                const isActive = pageNum === currentPage;
+                return (
+                  <button
+                    key={`page-${pageNum}`}
+                    type="button"
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`min-w-9 h-9 px-2.5 rounded-full text-xs font-bold transition-colors flex items-center justify-center cursor-pointer ${
+                      isActive
+                        ? "bg-warm-charcoal text-white"
+                        : "border border-warm-accent bg-warm-cream text-warm-charcoal hover:border-warm-bronze"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
 
-                {/* Next Button */}
-                <button
-                  type="button"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
-                  title="หน้าถัดไป"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Progress Summary */}
-              <p className="text-xs text-slate-500 font-medium">
-                แสดงโรงเรียนที่ <span className="font-bold text-slate-800">{startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</span> จากทั้งหมด <span className="font-bold text-slate-800">{filteredSchools.length}</span> แห่ง (หน้า {currentPage} จาก {totalPages})
-              </p>
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3.5 h-9 rounded-full text-xs font-semibold border border-warm-accent bg-warm-cream text-warm-charcoal hover:border-warm-bronze disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── MAP SECTION ───────────────────────────────────────────────────── */}
-      <section className="py-12 border-t border-slate-200 bg-white">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
-            <div>
-              <h2 className="font-display text-2xl text-navy-900">Schools Near You</h2>
-              <p className="text-slate-500 text-sm mt-0.5">
-                Showing schools within 10 km of your saved location
+      {/* ── MAP ───────────────────────────────────────────────────────────── */}
+      <section className="py-12 border-t border-warm-accent/60">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <NearbySchools schools={schools} onOpenSchool={onSchoolClick} />
+        </div>
+      </section>
+
+      {/* ── TOOLS ─────────────────────────────────────────────────────────── */}
+      <section id="features" className="py-12 border-t border-warm-accent/60 scroll-mt-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-2xl font-bold tracking-tight text-warm-charcoal mb-6">Planning Tools</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="rounded-[2rem] border border-warm-accent bg-warm-cream p-6 flex flex-col">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-warm-bronze text-white mb-4">
+                <Calculator className="size-5" />
+              </div>
+              <h3 className="text-lg font-bold text-warm-charcoal mb-1.5">Cost Calculator</h3>
+              <p className="text-sm text-warm-charcoal/70 leading-relaxed mb-6">
+                Add up tuition and one-time fees for the years your child will attend.
               </p>
-            </div>
-            {/* Saved location badge */}
-            <div className="flex items-center gap-2.5 bg-teal-50 border border-teal-200 rounded-xl px-4 py-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}>
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-teal-800">{EXAMPLE_SAVED_LOCATION.name}</div>
-                <div className="text-xs text-teal-600">{EXAMPLE_SAVED_LOCATION.address}</div>
-              </div>
               <button
-                onClick={() => onRestrictedAction("Sign in to save and update your home location for accurate distance calculations.")}
-                className="ml-2 text-xs text-teal-500 hover:text-teal-700 underline transition-colors shrink-0"
+                onClick={onOpenCalculator}
+                className="mt-auto self-start inline-flex items-center gap-2 rounded-full bg-warm-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:bg-warm-charcoal/90 transition-colors cursor-pointer"
               >
-                Change
+                Open calculator
+                <ArrowRight className="size-4" />
               </button>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Map */}
-            <div className="lg:col-span-2 rounded-2xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 440 }}>
-              <SchoolMap />
-            </div>
-
-            {/* Legend / info panel */}
-            <div className="flex flex-col gap-4">
-              {/* Legend */}
-              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4">
-                <h3 className="text-sm font-semibold text-navy-900 mb-3">Map Legend</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}>
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-navy-900">Your Location</div>
-                      <div className="text-xs text-slate-500">Saved home / search origin</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white border-2 border-teal-500 rounded-full px-2 py-0.5 text-xs font-bold text-navy-900 shrink-0">⭐ 4.8</div>
-                    <div>
-                      <div className="text-xs font-semibold text-navy-900">School Marker</div>
-                      <div className="text-xs text-slate-500">Click for name, fee & distance</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white/85 border-2 border-dashed border-stone-400 rounded-full px-2 py-0.5 text-xs font-semibold text-stone-500 shrink-0">≈ ⭐ 4.8</div>
-                    <div>
-                      <div className="text-xs font-semibold text-navy-900">Approximate Location</div>
-                      <div className="text-xs text-slate-500">{APPROXIMATE_PIN_NOTE}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-px border border-dashed border-teal-400 shrink-0" style={{ borderWidth: "1.5px" }} />
-                    <div>
-                      <div className="text-xs font-semibold text-navy-900">10 km Radius</div>
-                      <div className="text-xs text-slate-500">Search area from your location</div>
-                    </div>
-                  </div>
-                </div>
+            <div className="rounded-[2rem] border border-warm-accent bg-warm-cream p-6 flex flex-col">
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-warm-charcoal text-white mb-4">
+                <MessageSquare className="size-5" />
               </div>
-
-              {/* Note card */}
-              <div className="bg-amber-50 rounded-2xl border border-amber-200 p-4">
-                <div className="flex items-start gap-2">
-                  <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <div className="text-xs font-semibold text-amber-800 mb-1">Demo Mode</div>
-                    <p className="text-xs text-amber-700 leading-relaxed">
-                      This map uses an example location in Sukhumvit. The live version will use Google Maps with your actual saved address.
-                    </p>
-                  </div>
-                </div>
+              <h3 className="text-lg font-bold text-warm-charcoal mb-1.5">AI School Advisor</h3>
+              <p className="text-sm text-warm-charcoal/70 leading-relaxed mb-6">
+                Describe what you are looking for and get a shortlist of schools to visit.
+              </p>
+              <div className="mt-auto flex items-center gap-3">
+                <button
+                  onClick={() => onRestrictedAction("Sign in to use the AI School Advisor.")}
+                  className="inline-flex items-center gap-2 rounded-full border border-warm-charcoal px-5 py-2.5 text-sm font-semibold text-warm-charcoal hover:bg-warm-charcoal/5 transition-colors cursor-pointer"
+                >
+                  Try the advisor
+                  <ArrowRight className="size-4" />
+                </button>
+                <span className="text-xs text-warm-charcoal/50">Sign-in required</span>
               </div>
-
-              {/* CTA */}
-              <button
-                onClick={() => onRestrictedAction("Sign in to set your real home address and see accurate distances to every school.")}
-                className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-                style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}
-              >
-                Set My Real Location →
-              </button>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer style={{ background: "#0c1a33" }} className="text-slate-400 py-10">
-        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer className="bg-warm-charcoal py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}>
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
+            <div className="flex size-7 items-center justify-center rounded-lg bg-warm-bronze text-white">
+              <BookOpen className="size-3.5" />
             </div>
-            <span className="text-slate-300 text-sm font-medium">Skoolly Thailand</span>
+            <span className="text-sm font-bold text-white">
+              Skool<span className="text-warm-bronze">ly</span>
+            </span>
           </div>
-          <p className="text-xs text-slate-500">© 2026 Skoolly. Helping families make confident choices.</p>
-          <div className="flex items-center gap-4 text-xs">
-            <a href="#" className="hover:text-slate-300 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Terms</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Contact</a>
-          </div>
+          <p className="text-xs text-white/50">School data from OPEC and ISAT · © 2026 Skoolly</p>
         </div>
       </footer>
     </div>

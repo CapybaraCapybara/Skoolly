@@ -130,7 +130,7 @@ export function VersionApprovalModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-warm-charcoal">Gemini AI Scraper Extraction</span>
+                <span className="text-xs font-bold text-warm-charcoal">ผลจาก AI scraper</span>
                 {confidenceScore !== null && (
                   <span
                     className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
@@ -148,7 +148,7 @@ export function VersionApprovalModal({
               <p className="text-xs text-[#78716c] mt-0.5">
                 {version.confidence_reasoning ||
                   version.diff_summary ||
-                  "ดึงข้อมูลโครงสร้างตารางค่าเทอม ค่าใช้จ่ายแฝง และนโยบายความปลอดภัยจากเว็บไซต์ทางการ"}
+                  ""}
               </p>
             </div>
           </div>
@@ -162,7 +162,7 @@ export function VersionApprovalModal({
         <div className="p-6 sm:p-8 bg-white border-b border-warm-accent">
           <div className="text-xs font-bold uppercase tracking-wider text-[#a8a29e] mb-3 flex items-center gap-2">
             <Layers className="w-4 h-4" />
-            <span>เปรียบเทียบก่อนและหลังการเผยแพร่ (Diff Comparison)</span>
+            <span>เทียบกับฉบับที่เผยแพร่อยู่</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,10 +171,10 @@ export function VersionApprovalModal({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#78716c] flex items-center gap-1.5">
                   <Building className="w-3.5 h-3.5" />
-                  ฉบับปัจจุบันที่เผยแพร่อยู่ (Published)
+                  ฉบับที่เผยแพร่อยู่
                 </span>
                 <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#e8dfd2] text-[#57534e]">
-                  V.1 OPEC Data
+                  ปัจจุบัน
                 </span>
               </div>
               <div className="space-y-2">
@@ -185,15 +185,15 @@ export function VersionApprovalModal({
                       ? `฿${version.current_pub_min_thb.toLocaleString()} - ฿${version.current_pub_max_thb.toLocaleString()} / ปี`
                       : version.current_pub_min_thb
                       ? `฿${version.current_pub_min_thb.toLocaleString()} / ปี`
-                      : "ยังไม่มีข้อมูล (Contact school)"}
+                      : "ยังไม่มีข้อมูล"}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#a8a29e]">นโยบาย Child Safeguarding:</div>
+                  <div className="text-xs text-[#a8a29e]">นโยบายคุ้มครองเด็ก:</div>
                   <div className="text-xs font-semibold text-[#78716c]">
                     {version.current_has_safeguarding === true
-                      ? "✅ มีนโยบายคุ้มครองความปลอดภัยเด็ก"
-                      : "❌ ยังไม่ได้ระบุในระบบ"}
+                      ? "มี"
+                      : "ไม่มีข้อมูล"}
                   </div>
                 </div>
               </div>
@@ -204,7 +204,7 @@ export function VersionApprovalModal({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                  ฉบับใหม่ที่ Scrape ได้ (New Draft)
+                  ฉบับใหม่ที่ scrape ได้
                 </span>
                 <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-200 text-emerald-900 animate-pulse">
                   V.{version.version_number} Pending Approval
@@ -212,7 +212,7 @@ export function VersionApprovalModal({
               </div>
               <div className="space-y-2">
                 <div>
-                  <div className="text-xs text-emerald-700 font-medium">ช่วงค่าเทอมต่อปีที่คำนวณได้:</div>
+                  <div className="text-xs text-emerald-700 font-medium">ช่วงค่าเทอมต่อปี:</div>
                   <div className="text-base font-bold text-emerald-950">
                     {scrapedMin && scrapedMax
                       ? `฿${scrapedMin.toLocaleString()} - ฿${scrapedMax.toLocaleString()} / ปี`
@@ -222,11 +222,11 @@ export function VersionApprovalModal({
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-emerald-700 font-medium">นโยบาย Child Safeguarding:</div>
+                  <div className="text-xs text-emerald-700 font-medium">นโยบายคุ้มครองเด็ก:</div>
                   <div className="text-xs font-bold text-emerald-900">
                     {version.safety?.child_safeguarding_policy
-                      ? "✅ ตรวจพบนโยบายคุ้มครองความปลอดภัยเด็กบนเว็บไซต์"
-                      : "⚠️ ไม่พบนโยบายระบุชัดเจนบนหน้าเว็บ"}
+                      ? "พบบนเว็บไซต์"
+                      : "ไม่พบ"}
                   </div>
                 </div>
               </div>
@@ -246,7 +246,7 @@ export function VersionApprovalModal({
             }`}
           >
             <Coins className="w-4 h-4 text-amber-600" />
-            <span>ตารางค่าเทอมตามระดับชั้น ({version.fees?.length || 0})</span>
+            <span>ค่าเทอมรายชั้น ({version.fees?.length || 0})</span>
           </button>
 
           <button
@@ -259,7 +259,7 @@ export function VersionApprovalModal({
             }`}
           >
             <FileText className="w-4 h-4 text-warm-bronze" />
-            <span>ค่าธรรมเนียมแฝง / รายการพิเศษ ({version.extra_fees?.length || 0})</span>
+            <span>ค่าใช้จ่ายอื่น ({version.extra_fees?.length || 0})</span>
           </button>
 
           <button
@@ -272,7 +272,7 @@ export function VersionApprovalModal({
             }`}
           >
             <Shield className="w-4 h-4 text-emerald-600" />
-            <span>มาตรฐานความปลอดภัย (Safety & Policies)</span>
+            <span>ความปลอดภัย</span>
           </button>
         </div>
 
@@ -286,9 +286,9 @@ export function VersionApprovalModal({
                   <table className="w-full text-left text-xs">
                     <thead className="bg-warm-cream text-[#78716c] font-bold border-b border-[#e5dcce]">
                       <tr>
-                        <th className="py-2.5 px-4">ระดับชั้น (Grade)</th>
-                        <th className="py-2.5 px-4 text-right">ค่าเทอมรายปี (Annual THB)</th>
-                        <th className="py-2.5 px-4 text-right">ค่าเทอมรายภาคเรียน (Semester THB)</th>
+                        <th className="py-2.5 px-4">ชั้น</th>
+                        <th className="py-2.5 px-4 text-right">ต่อปี (บาท)</th>
+                        <th className="py-2.5 px-4 text-right">ต่อภาคเรียน (บาท)</th>
                         <th className="py-2.5 px-4">หมายเหตุ</th>
                       </tr>
                     </thead>
@@ -334,8 +334,8 @@ export function VersionApprovalModal({
                     <thead className="bg-warm-cream text-[#78716c] font-bold border-b border-[#e5dcce]">
                       <tr>
                         <th className="py-2.5 px-4">รายการค่าใช้จ่าย</th>
-                        <th className="py-2.5 px-4 text-right">จำนวนเงิน (THB)</th>
-                        <th className="py-2.5 px-4">รอบการจ่าย (Frequency)</th>
+                        <th className="py-2.5 px-4 text-right">จำนวนเงิน (บาท)</th>
+                        <th className="py-2.5 px-4">รอบการจ่าย</th>
                         <th className="py-2.5 px-4">คำอธิบาย</th>
                       </tr>
                     </thead>
@@ -359,7 +359,7 @@ export function VersionApprovalModal({
                 </div>
               ) : (
                 <div className="py-8 text-center text-[#78716c] bg-[#faf7f2] rounded-2xl border border-dashed border-[#e5dcce]">
-                  ไม่พบรายการค่าธรรมเนียมแฝงเพิ่มเติม
+                  ไม่มีค่าใช้จ่ายอื่น
                 </div>
               )}
             </div>
@@ -377,7 +377,7 @@ export function VersionApprovalModal({
                         active: version.safety.security_guards,
                       },
                       {
-                        label: "กล้องวงจรปิด CCTV 24 ชม.",
+                        label: "กล้องวงจรปิด",
                         active: version.safety.cctv_monitoring,
                       },
                       {
@@ -385,11 +385,11 @@ export function VersionApprovalModal({
                         active: version.safety.nurse_medical_clinic,
                       },
                       {
-                        label: "นโยบายคุ้มครองความปลอดภัยเด็ก (Safeguarding)",
+                        label: "นโยบายคุ้มครองเด็ก",
                         active: version.safety.child_safeguarding_policy,
                       },
                       {
-                        label: "มาตรการรับมือฝุ่น PM2.5 / เครื่องฟอกอากาศ",
+                        label: "มาตรการฝุ่น PM2.5",
                         active: version.safety.air_quality_pm25_protocol,
                       },
                       {
@@ -441,7 +441,7 @@ export function VersionApprovalModal({
                 </div>
               ) : (
                 <div className="py-8 text-center text-[#78716c] bg-[#faf7f2] rounded-2xl border border-dashed border-[#e5dcce]">
-                  ไม่พบข้อมูลมาตรฐานความปลอดภัยของเวอร์ชันนี้
+                  ไม่มีข้อมูลความปลอดภัย
                 </div>
               )}
             </div>
@@ -451,7 +451,7 @@ export function VersionApprovalModal({
         {/* Modal Footer: Action Bar */}
         <div className="bg-warm-cream border-t border-warm-accent p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="text-xs text-[#78716c]">
-            เมื่ออนุมัติ ระบบจะปรับปรุงค่าเทอมในตารางหลัก <span className="font-mono font-bold text-warm-charcoal">school_data.schools</span> ให้แสดงผลทันที
+            อนุมัติแล้วค่าเทอมจะขึ้นบนเว็บทันที
           </div>
 
           <div className="flex items-center gap-3 self-end sm:self-center">
@@ -464,7 +464,7 @@ export function VersionApprovalModal({
                 className="px-4 py-2.5 rounded-xl bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <XCircle className="w-4 h-4" />
-                <span>ปฏิเสธ (Reject)</span>
+                <span>ปฏิเสธ</span>
               </button>
             ) : (
               <div className="flex items-center gap-2">
@@ -481,7 +481,7 @@ export function VersionApprovalModal({
                   disabled={isActionLoading}
                   className="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 shadow-xs cursor-pointer"
                 >
-                  ยืนยันปฏิเสธ
+                  ปฏิเสธ
                 </button>
                 <button
                   type="button"
@@ -503,12 +503,12 @@ export function VersionApprovalModal({
               {isActionLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>กำลังบันทึกและเผยแพร่...</span>
+                  <span>กำลังเผยแพร่…</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>อนุมัติและเผยแพร่ (Approve & Publish)</span>
+                  <span>อนุมัติและเผยแพร่</span>
                 </>
               )}
             </button>

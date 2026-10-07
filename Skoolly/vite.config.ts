@@ -1,60 +1,13 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
-import fs from 'node:fs'
-
-// Root-level JSON that the app fetches but that lives outside `public/`.
-// Served from disk in dev and copied into the build output at build time, so
-// there is exactly one copy of the 660 KB OPEC dataset in the repo.
-const ROOT_ASSETS: Record<string, string> = {
-  '/results.json': 'results.json',
-  '/scrape_log.json': 'scrape_log.json',
-  '/data/international_schools_thailand_opec.json': 'data/international_schools_thailand_opec.json',
-}
-
-function rootJsonAssets(): Plugin {
-  const resolveRoot = (rel: string) => path.resolve(import.meta.dirname, rel)
-
-  return {
-    name: 'root-json-assets',
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        // Do not intercept if Vite is importing it as an ES module (?import)
-        if (req.url && (req.url.includes('?import') || req.url.includes('?raw'))) {
-          return next()
-        }
-
-        const url = req.url?.split('?')[0]
-        const rel = url ? ROOT_ASSETS[url] : undefined
-        if (!rel) return next()
-
-        const filePath = resolveRoot(rel)
-        if (!fs.existsSync(filePath)) return next()
-
-        res.setHeader('Content-Type', 'application/json; charset=utf-8')
-        res.end(fs.readFileSync(filePath))
-      })
-    },
-    writeBundle(options) {
-      const outDir = options.dir ?? resolveRoot('dist')
-      for (const [url, rel] of Object.entries(ROOT_ASSETS)) {
-        const src = resolveRoot(rel)
-        if (!fs.existsSync(src)) continue
-        const dest = path.join(outDir, url.replace(/^\//, ''))
-        fs.mkdirSync(path.dirname(dest), { recursive: true })
-        fs.copyFileSync(src, dest)
-      }
-    },
-  }
-}
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    rootJsonAssets(),
   ],
   resolve: {
     alias: {
@@ -67,6 +20,7 @@ export default defineConfig({
     port: parseInt(process.env.PORT || '8443'),
     strictPort: true,
     watch: {
+      // The data pipeline rewrites these while it runs; none of them is part of the app bundle
       ignored: (filePath: string) => {
         const norm = filePath.replace(/\\/g, '/');
         return (

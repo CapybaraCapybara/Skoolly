@@ -245,13 +245,11 @@ export function calculateSchoolCosts(
   oneTimeTotalTHB += appFee;
   lineItems.push({
     category: "One-Time Mandatory",
-    name: "Application & Assessment Fee (Mandatory)",
+    name: "ค่าสมัคร",
     unitAmountTHB: appFee,
     totalAmountTHB: appFee,
     isOneTime: true,
-    notes: hasAppFee
-      ? (appFeeObj.notes || "Mandatory to submit enrollment application")
-      : "ติดต่อโรงเรียน (ไม่มีระบุในเอกสารทางการ)",
+    notes: hasAppFee ? (appFeeObj.notes || "") : "ไม่ระบุในเอกสาร",
   });
 
   // Registration / Entrance / Capital Fee (Mandatory, with child tier awareness)
@@ -275,13 +273,11 @@ export function calculateSchoolCosts(
   oneTimeTotalTHB += regFee;
   lineItems.push({
     category: "One-Time Mandatory",
-    name: "Registration & Entrance Fee (Mandatory)",
+    name: "ค่าแรกเข้า",
     unitAmountTHB: regFee,
     totalAmountTHB: regFee,
     isOneTime: true,
-    notes: regFeeObj
-      ? (regFeeObj.notes || "Non-refundable one-time enrollment admission fee")
-      : "ติดต่อโรงเรียน (ไม่มีระบุในเอกสารทางการ)",
+    notes: regFeeObj ? (regFeeObj.notes || "") : "ไม่ระบุในเอกสาร",
   });
 
   // Refundable Deposit (Mandatory)
@@ -291,13 +287,11 @@ export function calculateSchoolCosts(
   oneTimeTotalTHB += depositFee;
   lineItems.push({
     category: "One-Time Mandatory",
-    name: "Refundable Campus Deposit (Mandatory)",
+    name: "เงินประกัน",
     unitAmountTHB: depositFee,
     totalAmountTHB: depositFee,
     isOneTime: true,
-    notes: hasDeposit
-      ? (depositObj.notes || "Refundable upon withdrawal per school policy")
-      : "ติดต่อโรงเรียน (ไม่มีระบุในเอกสารทางการ)",
+    notes: hasDeposit ? (depositObj.notes || "คืนเมื่อลาออกหรือจบ") : "ไม่ระบุในเอกสาร",
   });
 
   // 2. Multi-Year Schedule & Annual Tuition
@@ -321,7 +315,7 @@ export function calculateSchoolCosts(
           unitAmountTHB: addon.amount_thb,
           totalAmountTHB: addon.amount_thb,
           isOneTime: true,
-          notes: addon.notes || "One-time campus service",
+          notes: addon.notes || "จ่ายครั้งเดียว",
         });
       } else {
         const annualCost = addon.amount_thb * multiplier;
@@ -332,7 +326,7 @@ export function calculateSchoolCosts(
           unitAmountTHB: annualCost,
           totalAmountTHB: annualCost * duration,
           isOneTime: false,
-          notes: addon.notes || `Annualized (${multiplier > 1 ? `${multiplier}x per year` : "per year"})`,
+          notes: addon.notes || (multiplier > 1 ? `${multiplier} ครั้งต่อปี` : "ต่อปี"),
         });
       }
     }
@@ -382,21 +376,21 @@ export function calculateSchoolCosts(
   // Insert Base Tuition line item at position 3
   lineItems.splice(3, 0, {
     category: "Annual Tuition",
-    name: `Base Tuition (${duration} year${duration > 1 ? "s" : ""})`,
+    name: `ค่าเทอม ${duration} ปี`,
     unitAmountTHB: Math.round(totalTuitionTHB / duration),
     totalAmountTHB: totalTuitionTHB,
     isOneTime: false,
-    notes: `${startLabel} through to ${endLabel}`,
+    notes: `${startLabel} ถึง ${endLabel}`,
   });
 
   if (state.customSiblingDiscountPercent > 0) {
     lineItems.push({
       category: "Discount",
-      name: `Simulated Family / Sibling Discount (${state.customSiblingDiscountPercent}%)`,
+      name: `ส่วนลดพี่น้อง ${state.customSiblingDiscountPercent}%`,
       unitAmountTHB: Math.round(totalDiscountTHB / duration),
       totalAmountTHB: -totalDiscountTHB,
       isOneTime: false,
-      notes: "Simulated tuition reduction",
+      notes: "ลดจากค่าเทอม",
     });
   }
 

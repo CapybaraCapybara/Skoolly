@@ -41,7 +41,6 @@ import {
   resolveSchoolWebsite,
   enrichSchoolData,
   getSupabaseStatus,
-  enrichWithIsat,
   getPendingVersions,
   approveVersion,
   rejectVersion,
@@ -226,7 +225,7 @@ export function SupabaseAdminPage({
     setIsVersionActionLoading(true);
     try {
       await approveVersion(versionId);
-      showToast("อนุมัติและเผยแพร่ค่าเทอมสู่ Supabase เรียบร้อยแล้ว!");
+      showToast("อนุมัติและเผยแพร่ค่าเทอมแล้ว");
       setReviewingVersion(null);
       await loadPendingVersions();
       await loadSchoolsData();
@@ -242,7 +241,7 @@ export function SupabaseAdminPage({
     setIsVersionActionLoading(true);
     try {
       await rejectVersion(versionId, reason);
-      showToast("ปฏิเสธข้อมูลเวอร์ชันนี้เรียบร้อยแล้ว");
+      showToast("ปฏิเสธเวอร์ชันนี้แล้ว");
       setReviewingVersion(null);
       await loadPendingVersions();
     } catch (err: any) {
@@ -255,18 +254,18 @@ export function SupabaseAdminPage({
   // Handle Scrape Single School Tuition
   const handleScrapeSchool = async (school: OpecSchoolRecord) => {
     if (!school.website) {
-      showToast("โรงเรียนนี้ยังไม่มี Official Website ไม่สามารถ Scrape ได้");
+      showToast("โรงเรียนนี้ยังไม่มีเว็บไซต์ทางการ จึง scrape ไม่ได้");
       return;
     }
     setActionLoading(true);
     try {
-      showToast(`กำลังเริ่ม Scrape ค่าเทอมสำหรับ ${school.school_name_th}...`);
+      showToast(`กำลังเริ่ม scrape ค่าเทอมของ ${school.school_name_th}`);
       await scrapeSchoolTuition(
         school.school_code,
         school.school_name_en || school.school_name_th,
         school.website
       );
-      showToast("เริ่มการค้นหาค่าเทอมแล้ว! กรุณาตรวจสอบสถานะใน Activity Console");
+      showToast("เริ่ม scrape แล้ว ดูความคืบหน้าได้ที่หน้า Data Pipeline");
       pollProgress();
       await loadPendingVersions();
     } catch (err: any) {
@@ -281,7 +280,7 @@ export function SupabaseAdminPage({
     setIsSyncConfirmOpen(false);
     setActionLoading(true);
     try {
-      showToast("กำลังเริ่มดึงข้อมูลสดจากระบบ OPEC สช. เข้าสู่ Supabase...");
+      showToast("กำลังดึงข้อมูลจาก สช.");
       await syncOpecToSupabase({ fetchFresh: true, publishInitial: true });
       pollProgress();
     } catch (err: any) {
@@ -336,7 +335,7 @@ export function SupabaseAdminPage({
       if (progress) {
         setProgress({ ...progress, logs: [], log: "" });
       }
-      showToast("ล้าง Logs เรียบร้อยแล้ว");
+      showToast("ล้าง log แล้ว");
     } catch (err: any) {
       showToast(`ไม่สามารถล้าง Logs: ${err.message}`);
     }
@@ -353,7 +352,7 @@ export function SupabaseAdminPage({
               : s
           )
         );
-        showToast("บันทึกเว็บไซต์ทางการเรียบร้อยแล้ว");
+        showToast("บันทึกเว็บไซต์แล้ว");
         return true;
       }
       return false;
@@ -366,13 +365,13 @@ export function SupabaseAdminPage({
   const handleResolveSingleWebsite = async (code: string) => {
     setActionLoadingCode(code);
     try {
-      showToast(`กำลังค้นหา Official Website สำหรับโรงเรียน ${code}...`);
+      showToast(`กำลังค้นหาเว็บไซต์ของโรงเรียน ${code}`);
       const updated = await resolveSchoolWebsite(code);
       if (updated && updated.website) {
-        showToast(`ค้นพบเว็บไซต์: ${updated.website}`);
+        showToast(`พบเว็บไซต์: ${updated.website}`);
         await loadSchoolsData();
       } else {
-        showToast("ไม่พบเว็บไซต์ทางการเพิ่มเติมสำหรับโรงเรียนนี้");
+        showToast("ไม่พบเว็บไซต์ทางการ");
       }
     } catch (err: any) {
       showToast(`เกิดข้อผิดพลาด: ${err.message}`);
@@ -384,10 +383,10 @@ export function SupabaseAdminPage({
   const handleEnrichSingleSchool = async (code: string) => {
     setActionLoadingCode(code);
     try {
-      showToast(`กำลังเติมข้อมูลสำหรับโรงเรียน ${code}...`);
+      showToast(`กำลังเติมข้อมูลโรงเรียน ${code}`);
       const res = await enrichSchoolData(code);
       if (res) {
-        showToast(`เติมข้อมูลสำเร็จ: ${res.changes.length > 0 ? res.changes.join(", ") : "ข้อมูลครบถ้วนอยู่แล้ว"}`);
+        showToast(`เติมข้อมูลสำเร็จ: ${res.changes.length > 0 ? res.changes.join(", ") : "ข้อมูลครบอยู่แล้ว"}`);
         await loadSchoolsData();
       }
     } catch (err: any) {
@@ -400,7 +399,7 @@ export function SupabaseAdminPage({
   const handleEnrichNamesEn = async () => {
     setActionLoading(true);
     try {
-      showToast("ขั้นตอนที่ 2: กำลังดึงและเติมชื่อภาษาอังกฤษ (Official English Name) สู่ Supabase...");
+      showToast("ขั้นที่ 2: กำลังเติมชื่อภาษาอังกฤษ");
       await postAction("/api/enrich-names-en");
       pollProgress();
     } catch (err: any) {
@@ -413,7 +412,7 @@ export function SupabaseAdminPage({
   const handleEnrichGps = async () => {
     setActionLoading(true);
     try {
-      showToast("ขั้นตอนที่ 3: กำลังค้นหาและปักหมุดพิกัด GPS ความแม่นยำสูงสู่ Supabase...");
+      showToast("ขั้นที่ 4: กำลังปักหมุด GPS");
       await postAction("/api/enrich-gps");
       pollProgress();
     } catch (err: any) {
@@ -426,7 +425,7 @@ export function SupabaseAdminPage({
   const handleEnrichWebsites = async () => {
     setActionLoading(true);
     try {
-      showToast("ขั้นตอนที่ 4: กำลังค้นหาและตรวจสอบ Official Website สู่ Supabase...");
+      showToast("ขั้นที่ 3: กำลังค้นหาเว็บไซต์");
       await postAction("/api/fetch-official-websites");
       pollProgress();
     } catch (err: any) {
@@ -439,7 +438,7 @@ export function SupabaseAdminPage({
   const handleAutoEnrichAll = async () => {
     setActionLoading(true);
     try {
-      showToast("ระบบ Auto-Enrich: กำลังประมวลผล Pipeline ข้อมูลแบบครบวงจร...");
+      showToast("กำลังรัน Auto-Enrich");
       await postAction("/api/enrich-data");
       pollProgress();
     } catch (err: any) {
@@ -465,7 +464,7 @@ export function SupabaseAdminPage({
   const handleRunFullPipeline = async () => {
     setActionLoading(true);
     try {
-      showToast("🚀 เริ่มต้น Full Data Pipeline ครบ 5 ขั้นตอน (OPEC -> EN -> ISAT -> Web -> GPS)...");
+      showToast("เริ่มรันครบทุกขั้นตอน");
       await postAction("/api/pipeline/run-all");
       pollProgress();
     } catch (err: any) {
@@ -503,7 +502,7 @@ export function SupabaseAdminPage({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showToast("ส่งออกไฟล์ CSV เรียบร้อยแล้ว");
+    showToast("ส่งออก CSV แล้ว");
   };
 
   const openDrillDown = (title: string, subtitle: string, list: OpecSchoolRecord[]) => {
@@ -524,7 +523,7 @@ export function SupabaseAdminPage({
     {
       label: "เมนูหลัก",
       items: [
-        { tab: "dashboard", label: "ภาพรวม (Dashboard)", icon: LayoutDashboard },
+        { tab: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
         { tab: "schools", label: "รายชื่อโรงเรียน", icon: School, badge: schools.length },
         {
           tab: "approvals",
@@ -556,11 +555,12 @@ export function SupabaseAdminPage({
     item.onSelect?.();
   };
 
+  // Websites before GPS: the pins a school puts on its own site are one of the GPS sources
   const pipelineSteps = [
-    { step: 1, label: "ดึงข้อมูล OPEC", onClick: () => setIsSyncConfirmOpen(true), title: "ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database" },
-    { step: 2, label: "เติมชื่อ EN", onClick: handleEnrichNamesEn, title: "ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ" },
-    { step: 3, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริง" },
-    { step: 4, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification" },
+    { step: 1, label: "ดึงข้อมูล OPEC", onClick: () => setIsSyncConfirmOpen(true), title: "ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติจากระบบ สช. แล้วบันทึกลง Supabase" },
+    { step: 2, label: "เติมชื่อ EN", onClick: handleEnrichNamesEn, title: "ขั้นที่ 2: เติมชื่อภาษาอังกฤษให้โรงเรียนที่ยังไม่มีหรือชื่อเพี้ยน" },
+    { step: 3, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 3: หาเว็บไซต์ทางการจากทะเบียนที่ยืนยันแล้ว แล้วตรวจว่าเปิดได้จริง" },
+    { step: 4, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 4: ตรวจพิกัดโดยเทียบหลายแหล่ง" },
   ];
   const pipelineBusy = isRunning || actionLoading;
   // Members already matched in the DB — the ISAT directory size itself is only known during a sync
@@ -683,7 +683,7 @@ export function SupabaseAdminPage({
         {/* Content Area */}
         <main className="flex-1 min-w-0 space-y-6">
           {/* Page heading — deep green banner with gold eyebrow */}
-          <div className="relative overflow-hidden rounded-[2rem] bg-warm-charcoal px-6 py-7 sm:px-8 sm:py-8 text-white shadow-md">
+          <div className="relative overflow-hidden rounded-[2rem] bg-warm-charcoal px-6 py-6 sm:px-8 text-white shadow-md">
             <div
               aria-hidden
               className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full border-[28px] border-warm-bronze/15"
@@ -699,9 +699,6 @@ export function SupabaseAdminPage({
               <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight">
                 {activeNav.label}
               </h1>
-              <p className="mt-1.5 text-sm text-white/70 max-w-2xl">
-                เชื่อมต่อ API สช. (school.opec.go.th) พร้อมระบบค้นหา Official Website และพิกัด GPS อัตโนมัติ
-              </p>
             </div>
           </div>
 
@@ -829,7 +826,7 @@ export function SupabaseAdminPage({
                     onClick={handleAutoEnrichAll}
                     disabled={pipelineBusy}
                     className={cn(pillBtn, "px-3.5")}
-                    title="รันอัตโนมัติ: เติมชื่อ EN -> GPS -> Website"
+                    title="รันต่อกัน: เติมชื่อ EN -> ค้นหา Website -> ปักหมุด GPS (ไม่ดึง OPEC ใหม่)"
                   >
                     <Wand2 className="size-4 text-warm-bronze" />
                     Auto-Enrich
@@ -842,7 +839,7 @@ export function SupabaseAdminPage({
               {/* The console hides itself until something has run */}
               {!isRunning && !progress?.task && !progress?.logs?.length && (
                 <p className="rounded-[2rem] border border-dashed border-warm-accent px-6 py-8 text-center text-sm text-warm-charcoal/60">
-                  ยังไม่มีงานที่รันในรอบนี้ — log การทำงานจะแสดงตรงนี้เมื่อเริ่มขั้นตอนใดขั้นตอนหนึ่ง
+                  ยังไม่มีงานที่รัน log จะแสดงที่นี่เมื่อเริ่มขั้นตอนใดขั้นตอนหนึ่ง
                 </p>
               )}
             </>
@@ -874,33 +871,19 @@ export function SupabaseAdminPage({
 
               {activeTab === "approvals" && (
                 <div className="space-y-6">
-                  {/* Header Card */}
-                  <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center">
-                        <Stamp className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-base font-bold text-warm-charcoal flex items-center gap-2">
-                          <span>ศูนย์ตรวจสอบและอนุมัติค่าเทอม (Tuition Approvals & Diff View)</span>
-                          {pendingVersions.length > 0 && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-warm-charcoal">
-                              {pendingVersions.length} รายการ
-                            </span>
-                          )}
-                        </h2>
-                        <p className="text-xs text-[#78716c] mt-0.5">
-                          ตรวจสอบความถูกต้องของข้อมูลค่าเทอมและนโยบายความปลอดภัยที่ดึงจากเว็บไซต์ทางการผ่านระบบ Scraper ก่อนเผยแพร่สู่ผู้ปกครอง
-                        </p>
-                      </div>
-                    </div>
+                  {/* Toolbar */}
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-warm-charcoal/70">
+                      ตรวจค่าเทอมที่ scrape มาก่อนเผยแพร่
+                      {pendingVersions.length > 0 && <span className="font-semibold text-warm-charcoal"> · {pendingVersions.length} รายการ</span>}
+                    </p>
 
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={loadPendingVersions}
                         disabled={isPendingLoading}
-                        className="px-3.5 py-2 rounded-xl bg-warm-cream border border-warm-accent hover:bg-warm-accent/60 text-warm-charcoal text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="px-3.5 py-2 rounded-full bg-warm-cream border border-warm-accent hover:border-warm-bronze text-warm-charcoal text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isPendingLoading ? "animate-spin" : ""}`} />
                         <span>รีเฟรช</span>
@@ -912,7 +895,7 @@ export function SupabaseAdminPage({
                   {isPendingLoading ? (
                     <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-16 text-center shadow-xs">
                       <Loader2 className="w-8 h-8 text-amber-600 animate-spin mx-auto mb-3" />
-                      <p className="text-xs text-[#78716c]">กำลังโหลดรายการค่าเทอมที่รอตรวจสอบ...</p>
+                      <p className="text-xs text-[#78716c]">กำลังโหลด…</p>
                     </div>
                   ) : pendingVersions.length === 0 ? (
                     <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs space-y-4">
@@ -921,10 +904,10 @@ export function SupabaseAdminPage({
                       </div>
                       <div className="max-w-md mx-auto space-y-1">
                         <h3 className="text-sm font-bold text-warm-charcoal">
-                          ไม่มีรายการค่าเทอมที่รอตรวจสอบในขณะนี้
+                          ไม่มีรายการรออนุมัติ
                         </h3>
                         <p className="text-xs text-[#78716c] leading-relaxed">
-                          ข้อมูลค่าเทอมของโรงเรียนในระบบ Supabase เป็นปัจจุบันตรงกับฉบับเผยแพร่แล้ว คุณสามารถกด "Scrape ค่าเทอม" จากหน้ารายชื่อโรงเรียนเพื่อดึงข้อมูลใหม่ได้ตลอดเวลา
+                          กด Scrape ในหน้ารายชื่อโรงเรียนเพื่อดึงค่าเทอมใหม่
                         </p>
                       </div>
                       <button
@@ -932,8 +915,8 @@ export function SupabaseAdminPage({
                         onClick={() => setActiveTab("schools")}
                         className="px-4 py-2 rounded-full bg-warm-charcoal hover:bg-black text-white text-xs font-bold shadow-xs transition-all inline-flex items-center gap-2 cursor-pointer"
                       >
-                        <School className="w-4 h-4 text-amber-400" />
-                        <span>ไปที่หน้ารายชื่อโรงเรียน</span>
+                        <School className="w-4 h-4 text-warm-bronze" />
+                        <span>ไปที่รายชื่อโรงเรียน</span>
                       </button>
                     </div>
                   ) : (
@@ -958,14 +941,14 @@ export function SupabaseAdminPage({
                               <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[11px] font-bold uppercase">
-                                    Version {v.version_number} (Draft)
+                                    ฉบับร่าง v{v.version_number}
                                   </span>
                                   <span className="text-xs font-mono text-[#78716c]">
                                     {v.opec_school_code}
                                   </span>
                                   {v.province && (
                                     <span className="text-xs text-[#78716c]">
-                                      📍 {v.province} {v.district ? `(${v.district})` : ""}
+                                      {v.province} {v.district ? `(${v.district})` : ""}
                                     </span>
                                   )}
                                   {confScore !== null && (
@@ -986,7 +969,7 @@ export function SupabaseAdminPage({
 
                                 <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#57534e]">
                                   <div>
-                                    <span className="text-[#a8a29e]">ค่าเทอมที่สกัดได้: </span>
+                                    <span className="text-[#a8a29e]">ค่าเทอม: </span>
                                     <strong className="text-emerald-800 font-bold">
                                       {minTuition && maxTuition
                                         ? `฿${minTuition.toLocaleString()} - ฿${maxTuition.toLocaleString()} / ปี`
@@ -1002,13 +985,13 @@ export function SupabaseAdminPage({
                                   </div>
                                   <span className="text-warm-accent">•</span>
                                   <div>
-                                    <span className="text-[#a8a29e]">ค่าใช้จ่ายแฝง: </span>
+                                    <span className="text-[#a8a29e]">ค่าใช้จ่ายอื่น: </span>
                                     <strong>{v.extra_fees?.length || 0} รายการ</strong>
                                   </div>
                                   {v.safety?.child_safeguarding_policy && (
                                     <>
                                       <span className="text-warm-accent">•</span>
-                                      <span className="text-emerald-700 font-medium">🛡️ Child Safeguarding Policy</span>
+                                      <span className="text-emerald-700 font-medium">มีนโยบายคุ้มครองเด็ก</span>
                                     </>
                                   )}
                                 </div>
@@ -1032,8 +1015,8 @@ export function SupabaseAdminPage({
                                 onClick={() => setReviewingVersion(v)}
                                 className="px-4 py-2.5 rounded-full bg-warm-charcoal hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                               >
-                                <Eye className="w-4 h-4 text-amber-400" />
-                                <span>ตรวจสอบ Diff & อนุมัติ</span>
+                                <Eye className="w-4 h-4 text-warm-bronze" />
+                                <span>ตรวจและอนุมัติ</span>
                               </button>
                             </div>
                           </div>
@@ -1045,51 +1028,18 @@ export function SupabaseAdminPage({
               )}
 
               {activeTab === "verify" && (
-                <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-8 sm:p-10 shadow-xs space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-accent pb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center">
-                        <ShieldCheck className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h2 className="text-base font-bold text-warm-charcoal">
-                          ศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Verification Center)
-                        </h2>
-                        <p className="text-xs text-[#78716c] mt-0.5">
-                          ตรวจสอบความถูกต้องของ Official Website ทุกโรงเรียน พร้อมการซิงค์แบบสองทิศทางกับ reference/schoolAndURL.txt และ Supabase Database
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsUrlVerificationModalOpen(true)}
-                      className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-2 self-start sm:self-center cursor-pointer"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>เปิดศูนย์ตรวจสอบและรับรอง URL</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-2xl bg-warm-cream border border-warm-accent">
-                      <span className="text-xs font-bold text-[#7a5f1f]">การตรวจสอบอัตโนมัติ</span>
-                      <p className="text-xs text-warm-charcoal/70 mt-1">
-                        บอทตรวจสอบสถาปัตยกรรมโดเมน (.ac.th, .sch.id, .edu) และ SSL/TLS ป้องกันลิงก์ปลอมหรือโดเมนหมดอายุ
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-warm-cream border border-warm-accent">
-                      <span className="text-xs font-bold text-[#7a5f1f]">2-Way Synced Registry</span>
-                      <p className="text-xs text-warm-charcoal/70 mt-1">
-                        ข้อมูลที่ได้รับการรับรองจะถูกบันทึกสู่ Supabase Cloud และซิงค์กลับสู่ schoolAndURL.txt อัตโนมัติ
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-warm-cream border border-warm-accent">
-                      <span className="text-xs font-bold text-[#7a5f1f]">Human-in-the-loop</span>
-                      <p className="text-xs text-warm-charcoal/70 mt-1">
-                        แอดมินสามารถคลิกทดสอบเปิดลิงก์สด แก้ไข URL ได้ทันที และกดปุ่มรับรอง (Verify) ด้วยตนเอง
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <p className="text-sm text-warm-charcoal/70">
+                    เปิดเว็บไซต์ของแต่ละโรงเรียน แก้ URL และกดรับรอง ผลจะบันทึกลง Supabase และ reference/schoolAndURL.txt
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsUrlVerificationModalOpen(true)}
+                    className="px-5 py-2.5 rounded-full bg-warm-charcoal hover:bg-warm-charcoal/90 text-white text-sm font-semibold transition-colors flex items-center gap-2 shrink-0 self-start sm:self-center cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-warm-bronze" />
+                    <span>เปิดหน้าตรวจรับรอง</span>
+                  </button>
                 </div>
               )}
 
@@ -1098,12 +1048,9 @@ export function SupabaseAdminPage({
                   <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent text-warm-bronze flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold text-warm-charcoal capitalize">
-                    {activeTab} Management Module
+                  <h3 className="text-sm font-bold text-warm-charcoal">
+                    ยังไม่เปิดใช้งาน
                   </h3>
-                  <p className="text-xs text-warm-charcoal/60 mt-1 max-w-sm mx-auto">
-                    เชื่อมต่อกับฐานข้อมูล Supabase PostgreSQL (Cloud Database) เรียบร้อยแล้ว
-                  </p>
                 </div>
               )}
             </>
@@ -1154,9 +1101,9 @@ export function SupabaseAdminPage({
         isOpen={isSyncConfirmOpen}
         onClose={() => setIsSyncConfirmOpen(false)}
         onConfirm={handleConfirmSyncOpec}
-        title="ยืนยันการดึงข้อมูลสดจาก OPEC เข้าสู่ Supabase"
-        description="ระบบจะทำการดึงข้อมูลโรงเรียนนานาชาติจากระบบ OPEC สช. (school.opec.go.th) ทั้งหมด และบันทึกข้อมูลเข้า Supabase PostgreSQL Cloud โดยตรง&#10;&#10;คุณต้องการเริ่มดำเนินการหรือไม่?"
-        confirmText="เริ่มดึงข้อมูลทันที"
+        title="ดึงข้อมูลจาก สช.?"
+        description="ดึงรายชื่อโรงเรียนนานาชาติทั้งหมดจาก school.opec.go.th แล้วบันทึกลง Supabase"
+        confirmText="เริ่มดึงข้อมูล"
         cancelText="ยกเลิก"
         variant="primary"
         iconType="database"
@@ -1168,9 +1115,9 @@ export function SupabaseAdminPage({
         isOpen={isClearConfirmOpen}
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={handleConfirmClearData}
-        title="ยืนยันการลบล้างข้อมูลใน Supabase ทั้งหมด"
-        description="⚠️ การกระทำนี้จะลบข้อมูลโรงเรียนและ Scrape Logs ในฐานข้อมูล Supabase PostgreSQL ทั้งหมด&#10;&#10;คุณสามารถกดปุ่ม 'ดึงข้อมูล OPEC' เพื่อนำเข้าข้อมูลใหม่อีกครั้งได้ทุกเมื่อ คุณแน่ใจหรือไม่ว่าต้องการดำเนินการ?"
-        confirmText="ยืนยันการลบล้างข้อมูลทั้งหมด"
+        title="ล้างข้อมูลทั้งหมด?"
+        description="ลบโรงเรียนและค่าเทอมที่อนุมัติแล้วทั้งหมดใน Supabase ดึงข้อมูล OPEC ใหม่ได้ แต่ค่าเทอมจะหายถาวร"
+        confirmText="ล้างข้อมูล"
         cancelText="ยกเลิก"
         variant="danger"
         iconType="trash"

@@ -19,6 +19,13 @@ function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg
 
 // ─── Tab list ────────────────────────────────────────────────────────────────
 const TABS = ["Overview", "Fees", "Gallery", "Reviews", "Forum"];
+const TAB_LABELS: Record<string, string> = {
+  Overview: "ภาพรวม",
+  Fees: "ค่าเทอม",
+  Gallery: "รูปภาพ",
+  Reviews: "รีวิว",
+  Forum: "ฟอรัม",
+};
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 interface SchoolDetailPageProps {
@@ -132,7 +139,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              <span>ข้อมูลทางการ สช. (OPEC)</span>
+              <span>ข้อมูลจาก สช.</span>
             </div>
           </div>
         </div>
@@ -166,7 +173,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               )}
               {detail.schoolCode && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-white/10 text-slate-300 border border-white/10">
-                  รหัสโรงเรียน: {detail.schoolCode}
+                  รหัส สช. {detail.schoolCode}
                 </span>
               )}
             </div>
@@ -211,7 +218,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 : "border-transparent text-slate-500 hover:text-navy-900"
                 }`}
             >
-              {t === "Forum" ? "💬 " + t : t}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </div>
@@ -223,38 +230,15 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
         {tab === "Overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-5">
-              {/* About the School (Authentic OPEC summary) */}
+              {/* About the school (OPEC summary) */}
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="font-semibold text-navy-900 text-lg mb-3">About the School (ข้อมูลโรงเรียน)</h2>
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">เกี่ยวกับโรงเรียน</h2>
                 <p className="text-slate-600 text-sm leading-relaxed">{detail.about}</p>
               </div>
 
-              {/* School Academic & Operational Profile */}
+              {/* Facilities */}
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="font-semibold text-navy-900 text-lg mb-4">Academic & Campus Standards (ข้อมูลมาตรฐานสถานศึกษา)</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                    <span className="text-xs text-slate-500 block mb-0.5">ระดับชั้นที่เปิดสอน</span>
-                    <span className="font-semibold text-slate-800">{detail.levelRange || (detail.levelsOffered?.length ? detail.levelsOffered.join(", ") : "ไม่ระบุ")}</span>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                    <span className="text-xs text-slate-500 block mb-0.5">หลักสูตรการศึกษา</span>
-                    <span className="font-semibold text-slate-800">{detail.curriculums?.length ? detail.curriculums.join(", ") : school.curriculum}</span>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                    <span className="text-xs text-slate-500 block mb-0.5">สถานะหอพักนักเรียน</span>
-                    <span className="font-semibold text-slate-800">{detail.isBoarding ? "มีหอพักประจำ (Boarding School)" : "ไม่มีหอพัก (Day School ไป-กลับ)"}</span>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                    <span className="text-xs text-slate-500 block mb-0.5">สมาชิกสมาคม ISAT</span>
-                    <span className="font-semibold text-slate-800">{detail.isIsatMember ? "เป็นสมาชิก ISAT (International Schools Association of Thailand)" : "ไม่ได้เป็นสมาชิก ISAT"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Facilities: Strictly truthful */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="font-semibold text-navy-900 text-lg mb-3">Facilities (สิ่งอำนวยความสะดวก)</h2>
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">สิ่งอำนวยความสะดวก</h2>
                 {detail.facilities && detail.facilities.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2">
                     {detail.facilities.map((f) => (
@@ -268,10 +252,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   </div>
                 ) : (
                   <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-sm text-slate-600">
-                    <p className="font-medium text-slate-700 mb-1">ยังไม่มีข้อมูลสิ่งอำนวยความสะดวกในฐานข้อมูล OPEC</p>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                      ระบบบันทึกเฉพาะข้อมูลทางการ ผู้ปกครองสามารถตรวจสอบสิ่งอำนวยความสะดวก ห้องเรียน ห้องปฏิบัติการ และพื้นที่กิจกรรมได้โดยตรงจากเว็บไซต์ทางการของโรงเรียน
-                    </p>
+                    <p className="text-slate-600 mb-3">ยังไม่มีข้อมูล</p>
                     {detail.website && (
                       <a
                         href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
@@ -279,41 +260,24 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors"
                       >
-                        เข้าชมเว็บไซต์ทางการของโรงเรียน ↗
+                        ดูเว็บไซต์โรงเรียน ↗
                       </a>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Child Safeguarding Policy: Truthful DB verification */}
+              {/* Child safeguarding policy */}
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 font-bold">
-                    🛡️
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-navy-900 text-lg leading-tight">Child Safeguarding & Safety Policy</h2>
-                    <span className="text-xs text-slate-500">ข้อมูลมาตรฐานความปลอดภัยและสวัสดิภาพเด็ก</span>
-                  </div>
-                </div>
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">นโยบายคุ้มครองเด็ก</h2>
 
                 {detail.safety?.safeguardingPolicy ? (
-                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-900">
-                    <div className="flex items-center gap-2 font-semibold text-emerald-800 mb-1">
-                      <span className="text-base">✓</span>
-                      <span>ผ่านการรับรองนโยบายคุ้มครองสวัสดิภาพเด็ก (Child Safeguarding Policy)</span>
-                    </div>
-                    <p className="text-xs text-emerald-700 leading-relaxed">
-                      โรงเรียนมีนโยบายคุ้มครองความปลอดภัยและสวัสดิภาพของนักเรียนตามเกณฑ์มาตรฐานการรับรองของ สช./ISAT
-                    </p>
+                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 text-sm font-medium text-emerald-800">
+                    ✓ โรงเรียนมีนโยบายคุ้มครองเด็ก (Child Safeguarding Policy)
                   </div>
                 ) : (
                   <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-sm text-slate-600">
-                    <p className="font-medium text-slate-700 mb-1">ยังไม่มีข้อมูลนโยบายความปลอดภัยที่เผยแพร่ผ่านระบบ OPEC</p>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      ผู้ปกครองสามารถสอบถามรายละเอียดเกี่ยวกับมาตรการความปลอดภัย การดูแลทางการแพทย์ และการคัดกรองบุคลากรได้โดยตรงจากทางโรงเรียน
-                    </p>
+                    ยังไม่มีข้อมูล
                   </div>
                 )}
               </div>
@@ -322,17 +286,17 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
             {/* Sidebar Facts */}
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                <h3 className="font-semibold text-navy-900 mb-3 text-sm">Quick Facts (ข้อมูลพื้นฐาน)</h3>
+                <h3 className="font-semibold text-navy-900 mb-3 text-sm">ข้อมูลพื้นฐาน</h3>
                 <div className="space-y-2.5">
                   {[
-                    ["ก่อตั้งปี (Founded)", detail.founded],
-                    ["จำนวนนักเรียน (Students)", detail.students],
-                    ["จำนวนครู (Teachers)", detail.teacherCount ? `${detail.teacherCount.toLocaleString()} คน` : "ไม่มีข้อมูล"],
-                    ["สัดส่วนนักเรียนต่อครู", detail.studentTeacherRatio ? `1 : ${detail.studentTeacherRatio}` : "ไม่มีข้อมูล"],
-                    ["หลักสูตร (Curriculum)", school.curriculum],
-                    ["ระดับชั้น (Grades)", school.grades || "ไม่มีข้อมูล"],
-                    ["หอพัก (Boarding)", detail.isBoarding ? "มีหอพัก (Boarding)" : "ไม่มีหอพัก (Day School)"],
-                    ["สมาชิก ISAT", detail.isIsatMember ? "เป็นสมาชิก ISAT" : "ไม่ได้เป็นสมาชิก"],
+                    ["ปีที่ก่อตั้ง", detail.founded],
+                    ["นักเรียน", detail.students],
+                    ["ครู", detail.teacherCount ? `${detail.teacherCount.toLocaleString()} คน` : "ไม่มีข้อมูล"],
+                    ["นักเรียนต่อครู", detail.studentTeacherRatio ? `${detail.studentTeacherRatio} : 1` : "ไม่มีข้อมูล"],
+                    ["หลักสูตร", detail.curriculums?.length ? detail.curriculums.join(", ") : school.curriculum],
+                    ["ระดับชั้น", detail.levelRange || school.grades || "ไม่มีข้อมูล"],
+                    ["หอพัก", detail.isBoarding ? "มี" : "ไม่มี"],
+                    ["สมาชิก ISAT", detail.isIsatMember ? "เป็นสมาชิก" : "ไม่ได้เป็นสมาชิก"],
                   ].map(([k, v]) => (
                     <div key={k} className="flex justify-between text-sm py-1 border-b border-slate-50 last:border-0">
                       <span className="text-slate-500">{k}</span>
@@ -344,7 +308,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
 
               {/* Location */}
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Location (ที่ตั้ง)</h3>
+                <h3 className="font-semibold text-navy-900 mb-2 text-sm">ที่ตั้ง</h3>
                 <div className="text-sm text-slate-600 leading-relaxed">{detail.address || school.location}</div>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name} ${detail.address || school.location}`)}`}
@@ -356,13 +320,13 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7-6.2-7-11.5a7 7 0 1114 0C19 14.8 12 21 12 21z" />
                     <circle cx="12" cy="9.5" r="2.5" />
                   </svg>
-                  เปิดดูตำแหน่งใน Google Maps ↗
+                  เปิดใน Google Maps ↗
                 </a>
               </div>
 
               {/* Contact Information */}
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                <h3 className="font-semibold text-navy-900 mb-3 text-sm">Contact (การติดต่อโรงเรียน)</h3>
+                <h3 className="font-semibold text-navy-900 mb-3 text-sm">ติดต่อ</h3>
                 <div className="space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">โทรศัพท์:</span>
@@ -405,7 +369,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               {/* Accreditation */}
               {detail.accreditation && detail.accreditation.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                  <h3 className="font-semibold text-navy-900 mb-2 text-sm">Accreditation (การรับรองวิทยฐานะ)</h3>
+                  <h3 className="font-semibold text-navy-900 mb-2 text-sm">การรับรองมาตรฐาน</h3>
                   <div className="flex flex-wrap gap-2">
                     {detail.accreditation.map((a) => (
                       <span key={a} className="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold px-2.5 py-1 rounded-full">
@@ -418,22 +382,22 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
 
               {/* Starting Tuition */}
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                <h3 className="font-semibold text-navy-900 mb-2 text-sm">Starting Tuition (ค่าธรรมเนียมเริ่มต้น)</h3>
+                <h3 className="font-semibold text-navy-900 mb-2 text-sm">ค่าเทอมเริ่มต้น</h3>
                 {school.tuitionStart > 0 ? (
                   <>
                     <div className="text-2xl font-bold text-navy-900">฿{(school.tuitionStart / 1000).toFixed(0)}K</div>
-                    <div className="text-xs text-slate-500 mt-0.5">ต่อปี (ประมาณการ) · ดูรายละเอียดเพิ่มเติมในแท็บ Fees</div>
+                    <div className="text-xs text-slate-500 mt-0.5">ต่อปี</div>
                     <button
                       onClick={() => setTab("Fees")}
                       className="mt-3 w-full py-2 rounded-lg text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors cursor-pointer"
                     >
-                      ดูตารางค่าธรรมเนียมการศึกษา →
+                      ดูค่าเทอมทุกชั้น →
                     </button>
                   </>
                 ) : (
                   <>
-                    <div className="text-sm font-semibold text-slate-600">ติดต่อโรงเรียนเพื่อสอบถาม</div>
-                    <div className="text-xs text-slate-500 mt-1">ยังไม่มีข้อมูลค่าธรรมเนียมการศึกษาในระบบ OPEC</div>
+                    <div className="text-sm font-semibold text-slate-600">ยังไม่มีข้อมูล</div>
+                    <div className="text-xs text-slate-500 mt-1">สอบถามได้โดยตรงที่โรงเรียน</div>
                   </>
                 )}
               </div>
@@ -445,8 +409,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
         {tab === "Fees" && (
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-              <h2 className="font-semibold text-navy-900 text-lg mb-1">{school.name} — Fee Schedule</h2>
-              <p className="text-xs text-slate-500 mb-5">ข้อมูลค่าธรรมเนียมการศึกษาทางการตามที่บันทึกในฐานข้อมูลระบบ</p>
+              <h2 className="font-semibold text-navy-900 text-lg mb-5">ค่าเทอม</h2>
 
               {detail.fees && detail.fees.length > 0 ? (
                 <div className="space-y-2 mb-6">
@@ -465,17 +428,15 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center mx-auto mb-2 text-base font-bold">
                     ฿
                   </div>
-                  <h3 className="font-semibold text-navy-900 text-sm mb-1">ยังไม่มีข้อมูลโครงสร้างค่าเล่าเรียนในระบบ OPEC</h3>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto mb-4">
-                    โรงเรียนยังไม่ได้เผยแพร่โครงสร้างค่าเล่าเรียนผ่านฐานข้อมูล สช. ท่านสามารถติดต่อสอบถามข้อมูลค่าเล่าเรียนและค่าธรรมเนียมล่าสุดได้จากทางโรงเรียนโดยตรง
-                  </p>
+                  <h3 className="font-semibold text-navy-900 text-sm mb-1">ยังไม่มีข้อมูลค่าเทอม</h3>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto mb-4">สอบถามได้โดยตรงที่โรงเรียน</p>
                   <div className="flex items-center justify-center gap-3 flex-wrap">
                     {detail.officialPhone && (
                       <a
                         href={`tel:${detail.officialPhone}`}
                         className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 transition-colors inline-flex items-center gap-1.5"
                       >
-                        📞 โทร {detail.officialPhone}
+                        โทร {detail.officialPhone}
                       </a>
                     )}
                     {detail.website && (
@@ -492,17 +453,17 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 </div>
               )}
 
-              {/* Multi-Year Calculator Card */}
+              {/* Calculator link */}
               <div className="bg-warm-cream border border-warm-accent rounded-2xl p-5 shadow-2xs">
-                <div className="text-sm font-bold text-warm-charcoal mb-1">Interactive Multi-Year Cost Calculator</div>
+                <div className="text-sm font-bold text-warm-charcoal mb-1">คำนวณค่าใช้จ่ายรวม</div>
                 <div className="text-xs text-warm-charcoal/70">
-                  คำนวณและจำลองค่าใช้จ่ายตลอดช่วงชั้นการศึกษา รวมค่าแรกเข้า ค่าชุด และค่าบำรุง
+                  รวมค่าเทอมและค่าแรกเข้าตามจำนวนปีที่จะเรียน
                 </div>
                 <button
                   onClick={onOpenCalculator}
                   className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white bg-warm-bronze hover:bg-warm-bronze/90 transition-all shadow-xs cursor-pointer"
                 >
-                  เปิดเครื่องคำนวณค่าใช้จ่ายสำหรับ {school.name} →
+                  เปิดเครื่องคำนวณ →
                 </button>
               </div>
             </div>
@@ -538,10 +499,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                     <span className="text-2xl font-bold text-slate-400">🏫</span>
                   )}
                 </div>
-                <h3 className="font-bold text-navy-900 text-base mb-1">ยังไม่มีรูปภาพแกลเลอรีในระบบ</h3>
-                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto mb-4">
-                  ระบบแสดงเฉพาะรูปภาพที่ผ่านการตรวจสอบอย่างเป็นทางการ ท่านสามารถเข้าชมภาพบรรยากาศและอาคารสถานที่จริงได้จากเว็บไซต์ทางการของโรงเรียน
-                </p>
+                <h3 className="font-bold text-navy-900 text-base mb-4">ยังไม่มีรูปภาพ</h3>
                 {detail.website && (
                   <a
                     href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
@@ -549,7 +507,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
                   >
-                    เยี่ยมชมเว็บไซต์ทางการของโรงเรียน ↗
+                    ดูเว็บไซต์โรงเรียน ↗
                   </a>
                 )}
               </div>
@@ -577,7 +535,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <StarRating rating={r.rating} />
-                        <span className="text-xs text-slate-500">Child in {r.childYear}</span>
+                        <span className="text-xs text-slate-500">ลูกเรียนชั้น {r.childYear}</span>
                       </div>
                     </div>
                   </div>
@@ -589,12 +547,9 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-3 text-xl font-bold">
                   ★
                 </div>
-                <h3 className="font-bold text-navy-900 text-base mb-1">ยังไม่มีรีวิวสำหรับโรงเรียนนี้</h3>
-                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto mb-5">
-                  ยังไม่มีผู้ปกครองเขียนรีวิวหรือแสดงความคิดเห็นสำหรับโรงเรียนนี้ในระบบ คุณสามารถร่วมเป็นคนแรกที่แบ่งปันประสบการณ์เพื่อเป็นประโยชน์ต่อผู้ปกครองท่านอื่นได้
-                </p>
+                <h3 className="font-bold text-navy-900 text-base mb-5">ยังไม่มีรีวิว</h3>
                 <button className="px-5 py-2.5 rounded-xl text-xs font-semibold border border-teal-500 text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer">
-                  + เขียนรีวิวโรงเรียนนี้ (เข้าสู่ระบบ)
+                  เขียนรีวิว
                 </button>
               </div>
             )}

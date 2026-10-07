@@ -170,15 +170,7 @@ export default function App() {
         compareCount={compareIds.length}
         favoritesCount={favorites.size}
         onFavorites={goFavorites}
-        onCompare={() => {
-          if (compareIds.length >= 2) {
-            setCompareModalOpen(true);
-          } else if (compareIds.length === 1) {
-            setCompareModalOpen(true);
-          } else {
-            showAuth("กรุณากด 'Add to Compare' บนการ์ดโรงเรียนอย่างน้อย 2 แห่งเพื่อเริ่มเปรียบเทียบครับ");
-          }
-        }}
+        onCompare={() => setCompareModalOpen(true)}
         onCalculator={() => goCalculator()}
         onForum={goForum}
         onHome={goHome}
@@ -287,7 +279,7 @@ export default function App() {
             setCompareModalOpen(false);
             goCalculator(schoolId);
           }}
-          onSaveComparison={() => showAuth("Sign in to save and revisit your school comparisons anytime.")}
+          onSaveComparison={() => showAuth("Sign in to save this comparison.")}
         />
       )}
 

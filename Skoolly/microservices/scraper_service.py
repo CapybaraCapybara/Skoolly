@@ -658,7 +658,7 @@ def scrape_endpoint(req: ScrapeRequest):
             status=status,
             timestamp=datetime.now(timezone.utc).isoformat()
         )
-        logs.append(entry.dict())
+        logs.append(entry.model_dump())
 
     result = {"school_name": req.school_name, "homepage_url": req.homepage_url, "status": "ok"}
     t0 = time.time()
@@ -718,12 +718,24 @@ def scrape_endpoint(req: ScrapeRequest):
             add_log("ai_navigate_safety_decision", f"chose safety index {safety_idx}", reasoning=safety_reasoning)
 
             # 2. Scrape Tuition Fee Page
+            # network_pdfs keeps growing across pages: each page only counts what it loaded itself
             target_fee_url = req.homepage_url
+            fee_pdf_mark = 0
             if fee_page_discovery == "found":
                 target_fee_url = fee_candidates[fee_idx]["href"]
-                page.goto(target_fee_url, timeout=20000, wait_until="domcontentloaded")
-                page.wait_for_timeout(1000)
-                add_log("navigate", "opened candidate fee page", target_fee_url)
+                fee_pdf_mark = len(network_pdfs)
+                try:
+                    page.goto(target_fee_url, timeout=20000, wait_until="domcontentloaded")
+                    page.wait_for_timeout(1000)
+                    add_log("navigate", "opened candidate fee page", target_fee_url)
+                except Exception as ex:
+                    # The homepage text is still worth extracting from
+                    add_log("navigate", f"fee page failed to load ({ex}) — using homepage text",
+                            target_fee_url, status="fallback")
+                    target_fee_url = req.homepage_url
+                    fee_page_discovery = "fallback_homepage"
+                    fee_pdf_mark = 0
+                    page.goto(req.homepage_url, timeout=20000, wait_until="domcontentloaded")
             elif fee_page_discovery == "no_candidates":
                 add_log("navigate", "no fee page candidates found — using homepage text", req.homepage_url, status="fallback")
             else:
@@ -742,7 +754,7 @@ def scrape_endpoint(req: ScrapeRequest):
 
             # Detect PDFs on fee page
             needs_ocr_review = False
-            fee_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs)
+            fee_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs[fee_pdf_mark:])
             for pu in fee_pdf_urls:
                 add_log("pdf_detected", "found PDF on fee page", pu)
                 pdf_res = extract_pdf_text(page, pu)
@@ -760,6 +772,7 @@ def scrape_endpoint(req: ScrapeRequest):
             if safety_idx is not None and 0 <= safety_idx < len(safety_candidates):
                 safety_url = safety_candidates[safety_idx]["href"]
                 safety_policy_url = safety_url
+                safety_pdf_mark = len(network_pdfs)
                 try:
                     page.goto(safety_url, timeout=20000, wait_until="domcontentloaded")
                     page.wait_for_timeout(1000)
@@ -770,7 +783,7 @@ def scrape_endpoint(req: ScrapeRequest):
                     combined_text += f"\n\n=== CAMPUS SAFETY & SAFEGUARDING POLICY PAGE ({safety_url}) ===\n{safety_text}"
 
                     # Detect policy PDFs (e.g. Safeguarding Policy, Child Protection Policy PDF)
-                    safety_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs)
+                    safety_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs[safety_pdf_mark:])
                     for spu in safety_pdf_urls:
                         add_log("pdf_detected_safety", "found policy PDF on safety page", spu)
                         policy_res = extract_pdf_text(page, spu)

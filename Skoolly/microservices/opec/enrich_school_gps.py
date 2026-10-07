@@ -811,7 +811,7 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
 
     shared = find_shared_pins(collected, by_code)
     multi = _multi_campus_brands(schools)
-    exact = approx = 0
+    exact = approx = none = 0
     for i, s in enumerate(targets, 1):
         code = str(s.get("school_code")).strip()
         info = collected.get(code)
@@ -819,11 +819,15 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
         if result:
             _apply(s, result)
             exact += result["precision"] == "Exact"
-            approx += result["precision"] != "Exact"
+            approx += result["precision"] == "Approximate"
+            none += result["precision"] == "None"
             msg = f"[GPS: {i}/{total}] {s.get('school_name_th')} -> ({result['lat']}, {result['lon']}) [{result['precision']}] {result['source']}"
         else:
             _mark_unverified(s)
-            approx += bool(s.get("latitude"))
+            if s.get("latitude"):
+                approx += 1
+            else:
+                none += 1
             msg = f"[GPS: {i}/{total}] ไม่พบพิกัดจากแหล่งใดเลย: {s.get('school_name_th')}"
         update_progress(f"ตัดสินพิกัด ({i}/{total})", i, total, msg)
 
@@ -838,9 +842,10 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
     if on_save_callback:
         on_save_callback(schools)
 
-    update_progress("ค้นหาพิกัด GPS เสร็จสมบูรณ์!", total, total, (
-        f"ประมวลผลพิกัด GPS เสร็จสมบูรณ์! ({total} แห่ง)\n"
+    update_progress("ค้นหาพิกัด GPS เสร็จแล้ว", total, total, (
+        f"ตรวจพิกัด GPS เสร็จแล้ว ({total} แห่ง)\n"
         f"  - Exact (มีหลักฐานยืนยันว่าเป็นตัวโรงเรียน): {exact} แห่ง\n"
         f"  - Approximate (ยังไม่มีหลักฐานพอ ดูเหตุผลใน gps_source): {approx} แห่ง\n"
+        f"  - None (ไม่มีพิกัดที่เก็บได้ รอแอดมินปักหมุด): {none} แห่ง\n"
         f"  - หลักฐานจากทุกแหล่งเก็บไว้ในฟิลด์ gps_evidence"))
     return schools

@@ -175,7 +175,7 @@ export function OpecSchoolDetailModal({
                 </h2>
 
                 <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-warm-cream text-warm-bronze border border-warm-accent">
-                  รหัส สช: {school.school_code || "—"}
+                  รหัส สช. {school.school_code || "—"}
                 </span>
 
                 {school.province && (
@@ -196,13 +196,13 @@ export function OpecSchoolDetailModal({
 
                 {school.is_isat_member && (
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#456ca6]/10 text-[#456ca6] border border-[#456ca6]/30">
-                    ISAT Member
+                    สมาชิก ISAT
                   </span>
                 )}
 
                 {school.is_boarding && (
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">
-                    Boarding School
+                    โรงเรียนประจำ
                   </span>
                 )}
 
@@ -240,7 +240,7 @@ export function OpecSchoolDetailModal({
             type="button"
             onClick={onClose}
             className="p-2 rounded-xl hover:bg-warm-accent/50 text-[#78716c] hover:text-warm-charcoal transition-colors shrink-0"
-            title="ปิดหน้าต่าง (กด Esc ได้)"
+            title="ปิด (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
@@ -257,7 +257,7 @@ export function OpecSchoolDetailModal({
             <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
               <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
                 <GraduationCap className="w-4 h-4 text-warm-bronze" />
-                <span>ระดับชั้นที่เปิดสอน & หลักสูตร</span>
+                <span>ระดับชั้นและหลักสูตร</span>
               </div>
 
               <div className="space-y-3 text-xs">
@@ -358,7 +358,7 @@ export function OpecSchoolDetailModal({
             <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
               <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
                 <Users className="w-4 h-4 text-warm-bronze" />
-                <span>จำนวนนักเรียน ครู และบุคลากร</span>
+                <span>นักเรียนและครู</span>
               </div>
 
               {/* 2 Side-by-side Metric Highlight Boxes */}
@@ -399,7 +399,7 @@ export function OpecSchoolDetailModal({
                     ))}
                   </div>
                 ) : (
-                  <span className="text-[#a8a29e] italic">— ไม่ระบุในฐานข้อมูล สช. —</span>
+                  <span className="text-[#a8a29e] italic">ไม่มีข้อมูล</span>
                 )}
               </div>
             </div>
@@ -410,7 +410,7 @@ export function OpecSchoolDetailModal({
             <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
               <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
                 <Building2 className="w-4 h-4 text-warm-bronze" />
-                <span>ที่ตั้ง & ภูมิศาสตร์</span>
+                <span>ที่ตั้ง</span>
               </div>
 
               <div className="space-y-2.5 text-xs">
@@ -467,14 +467,14 @@ export function OpecSchoolDetailModal({
             <div className="bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
               <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
                 <Globe className="w-4 h-4 text-warm-bronze" />
-                <span>เว็บไซต์ & ช่องทางออนไลน์</span>
+                <span>เว็บไซต์และโซเชียล</span>
               </div>
 
               <div className="space-y-2.5 text-xs">
                 {/* Website */}
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-[#78716c] font-medium min-w-[130px] shrink-0 pt-0.5">
-                    เว็บไซต์ (Website):
+                    เว็บไซต์:
                   </span>
                   <div className="flex-1 flex items-center justify-end gap-1.5 flex-wrap">
                     {school.website ? (
@@ -497,7 +497,7 @@ export function OpecSchoolDetailModal({
                         </button>
                       </>
                     ) : (
-                      <span className="text-[#a8a29e] italic">— ยังไม่มี Website —</span>
+                      <span className="text-[#a8a29e] italic">ยังไม่มีเว็บไซต์</span>
                     )}
                   </div>
                 </div>
@@ -597,7 +597,7 @@ export function OpecSchoolDetailModal({
             <div className="lg:col-span-2 bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
               <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
                 <Phone className="w-4 h-4 text-warm-bronze" />
-                <span>การติดต่อ & พิกัดแผนที่</span>
+                <span>ติดต่อและพิกัด</span>
               </div>
 
               <div className="space-y-3.5 text-xs">
@@ -621,7 +621,7 @@ export function OpecSchoolDetailModal({
                 <div className="space-y-2 pt-1">
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
-                      พิกัด GPS (Lat, Lon):
+                      พิกัด:
                     </span>
                     <span className="font-mono font-bold text-warm-charcoal text-right">
                       {hasGps ? `${lat}, ${lon}` : "—"}
@@ -637,16 +637,16 @@ export function OpecSchoolDetailModal({
                         isApproxGps ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
                             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                            <span>พิกัดประมาณการ (ระดับอำเภอ/ตำบล)</span>
+                            <span>โดยประมาณ (อำเภอ/ตำบล)</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]">
                             <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
-                            <span>แม่นยำระดับอาคาร / วิทยาเขต / ถนน</span>
+                            <span>ระดับอาคาร</span>
                           </span>
                         )
                       ) : (
-                        <span className="text-[#a8a29e] italic">— ไม่มีพิกัด GPS —</span>
+                        <span className="text-[#a8a29e] italic">ไม่มีพิกัด</span>
                       )}
                     </div>
                   </div>
@@ -672,10 +672,10 @@ export function OpecSchoolDetailModal({
                         className="px-3.5 py-2 bg-white hover:bg-warm-cream border border-warm-accent text-warm-charcoal rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors"
                       >
                         <MapPin className="w-4 h-4 text-rose-500" />
-                        <span>เปิดดูใน Google Maps {isApproxGps ? "(พิกัดคร่าวๆ)" : ""}</span>
+                        <span>เปิดใน Google Maps</span>
                       </a>
                     ) : (
-                      <span className="text-[#a8a29e] text-xs italic">(ไม่มีพิกัด GPS)</span>
+                      <span className="text-[#a8a29e] text-xs italic">ไม่มีพิกัด</span>
                     )}
                   </div>
                 </div>
@@ -689,7 +689,7 @@ export function OpecSchoolDetailModal({
               <div className="lg:col-span-2 bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
                 <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
                   <School className="w-4 h-4 text-warm-bronze" />
-                  <span>ประวัติ วิสัยทัศน์ & อัตลักษณ์โรงเรียน</span>
+                  <span>ประวัติและวิสัยทัศน์</span>
                 </div>
 
                 <div className="space-y-2.5 text-xs">
@@ -739,7 +739,7 @@ export function OpecSchoolDetailModal({
               className="text-xs font-bold text-[#78716c] hover:text-warm-charcoal flex items-center gap-1.5 py-1 transition-colors"
             >
               <FileJson className="w-4 h-4 text-warm-bronze" />
-              <span>{showJson ? "ซ่อน Raw JSON ข้อมูลดิบ" : "ดูข้อมูลดิบ สช. (Raw JSON)"}</span>
+              <span>{showJson ? "ซ่อนข้อมูลดิบ" : "ดูข้อมูลดิบ (JSON)"}</span>
             </button>
             {showJson && (
               <div className="mt-2 relative animate-fadeIn">
@@ -786,7 +786,7 @@ export function OpecSchoolDetailModal({
               className="px-4 py-2 bg-white hover:bg-warm-cream border border-warm-accent text-warm-charcoal rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-[#78716c]" />
-              <span>ปิดหน้าต่าง (Esc)</span>
+              <span>ปิด</span>
             </button>
 
             <button
@@ -795,7 +795,7 @@ export function OpecSchoolDetailModal({
               className="px-4 py-2 bg-warm-cream hover:bg-warm-accent/50 border border-warm-accent text-warm-charcoal rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
             >
               <Edit className="w-3.5 h-3.5 text-warm-bronze" />
-              <span>แก้ไข Official Website</span>
+              <span>แก้ไขเว็บไซต์</span>
             </button>
 
             {onResolveSchoolWebsite && (
@@ -805,7 +805,7 @@ export function OpecSchoolDetailModal({
                 className="px-4 py-2 bg-warm-bronze hover:bg-[#96752a] text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>ค้นหาเฉพาะโรงเรียนนี้</span>
+                <span>ค้นหาเว็บไซต์</span>
               </button>
             )}
 
@@ -814,7 +814,7 @@ export function OpecSchoolDetailModal({
                 type="button"
                 onClick={() => onScrapeTuition(school)}
                 className="px-4 py-2 bg-warm-bronze hover:bg-[#96752a] text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
-                title="เริ่มดึงข้อมูลค่าเทอมและนโยบายความปลอดภัยจากเว็บไซต์ทางการ"
+                title="ดึงค่าเทอมจากเว็บไซต์โรงเรียน"
               >
                 <Sparkles className="w-3.5 h-3.5 fill-current" />
                 <span>Scrape ค่าเทอม</span>

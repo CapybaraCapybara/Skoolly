@@ -1,93 +1,59 @@
+import json
 import os
 import sys
 import time
 import threading
 from typing import List, Dict, Any, Optional
+
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 
-# Add microservices and opec directories to sys.path
 MICROSERVICES_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(MICROSERVICES_DIR)
 OPEC_DIR = os.path.join(MICROSERVICES_DIR, "opec")
-if MICROSERVICES_DIR not in sys.path:
-    sys.path.insert(0, MICROSERVICES_DIR)
+# The opec modules import each other by bare name (`from data_manager import ...`), so this
+# file does too. Importing them as `opec.x` as well loaded every module twice, each copy with
+# its own caches, locks and database connections. Editors only find these modules with
+# microservices/opec on their search path, hence the `type: ignore` on the imports below.
 if OPEC_DIR not in sys.path:
     sys.path.insert(0, OPEC_DIR)
 
-try:
-    from opec.data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins
-    from opec.fetch_opec import fetch_opec_schools
-    from opec.fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code
-    from opec.enrich_school_names_en import enrich_all_school_names_en
-    from opec.enrich_school_gps import enrich_all_school_gps, is_coords_in_province
-    from opec.enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data
-    from opec.supabase_sync import (
-        test_database_connection,
-        save_database_url,
-        initialize_schema_on_supabase,
-        execute_opec_import,
-        get_current_dsn,
-        fetch_supabase_schools,
-        clear_supabase_data,
-        insert_supabase_school,
-        update_supabase_school,
-        delete_supabase_school,
-        update_supabase_school_names_en,
-        update_supabase_school_gps,
-        update_supabase_school_websites,
-        sync_single_school_to_supabase,
-        fetch_pending_versions,
-        approve_school_version,
-        reject_school_version,
-        save_scraped_draft_version,
-    )
-    from opec.website_registry import (
-        get_full_registry_status,
-        verify_or_update_school_url,
-        bulk_sync_from_reference_txt,
-        run_bulk_health_check,
-        get_health_state,
-    )
-    from opec.enrich_from_isat import run_isat_enrichment
-    from opec.public_queries import fetch_published_fees, fetch_forum_posts
-except ImportError:
-    from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
-    from fetch_opec import fetch_opec_schools  # type: ignore
-    from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
-    from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
-    from enrich_school_gps import enrich_all_school_gps, is_coords_in_province  # type: ignore
-    from enrich_school_data import enrich_all_missing_school_data, enrich_single_school_data  # type: ignore
-    from supabase_sync import (  # type: ignore
-        test_database_connection,
-        save_database_url,
-        initialize_schema_on_supabase,
-        execute_opec_import,
-        get_current_dsn,
-        fetch_supabase_schools,
-        clear_supabase_data,
-        insert_supabase_school,
-        update_supabase_school,
-        delete_supabase_school,
-        update_supabase_school_names_en,
-        update_supabase_school_gps,
-        update_supabase_school_websites,
-        sync_single_school_to_supabase,
-        fetch_pending_versions,
-        approve_school_version,
-        reject_school_version,
-        save_scraped_draft_version,
-    )
-    from website_registry import (  # type: ignore
-        get_full_registry_status,
-        verify_or_update_school_url,
-        bulk_sync_from_reference_txt,
-        run_bulk_health_check,
-        get_health_state,
-    )
-    from enrich_from_isat import run_isat_enrichment  # type: ignore
-    from public_queries import fetch_published_fees, fetch_forum_posts  # type: ignore
+from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
+from fetch_opec import fetch_opec_schools  # type: ignore
+from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
+from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
+from enrich_school_gps import enrich_all_school_gps, is_coords_in_province  # type: ignore
+from enrich_school_data import enrich_single_school_data  # type: ignore
+from supabase_sync import (  # type: ignore
+    test_database_connection,
+    initialize_schema_on_supabase,
+    execute_opec_import,
+    get_current_dsn,
+    fetch_supabase_schools,
+    clear_supabase_data,
+    insert_supabase_school,
+    update_supabase_school,
+    delete_supabase_school,
+    update_supabase_school_gps,
+    update_supabase_school_websites,
+    sync_single_school_to_supabase,
+    fetch_pending_versions,
+    approve_school_version,
+    reject_school_version,
+    save_scraped_draft_version,
+)
+from website_registry import (  # type: ignore
+    get_full_registry_status,
+    verify_or_update_school_url,
+    bulk_sync_from_reference_txt,
+    run_bulk_health_check,
+    get_health_state,
+)
+from enrich_from_isat import run_isat_enrichment  # type: ignore
+from public_queries import fetch_published_fees, fetch_forum_posts  # type: ignore
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
@@ -102,6 +68,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Scraper Service (scraper_service.py). Not started by start-dev.bat: run it on its own when
+# scraping tuition. A scrape can wait out several Gemini rate-limit back-offs, hence the timeout.
+SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://127.0.0.1:8001/scrape")
+SCRAPE_TIMEOUT_S = 300
+# Results the batch scraper saved through the Saga pipeline (db_service.py)
+RESULTS_FILE = os.path.join(BASE_DIR, "results.json")
 
 # In-memory Scraper State
 scraper_state = {
@@ -151,234 +124,163 @@ def update_progress(task, current, total, log=""):
             if len(scraper_state["logs"]) > 5000:
                 scraper_state["logs"].pop(0)
 
-# Background workers
-def run_fetch_opec_worker():
+# ─── background jobs ─────────────────────────────────────────────────────────
+# One job at a time: every job rewrites the dataset file, and a second writer would save
+# over the first one's changes.
+
+BUSY = {"status": "already_running", "detail": "มีงานอื่นกำลังทำงานอยู่ รอให้เสร็จก่อนแล้วค่อยสั่งใหม่"}
+
+
+def _require_idle():
+    """Single-school edits save the whole dataset too, so they wait for a running job."""
+    with state_lock:
+        if scraper_state["is_running"]:
+            raise HTTPException(status_code=409, detail=BUSY["detail"])
+
+
+def _scaled_progress(prefix, lo, hi):
+    """Maps one step's own 0..total onto lo..hi of a multi-step job, so the bar only moves forward."""
+    def progress(task, current, total, log=""):
+        frac = min(max(current / total, 0), 1) if total else 1
+        update_progress(prefix + task, lo + round((hi - lo) * frac), 100, log)
+    return progress
+
+
+def _run_job(steps):
+    label = steps[0][0]
     try:
-        def on_save(records):
-            set_current_schools(records)
-        result = fetch_opec_schools(update_progress, on_save_callback=on_save)
-        if result:
-            set_current_schools(result)
-    except Exception as e:
-        print("[OPEC Service] Error in OPEC fetch:", e)
-        update_progress("เกิดข้อผิดพลาดในการดึง OPEC", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_enrich_names_en_worker():
-    try:
-        def on_save(records):
-            set_current_schools(records)
-        result = enrich_all_school_names_en(update_progress, on_save_callback=on_save)
-        if result:
-            set_current_schools(result)
-    except Exception as e:
-        print("[OPEC Service] Error in EN Name Enrichment:", e)
-        update_progress("เกิดข้อผิดพลาดในการเติมชื่อภาษาอังกฤษ", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_enrich_gps_worker():
-    try:
-        def on_save(records):
-            set_current_schools(records)
-        result = enrich_all_school_gps(update_progress, on_save_callback=on_save)
-        if result:
-            set_current_schools(result)
-            try:
-                if get_current_dsn():
-                    update_progress("กำลังซิงค์พิกัด GPS สู่ Supabase...", 100, 100, "กำลังบันทึกพิกัด GPS ลงตาราง school_data.schools ใน Supabase...")
-                    synced = update_supabase_school_gps(result, update_progress)
-                    update_progress("ซิงค์ GPS สู่ Supabase สำเร็จ", 100, 100, f"บันทึกพิกัด GPS สู่ Supabase สำเร็จ ({synced} แห่ง)")
-            except Exception as e_sb:
-                print("[GPS Supabase Sync Error]", e_sb)
-    except Exception as e:
-        print("[OPEC Service] Error in GPS Enrichment:", e)
-        update_progress("เกิดข้อผิดพลาดในการค้นหาพิกัด GPS", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_fetch_websites_worker():
-    try:
-        def on_save(records):
-            set_current_schools(records)
-        result = resolve_all_official_websites(update_progress, on_save_callback=on_save)
-        if result:
-            set_current_schools(result)
-            try:
-                if get_current_dsn():
-                    update_progress("กำลังซิงค์ Official Website สู่ Supabase...", 100, 100, "กำลังบันทึกเว็บไซต์ลงตาราง school_data.schools ใน Supabase...")
-                    synced = update_supabase_school_websites(result, update_progress)
-                    update_progress("ซิงค์ Website สู่ Supabase สำเร็จ", 100, 100, f"บันทึกเว็บไซต์ทางการสู่ Supabase สำเร็จ ({synced} แห่ง)")
-            except Exception as e_sb:
-                print("[Websites Supabase Sync Error]", e_sb)
-    except Exception as e:
-        print("[OPEC Service] Error in Website fetch:", e)
-        update_progress("เกิดข้อผิดพลาดในการดึง Official Website", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_enrich_data_worker():
-    try:
-        def on_save(records):
-            set_current_schools(records)
-        result = enrich_all_missing_school_data(update_progress, on_save_callback=on_save)
-        if result:
-            set_current_schools(result)
-            try:
-                if get_current_dsn():
-                    update_progress("กำลังซิงค์ข้อมูล Auto-Enrich สู่ Supabase...", 100, 100, "กำลังบันทึกข้อมูลสมบูรณ์ลงตาราง school_data.schools ใน Supabase...")
-                    s_en = update_supabase_school_names_en(result, update_progress)
-                    s_gps = update_supabase_school_gps(result, update_progress)
-                    update_progress("ซิงค์ข้อมูลสู่ Supabase สำเร็จ", 100, 100, f"บันทึก Supabase สมบูรณ์: ชื่อ EN ({s_en} แห่ง), พิกัด GPS ({s_gps} แห่ง)")
-            except Exception as e_sb:
-                print("[Auto-Enrich Supabase Sync Error]", e_sb)
-    except Exception as e:
-        print("[OPEC Service] Error in Data Enrichment:", e)
-        update_progress("เกิดข้อผิดพลาดในการเติมข้อมูล", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_enrich_isat_worker():
-    try:
-        res = run_isat_enrichment(apply_to_db=True, progress_callback=update_progress)
-        schools = load_schools()
-        set_current_schools(schools)
-    except Exception as e:
-        print("[OPEC Service] Error in ISAT Enrichment:", e)
-        update_progress("เกิดข้อผิดพลาดในการซิงค์ ISAT", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_full_pipeline_worker():
-    """Runs complete 5-step data pipeline in the recommended optimal order:
-       1. OPEC Fetch & Sync
-       2. Enrich School Names EN
-       3. Enrich ISAT (all member schools)
-       4. Fetch Official Websites
-       5. Enrich GPS Coordinates
-    """
-    try:
-        def on_save(records):
-            set_current_schools(records)
-
-        # ----------------------------------------------------
-        # STEP 1: OPEC Fetch & Direct Supabase Import
-        # ----------------------------------------------------
-        update_progress("⚡ [Full Pipeline 1/5] ดึงข้อมูลสดจาก OPEC API...", 1, 100, "🚀 เริ่มต้น Full Data Pipeline (5 ขั้นตอนครบวงจร)...")
-        update_progress("⚡ [Full Pipeline 1/5] ดึงข้อมูลสดจาก OPEC API...", 3, 100, "[ขั้นตอน 1/5] เริ่มต้นดึงข้อมูลสดจาก OPEC API สช. ทั่วประเทศ...")
-        fetched = fetch_opec_schools(update_progress, on_save_callback=on_save)
-        records = fetched if fetched else get_current_schools()
-        if not records:
-            records = load_schools()
-        if records:
-            set_current_schools(records)
-            execute_opec_import(records=records, publish_initial=True, progress_callback=update_progress)
-
-        # ----------------------------------------------------
-        # STEP 2: Enrich English Names
-        # ----------------------------------------------------
-        update_progress("⚡ [Full Pipeline 2/5] เติมชื่อภาษาอังกฤษทางการ (EN)...", 25, 100, "[ขั้นตอน 2/5] เริ่มต้นประมวลผลเติมชื่อภาษาอังกฤษทางการ...")
-        enrich_all_school_names_en(update_progress, on_save_callback=on_save)
-        records = load_schools()
-        set_current_schools(records)
-
-        # ----------------------------------------------------
-        # STEP 3: Enrich ISAT
-        # ----------------------------------------------------
-        update_progress("⚡ [Full Pipeline 3/5] ซิงค์ข้อมูลสมาคม ISAT...", 45, 100, "[ขั้นตอน 3/5] เริ่มต้นดึงและจับคู่ข้อมูลสมาคม ISAT...")
-        run_isat_enrichment(apply_to_db=True, progress_callback=update_progress)
-        records = load_schools()
-        set_current_schools(records)
-
-        # ----------------------------------------------------
-        # STEP 4: Fetch Official Websites
-        # ----------------------------------------------------
-        update_progress("⚡ [Full Pipeline 4/5] ค้นหาและตรวจสอบ Official Website...", 65, 100, "[ขั้นตอน 4/5] เริ่มต้นค้นหาและตรวจสอบเว็บไซต์ทางการ...")
-        resolve_all_official_websites(update_progress, on_save_callback=on_save)
-        records = load_schools()
-        set_current_schools(records)
-        if get_current_dsn():
-            update_progress("กำลังซิงค์ Official Website สู่ Supabase...", 75, 100, "กำลังบันทึกเว็บไซต์ลงตาราง school_data.schools ใน Supabase...")
-            synced_web = update_supabase_school_websites(records, update_progress)
-            update_progress("ซิงค์ Website สู่ Supabase สำเร็จ", 78, 100, f"บันทึกเว็บไซต์ทางการสู่ Supabase สำเร็จ ({synced_web} แห่ง)")
-
-        # ----------------------------------------------------
-        # STEP 5: GPS Geocoding
-        # ----------------------------------------------------
-        update_progress("⚡ [Full Pipeline 5/5] ค้นหาพิกัด GPS ความแม่นยำสูง...", 80, 100, "[ขั้นตอน 5/5] เริ่มต้นคำนวณและค้นหาพิกัด GPS ความแม่นยำสูง...")
-        enrich_all_school_gps(update_progress, on_save_callback=on_save)
-        records = load_schools()
-        set_current_schools(records)
-        if get_current_dsn():
-            update_progress("กำลังซิงค์พิกัด GPS สู่ Supabase...", 95, 100, "กำลังบันทึกพิกัด GPS ลงตาราง school_data.schools ใน Supabase...")
-            synced_gps = update_supabase_school_gps(records, update_progress)
-            update_progress("ซิงค์ GPS สู่ Supabase สำเร็จ", 98, 100, f"บันทึกพิกัด GPS สู่ Supabase สำเร็จ ({synced_gps} แห่ง)")
-
-        # ----------------------------------------------------
-        # FINISHED
-        # ----------------------------------------------------
-        final_summary = (
-            "🎉 Full Data Pipeline เสร็จสมบูรณ์ครบทั้ง 5 ขั้นตอน!\n"
-            f"  1. OPEC: นำเข้าและซิงค์ข้อมูลสด {len(records)} โรงเรียน\n"
-            "  2. Official Name EN: เติมเต็มและจัดมาตรฐาน 100%\n"
-            "  3. ISAT: สมาชิกสมาคม, การรับรองมาตรฐานสากล CIS/WASC, และ Logo สมบูรณ์\n"
-            "  4. Official Website: ยืนยันโดเมนและเว็บไซต์ทางการครบถ้วน\n"
-            "  5. GPS Geocoding: ปักหมุดพิกัดอาคารและบันทึกสู่ Supabase เรียบร้อยแล้ว"
-        )
-        update_progress("🎉 Full Data Pipeline เสร็จสมบูรณ์ 100%!", 100, 100, final_summary)
-    except Exception as e:
-        print("[OPEC Service] Error in Full Pipeline:", e)
-        update_progress("เกิดข้อผิดพลาดใน Full Pipeline", 100, 100, f"Error: {e}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-
-def run_sync_supabase_worker(fetch_fresh: bool = False, publish_initial: bool = True):
-    try:
-        if fetch_fresh:
-            update_progress("กำลังดึงข้อมูลโรงเรียนสดจาก OPEC API...", 3, 100, "เริ่มต้นดึงข้อมูลสดจาก OPEC API...")
-            def on_save(records):
-                set_current_schools(records)
-            fetched = fetch_opec_schools(update_progress, on_save_callback=on_save)
-            records = fetched if fetched else get_current_schools()
+        if len(steps) == 1:
+            steps[0][1](update_progress)
         else:
-            records = get_current_schools()
-            if not records:
-                records = load_schools()
-                if records:
-                    set_current_schools(records)
-
-        def progress_cb(task, cur, tot, log_msg):
-            update_progress(task, cur, tot, log_msg)
-
-        execute_opec_import(
-            records=records,
-            publish_initial=publish_initial,
-            progress_callback=progress_cb
-        )
+            n = len(steps)
+            for i, (label, step) in enumerate(steps):
+                step(_scaled_progress(f"[ขั้น {i + 1}/{n}] ", i * 100 // n, (i + 1) * 100 // n))
+            update_progress("รันครบทุกขั้นตอนแล้ว", 100, 100,
+                            f"รันครบ {n} ขั้นตอน: " + " -> ".join(name for name, _ in steps))
     except Exception as e:
-        print("[OPEC Service] Error syncing to Supabase:", e)
-        update_progress("เกิดข้อผิดพลาดในการนำเข้า Supabase", 100, 100, f"Error: {e}")
+        print(f"[OPEC Service] Error in {label}:", e)
+        update_progress(f"เกิดข้อผิดพลาด: {label}", 100, 100, f"Error ({label}): {e}")
     finally:
         with state_lock:
             scraper_state["is_running"] = False
+
+
+def _start_job(task, first_log, steps):
+    """Runs `steps` ([(label, fn(progress))]) in a background thread unless a job is running."""
+    with state_lock:
+        if scraper_state["is_running"]:
+            return JSONResponse(status_code=400, content=BUSY)
+        scraper_state.update(is_running=True, task=task, current=0, total=100, percent=0, log=first_log,
+                             logs=[f"[{time.strftime('%H:%M:%S')}] {first_log}"])
+    threading.Thread(target=_run_job, args=(steps,), daemon=True).start()
+    return {"status": "started"}
+
+
+def _sync(progress, what, sync_fn, records):
+    if not records or not get_current_dsn():
+        return
+    progress(f"กำลังบันทึก{what}ลง Supabase...", 100, 100, f"กำลังบันทึก{what}ลงตาราง school_data.schools...")
+    changed = sync_fn(records, progress)
+    progress(f"บันทึก{what}ลง Supabase แล้ว", 100, 100, f"บันทึก{what}ลง Supabase: เปลี่ยน {changed} แห่ง")
+
+
+def step_fetch_opec(progress, import_to_supabase=True):
+    """Refreshes OPEC's own fields; English names, websites, GPS and ISAT data are kept."""
+    records = fetch_opec_schools(progress)
+    set_current_schools(records)
+    if not import_to_supabase:
+        return
+    if not get_current_dsn():
+        progress("ข้ามการนำเข้า Supabase", 100, 100, "ยังไม่ได้ตั้งค่า DATABASE_URL จึงบันทึกเฉพาะไฟล์ในเครื่อง")
+        return
+    execute_opec_import(records=records, publish_initial=True, progress_callback=progress)
+
+
+def step_import(progress):
+    """Imports the dataset already on disk, without asking OPEC again."""
+    records = get_current_schools()
+    if not records:
+        raise RuntimeError("ยังไม่มีข้อมูลโรงเรียนในเครื่อง กดดึงข้อมูล OPEC ก่อน")
+    execute_opec_import(records=records, publish_initial=True, progress_callback=progress)
+
+
+def step_names_en(progress):
+    set_current_schools(enrich_all_school_names_en(progress))   # syncs EN names to Supabase itself
+
+
+def step_isat(progress):
+    run_isat_enrichment(apply_to_db=True, progress_callback=progress)
+    set_current_schools(load_schools())
+
+
+def step_websites(progress):
+    records = resolve_all_official_websites(progress)
+    set_current_schools(records)
+    _sync(progress, "เว็บไซต์", update_supabase_school_websites, records)
+
+
+def step_gps(progress):
+    records = enrich_all_school_gps(progress)
+    set_current_schools(records)
+    _sync(progress, "พิกัด GPS", update_supabase_school_gps, records)
+
+
+FETCH = ("ดึงข้อมูล OPEC", step_fetch_opec)
+NAMES = ("เติมชื่อ EN", step_names_en)
+ISAT = ("ซิงค์ ISAT", step_isat)
+WEBSITES = ("ค้นหา Website", step_websites)
+# GPS goes after websites: pins the school publishes on its own site are one of its sources
+GPS = ("ปักหมุด GPS", step_gps)
+
+
+def _previous_scrape_result(school_name, website):
+    """What the batch scraper already saved for this school in results.json, if anything."""
+    try:
+        with open(RESULTS_FILE, "r", encoding="utf-8") as f:
+            items = json.load(f)
+    except (OSError, ValueError):
+        return None
+    name = (school_name or "").strip().casefold()
+    site = (website or "").strip().rstrip("/").casefold()
+    for it in items if isinstance(items, list) else []:
+        if name and str(it.get("school_name") or "").strip().casefold() == name:
+            return it
+        if site and str(it.get("homepage_url") or "").strip().rstrip("/").casefold() == site:
+            return it
+    return None
+
+
+def step_scrape_school(progress, school_id, school_name, website):
+    """Scrapes one school's fees into a pending_review version for an admin to approve."""
+    progress(f"กำลัง scrape ค่าเทอม: {school_name}", 15, 100, f"เริ่มสแกน {website} ({school_name})")
+    result, problem = None, ""
+    try:
+        resp = requests.post(SCRAPER_URL, json={"school_name": school_name, "homepage_url": website},
+                             timeout=SCRAPE_TIMEOUT_S)
+        body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+        if resp.ok and body.get("status") == "success":
+            result = body.get("result_data")
+        else:
+            problem = f"Scraper ทำไม่สำเร็จ: {body.get('error') or body.get('detail') or f'HTTP {resp.status_code}'}"
+    except requests.RequestException as e:
+        problem = ("เชื่อมต่อ Scraper Service (พอร์ต 8001) ไม่ได้ เปิดด้วย python microservices/scraper_service.py"
+                   if isinstance(e, requests.ConnectionError) else f"Scraper ไม่ตอบกลับ: {e}")
+
+    if result is None:
+        result = _previous_scrape_result(school_name, website)
+        if result is None:
+            raise RuntimeError(problem)
+        progress(f"กำลังบันทึกแบบร่าง: {school_name}", 80, 100, f"{problem} จึงใช้ผลที่เคย scrape ไว้ใน results.json แทน")
+
+    draft = save_scraped_draft_version(school_id, result)
+    progress(f"บันทึกแบบร่างแล้ว: {school_name}", 100, 100,
+             f"บันทึกแบบร่าง version {draft.get('version_number')} ของ {school_name} รอแอดมินอนุมัติ")
+
 
 # API Routes
 @app.get("/api/schools")
 def get_schools():
-    data = get_current_schools()
-    if not data:
-        data = load_schools()
-        if data:
-            set_current_schools(data)
-    return data
+    return get_current_schools()
 
 @app.get("/api/progress")
 def get_progress():
@@ -403,99 +305,33 @@ def clear_logs():
 
 @app.post("/api/fetch-opec")
 def trigger_fetch_opec():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มดึงข้อมูลจาก OPEC API..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นกระบวนการดึงข้อมูล..."
-        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการดึงข้อมูล..."]
-    
-    threading.Thread(target=run_fetch_opec_worker, daemon=True).start()
-    return {"status": "started"}
+    """Fetch from OPEC into the local dataset only (no Supabase import)."""
+    return _start_job("กำลังดึงข้อมูลจาก OPEC API...", "เริ่มดึงข้อมูลโรงเรียนนานาชาติจาก OPEC",
+                      [(FETCH[0], lambda p: step_fetch_opec(p, import_to_supabase=False))])
 
 @app.post("/api/enrich-names-en")
 def trigger_enrich_names_en():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มเติมชื่อภาษาอังกฤษ..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นกระบวนการเติมชื่อภาษาอังกฤษ..."
-        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการเติมชื่อภาษาอังกฤษทางการ..."]
-
-    threading.Thread(target=run_enrich_names_en_worker, daemon=True).start()
-    return {"status": "started"}
+    return _start_job("กำลังเริ่มเติมชื่อภาษาอังกฤษ...", "เริ่มเติมชื่อภาษาอังกฤษทางการ", [NAMES])
 
 @app.post("/api/enrich-gps")
 def trigger_enrich_gps():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มค้นหาพิกัด GPS..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นกระบวนการค้นหาพิกัด GPS ความแม่นยำสูง..."
-        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการค้นหาพิกัด GPS ความแม่นยำสูง..."]
-
-    threading.Thread(target=run_enrich_gps_worker, daemon=True).start()
-    return {"status": "started"}
+    return _start_job("กำลังเริ่มค้นหาพิกัด GPS...", "เริ่มตรวจพิกัด GPS แบบเทียบหลายแหล่ง", [GPS])
 
 @app.post("/api/fetch-official-websites")
 def trigger_fetch_websites():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มค้นหา Official Website..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นประมวลผลเว็บไซต์..."
-        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นประมวลผลเว็บไซต์..."]
-
-    threading.Thread(target=run_fetch_websites_worker, daemon=True).start()
-    return {"status": "started"}
+    return _start_job("กำลังเริ่มค้นหา Official Website...", "เริ่มค้นหาและตรวจสอบเว็บไซต์ทางการ", [WEBSITES])
 
 @app.post("/api/enrich-data")
 def trigger_enrich_data():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มเติมเต็มข้อมูล EN และ GPS..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นกระบวนการ Auto-Enrich..."
-        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการ Auto-Enrich (ชื่อ EN และพิกัด GPS)..."]
-
-    threading.Thread(target=run_enrich_data_worker, daemon=True).start()
-    return {"status": "started"}
+    """Auto-Enrich: every step after the OPEC fetch that works from the local dataset."""
+    return _start_job("กำลังเริ่ม Auto-Enrich...", "เริ่ม Auto-Enrich: เติมชื่อ EN -> ค้นหา Website -> ปักหมุด GPS",
+                      [NAMES, WEBSITES, GPS])
 
 @app.post("/api/pipeline/run-all")
 def trigger_full_pipeline():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "⚡ กำลังเริ่ม Full Data Pipeline (5 ขั้นตอน)..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "🚀 เริ่มต้นกระบวนการ Full Pipeline ทั้งระบบ..."
-        scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] 🚀 เริ่มต้น Full Data Pipeline (5 ขั้นตอนครบวงจร)...")
-
-    threading.Thread(target=run_full_pipeline_worker, daemon=True).start()
-    return {"status": "started"}
+    return _start_job("กำลังเริ่มรันครบทุกขั้นตอน...",
+                      "เริ่มรันครบทุกขั้นตอน: OPEC -> เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS",
+                      [FETCH, NAMES, ISAT, WEBSITES, GPS])
 
 # Website Registry & Audit Endpoints
 @app.get("/api/websites/registry")
@@ -509,10 +345,12 @@ class VerifyWebsitePayload(BaseModel):
 
 @app.post("/api/websites/verify")
 def api_verify_website(payload: VerifyWebsitePayload):
+    _require_idle()
     return verify_or_update_school_url(payload.school_code, payload.website, payload.is_verified)
 
 @app.post("/api/websites/sync-registry")
 def api_sync_registry():
+    _require_idle()
     return bulk_sync_from_reference_txt()
 
 @app.post("/api/websites/health-check")
@@ -524,22 +362,13 @@ def api_start_health_check():
 def api_get_health_check_status():
     return get_health_state()
 
-class SupabaseConfigPayload(BaseModel):
-    database_url: str
-
 class SyncSupabasePayload(BaseModel):
-    fetch_fresh: Optional[bool] = False
-    publish_initial: Optional[bool] = True
+    fetch_fresh: bool = True
+    publish_initial: bool = True
 
 @app.get("/api/supabase/status")
 def get_supabase_status():
     return test_database_connection()
-
-@app.post("/api/supabase/config")
-def set_supabase_config(payload: SupabaseConfigPayload):
-    save_database_url(payload.database_url)
-    res = test_database_connection(payload.database_url)
-    return {"status": "saved", "connection": res}
 
 @app.post("/api/supabase/init-schema")
 def run_init_schema():
@@ -551,21 +380,12 @@ def run_init_schema():
 
 @app.post("/api/sync-to-supabase")
 def trigger_sync_to_supabase(payload: Optional[SyncSupabasePayload] = None):
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเตรียมนำเข้าข้อมูลสู่ Supabase..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นการนำเข้าข้อมูลสู่ Supabase Database..."
-        scraper_state["logs"] = [f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการเชื่อมต่อ Supabase..."]
-
-    fetch_fresh = payload.fetch_fresh if (payload and payload.fetch_fresh is not None) else True
-    publish_initial = payload.publish_initial if (payload and payload.publish_initial is not None) else True
-    threading.Thread(target=run_sync_supabase_worker, args=(fetch_fresh, publish_initial), daemon=True).start()
-    return {"status": "started"}
+    payload = payload or SyncSupabasePayload()
+    if payload.fetch_fresh:
+        step = (FETCH[0], step_fetch_opec)
+    else:
+        step = ("นำเข้า Supabase", step_import)
+    return _start_job("กำลังเตรียมนำเข้าข้อมูลสู่ Supabase...", "เริ่มดึงข้อมูลและนำเข้า Supabase", [step])
 
 @app.get("/api/public/fees")
 def get_public_fees():
@@ -638,7 +458,7 @@ class CreateSupabaseSchoolPayload(BaseModel):
 @app.post("/api/supabase/schools")
 def post_create_supabase_school(payload: CreateSupabaseSchoolPayload):
     try:
-        return insert_supabase_school(payload.dict())
+        return insert_supabase_school(payload.model_dump())
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -682,105 +502,15 @@ def post_reject_version_endpoint(version_id: str, payload: Optional[RejectVersio
         raise HTTPException(status_code=400, detail=str(e))
 
 class ScrapeSchoolPayload(BaseModel):
-    school_id: str
+    school_id: str   # schools.school_id (uuid) or the OPEC school code
     school_name: str
     website: str
 
-def run_single_school_scrape_worker(school_id: str, school_name: str, website: str):
-    global scraper_state
-    with state_lock:
-        scraper_state["is_running"] = True
-        scraper_state["task"] = f"กำลัง Scrape ค่าเทอม: {school_name}..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 15
-        scraper_state["log"] = f"เริ่มต้นกระบวนการค้นหาค่าเทอมจาก {website}..."
-        scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] เริ่มสแกน {website} ({school_name})...")
-
-    try:
-        import requests
-        scraper_url = "http://127.0.0.1:8001/scrape"
-        resp = None
-        try:
-            resp = requests.post(scraper_url, json={"school_name": school_name, "homepage_url": website}, timeout=120)
-        except Exception:
-            pass
-
-        if resp and resp.status_code == 200 and resp.json().get("status") == "success":
-            result_data = resp.json()["result_data"]
-            draft_res = save_scraped_draft_version(school_id, result_data)
-            with state_lock:
-                scraper_state["log"] = f"Scrape สำเร็จ! บันทึกแบบร่าง Version {draft_res.get('version_number')} รอแอดมินอนุมัติ"
-                scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] สร้างแบบร่าง Version {draft_res.get('version_number')} รอแอดมินอนุมัติเรียบร้อยแล้ว")
-            return
-
-        # Fallback to checking local results.json if already extracted
-        results_file = os.path.join(BASE_DIR, "results.json")
-        matched = None
-        if os.path.exists(results_file):
-            try:
-                with open(results_file, "r", encoding="utf-8") as f:
-                    scraped_items = json.load(f)
-                    for it in scraped_items:
-                        s_name = it.get("school_name", "").lower()
-                        if s_name in school_name.lower() or school_name.lower() in s_name:
-                            matched = it
-                            break
-            except Exception:
-                pass
-
-        if matched:
-            draft_res = save_scraped_draft_version(school_id, matched)
-            with state_lock:
-                scraper_state["log"] = f"บันทึกแบบร่างจากผลลัพธ์เดิม: Version {draft_res.get('version_number')} (รออนุมัติ)"
-                scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] บันทึกแบบร่าง Version {draft_res.get('version_number')} สำเร็จ รอแอดมินอนุมัติ")
-        else:
-            with state_lock:
-                scraper_state["log"] = "ไม่สามารถเชื่อมต่อ Scraper Service (port 8001) กรุณาเปิด service ก่อนรัน"
-                scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] Scraper Service (port 8001) ไม่ได้เปิดใช้งาน")
-
-    except Exception as e:
-        with state_lock:
-            scraper_state["log"] = f"เกิดข้อผิดพลาดในการ Scrape: {str(e)}"
-            scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] Error: {str(e)}")
-    finally:
-        with state_lock:
-            scraper_state["is_running"] = False
-            scraper_state["percent"] = 100
-
 @app.post("/api/supabase/scrape-school")
 def post_scrape_school_endpoint(payload: ScrapeSchoolPayload):
-    try:
-        threading.Thread(
-            target=run_single_school_scrape_worker,
-            args=(payload.school_id, payload.school_name, payload.website),
-            daemon=True
-        ).start()
-        return {"status": "started", "message": f"กำลังเริ่ม Scrape ค่าเทอมสำหรับ {payload.school_name}..."}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/api/clear-data")
-def clear_all_data():
-    with state_lock:
-        scraper_state["is_running"] = False
-        scraper_state["task"] = ""
-        scraper_state["current"] = 0
-        scraper_state["total"] = 0
-        scraper_state["percent"] = 0
-        scraper_state["log"] = ""
-        scraper_state["logs"] = []
-
-    set_current_schools([])
-    save_schools([])
-    return {"status": "cleared"}
-
-@app.post("/api/clear-logs")
-def clear_logs():
-    with state_lock:
-        scraper_state["logs"] = []
-        scraper_state["log"] = ""
-    return {"status": "logs_cleared"}
+    return _start_job(f"กำลัง scrape ค่าเทอม: {payload.school_name}", f"เริ่ม scrape ค่าเทอมของ {payload.school_name}",
+                      [("scrape ค่าเทอม", lambda p: step_scrape_school(p, payload.school_id, payload.school_name,
+                                                                       payload.website))])
 
 class UpdateSchoolPayload(BaseModel):
     website: Optional[str] = None
@@ -789,6 +519,7 @@ class UpdateSchoolPayload(BaseModel):
 
 @app.put("/api/school/{school_code}")
 def update_school(school_code: str, payload: UpdateSchoolPayload):
+    _require_idle()
     schools = get_current_schools()
     found = False
     new_website = payload.website or payload.official_website or ""
@@ -831,6 +562,7 @@ def _find_school(schools, school_code):
 @app.put("/api/school/{school_code}/gps")
 def set_school_gps(school_code: str, payload: ManualGpsPayload):
     """Pins a school by hand and locks it: no GPS run, OPEC fetch or sync will move it."""
+    _require_idle()
     schools = get_current_schools()
     school = _find_school(schools, school_code)
     if not school:
@@ -857,6 +589,7 @@ def set_school_gps(school_code: str, payload: ManualGpsPayload):
 @app.delete("/api/school/{school_code}/gps")
 def clear_school_gps(school_code: str):
     """Removes a hand-placed pin; the next GPS run decides this school again."""
+    _require_idle()
     schools = get_current_schools()
     school = _find_school(schools, school_code)
     if not school:
@@ -871,6 +604,7 @@ def clear_school_gps(school_code: str):
 
 @app.post("/api/school/{school_code}/resolve")
 def resolve_one_school(school_code: str):
+    _require_idle()
     updated = resolve_single_school_by_code(school_code)
     if updated:
         updated["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -887,6 +621,7 @@ def resolve_one_school(school_code: str):
 
 @app.post("/api/school/{school_code}/enrich")
 def enrich_one_school(school_code: str):
+    _require_idle()
     schools = get_current_schools()
     target = None
     target_idx = -1
@@ -902,24 +637,13 @@ def enrich_one_school(school_code: str):
         set_current_schools(schools)
         save_schools(schools)
         sync_single_school_to_supabase(enriched_s)
-        return {"school": enriched_s, "changes": changes}
+        # the admin page lists the changed field names
+        return {"school": enriched_s, "changes": sorted(changes)}
     raise HTTPException(status_code=404, detail="School not found")
 
 @app.post("/api/enrich/isat")
 def enrich_isat():
-    with state_lock:
-        if scraper_state["is_running"]:
-            return JSONResponse(status_code=400, content={"status": "already_running"})
-        scraper_state["is_running"] = True
-        scraper_state["task"] = "กำลังเริ่มซิงค์ข้อมูลสมาคม ISAT..."
-        scraper_state["current"] = 1
-        scraper_state["total"] = 100
-        scraper_state["percent"] = 1
-        scraper_state["log"] = "เริ่มต้นกระบวนการซิงค์ข้อมูลสมาคม ISAT..."
-        scraper_state["logs"].append(f"[{time.strftime('%H:%M:%S')}] เริ่มต้นกระบวนการซิงค์ข้อมูลสมาคม ISAT...")
-
-    threading.Thread(target=run_enrich_isat_worker, daemon=True).start()
-    return {"status": "started"}
+    return _start_job("กำลังเริ่มซิงค์ข้อมูลสมาคม ISAT...", "เริ่มซิงค์ข้อมูลสมาคม ISAT", [ISAT])
 
 @app.get("/api/export/csv")
 def export_csv():

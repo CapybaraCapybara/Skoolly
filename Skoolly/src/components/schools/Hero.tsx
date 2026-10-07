@@ -23,11 +23,11 @@ export interface HeroStat {
 }
 
 export function Hero({
-  eyebrow = 'AI-POWERED SCHOOL MATCHING · THAILAND',
+  eyebrow = 'School directory · Thailand',
   headingPrefix = 'Find the Right International',
   headingHighlight = 'School',
   headingSuffix = 'For Your Child',
-  description = 'Compare international schools in Thailand by curriculum, cost, distance, and real parent reviews — with AI-powered personalised recommendations.',
+  description = 'Compare fees, curricula and locations across licensed international schools.',
   primaryCtaLabel = 'Sign Up Free',
   primaryCtaHref = '#schools',
   backgroundImage = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1000&h=800&fit=crop&auto=format',

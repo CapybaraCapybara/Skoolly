@@ -15,7 +15,6 @@ import {
   ChevronRight,
   ShieldCheck,
   Bed,
-  Sparkles,
 } from "lucide-react";
 import type { OpecSchoolRecord, ProvinceStat, TopSchool } from "@/types/opec";
 import { normalizeCurriculum } from "@/api/opecApi";
@@ -277,7 +276,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
         {/* KPI 1 */}
         <div
-          onClick={() => onOpenDrillDown("โรงเรียนนานาชาติทั้งหมด", "รายชื่อโรงเรียนนานาชาติจากฐานข้อมูล สช. 100%", schools)}
+          onClick={() => onOpenDrillDown("โรงเรียนทั้งหมด", "ข้อมูลจาก สช.", schools)}
           className="p-4 rounded-[2rem] bg-warm-cream border border-warm-accent hover:border-warm-bronze hover:shadow-md transition-all cursor-pointer group shadow-xs"
         >
           <div className="flex items-center justify-between mb-2">
@@ -290,13 +289,13 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             {kpi.total.toLocaleString()}
           </div>
           <div className="text-xs text-warm-bronze mt-1 flex items-center gap-1 font-bold">
-            สช. OPEC Pro 100%
+            ข้อมูลจาก สช.
           </div>
         </div>
 
         {/* KPI 2 */}
         <div
-          onClick={() => onOpenDrillDown("จังหวัดที่มีโรงเรียนนานาชาติ", "จังหวัดที่มีโรงเรียนนานาชาติตั้งอยู่", schools)}
+          onClick={() => onOpenDrillDown("จังหวัดที่มีโรงเรียน", "", schools)}
           className="p-4 rounded-[2rem] bg-warm-cream border border-warm-accent hover:border-[#456ca6] hover:shadow-md transition-all cursor-pointer group shadow-xs"
         >
           <div className="flex items-center justify-between mb-2">
@@ -315,7 +314,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
 
         {/* KPI 3 */}
         <div
-          onClick={() => onOpenDrillDown("นักเรียนรวมทั้งหมด", "การกระจายตัวของจำนวนนักเรียน", schools)}
+          onClick={() => onOpenDrillDown("นักเรียนรวม", "", schools)}
           className="p-4 rounded-[2rem] bg-warm-cream border border-warm-accent hover:border-[#456ca6] hover:shadow-md transition-all cursor-pointer group shadow-xs"
         >
           <div className="flex items-center justify-between mb-2">
@@ -334,7 +333,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
 
         {/* KPI 4 */}
         <div
-          onClick={() => onOpenDrillDown("ครูและบุคลากร", "สถิติจำนวนครูและบุคลากรทางการศึกษา", schools)}
+          onClick={() => onOpenDrillDown("ครูและบุคลากร", "", schools)}
           className="p-4 rounded-[2rem] bg-warm-cream border border-warm-accent hover:border-warm-bronze hover:shadow-md transition-all cursor-pointer group shadow-xs"
         >
           <div className="flex items-center justify-between mb-2">
@@ -347,7 +346,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             {kpi.teachers > 0 ? kpi.teachers.toLocaleString() : "—"}
           </div>
           <div className="text-xs text-warm-bronze mt-1 font-bold">
-            อัตราส่วน ~{kpi.ratio} : 1
+            นักเรียนต่อครู ~{kpi.ratio} : 1
           </div>
         </div>
 
@@ -355,15 +354,15 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         <div
           onClick={() =>
             onOpenDrillDown(
-              "โรงเรียนที่มี Official Website",
-              "โรงเรียนที่มีการยืนยัน Official Website แล้ว",
+              "โรงเรียนที่มีเว็บไซต์",
+              "",
               schools.filter((s) => s.website && s.website.trim())
             )
           }
           className="p-4 rounded-[2rem] bg-warm-cream border border-warm-accent hover:border-warm-bronze hover:shadow-md transition-all cursor-pointer group shadow-xs"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-[#78716c]">Website Live</span>
+            <span className="text-xs font-bold text-[#78716c]">มีเว็บไซต์</span>
             <div className="w-8 h-8 rounded-xl bg-warm-bronze/15 text-warm-bronze flex items-center justify-center group-hover:scale-110 transition-transform">
               <Globe className="w-4 h-4" />
             </div>
@@ -380,15 +379,15 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         <div
           onClick={() =>
             onOpenDrillDown(
-              "พิกัด GPS แม่นยำระดับอาคาร",
-              "โรงเรียนที่ระบุพิกัด GPS ตรงจุดอาคารจริง",
+              "พิกัดระดับอาคาร",
+              "",
               schools.filter((s) => s.gps_precision === "Exact")
             )
           }
           className="p-4 rounded-[2rem] bg-warm-cream border border-warm-accent hover:border-[#456ca6] hover:shadow-md transition-all cursor-pointer group shadow-xs"
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-[#78716c]">GPS แม่นยำสูง</span>
+            <span className="text-xs font-bold text-[#78716c]">พิกัดระดับอาคาร</span>
             <div className="w-8 h-8 rounded-xl bg-[#456ca6]/15 text-[#456ca6] flex items-center justify-center group-hover:scale-110 transition-transform">
               <Crosshair className="w-4 h-4" />
             </div>
@@ -397,7 +396,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             {kpi.gpsExactPct}%
           </div>
           <div className="text-xs text-[#456ca6] mt-1 font-bold">
-            {kpi.gpsExact} แห่ง (Exact)
+            {kpi.gpsExact} แห่ง
           </div>
         </div>
       </div>
@@ -410,7 +409,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div className="flex items-center gap-2.5">
               <MapPin className="w-5 h-5 text-warm-bronze" />
               <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-                การกระจายตัวตามจังหวัด (กดเพื่อดูรายชื่อ)
+                จังหวัด
               </h3>
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-warm-cream text-warm-bronze border border-warm-accent">
@@ -436,7 +435,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     `โรงเรียนในจังหวัด ${p.province}`,
-                    `พบทั้งหมด ${p.count} แห่ง`,
+                    "",
                     schools.filter((s) => s.province?.trim() === p.province)
                   )
                 }
@@ -480,12 +479,9 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div className="flex items-center gap-2.5">
                 <GraduationCap className="w-5 h-5 text-[#456ca6]" />
                 <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-                  ระดับชั้นที่เปิดสอน (5 ระดับชั้น)
+                  ระดับชั้นที่เปิดสอน
                 </h3>
               </div>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-warm-cream text-[#456ca6] border border-warm-accent">
-                5 ระดับชั้น
-              </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -493,7 +489,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     "ระดับ ก่อนอนุบาล",
-                    "โรงเรียนที่เปิดสอนระดับก่อนอนุบาล / Nursery",
+                    "",
                     schools.filter((s) =>
                       [...(s.levels_offered || []), s.level_range || ""].join(" ").includes("ก่อนอนุบาล")
                     )
@@ -516,7 +512,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     "ระดับ อนุบาล",
-                    "โรงเรียนที่เปิดสอนระดับอนุบาล / Kindergarten",
+                    "",
                     schools.filter((s) =>
                       [...(s.levels_offered || []), s.level_range || ""].join(" ").includes("อนุบาล")
                     )
@@ -528,7 +524,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                   {levelStats.k.count}
                 </div>
                 <div className="text-xs font-bold text-warm-charcoal/80">
-                  อนุบาล (Kindergarten)
+                  อนุบาล
                 </div>
                 <div className="text-xs text-[#456ca6] font-semibold mt-0.5">
                   {levelStats.k.pct}% ของทั้งหมด
@@ -539,7 +535,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     "ระดับ ประถมศึกษา",
-                    "โรงเรียนที่เปิดสอนระดับประถม / Primary",
+                    "",
                     schools.filter((s) =>
                       [...(s.levels_offered || []), s.level_range || ""].join(" ").includes("ประถม")
                     )
@@ -551,7 +547,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                   {levelStats.primary.count}
                 </div>
                 <div className="text-xs font-bold text-warm-charcoal/80">
-                  ประถม (Primary)
+                  ประถม
                 </div>
                 <div className="text-xs text-[#456ca6] font-semibold mt-0.5">
                   {levelStats.primary.pct}% ของทั้งหมด
@@ -562,7 +558,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     "ระดับ มัธยมศึกษาตอนต้น",
-                    "โรงเรียนที่เปิดสอนระดับ ม.ต้น",
+                    "",
                     schools.filter((s) =>
                       [...(s.levels_offered || []), s.level_range || ""].join(" ").includes("มัธยมศึกษาตอนต้น")
                     )
@@ -585,7 +581,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     "ระดับ มัธยมศึกษาตอนปลาย",
-                    "โรงเรียนที่เปิดสอนระดับ ม.ปลาย",
+                    "",
                     schools.filter((s) =>
                       [...(s.levels_offered || []), s.level_range || ""].join(" ").includes("มัธยมศึกษาตอนปลาย")
                     )
@@ -611,8 +607,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "เปิดสอนครบวงจร (All-Through Schools)",
-                  "เปิดตั้งแต่ระดับอนุบาลถึงมัธยมปลาย (ม.6)",
+                  "เปิดสอนอนุบาลถึงมัธยม",
+                  "",
                   schools.filter((s) => {
                     const t = [...(s.levels_offered || []), s.level_range || ""].join(" ").toLowerCase();
                     return (t.includes("อนุบาล") || t.includes("ก่อนอนุบาล")) && t.includes("ประถม") && (t.includes("ม.ต้น") || t.includes("ม.ปลาย"));
@@ -627,10 +623,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 </div>
                 <div>
                   <div className="font-bold text-xs md:text-sm text-warm-charcoal">
-                    เปิดสอนครบวงจร (All-Through Schools)
-                  </div>
-                  <div className="text-xs text-[#78716c]">
-                    เปิดตั้งแต่ก่อนอนุบาล/อนุบาลจนถึงมัธยมปลาย (ม.6)
+                    เปิดสอนอนุบาลถึงมัธยม
                   </div>
                 </div>
               </div>
@@ -642,8 +635,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "เฉพาะระดับปฐมวัย / อนุบาล (Early Years Only)",
-                  "เน้นพัฒนาการและเตรียมความพร้อมก่อนประถม",
+                  "เฉพาะปฐมวัย",
+                  "",
                   schools.filter((s) => {
                     const t = [...(s.levels_offered || []), s.level_range || ""].join(" ").toLowerCase();
                     return (t.includes("อนุบาล") || t.includes("ก่อนอนุบาล")) && !t.includes("ประถม");
@@ -658,10 +651,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 </div>
                 <div>
                   <div className="font-bold text-xs md:text-sm text-warm-charcoal">
-                    เฉพาะระดับปฐมวัย / อนุบาล (Early Years Only)
-                  </div>
-                  <div className="text-xs text-[#78716c]">
-                    เตรียมความพร้อมเด็กเล็กก่อนเข้าประถม
+                    เฉพาะปฐมวัย
                   </div>
                 </div>
               </div>
@@ -681,7 +671,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div className="flex items-center gap-2.5">
               <BookOpen className="w-5 h-5 text-warm-bronze" />
               <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-                รูปแบบหลักสูตรการศึกษา (Curriculums)
+                หลักสูตร
               </h3>
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-warm-cream text-warm-bronze border border-warm-accent">
@@ -700,7 +690,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                     : "text-[#78716c] hover:text-warm-charcoal"
                 }`}
               >
-                จัดกลุ่มมาตรฐาน
+                จัดกลุ่ม
               </button>
               <button
                 type="button"
@@ -711,7 +701,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                     : "text-[#78716c] hover:text-warm-charcoal"
                 }`}
               >
-                ชื่อตาม สช. (Raw)
+                ตามชื่อ สช.
               </button>
             </div>
 
@@ -734,7 +724,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     `หลักสูตร: ${c.name}`,
-                    `พบ ${c.count} แห่งที่ใช้หลักสูตรนี้`,
+                    "",
                     schools.filter((s) => {
                       const list = s.curriculums && s.curriculums.length > 0 ? s.curriculums : ["หลักสูตรสากลทั่วไป"];
                       return list.some((item) =>
@@ -779,12 +769,9 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div className="flex items-center gap-2.5">
               <Award className="w-5 h-5 text-warm-bronze" />
               <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-                10 อันดับโรงเรียนขนาดใหญ่ที่สุด (จำนวนนักเรียน)
+                โรงเรียนที่มีนักเรียนมากที่สุด
               </h3>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-warm-cream text-warm-bronze border border-warm-accent">
-              Top 10 Rankings
-            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -838,7 +825,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
           <div className="flex items-center gap-2.5 mb-4">
             <DollarSign className="w-5 h-5 text-[#456ca6]" />
             <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-              การรับเงินอุดหนุนจากรัฐบาล (สช. OPEC)
+              เงินอุดหนุนจากรัฐ
             </h3>
           </div>
 
@@ -846,8 +833,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "ไม่รับเงินอุดหนุนจากรัฐบาล",
-                  "โรงเรียนเอกชน 100% ที่ไม่ได้รับเงินอุดหนุน",
+                  "ไม่รับเงินอุดหนุน",
+                  "",
                   schools.filter((s) => s.government_support !== "รับเงินอุดหนุน")
                 )
               }
@@ -857,7 +844,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 {subsidyStats.noSubsidy}
               </div>
               <div className="text-xs font-bold text-warm-charcoal mt-1.5">
-                ไม่รับเงินอุดหนุน (100% เอกชน)
+                ไม่รับเงินอุดหนุน
               </div>
               <div className="text-xs text-[#78716c] mt-0.5 font-medium">
                 {subsidyStats.noPct}% ของโรงเรียนทั้งหมด
@@ -867,8 +854,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "รับเงินอุดหนุนจากรัฐบาล",
-                  "โรงเรียนที่ได้รับเงินอุดหนุนจาก สช.",
+                  "รับเงินอุดหนุน",
+                  "",
                   schools.filter((s) => s.government_support === "รับเงินอุดหนุน")
                 )
               }
@@ -878,7 +865,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 {subsidyStats.hasSubsidy}
               </div>
               <div className="text-xs font-bold text-warm-charcoal mt-1.5">
-                รับเงินอุดหนุนรัฐบาล
+                รับเงินอุดหนุน
               </div>
               <div className="text-xs text-[#78716c] mt-0.5 font-medium">
                 {subsidyStats.hasPct}% ของโรงเรียนทั้งหมด
@@ -892,7 +879,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
           <div className="flex items-center gap-2.5 mb-4">
             <Satellite className="w-5 h-5 text-[#456ca6]" />
             <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-              คุณภาพข้อมูลและพิกัดภูมิศาสตร์ (Data Completeness)
+              ความครบของข้อมูล
             </h3>
           </div>
 
@@ -900,8 +887,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "GPS แม่นยำระดับอาคารจริง (Exact)",
-                  "พิกัดระบุตำแหน่งอาคารเรียนจริง",
+                  "พิกัดระดับอาคาร",
+                  "",
                   schools.filter((s) => s.gps_precision === "Exact")
                 )
               }
@@ -910,7 +897,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div className="flex items-center gap-2.5">
                 <Crosshair className="w-4 h-4 text-[#456ca6]" />
                 <span className="font-bold text-warm-charcoal">
-                  หมุด GPS ระดับอาคาร/ถนนจริง (Exact)
+                  พิกัดระดับอาคาร
                 </span>
               </div>
               <span className="font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
@@ -921,8 +908,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "GPS ประมาณการ (Approximate)",
-                  "พิกัดระดับอำเภอ/ตำบล",
+                  "พิกัดโดยประมาณ",
+                  "ระดับอำเภอหรือตำบล",
                   schools.filter((s) => s.latitude && s.longitude && s.gps_precision !== "Exact")
                 )
               }
@@ -931,7 +918,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div className="flex items-center gap-2.5">
                 <MapPin className="w-4 h-4 text-warm-bronze" />
                 <span className="font-bold text-warm-charcoal">
-                  หมุด GPS ประมาณการระดับอำเภอ/ตำบล
+                  พิกัดโดยประมาณ (อำเภอ/ตำบล)
                 </span>
               </div>
               <span className="font-bold px-2.5 py-1 rounded-full bg-warm-card text-warm-bronze border border-warm-accent">
@@ -942,8 +929,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div
               onClick={() =>
                 onOpenDrillDown(
-                  "Official Website ได้รับการตรวจสอบ",
-                  "มีเว็บไซต์ทางการและสามารถเข้าชมได้",
+                  "มีเว็บไซต์ทางการ",
+                  "",
                   schools.filter((s) => s.website && s.website.trim())
                 )
               }
@@ -952,7 +939,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div className="flex items-center gap-2.5">
                 <Globe className="w-4 h-4 text-[#456ca6]" />
                 <span className="font-bold text-warm-charcoal">
-                  Official Website ตรวจสอบสถานะแล้ว (Live)
+                  มีเว็บไซต์ทางการ
                 </span>
               </div>
               <span className="font-bold px-2.5 py-1 rounded-full bg-warm-card text-warm-charcoal border border-warm-accent">
@@ -972,12 +959,9 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-[#456ca6]" />
                 <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-                  สถานะสมาคม ISAT และโรงเรียนประจำ (ISAT & Boarding)
+                  ISAT และโรงเรียนประจำ
                 </h3>
               </div>
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#456ca6]/10 text-[#456ca6] border border-[#456ca6]/20">
-                สมาคม ISAT
-              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3.5 mb-4">
@@ -985,8 +969,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div
                 onClick={() =>
                   onOpenDrillDown(
-                    "สมาชิกสมาคมโรงเรียนนานาชาติ (ISAT Members)",
-                    "โรงเรียนที่เป็นสมาชิกสมาคม ISAT แห่งประเทศไทย",
+                    "สมาชิกสมาคม ISAT",
+                    "",
                     schools.filter((s) => s.is_isat_member)
                   )
                 }
@@ -1012,8 +996,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
               <div
                 onClick={() =>
                   onOpenDrillDown(
-                    "โรงเรียนประจำ (Boarding Schools)",
-                    "โรงเรียนนานาชาติที่มีหอพักประจำสำหรับนักเรียน",
+                    "โรงเรียนประจำ",
+                    "มีหอพักนักเรียน",
                     schools.filter((s) => s.is_boarding)
                   )
                 }
@@ -1028,21 +1012,15 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                   </div>
                 </div>
                 <div className="text-xs font-bold text-warm-charcoal">
-                  โรงเรียนประจำ (Boarding)
+                  โรงเรียนประจำ
                 </div>
                 <div className="text-xs text-warm-bronze mt-0.5 font-bold">
-                  {isatStats.boardingPct}% มีหอพักนักเรียน
+                  {isatStats.boardingPct}% ของโรงเรียนทั้งหมด
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-white/70 border border-warm-accent/80 text-xs text-[#78716c] flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-warm-bronze shrink-0" />
-            <span>
-              ข้อมูลสมาชิก ISAT และสิ่งอำนวยความสะดวกหอพักเชื่อมโยงสดจากฐานข้อมูลสมาคมโรงเรียนนานาชาติแห่งประเทศไทย (ISAT Directory)
-            </span>
-          </div>
         </div>
 
         {/* Global Accreditations Breakdown */}
@@ -1051,17 +1029,13 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             <div className="flex items-center gap-2.5">
               <Award className="w-5 h-5 text-teal-700" />
               <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-                มาตรฐานสากลและการรับรอง (Accreditations)
+                การรับรองมาตรฐาน
               </h3>
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
               {isatStats.topAccreditations.length} องค์กร
             </span>
           </div>
-
-          <p className="text-xs text-[#78716c] mb-3">
-            สถิติการรับรองมาตรฐานคุณภาพการศึกษาจากองค์กรสากลระดับโลก เช่น ONESQA (สมศ.), WASC, CIS, EDT, NEASC
-          </p>
 
           <div className="space-y-2 overflow-y-auto max-h-72 pr-1 scrollbar-thin">
             {isatStats.topAccreditations.map((acc) => (
@@ -1070,7 +1044,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                 onClick={() =>
                   onOpenDrillDown(
                     `มาตรฐาน: ${acc.name}`,
-                    `โรงเรียนที่ได้รับการรับรองจาก ${acc.name}`,
+                    "",
                     schools.filter((s) => (s.accreditations || []).includes(acc.name))
                   )
                 }

@@ -176,9 +176,6 @@ export function Navbar({
                           <GraduationCap className="h-5 w-5 text-warm-bronze" />
                         </div>
                         <h4 className="text-sm font-semibold text-warm-charcoal">By Curriculum</h4>
-                        <p className="text-xs text-warm-charcoal/70">
-                          Filter by British, American, IB, French, or bilingual programmes.
-                        </p>
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           {['British', 'American', 'IB', 'Bilingual'].map((c) => (
                             <a
@@ -259,16 +256,11 @@ export function Navbar({
                           <MessageSquare className="h-5 w-5" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-semibold text-warm-charcoal">
-                              AI School Advisor
-                            </h4>
-                            <Badge className="bg-warm-accent text-warm-charcoal text-[10px] px-1.5 rounded-full">
-                              Free
-                            </Badge>
-                          </div>
+                          <h4 className="text-sm font-semibold text-warm-charcoal mb-1">
+                            AI School Advisor
+                          </h4>
                           <p className="text-xs text-warm-charcoal/70">
-                            Chat with AI to get a personalised school shortlist based on your child's needs.
+                            Describe what you need and get a shortlist of schools.
                           </p>
                         </div>
                       </a>
@@ -315,13 +307,10 @@ export function Navbar({
                     type="button"
                     onClick={onScrape || onAdmin}
                     className="flex items-center gap-1 rounded-full bg-warm-card px-2.5 py-1 text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs whitespace-nowrap cursor-pointer shrink-0"
-                    title="Scrape Management (Admin)"
+                    title="Admin console"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Scrape</span>
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                      Admin
-                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>Admin</span>
                   </button>
                 </NavigationMenuItem>
 
@@ -338,12 +327,7 @@ export function Navbar({
                         className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-warm-cream transition-colors text-xs font-semibold text-warm-charcoal"
                       >
                         <MessageSquare className="size-4 text-warm-bronze" />
-                        <div>
-                          <div>AI School Advisor</div>
-                          <div className="text-[10px] font-normal text-warm-charcoal/60">
-                            Personalised recommendations
-                          </div>
-                        </div>
+                        <span>AI School Advisor</span>
                       </a>
 
                       <button
@@ -351,12 +335,7 @@ export function Navbar({
                         className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-warm-cream transition-colors text-xs font-semibold text-warm-charcoal text-left cursor-pointer"
                       >
                         <Star className="size-4 text-warm-bronze" />
-                        <div>
-                          <div>Community Forum</div>
-                          <div className="text-[10px] font-normal text-warm-charcoal/60">
-                            Parent discussions & reviews
-                          </div>
-                        </div>
+                        <span>Community</span>
                       </button>
 
                       <div className="my-1 border-t border-warm-accent/60" />
@@ -367,11 +346,8 @@ export function Navbar({
                         className="flex items-center justify-between p-2 rounded-xl bg-warm-cream hover:bg-warm-accent/50 transition-colors text-xs font-bold text-warm-charcoal text-left cursor-pointer border border-warm-accent/50"
                       >
                         <span className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Scrape Dashboard
-                        </span>
-                        <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                          Admin
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Admin console
                         </span>
                       </button>
                     </div>
@@ -388,7 +364,7 @@ export function Navbar({
               type="button"
               onClick={onFavorites}
               className="relative flex items-center justify-center rounded-full text-warm-charcoal/80 hover:text-rose-600 hover:bg-rose-50/80 p-2 transition-all cursor-pointer size-8 sm:size-9 shrink-0"
-              title="โรงเรียนที่ถูกใจ (Saved Schools)"
+              title="Saved schools"
               aria-label="Favorites"
             >
               <Heart
@@ -409,7 +385,7 @@ export function Navbar({
                 type="button"
                 onClick={onCompare}
                 className="lg:hidden relative flex items-center justify-center rounded-full text-warm-charcoal/80 hover:bg-warm-accent/50 p-2 transition-colors cursor-pointer size-8"
-                title="เปรียบเทียบโรงเรียน"
+                title="Compare"
                 aria-label="Compare"
               >
                 <GitCompare className="size-4 text-warm-bronze" />
@@ -521,7 +497,7 @@ export function Navbar({
                             favoritesCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-warm-bronze'
                           }`}
                         />
-                        <span>โรงเรียนที่ถูกใจ</span>
+                        <span>Saved Schools</span>
                       </span>
                       {favoritesCount > 0 && (
                         <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full text-xs font-bold text-white bg-rose-500">
@@ -536,7 +512,7 @@ export function Navbar({
                     >
                       <span className="flex items-center gap-3">
                         <GitCompare className="size-4 text-warm-bronze" />
-                        <span>เปรียบเทียบโรงเรียน</span>
+                        <span>Compare</span>
                       </span>
                       {compareCount > 0 && (
                         <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full text-xs font-bold text-white bg-warm-bronze">
@@ -580,7 +556,7 @@ export function Navbar({
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
                     >
                       <Star className="size-4 text-warm-bronze" />
-                      <span>Community & Reviews</span>
+                      <span>Community</span>
                     </button>
 
                     {/* AI Advisor */}
@@ -590,12 +566,7 @@ export function Navbar({
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
                     >
                       <MessageSquare className="size-4 text-warm-bronze" />
-                      <div className="flex items-center gap-2">
-                        <span>AI School Advisor</span>
-                        <Badge className="bg-warm-accent text-warm-charcoal text-[9px] px-1 py-0 rounded">
-                          Free
-                        </Badge>
-                      </div>
+                      <span>AI School Advisor</span>
                     </a>
 
                     {/* Scrape Management (Admin) */}
@@ -606,11 +577,8 @@ export function Navbar({
                         className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-warm-cream/70 hover:bg-warm-accent/50 border border-warm-accent/60 font-semibold text-warm-charcoal text-left transition-colors cursor-pointer"
                       >
                         <span className="flex items-center gap-2 text-xs">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          Scrape Management
-                        </span>
-                        <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                          Admin
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          Admin console
                         </span>
                       </button>
                     </div>

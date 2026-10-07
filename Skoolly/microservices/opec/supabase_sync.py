@@ -2,11 +2,11 @@
 Supabase Database Synchronization Engine for OPEC Schools Data.
 
 Handles:
-1. Connection testing and status reporting.
-2. Saving DATABASE_URL to .env.
-3. Automated Schema initialization (running db/schema.sql).
-4. Upserting OPEC school records into Postgres (school_data.schools, school_data.school_versions)
+1. Connection testing and status reporting (DATABASE_URL comes from .env).
+2. Automated Schema initialization (running db/schema.sql).
+3. Upserting OPEC school records into Postgres (school_data.schools, school_data.school_versions)
    with live progress reporting.
+4. Pushing what the pipeline steps changed (EN names, websites, GPS) to existing rows.
 """
 
 from __future__ import annotations
@@ -202,28 +202,6 @@ def mask_dsn(dsn: str) -> str:
     return re.sub(pattern, r"://\1:••••••••@", dsn)
 
 
-def save_database_url(dsn: str) -> bool:
-    """Saves or updates DATABASE_URL in .env file."""
-    dsn = dsn.strip()
-    os.environ["DATABASE_URL"] = dsn
-
-    lines: list[str] = []
-    found = False
-    if ENV_FILE.exists():
-        for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("DATABASE_URL="):
-                lines.append(f'DATABASE_URL="{dsn}"')
-                found = True
-            else:
-                lines.append(line)
-
-    if not found:
-        lines.append(f'DATABASE_URL="{dsn}"')
-
-    ENV_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return True
-
-
 def test_database_connection(dsn: str | None = None) -> dict[str, Any]:
     """Tests connection to PostgreSQL/Supabase and checks schema presence."""
     if not psycopg:
@@ -328,6 +306,16 @@ def slugify(name_en: str | None, name_th: str, opec_code: str) -> str:
     return slug or f"school-{opec_code}"
 
 
+def free_slug(base: str, opec_code: str, taken: set[str]) -> str:
+    """`base`, or base plus the code's last digits when another school holds it (slug is UNIQUE)."""
+    if base not in taken:
+        return base
+    slug, n = f"{base}-{opec_code[-4:]}", 2
+    while slug in taken:
+        slug, n = f"{base}-{opec_code[-4:]}-{n}", n + 1
+    return slug
+
+
 def to_int(value: Any) -> int | None:
     try:
         return int(value) if value not in (None, "", []) else None
@@ -354,15 +342,17 @@ def execute_opec_import(
     records: list[dict[str, Any]] | None = None,
     publish_initial: bool = True,
     progress_callback: Callable[[str, int, int, str], None] | None = None,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     """
     Imports OPEC records into Supabase Postgres database.
-    
+
     Args:
         dsn: Connection string (falls back to DATABASE_URL in .env)
         records: List of school dictionaries (falls back to data/international_schools_thailand_opec.json)
         publish_initial: Create initial published version 1
         progress_callback: Callback for live progress (task, current, total, log)
+        dry_run: Roll back at the end instead of committing (db/import_opec.py --dry-run)
     """
     if not psycopg:
         raise RuntimeError("psycopg is not installed")
@@ -392,6 +382,8 @@ def execute_opec_import(
     # Check and initialize schema if needed
     status_check = test_database_connection(target_dsn)
     if not status_check.get("has_schema"):
+        if dry_run:
+            raise RuntimeError("ยังไม่มี schema school_data: dry run ไม่สร้างตารางให้ รัน db/schema.sql ก่อน")
         log("กำลังสร้างโครงสร้างตาราง...", 10, 100, "ไม่พบ schema school_data — กำลังรัน db/schema.sql...")
         initialize_schema_on_supabase(target_dsn)
         log("สร้างตารางสำเร็จ", 15, 100, "โครงสร้างตารางและ Lookup Seeds สร้างเสร็จสิ้น")
@@ -415,9 +407,8 @@ def execute_opec_import(
                     continue
 
                 name_en = clean(record.get("school_name_en"))
-                slug = slugify(name_en, name_th, opec_code)
-                if slug in used_slugs:
-                    slug = f"{slug}-{opec_code[-4:]}"
+                # Only used when the row is new: ON CONFLICT leaves an existing slug alone
+                slug = free_slug(slugify(name_en, name_th, opec_code), opec_code, used_slugs)
                 used_slugs.add(slug)
 
                 lat = to_float(record.get("latitude"))
@@ -597,13 +588,17 @@ def execute_opec_import(
                         f"นำเข้าแล้ว: {idx}/{total_records} โรงเรียน (เพิ่มใหม่: {inserted}, อัปเดต: {updated})",
                     )
 
-            conn.commit()
+            if dry_run:
+                conn.rollback()
+            else:
+                conn.commit()
 
     log(
-        "นำเข้าข้อมูลสู่ Supabase เสร็จสมบูรณ์!",
+        "นำเข้าข้อมูลสู่ Supabase เสร็จแล้ว" if not dry_run else "ทดลองนำเข้าเสร็จแล้ว (ยกเลิก ไม่ได้บันทึก)",
         100,
         100,
-        f"สำเร็จ 100%: เพิ่มโรงเรียนใหม่ {inserted} แห่ง, อัปเดต {updated} แห่ง, รวม {total_records} แห่ง",
+        f"เพิ่มโรงเรียนใหม่ {inserted} แห่ง, อัปเดต {updated} แห่ง, รวม {total_records} แห่ง"
+        + (" (dry run: rollback แล้ว)" if dry_run else ""),
     )
 
     return {
@@ -1024,49 +1019,77 @@ def delete_supabase_school(school_id: str, dsn: str | None = None) -> dict[str, 
     return {"status": "deleted", "school_id": str(row["school_id"]), "name_th": row["name_th"]}
 
 
+def _same_point(lat_a: Any, lng_a: Any, lat_b: Any, lng_b: Any) -> bool:
+    """Two optional coordinates are the same point (the dataset keeps 7 decimals)."""
+    if lat_a is None or lng_a is None or lat_b is None or lng_b is None:
+        return lat_a is None and lat_b is None
+    return abs(float(lat_a) - float(lat_b)) < 5e-8 and abs(float(lng_a) - float(lng_b)) < 5e-8
+
+
+def _sync_failed(what: str, error: Exception, update_progress_cb: Optional[Callable]) -> int:
+    print(f"[Supabase Sync] Error updating {what.strip()}:", error)
+    if update_progress_cb:
+        update_progress_cb(f"เกิดข้อผิดพลาดในการซิงค์{what}สู่ Supabase", 100, 100, f"Supabase error: {error}")
+    return 0
+
+
+def _by_code(schools: list[dict] | None) -> dict[str, dict]:
+    if schools is None:
+        from data_manager import load_schools
+        schools = load_schools() or []
+    out = {}
+    for s in schools:
+        code = str(s.get("school_code") or s.get("opec_school_code") or "").strip()
+        if code:
+            out[code] = s
+    return out
+
+
+# The sync functions below write only the rows whose value differs from what the database
+# already holds. Every UPDATE on schools bumps updated_at and row_version (trigger
+# bump_row_version), so rewriting unchanged rows made every school look edited after each
+# run, and the counts they return are rows that really changed.
+
 def update_supabase_school_names_en(schools: list[dict] | None = None, update_progress_cb: Optional[Callable] = None) -> int:
     """
     Synchronizes enriched official English names and regenerated slugs to Supabase (school_data.schools).
+    Returns how many rows changed.
     """
     target_dsn = get_current_dsn()
     if not target_dsn or not psycopg:
         return 0
+    by_code = _by_code(schools)
 
-    if schools is None:
-        from data_manager import load_schools
-        schools = load_schools() or []
-
-    code_to_en: dict[str, str] = {}
-    code_to_th: dict[str, str] = {}
-    for s in schools:
-        code = str(s.get("school_code") or s.get("opec_school_code") or "").strip()
-        en = str(s.get("school_name_en") or s.get("name_en") or "").strip()
-        th = str(s.get("school_name_th") or s.get("name_th") or "").strip()
-        if code and en:
-            code_to_en[code] = en
-            code_to_th[code] = th
-
-    updated_count = 0
     try:
         with db_connect(target_dsn, row_factory=dict_row) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT opec_school_code, name_th, name_en, slug FROM school_data.schools")
-                db_schools = cur.fetchall()
-                for db_s in db_schools:
-                    code = db_s["opec_school_code"]
-                    curr_en = (db_s["name_en"] or "").strip()
-                    th = db_s["name_th"] or code_to_th.get(code, "")
+            rows = conn.execute("SELECT opec_school_code, name_th, name_en, slug FROM school_data.schools").fetchall()
 
-                    target_en = code_to_en.get(code)
-                    if not target_en and not curr_en:
-                        try:
-                            from enrich_school_names_en import dynamic_resolve_school_en_name
-                            target_en = dynamic_resolve_school_en_name({"school_name_th": th, "school_code": code})
-                        except Exception:
-                            target_en = ""
+        # Names are worked out with no transaction open
+        taken = {r["slug"] for r in rows}
+        updates = []
+        for r in rows:
+            code = r["opec_school_code"]
+            if not code:
+                continue
+            s = by_code.get(code) or {}
+            curr_en = (r["name_en"] or "").strip()
+            target_en = str(s.get("school_name_en") or s.get("name_en") or "").strip()
+            if not target_en and not curr_en:
+                try:
+                    from enrich_school_names_en import dynamic_resolve_school_en_name
+                    target_en = dynamic_resolve_school_en_name({"school_name_th": r["name_th"], "school_code": code})
+                except Exception:
+                    target_en = ""
+            if target_en and target_en != curr_en:
+                taken.discard(r["slug"])
+                slug = free_slug(slugify(target_en, r["name_th"] or "", code), code, taken)
+                taken.add(slug)
+                updates.append({"en": target_en, "slug": slug, "code": code})
 
-                    if target_en and target_en != curr_en:
-                        new_slug = slugify(target_en, th, code)
+        if updates:
+            with db_connect(target_dsn) as conn:
+                with conn.cursor() as cur:
+                    for params in updates:
                         cur.execute(
                             """
                             UPDATE school_data.schools
@@ -1075,58 +1098,61 @@ def update_supabase_school_names_en(schools: list[dict] | None = None, update_pr
                                 updated_at = NOW()
                             WHERE opec_school_code = %(code)s
                             """,
-                            {"en": target_en, "slug": new_slug, "code": code}
+                            params,
                         )
-                        updated_count += 1
-            conn.commit()
+                conn.commit()
+        return len(updates)
     except Exception as e:
-        print("[Supabase Sync] Error updating EN names:", e)
-        if update_progress_cb:
-            update_progress_cb("เกิดข้อผิดพลาดในการซิงค์ EN สู่ Supabase", 100, 100, f"Supabase error: {e}")
-
-    return updated_count
+        return _sync_failed(" EN ", e, update_progress_cb)
 
 
 def update_supabase_school_gps(schools: list[dict] | None = None, update_progress_cb: Optional[Callable] = None) -> int:
     """
     Synchronizes geocoded GPS locations to Supabase (school_data.schools).
+    Returns how many rows changed.
     """
     target_dsn = get_current_dsn()
     if not target_dsn or not psycopg:
         return 0
 
-    if schools is None:
-        from data_manager import load_schools
-        schools = load_schools() or []
-
     code_to_gps: dict[str, tuple[float | None, float | None, str, str]] = {}
-    for s in schools:
-        code = str(s.get("school_code") or s.get("opec_school_code") or "").strip()
+    for code, s in _by_code(schools).items():
         lat = s.get("latitude") or s.get("lat")
         lng = s.get("longitude") or s.get("lng")
         precision = str(s.get("gps_precision") or "")
         source = str(s.get("gps_source") or "")
-        if code and not (lat and lng) and precision == "None":
+        if not (lat and lng) and precision == "None":
             # No coordinate we may keep (e.g. only ArcGIS had one): clear the old point.
             code_to_gps[code] = (None, None, precision, source)
-        elif code and lat and lng:
+        elif lat and lng:
             try:
-                lat_f = float(lat)
-                lng_f = float(lng)
-                code_to_gps[code] = (lat_f, lng_f, precision, source)
+                code_to_gps[code] = (float(lat), float(lng), precision, source)
             except (ValueError, TypeError):
                 pass
 
-    updated_count = 0
     try:
         with db_connect(target_dsn, row_factory=dict_row) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT opec_school_code FROM school_data.schools")
-                db_schools = cur.fetchall()
-                for db_s in db_schools:
-                    code = db_s["opec_school_code"]
-                    if code in code_to_gps:
-                        lat_f, lng_f, precision, source = code_to_gps[code]
+            rows = conn.execute(
+                """
+                SELECT opec_school_code, st_y(geom::geometry) AS lat, st_x(geom::geometry) AS lng,
+                       gps_precision, gps_source
+                FROM school_data.schools
+                """
+            ).fetchall()
+            updates = []
+            for r in rows:
+                want = code_to_gps.get(r["opec_school_code"])
+                if want is None:
+                    continue
+                lat_f, lng_f, precision, source = want
+                if (_same_point(r["lat"], r["lng"], lat_f, lng_f)
+                        and (r["gps_precision"] or "") == precision and (r["gps_source"] or "") == source):
+                    continue
+                updates.append({"lat": lat_f, "lng": lng_f, "precision": precision, "source": source,
+                                "code": r["opec_school_code"]})
+            if updates:
+                with conn.cursor() as cur:
+                    for params in updates:
                         cur.execute(
                             """
                             UPDATE school_data.schools
@@ -1137,49 +1163,54 @@ def update_supabase_school_gps(schools: list[dict] | None = None, update_progres
                                 updated_at = NOW()
                             WHERE opec_school_code = %(code)s
                             """,
-                            {"lat": lat_f, "lng": lng_f, "precision": precision, "source": source, "code": code}
+                            params,
                         )
-                        updated_count += 1
             conn.commit()
+        return len(updates)
     except Exception as e:
-        print("[Supabase Sync] Error updating GPS:", e)
-        if update_progress_cb:
-            update_progress_cb("เกิดข้อผิดพลาดในการซิงค์ GPS สู่ Supabase", 100, 100, f"Supabase error: {e}")
-
-    return updated_count
+        return _sync_failed("พิกัด GPS ", e, update_progress_cb)
 
 
 def update_supabase_school_websites(schools: list[dict] | None = None, update_progress_cb: Optional[Callable] = None) -> int:
     """
     Synchronizes official websites and socials to Supabase (school_data.schools).
+    Returns how many rows changed.
     """
     target_dsn = get_current_dsn()
     if not target_dsn or not psycopg:
         return 0
 
-    if schools is None:
-        from data_manager import load_schools
-        schools = load_schools() or []
-
     code_to_web: dict[str, tuple[str, str, str]] = {}
-    for s in schools:
-        code = str(s.get("school_code") or s.get("opec_school_code") or "").strip()
+    for code, s in _by_code(schools).items():
         web = str(s.get("website") or s.get("official_website_url") or "").strip()
         src = str(s.get("website_source") or "Official Scraper").strip()
         fb = str(s.get("facebook") or s.get("facebook_url") or "").strip()
-        if code and web:
+        if web:
             code_to_web[code] = (web, src, fb)
 
-    updated_count = 0
     try:
         with db_connect(target_dsn, row_factory=dict_row) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT opec_school_code FROM school_data.schools")
-                db_schools = cur.fetchall()
-                for db_s in db_schools:
-                    code = db_s["opec_school_code"]
-                    if code in code_to_web:
-                        web, src, fb = code_to_web[code]
+            rows = conn.execute(
+                """
+                SELECT opec_school_code, official_website_url, website_source,
+                       social_links->>'facebook' AS facebook
+                FROM school_data.schools
+                """
+            ).fetchall()
+            updates = []
+            for r in rows:
+                want = code_to_web.get(r["opec_school_code"])
+                if want is None:
+                    continue
+                web, src, fb = want
+                if ((r["official_website_url"] or "") == web
+                        and (not src or (r["website_source"] or "") == src)
+                        and (not fb or (r["facebook"] or "") == fb)):
+                    continue
+                updates.append({"web": web, "src": src, "fb": fb, "code": r["opec_school_code"]})
+            if updates:
+                with conn.cursor() as cur:
+                    for params in updates:
                         cur.execute(
                             """
                             UPDATE school_data.schools
@@ -1190,16 +1221,12 @@ def update_supabase_school_websites(schools: list[dict] | None = None, update_pr
                                 updated_at = NOW()
                             WHERE opec_school_code = %(code)s
                             """,
-                            {"web": web, "src": src, "fb": fb, "code": code}
+                            params,
                         )
-                        updated_count += 1
             conn.commit()
+        return len(updates)
     except Exception as e:
-        print("[Supabase Sync] Error updating websites:", e)
-        if update_progress_cb:
-            update_progress_cb("เกิดข้อผิดพลาดในการซิงค์เว็บไซต์สู่ Supabase", 100, 100, f"Supabase error: {e}")
-
-    return updated_count
+        return _sync_failed("เว็บไซต์", e, update_progress_cb)
 
 
 def sync_single_school_to_supabase(school: dict) -> bool:
@@ -1215,7 +1242,17 @@ def sync_single_school_to_supabase(school: dict) -> bool:
             with conn.cursor() as cur:
                 name_en = clean(school.get("school_name_en") or school.get("name_en"))
                 name_th = clean(school.get("school_name_th") or school.get("name_th"))
-                slug_val = slugify(name_en, name_th or "", code) if name_en else None
+                cur.execute("SELECT name_en FROM school_data.schools WHERE opec_school_code = %s", (code,))
+                row = cur.fetchone()
+                if not row:
+                    return False
+                # A new English name gets a new slug, one no other school holds
+                slug_val = None
+                if name_en and name_en != (row[0] or ""):
+                    base = slugify(name_en, name_th or "", code)
+                    cur.execute("SELECT slug FROM school_data.schools WHERE slug LIKE %s AND opec_school_code <> %s",
+                                (base + "%", code))
+                    slug_val = free_slug(base, code, {r[0] for r in cur.fetchall()})
                 web = clean(school.get("website") or school.get("official_website_url"))
                 src = clean(school.get("website_source"))
                 lat = school.get("latitude") or school.get("lat")
@@ -1474,6 +1511,9 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
     """
     Saves new scraped data as a draft version in school_data.school_versions
     with status 'pending_review' (preserving versioning history & auditability).
+
+    `school_id` may be the schools.school_id uuid or the OPEC school code: the admin
+    table only carries the code.
     """
     target_dsn = dsn or get_current_dsn()
     if not target_dsn:
@@ -1481,6 +1521,15 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
 
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT school_id FROM school_data.schools WHERE school_id::text = %s OR opec_school_code = %s LIMIT 1",
+                (str(school_id), str(school_id)),
+            )
+            found = cur.fetchone()
+            if not found:
+                raise ValueError(f"ไม่พบโรงเรียนรหัส {school_id} ใน Supabase")
+            school_id = found["school_id"]
+
             cur.execute("""
                 SELECT COALESCE(MAX(version_number), 0) + 1 as next_num 
                 FROM school_data.school_versions 

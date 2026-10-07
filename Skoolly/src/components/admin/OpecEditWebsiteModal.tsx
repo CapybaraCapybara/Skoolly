@@ -36,7 +36,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
       if (ok) {
         onClose();
       } else {
-        setError("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+        setError("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
       }
     } catch (err: any) {
       setError(err.message || "เกิดข้อผิดพลาดในการบันทึก");
@@ -60,7 +60,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
               <Globe className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-warm-charcoal text-base">แก้ไข Official Website</h3>
+              <h3 className="font-bold text-warm-charcoal text-base">แก้ไขเว็บไซต์ทางการ</h3>
               <p className="text-xs text-[#78716c] truncate max-w-[220px]">
                 {school.school_name_th}
               </p>
@@ -79,7 +79,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
         <form onSubmit={handleSubmit} className="p-6 space-y-4 bg-white">
           <div>
             <label className="block text-xs font-bold text-warm-charcoal mb-1.5">
-              URL เว็บไซต์ทางการ (Official Website):
+              URL เว็บไซต์ทางการ
             </label>
             <input
               type="text"
@@ -90,7 +90,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
               autoFocus
             />
             <p className="text-xs text-[#78716c] mt-1.5">
-              ระบุ URL ให้ถูกต้อง เช่น https://www.patana.ac.th หรือปล่อยว่างหากต้องการลบ
+              ปล่อยว่างเพื่อลบ
             </p>
           </div>
 
@@ -114,7 +114,7 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
               className="px-5 py-2 text-xs font-bold bg-warm-charcoal hover:bg-warm-charcoal/85 text-white rounded-full shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-warm-bronze" />}
-              <span>{isSaving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}</span>
+              <span>{isSaving ? "กำลังบันทึก…" : "บันทึก"}</span>
             </button>
           </div>
         </form>
