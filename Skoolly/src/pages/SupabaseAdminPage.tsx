@@ -57,6 +57,7 @@ import { OpecSupabaseModal } from "@/components/admin/OpecSupabaseModal";
 import { OpecUrlVerificationModal } from "@/components/admin/OpecUrlVerificationModal";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
+import { ScraperLogsDashboard } from "@/components/admin/ScraperLogsDashboard";
 
 interface SupabaseAdminPageProps {
   onBack: () => void;
@@ -72,6 +73,7 @@ export function SupabaseAdminPage({
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<ScraperProgressState | null>(null);
   const [actionLoadingCode, setActionLoadingCode] = useState<string | null>(null);
+  const scrapingSchoolCodeRef = useRef<string | null>(null);
 
   // Modals state
   const [selectedSchool, setSelectedSchool] = useState<OpecSchoolRecord | null>(null);
@@ -198,15 +200,50 @@ export function SupabaseAdminPage({
           isPollingRef.current = false;
           pollProgress();
         }, 1200);
-      } else if (state && state.percent >= 100) {
-        loadSchoolsData();
+      } else {
+        await loadSchoolsData();
+        const freshVers = await getPendingVersions().catch(() => []);
+        setPendingVersions(freshVers);
+
+        if (scrapingSchoolCodeRef.current) {
+          const targetCode = scrapingSchoolCodeRef.current;
+          scrapingSchoolCodeRef.current = null;
+          const match = freshVers.find(
+            (v) => v.opec_school_code === targetCode || v.school_id === targetCode
+          );
+          if (match) {
+            setReviewingVersion(match);
+            showToast("Scrape ข้อมูลเรียบร้อย กำลังเปิดหน้าต่างเปรียบเทียบข้อมูลก่อน vs หลัง");
+          } else if (freshVers.length > 0) {
+            setReviewingVersion(freshVers[0]);
+          }
+        }
       }
     } catch {
       // Backend service idle
     } finally {
       if (!rescheduled) isPollingRef.current = false;
     }
-  }, [loadSchoolsData]);
+  }, [loadSchoolsData, showToast]);
+
+  // Start polling immediately when a scrape is initiated
+  const startPolling = useCallback(() => {
+    if (pollTimerRef.current !== null) {
+      window.clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    isPollingRef.current = false;
+    setProgress((prev) => ({
+      is_running: true,
+      task: prev?.task || "กำลังเริ่มกระบวนการ Scrape...",
+      current: prev?.current || 0,
+      total: prev?.total || 100,
+      percent: prev?.percent || 0,
+      log: prev?.log || "กำลังเชื่อมต่อเพื่อดึงข้อมูล...",
+      logs: prev?.logs || [],
+    }));
+    pollProgress();
+  }, [pollProgress]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -236,6 +273,29 @@ export function SupabaseAdminPage({
     }
   };
 
+  // Handle Approve All Versions
+  const handleApproveAll = async () => {
+    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการอนุมัติทั้งหมด ${pendingVersions.length} รายการ?`)) return;
+    setIsVersionActionLoading(true);
+    let successCount = 0;
+    try {
+      showToast("กำลังดำเนินการอนุมัติทั้งหมด...");
+      for (const version of pendingVersions) {
+        await approveVersion(version.version_id);
+        successCount++;
+      }
+      showToast(`อนุมัติสำเร็จ ${successCount} รายการ`);
+      await loadPendingVersions();
+      await loadSchoolsData();
+    } catch (err: any) {
+      showToast(`อนุมัติสำเร็จ ${successCount} รายการ, เกิดข้อผิดพลาด: ${err.message || "มีบางรายการไม่สำเร็จ"}`);
+      await loadPendingVersions();
+      await loadSchoolsData();
+    } finally {
+      setIsVersionActionLoading(false);
+    }
+  };
+
   // Handle Reject Version
   const handleRejectVersion = async (versionId: string, reason?: string) => {
     setIsVersionActionLoading(true);
@@ -258,17 +318,19 @@ export function SupabaseAdminPage({
       return;
     }
     setActionLoading(true);
+    scrapingSchoolCodeRef.current = school.school_code;
     try {
-      showToast(`กำลังเริ่ม scrape ค่าเทอมของ ${school.school_name_th}`);
+      showToast(`กำลังเริ่ม scrape ค่าเทอมและข้อมูลของ ${school.school_name_th}`);
       await scrapeSchoolTuition(
         school.school_code,
         school.school_name_en || school.school_name_th,
         school.website
       );
-      showToast("เริ่ม scrape แล้ว ดูความคืบหน้าได้ที่หน้า Data Pipeline");
+      showToast("เริ่ม scrape แล้ว ระบบจะเปิดหน้าต่างตรวจสอบความแตกต่างเมื่อเสร็จสิ้น");
       pollProgress();
       await loadPendingVersions();
     } catch (err: any) {
+      scrapingSchoolCodeRef.current = null;
       showToast(`Scrape ค่าเทอมไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
     } finally {
       setActionLoading(false);
@@ -879,6 +941,17 @@ export function SupabaseAdminPage({
                     </p>
 
                     <div className="flex items-center gap-2">
+                      {pendingVersions.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleApproveAll}
+                          disabled={isVersionActionLoading}
+                          className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>อนุมัติทั้งหมด ({pendingVersions.length})</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={loadPendingVersions}
@@ -998,13 +1071,13 @@ export function SupabaseAdminPage({
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2.5 shrink-0 self-end lg:self-center">
+                            <div className="flex flex-wrap items-center gap-2 shrink-0 self-end lg:self-center">
                               {v.scraped_page_url && (
                                 <a
                                   href={v.scraped_page_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="p-2.5 rounded-xl bg-warm-cream hover:bg-warm-accent text-[#78716c] hover:text-warm-charcoal transition-all"
+                                  className="p-2.5 rounded-xl bg-warm-cream hover:bg-warm-accent text-[#78716c] hover:text-warm-charcoal transition-all border border-warm-accent"
                                   title="เปิดดูหน้าเว็บต้นทาง"
                                 >
                                   <ExternalLink className="w-4 h-4" />
@@ -1016,7 +1089,30 @@ export function SupabaseAdminPage({
                                 className="px-4 py-2.5 rounded-full bg-warm-charcoal hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                               >
                                 <Eye className="w-4 h-4 text-warm-bronze" />
-                                <span>ตรวจและอนุมัติ</span>
+                                <span>ตรวจข้อมูล (Diff)</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleApproveVersion(v.version_id)}
+                                disabled={isVersionActionLoading}
+                                className="px-3.5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                                title="อนุมัติและเผยแพร่ข้อมูลลงฐานข้อมูลทันที"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>อนุมัติ</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const reason = window.prompt("ระบุเหตุผลในการปฏิเสธข้อมูล (ถ้ามี):");
+                                  if (reason !== null) handleRejectVersion(v.version_id, reason);
+                                }}
+                                disabled={isVersionActionLoading}
+                                className="px-3 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                title="ปฏิเสธแบบร่างนี้"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>ปฏิเสธ</span>
                               </button>
                             </div>
                           </div>
@@ -1043,7 +1139,26 @@ export function SupabaseAdminPage({
                 </div>
               )}
 
-              {activeTab !== "dashboard" && activeTab !== "schools" && activeTab !== "approvals" && activeTab !== "pipeline" && activeTab !== "verify" && (
+              {activeTab === "ai-logs" && (
+                <ScraperLogsDashboard
+                  pendingVersions={pendingVersions}
+                  progress={progress}
+                  onReviewVersion={(v) => setReviewingVersion(v)}
+                  onRefreshData={() => {
+                    loadSchoolsData();
+                    loadPendingVersions();
+                  }}
+                  onShowToast={showToast}
+                  onStartScraping={startPolling}
+                />
+              )}
+
+              {activeTab !== "dashboard" &&
+                activeTab !== "schools" &&
+                activeTab !== "approvals" &&
+                activeTab !== "pipeline" &&
+                activeTab !== "verify" &&
+                activeTab !== "ai-logs" && (
                 <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs">
                   <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent text-warm-bronze flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />
@@ -1075,6 +1190,8 @@ export function SupabaseAdminPage({
         onClose={() => setReviewingVersion(null)}
         onApprove={handleApproveVersion}
         onReject={handleRejectVersion}
+        onApproveAll={handleApproveAll}
+        totalPendingCount={pendingVersions.length}
         isActionLoading={isVersionActionLoading}
       />
 

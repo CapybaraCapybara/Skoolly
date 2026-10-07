@@ -106,6 +106,7 @@ export interface SchoolDetail {
 
 // ─── Filters (UI state only — not persisted) ──────────────────────────────────
 export interface Filters {
+  searchQuery?: string;
   curriculum: string;
   gradeLevel: string;
   tuitionMax: number;

@@ -273,7 +273,7 @@ export interface PendingVersionRecord {
   confidence_score?: number | null;
   confidence_reasoning?: string | null;
   scraped_page_url?: string | null;
-  diff_summary?: string | null;
+  diff_summary?: any;
   data_snapshot?: any;
   submitted_at?: string;
   name_th: string;
@@ -283,12 +283,56 @@ export interface PendingVersionRecord {
   district?: string | null;
   logo_url?: string | null;
   official_website_url?: string | null;
+  current_published_version_id?: string | null;
   current_pub_min_thb?: number | null;
   current_pub_max_thb?: number | null;
   current_has_safeguarding?: boolean | null;
+  current_curriculums?: string[] | null;
+  current_pub_data_updated_at?: string | null;
   fees: VersionFeeItem[];
   extra_fees: VersionExtraFeeItem[];
   safety?: VersionSafetyData | null;
+  scraped_curriculums?: string[];
+  scraped_general_info?: {
+    about?: string;
+    founded?: string;
+    student_count?: string;
+    levels_offered?: string[];
+    is_boarding?: boolean;
+  };
+  scraped_facilities?: string[];
+  previous_fees?: VersionFeeItem[];
+  previous_safety?: VersionSafetyData | null;
+  previous_curriculums?: string[];
+  previous_facilities?: string[];
+  previous_general_info?: {
+    about?: string;
+    founded?: string;
+    student_count?: string;
+    levels_offered?: string[];
+    is_boarding?: boolean;
+  };
+  previous_submitted_at?: string | null;
+}
+
+export interface ScrapeLogRecord {
+  log_id: number;
+  school_id?: string | null;
+  version_id?: string | null;
+  run_id?: string | null;
+  correlation_id?: string | null;
+  phase: string;
+  status: "ok" | "no_tuition_found" | "nav_failed" | "blocked" | "timeout" | "error" | string;
+  page_scraped?: string | null;
+  elapsed_sec?: number | null;
+  ai_model?: string | null;
+  ai_reasoning?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  name_th?: string | null;
+  name_en?: string | null;
+  opec_school_code?: string | null;
+  official_website_url?: string | null;
 }
 
 

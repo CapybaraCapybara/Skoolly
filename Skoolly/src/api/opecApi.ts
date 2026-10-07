@@ -8,6 +8,7 @@ import type {
   WebsiteRegistryResponse,
   WebsiteHealthState,
   PendingVersionRecord,
+  ScrapeLogRecord,
 } from "@/types/opec";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
@@ -512,6 +513,29 @@ export async function scrapeSchoolTuition(
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "ไม่สามารถเริ่ม Scrape ได้" }));
     throw new Error(err.detail || "ไม่สามารถเริ่ม Scrape ค่าเทอมได้");
+  }
+  return await res.json();
+}
+
+export async function getScrapeLogs(limit: number = 100, offset: number = 0): Promise<ScrapeLogRecord[]> {
+  const res = await fetch(`${API_BASE}/api/supabase/scrape-logs?limit=${limit}&offset=${offset}&t=${Date.now()}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("ไม่สามารถดึงประวัติ AI & Scraper Logs ได้");
+  }
+  return await res.json();
+}
+
+export async function triggerBatchScrape(maxSchools?: number): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/scraper/batch-run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ max_schools: maxSchools || null }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถเริ่ม Batch Scrape ได้" }));
+    throw new Error(err.detail || "ไม่สามารถเริ่ม Batch Scrape ได้");
   }
   return await res.json();
 }

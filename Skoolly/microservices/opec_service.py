@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+import uuid
 import threading
 from typing import List, Dict, Any, Optional
 
@@ -44,6 +45,8 @@ from supabase_sync import (  # type: ignore
     approve_school_version,
     reject_school_version,
     save_scraped_draft_version,
+    fetch_scrape_logs,
+    log_school_scrape,
 )
 from website_registry import (  # type: ignore
     get_full_registry_status,
@@ -275,6 +278,95 @@ def step_scrape_school(progress, school_id, school_name, website):
     draft = save_scraped_draft_version(school_id, result)
     progress(f"บันทึกแบบร่างแล้ว: {school_name}", 100, 100,
              f"บันทึกแบบร่าง version {draft.get('version_number')} ของ {school_name} รอแอดมินอนุมัติ")
+
+
+def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
+    """Batch scrapes all schools that have an official website into draft versions and records logs."""
+    try:
+        from supabase_sync import fetch_supabase_schools
+        supa_data = fetch_supabase_schools(limit=1000)
+        schools = supa_data.get("schools", [])
+    except Exception as e:
+        print(f"[OPEC Service] Warning: Could not fetch from Supabase ({e}), falling back to local JSON")
+        schools = get_current_schools()
+        
+    with_websites = [
+        s for s in schools 
+        if str(s.get("website") or s.get("official_website_url") or s.get("official_website") or "").strip()
+    ]
+    if max_schools and max_schools > 0:
+        with_websites = with_websites[:max_schools]
+    
+    total = len(with_websites)
+    if total == 0:
+        progress("ไม่พบโรงเรียนที่มีเว็บไซต์", 100, 100, "ไม่มีโรงเรียนที่มีเว็บไซต์ทางการในระบบ OPEC")
+        return
+
+    progress(f"เริ่ม Batch Scrape ทั้งหมด {total} โรงเรียน...", 0, total, f"ตรวจพบโรงเรียนที่มีเว็บไซต์ทางการ {total} แห่ง")
+    success_count = 0
+    fail_count = 0
+    batch_run_id = str(uuid.uuid4())
+
+    for idx, s in enumerate(with_websites):
+        name = s.get("school_name_en") or s.get("school_name_th") or "Unknown"
+        website = str(s.get("website") or s.get("official_website") or "").strip()
+        school_id = s.get("school_id") or s.get("school_code")
+        curr_num = idx + 1
+        curr_pct = round((curr_num / total) * 100)
+
+        progress(f"กำลัง Scrape: {name} ({curr_num}/{total})", curr_num, total, f"[{curr_num}/{total}] กำลังสแกน {website}")
+
+        result = None
+        error_msg = ""
+        try:
+            resp = requests.post(SCRAPER_URL, json={"school_name": name, "homepage_url": website}, timeout=SCRAPE_TIMEOUT_S)
+            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            if resp.ok and body.get("status") == "success":
+                result = body.get("result_data")
+            elif body.get("error"):
+                error_msg = body.get("error")
+            elif not resp.ok:
+                error_msg = f"HTTP {resp.status_code}: {resp.text[:200]}"
+        except Exception as ex:
+            error_msg = str(ex)
+
+        if result is None:
+            result = _previous_scrape_result(name, website)
+
+        if result:
+            result["run_id"] = batch_run_id
+            try:
+                save_scraped_draft_version(school_id, result)
+                success_count += 1
+            except Exception as e:
+                fail_count += 1
+                log_school_scrape(
+                    school_id=school_id,
+                    phase="extract",
+                    status="error",
+                    run_id=batch_run_id,
+                    page_scraped=website,
+                    error_message=f"บันทึกแบบร่างไม่สำเร็จ: {e}",
+                )
+        else:
+            fail_count += 1
+            log_school_scrape(
+                school_id=school_id,
+                phase="extract",
+                status="nav_failed",
+                run_id=batch_run_id,
+                page_scraped=website,
+                error_message=error_msg or "Could not connect to website or scraper service",
+            )
+
+        time.sleep(1.0)
+
+    progress(
+        f"Batch Scrape เสร็จสิ้น (สำเร็จ {success_count}, ไม่สำเร็จ {fail_count})",
+        total,
+        total,
+        f"บันทึกแบบร่าง {success_count} โรงเรียนลง Supabase และ school_scrape_log รอแอดมินอนุมัติ",
+    )
 
 
 # API Routes
@@ -511,6 +603,25 @@ def post_scrape_school_endpoint(payload: ScrapeSchoolPayload):
     return _start_job(f"กำลัง scrape ค่าเทอม: {payload.school_name}", f"เริ่ม scrape ค่าเทอมของ {payload.school_name}",
                       [("scrape ค่าเทอม", lambda p: step_scrape_school(p, payload.school_id, payload.school_name,
                                                                        payload.website))])
+
+@app.get("/api/supabase/scrape-logs")
+def get_supabase_scrape_logs_endpoint(limit: int = 150, offset: int = 0):
+    try:
+        return fetch_scrape_logs(limit=limit, offset=offset)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class BatchScrapePayload(BaseModel):
+    max_schools: Optional[int] = None
+
+@app.post("/api/scraper/batch-run")
+def trigger_batch_scrape(payload: Optional[BatchScrapePayload] = None):
+    max_count = payload.max_schools if payload else None
+    return _start_job(
+        "กำลังรัน Batch Scrape โรงเรียนที่มีเว็บไซต์...",
+        "เริ่มกระบวนการ Scrape ข้อมูลโรงเรียนนานาชาติทั้งหมดที่มีลิงก์ทางการใน Database",
+        [("Batch Scrape Websites", lambda p: step_batch_scrape_websites(p, max_count))]
+    )
 
 class UpdateSchoolPayload(BaseModel):
     website: Optional[str] = None

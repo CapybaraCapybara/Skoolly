@@ -24,6 +24,7 @@ function getPageNumbers(current: number, total: number): (number | string)[] {
 }
 
 const DEFAULT_FILTERS: Filters = {
+  searchQuery: "",
   curriculum: "All Curricula",
   gradeLevel: "All Grades",
   tuitionMax: 700,
@@ -53,6 +54,7 @@ export function HomePage({
   onCompareLimitReached,
 }: HomePageProps) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [schools, setSchools] = useState<School[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -86,18 +88,35 @@ export function HomePage({
     return rated.reduce((sum, s) => sum + s.rating * s.reviewCount, 0) / weight;
   }, [schools]);
 
-  // Reset to page 1 whenever any filter changes
+  // Reset to page 1 whenever applied filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [appliedFilters]);
 
+  // Filter based on applied filters, not instantly on typing
   const filteredSchools = schools.filter((s) => {
-    if (filters.curriculum !== "All Curricula" && s.curriculum !== filters.curriculum) return false;
-    if (filters.language !== "All Languages" && s.language !== filters.language) return false;
-    if (s.tuitionStart / 1000 > filters.tuitionMax) return false;
-    if (filters.location === "Within 5 km" && s.distance > 5) return false;
-    if (filters.location === "Within 10 km" && s.distance > 10) return false;
-    if (filters.location === "Within 20 km" && s.distance > 20) return false;
+    // School name search (matches English name, Thai name, or location)
+    if (appliedFilters.searchQuery && appliedFilters.searchQuery.trim() !== "") {
+      const q = appliedFilters.searchQuery.toLowerCase().trim();
+      const matchEn = s.name.toLowerCase().includes(q);
+      const matchTh = s.nameTh ? s.nameTh.toLowerCase().includes(q) : false;
+      const matchLoc = s.location ? s.location.toLowerCase().includes(q) : false;
+      if (!matchEn && !matchTh && !matchLoc) return false;
+    }
+    if (appliedFilters.curriculum !== "All Curricula" && s.curriculum !== appliedFilters.curriculum) return false;
+    if (appliedFilters.gradeLevel !== "All Grades") {
+      const g = (s.grades || "").toLowerCase();
+      const gl = appliedFilters.gradeLevel;
+      if (gl.includes("Pre-K") && !g.match(/pre-k|kindergarten|อนุบาล|early|ey|nursery|kg/i)) return false;
+      if (gl.includes("Primary") && !g.match(/primary|ประถม|gr 1|grade 1|year 1|k - 12|k-12/i)) return false;
+      if (gl.includes("Middle") && !g.match(/middle|มัธยมต้น|gr 6|grade 6|year 7|k - 12|k-12/i)) return false;
+      if (gl.includes("High") && !g.match(/high|มัธยมปลาย|secondary|gr 9|grade 9|year 10|sixth form|k - 12|k-12/i)) return false;
+    }
+    if (appliedFilters.language !== "All Languages" && s.language !== appliedFilters.language) return false;
+    if (s.tuitionStart / 1000 > appliedFilters.tuitionMax) return false;
+    if (appliedFilters.location === "Within 5 km" && s.distance > 5) return false;
+    if (appliedFilters.location === "Within 10 km" && s.distance > 10) return false;
+    if (appliedFilters.location === "Within 20 km" && s.distance > 20) return false;
     return true;
   });
 
@@ -139,13 +158,49 @@ export function HomePage({
       <section className="relative z-10 -mt-12 pb-4">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="bg-warm-cream rounded-[2rem] shadow-xl p-6 md:p-8 border border-warm-accent">
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-4">
               <svg className="w-4 h-4 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span className="text-sm font-bold tracking-tight text-warm-charcoal">Filter Schools</span>
               <span className="ml-auto text-xs text-warm-bronze font-bold">{filteredSchools.length} matches</span>
             </div>
+
+            {/* School Name Instant Search Bar (Filter ทันที) */}
+            <div className="mb-5">
+              <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">
+                Search School Name / ค้นหาชื่อโรงเรียน
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={filters.searchQuery || ""}
+                  onChange={(e) => setFilter("searchQuery", e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setAppliedFilters(filters);
+                      document.getElementById("schools")?.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                  placeholder="พิมพ์ค้นหาชื่อโรงเรียนภาษาไทย หรือ English (เช่น Bangkok Prep, NIST, ร่วมฤดี)..."
+                  className="w-full border border-warm-accent rounded-xl pl-10 pr-10 py-3 text-sm text-warm-charcoal bg-white/90 placeholder:text-warm-charcoal/40 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition shadow-inner"
+                />
+                <svg className="w-4 h-4 text-warm-charcoal/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {filters.searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setFilter("searchQuery", "")}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-warm-charcoal/50 hover:text-warm-charcoal bg-warm-accent/50 hover:bg-warm-accent rounded-full w-5 h-5 flex items-center justify-center cursor-pointer transition-colors"
+                    title="ล้างข้อความค้นหา"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
               {/* Curriculum */}
               <div>
@@ -218,20 +273,26 @@ export function HomePage({
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-warm-accent/40">
               <button
-                onClick={() => setFilters(DEFAULT_FILTERS)}
-                className="sm:order-first text-sm text-warm-charcoal/60 hover:text-warm-charcoal font-semibold px-4 py-2.5 transition-colors"
+                onClick={() => {
+                  setFilters(DEFAULT_FILTERS);
+                  setAppliedFilters(DEFAULT_FILTERS);
+                }}
+                className="sm:order-first text-sm text-warm-charcoal/60 hover:text-warm-charcoal font-semibold px-4 py-2.5 transition-colors cursor-pointer"
               >
                 Reset filters
               </button>
-              <a
-                href="#schools"
-                className="flex-1 sm:flex-none sm:ml-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 transition-all shadow-md active:scale-[0.98]"
+              <button
+                onClick={() => {
+                  setAppliedFilters(filters);
+                  document.getElementById("schools")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="flex-1 sm:flex-none sm:ml-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 transition-all shadow-md active:scale-[0.98] cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Search {filteredSchools.length} Schools
-              </a>
+                Search Schools
+              </button>
             </div>
           </div>
         </div>

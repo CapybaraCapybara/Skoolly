@@ -17,6 +17,7 @@ import re
 import sys
 import time
 import unicodedata
+import uuid
 from collections import Counter
 from pathlib import Path
 from typing import Callable, Any, Optional
@@ -1299,7 +1300,8 @@ def sync_single_school_to_supabase(school: dict) -> bool:
 def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
     """
     Fetches all school versions that are pending admin review (UC-A04 Diff View).
-    Includes related school info, version fees, extra fees, and safety policies.
+    Includes related school info, version fees, extra fees, safety policies,
+    curriculums, general info, facilities, and previous published version data.
     """
     target_dsn = dsn or get_current_dsn()
     if not target_dsn:
@@ -1327,9 +1329,12 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                     s.district,
                     s.logo_url,
                     s.official_website_url,
+                    s.current_published_version_id,
+                    s.curriculums as current_curriculums,
                     s.pub_tuition_min_thb as current_pub_min_thb,
                     s.pub_tuition_max_thb as current_pub_max_thb,
-                    s.pub_has_safeguarding_policy as current_has_safeguarding
+                    s.pub_has_safeguarding_policy as current_has_safeguarding,
+                    s.pub_data_updated_at as current_pub_data_updated_at
                 FROM school_data.school_versions v
                 JOIN school_data.schools s ON v.school_id = s.school_id
                 WHERE v.status = 'pending_review'
@@ -1341,12 +1346,27 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                 vid = v["version_id"]
                 v["version_id"] = str(vid)
                 v["school_id"] = str(v["school_id"])
+                if v.get("current_published_version_id"):
+                    v["current_published_version_id"] = str(v["current_published_version_id"])
                 if v.get("current_pub_min_thb") is not None:
                     v["current_pub_min_thb"] = float(v["current_pub_min_thb"])
                 if v.get("current_pub_max_thb") is not None:
                     v["current_pub_max_thb"] = float(v["current_pub_max_thb"])
                 if v.get("submitted_at"):
                     v["submitted_at"] = v["submitted_at"].isoformat()
+                if v.get("current_pub_data_updated_at"):
+                    v["current_pub_data_updated_at"] = v["current_pub_data_updated_at"].isoformat()
+
+                # Extract parsed fields from data_snapshot
+                snapshot = v.get("data_snapshot") or {}
+                if isinstance(snapshot, str):
+                    try:
+                        snapshot = json.loads(snapshot)
+                    except Exception:
+                        snapshot = {}
+                v["scraped_curriculums"] = snapshot.get("curriculums") or ([snapshot.get("curriculum")] if snapshot.get("curriculum") else [])
+                v["scraped_general_info"] = snapshot.get("general_info") or {}
+                v["scraped_facilities"] = snapshot.get("facilities") or []
 
                 # 1. Fetch version fees
                 cur.execute("""
@@ -1397,6 +1417,71 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                 safety_row = cur.fetchone()
                 v["safety"] = dict(safety_row) if safety_row else None
 
+                # 4. Fetch previous version fees, safety, and snapshot for side-by-side comparison (ก่อน vs หลัง)
+                prev_vid = v.get("current_published_version_id")
+                if prev_vid:
+                    cur.execute("""
+                        SELECT fee_id, grade_label, level_code, annual_thb, semester_thb, currency, notes
+                        FROM school_data.version_fees
+                        WHERE version_id = %s
+                        ORDER BY grade_label ASC
+                    """, (prev_vid,))
+                    v["previous_fees"] = [
+                        {
+                            "fee_id": str(f["fee_id"]),
+                            "grade_label": f["grade_label"],
+                            "level_code": f.get("level_code"),
+                            "annual_thb": float(f["annual_thb"]) if f.get("annual_thb") is not None else None,
+                            "semester_thb": float(f["semester_thb"]) if f.get("semester_thb") is not None else None,
+                            "currency": f.get("currency") or "THB",
+                            "notes": f.get("notes"),
+                        }
+                        for f in cur.fetchall()
+                    ]
+
+                    # Fetch previous safety
+                    cur.execute("""
+                        SELECT security_guards, cctv_monitoring, nurse_medical_clinic, 
+                               child_safeguarding_policy, air_quality_pm25_protocol, visitor_access_control,
+                               highlights, policy_summary, policy_url
+                        FROM school_data.version_safety
+                        WHERE version_id = %s
+                    """, (prev_vid,))
+                    prev_saf = cur.fetchone()
+                    v["previous_safety"] = dict(prev_saf) if prev_saf else None
+
+                    # Fetch previous snapshot (curriculums, facilities, general_info, submission date)
+                    cur.execute("""
+                        SELECT data_snapshot, submitted_at, created_at
+                        FROM school_data.school_versions
+                        WHERE version_id = %s
+                    """, (prev_vid,))
+                    prev_ver = cur.fetchone()
+                    if prev_ver:
+                        p_snap = prev_ver.get("data_snapshot") or {}
+                        if isinstance(p_snap, str):
+                            try:
+                                p_snap = json.loads(p_snap)
+                            except Exception:
+                                p_snap = {}
+                        v["previous_curriculums"] = p_snap.get("curriculums") or ([p_snap.get("curriculum")] if p_snap.get("curriculum") else v.get("current_curriculums") or [])
+                        v["previous_facilities"] = p_snap.get("facilities") or []
+                        v["previous_general_info"] = p_snap.get("general_info") or {}
+                        p_date = prev_ver.get("submitted_at") or prev_ver.get("created_at")
+                        v["previous_submitted_at"] = p_date.isoformat() if hasattr(p_date, "isoformat") else (str(p_date) if p_date else None)
+                    else:
+                        v["previous_curriculums"] = v.get("current_curriculums") or []
+                        v["previous_facilities"] = []
+                        v["previous_general_info"] = {}
+                        v["previous_submitted_at"] = None
+                else:
+                    v["previous_fees"] = []
+                    v["previous_safety"] = None
+                    v["previous_curriculums"] = v.get("current_curriculums") or []
+                    v["previous_facilities"] = []
+                    v["previous_general_info"] = {}
+                    v["previous_submitted_at"] = None
+
             return versions
 
 
@@ -1406,6 +1491,7 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
     1. Updates target version status to 'published'
     2. Supersedes any previous published version
     3. Projects published tuition min/max and safeguarding policy to school_data.schools
+    4. Records approval in school_data.school_scrape_log
     """
     target_dsn = dsn or get_current_dsn()
     if not target_dsn:
@@ -1414,7 +1500,7 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT version_id, school_id, status, version_number 
+                SELECT version_id, school_id, status, version_number, data_snapshot
                 FROM school_data.school_versions 
                 WHERE version_id = %s
             """, (version_id,))
@@ -1458,6 +1544,15 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                 WHERE version_id = %s
             """, (version_id,))
 
+            # Extract snapshot fields to update on school if available
+            snapshot = ver.get("data_snapshot") or {}
+            if isinstance(snapshot, str):
+                try:
+                    snapshot = json.loads(snapshot)
+                except Exception:
+                    snapshot = {}
+            new_curriculums = snapshot.get("curriculums")
+
             # Project to main schools table
             cur.execute("""
                 UPDATE school_data.schools
@@ -1465,10 +1560,18 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                     pub_tuition_min_thb = %s,
                     pub_tuition_max_thb = %s,
                     pub_has_safeguarding_policy = %s,
+                    curriculums = COALESCE(%s, curriculums),
                     pub_data_updated_at = NOW(),
                     updated_at = NOW()
                 WHERE school_id = %s
-            """, (version_id, min_tuition, max_tuition, has_safeguarding, school_id))
+            """, (version_id, min_tuition, max_tuition, has_safeguarding, new_curriculums, school_id))
+
+            # Log approval in school_data.school_scrape_log
+            cur.execute("""
+                INSERT INTO school_data.school_scrape_log
+                    (school_id, version_id, run_id, phase, status, ai_reasoning, created_at)
+                VALUES (%s, %s, gen_random_uuid(), 'extract', 'ok'::school_data.scrape_status, 'Admin approved and published draft to live database', NOW())
+            """, (school_id, version_id))
 
             conn.commit()
 
@@ -1620,6 +1723,33 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
                     clean(safety.get("policy_url"))
                 ))
 
+            # 4. Insert log entry into school_data.school_scrape_log
+            run_id = result_data.get("run_id") or str(uuid.uuid4())
+            correlation_id = result_data.get("correlation_id") or str(uuid.uuid4())
+            elapsed = to_float(result_data.get("elapsed_sec")) or 0.0
+            ai_model_name = result_data.get("ai_model") or "gemini-flash-lite-latest"
+            status_val = "ok" if (result_data.get("tuition_found") or tuition_list) else "no_tuition_found"
+            if result_data.get("status") == "failed" or result_data.get("error"):
+                status_val = "error"
+
+            cur.execute("""
+                INSERT INTO school_data.school_scrape_log
+                    (school_id, version_id, run_id, correlation_id, phase, status,
+                     page_scraped, elapsed_sec, ai_model, ai_reasoning, created_at)
+                VALUES (%s, %s, %s::uuid, %s::uuid, 'extract', %s::school_data.scrape_status,
+                        %s, %s, %s, %s, NOW())
+            """, (
+                school_id,
+                version_id,
+                run_id,
+                correlation_id,
+                status_val,
+                scraped_url or "",
+                elapsed,
+                ai_model_name,
+                confidence_reasoning or "",
+            ))
+
             conn.commit()
 
             return {
@@ -1628,3 +1758,104 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
                 "version_number": version_number,
                 "school_id": str(school_id)
             }
+
+
+def fetch_scrape_logs(limit: int = 150, offset: int = 0, dsn: str | None = None) -> list[dict[str, Any]]:
+    """Fetches scrape logs from school_data.school_scrape_log for the Admin Console."""
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        return []
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    l.log_id,
+                    l.school_id,
+                    l.version_id,
+                    l.run_id,
+                    l.correlation_id,
+                    l.phase,
+                    l.status,
+                    l.page_scraped,
+                    l.elapsed_sec,
+                    l.ai_model,
+                    l.ai_reasoning,
+                    l.error_message,
+                    l.created_at,
+                    s.name_th,
+                    s.name_en,
+                    s.opec_school_code,
+                    s.official_website_url
+                FROM school_data.school_scrape_log l
+                LEFT JOIN school_data.schools s ON l.school_id = s.school_id
+                ORDER BY l.created_at DESC
+                LIMIT %s OFFSET %s
+            """, (limit, offset))
+            rows = [dict(r) for r in cur.fetchall()]
+            for r in rows:
+                r["log_id"] = int(r["log_id"])
+                if r.get("school_id"):
+                    r["school_id"] = str(r["school_id"])
+                if r.get("version_id"):
+                    r["version_id"] = str(r["version_id"])
+                if r.get("run_id"):
+                    r["run_id"] = str(r["run_id"])
+                if r.get("correlation_id"):
+                    r["correlation_id"] = str(r["correlation_id"])
+                if r.get("elapsed_sec") is not None:
+                    r["elapsed_sec"] = float(r["elapsed_sec"])
+                if r.get("created_at"):
+                    r["created_at"] = r["created_at"].isoformat()
+            return rows
+
+
+def log_school_scrape(
+    school_id: str | None,
+    phase: str,
+    status: str,
+    version_id: str | None = None,
+    run_id: str | None = None,
+    correlation_id: str | None = None,
+    page_scraped: str | None = None,
+    elapsed_sec: float | None = None,
+    ai_model: str | None = None,
+    ai_reasoning: str | None = None,
+    error_message: str | None = None,
+    dsn: str | None = None,
+) -> int | None:
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        return None
+    valid_statuses = {'ok', 'no_tuition_found', 'nav_failed', 'blocked', 'timeout', 'error'}
+    status_val = status if status in valid_statuses else ('ok' if status in ('success', 'passed') else 'error')
+
+    try:
+        with db_connect(target_dsn, row_factory=dict_row) as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO school_data.school_scrape_log
+                        (school_id, version_id, run_id, correlation_id, phase, status,
+                         page_scraped, elapsed_sec, ai_model, ai_reasoning, error_message, created_at)
+                    VALUES (%s, %s, %s::uuid, %s::uuid, %s, %s::school_data.scrape_status,
+                            %s, %s, %s, %s, %s, NOW())
+                    RETURNING log_id
+                """, (
+                    school_id,
+                    version_id,
+                    run_id or str(uuid.uuid4()),
+                    correlation_id or str(uuid.uuid4()),
+                    phase,
+                    status_val,
+                    page_scraped or "",
+                    elapsed_sec or 0.0,
+                    ai_model or "gemini-flash-lite-latest",
+                    ai_reasoning or "",
+                    error_message or None,
+                ))
+                conn.commit()
+                row = cur.fetchone()
+                return int(row["log_id"]) if row else None
+    except Exception as e:
+        print("[log_school_scrape error]", e)
+        return None
