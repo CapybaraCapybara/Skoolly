@@ -41,7 +41,6 @@ import {
   resolveSchoolWebsite,
   enrichSchoolData,
   getSupabaseStatus,
-  enrichWithIsat,
   getPendingVersions,
   approveVersion,
   rejectVersion,
@@ -413,7 +412,7 @@ export function SupabaseAdminPage({
   const handleEnrichGps = async () => {
     setActionLoading(true);
     try {
-      showToast("ขั้นที่ 3: กำลังปักหมุด GPS");
+      showToast("ขั้นที่ 4: กำลังปักหมุด GPS");
       await postAction("/api/enrich-gps");
       pollProgress();
     } catch (err: any) {
@@ -426,7 +425,7 @@ export function SupabaseAdminPage({
   const handleEnrichWebsites = async () => {
     setActionLoading(true);
     try {
-      showToast("ขั้นที่ 4: กำลังค้นหาเว็บไซต์");
+      showToast("ขั้นที่ 3: กำลังค้นหาเว็บไซต์");
       await postAction("/api/fetch-official-websites");
       pollProgress();
     } catch (err: any) {
@@ -556,11 +555,12 @@ export function SupabaseAdminPage({
     item.onSelect?.();
   };
 
+  // Websites before GPS: the pins a school puts on its own site are one of the GPS sources
   const pipelineSteps = [
-    { step: 1, label: "ดึงข้อมูล OPEC", onClick: () => setIsSyncConfirmOpen(true), title: "ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติสดจากระบบ สช. OPEC บันทึกลง Supabase Database" },
-    { step: 2, label: "เติมชื่อ EN", onClick: handleEnrichNamesEn, title: "ขั้นที่ 2: เติมชื่อภาษาอังกฤษทางการของโรงเรียนเพื่อใช้ค้นหาต่อ" },
-    { step: 3, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 3: ค้นหาพิกัด GPS ระดับอาคารจริง" },
-    { step: 4, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 4: ค้นหาและคัดกรอง Official Website ด้วย AI Verification" },
+    { step: 1, label: "ดึงข้อมูล OPEC", onClick: () => setIsSyncConfirmOpen(true), title: "ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติจากระบบ สช. แล้วบันทึกลง Supabase" },
+    { step: 2, label: "เติมชื่อ EN", onClick: handleEnrichNamesEn, title: "ขั้นที่ 2: เติมชื่อภาษาอังกฤษให้โรงเรียนที่ยังไม่มีหรือชื่อเพี้ยน" },
+    { step: 3, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 3: หาเว็บไซต์ทางการจากทะเบียนที่ยืนยันแล้ว แล้วตรวจว่าเปิดได้จริง" },
+    { step: 4, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 4: ตรวจพิกัดโดยเทียบหลายแหล่ง" },
   ];
   const pipelineBusy = isRunning || actionLoading;
   // Members already matched in the DB — the ISAT directory size itself is only known during a sync
@@ -826,7 +826,7 @@ export function SupabaseAdminPage({
                     onClick={handleAutoEnrichAll}
                     disabled={pipelineBusy}
                     className={cn(pillBtn, "px-3.5")}
-                    title="รันอัตโนมัติ: เติมชื่อ EN -> GPS -> Website"
+                    title="รันต่อกัน: เติมชื่อ EN -> ค้นหา Website -> ปักหมุด GPS (ไม่ดึง OPEC ใหม่)"
                   >
                     <Wand2 className="size-4 text-warm-bronze" />
                     Auto-Enrich
@@ -1116,7 +1116,7 @@ export function SupabaseAdminPage({
         onClose={() => setIsClearConfirmOpen(false)}
         onConfirm={handleConfirmClearData}
         title="ล้างข้อมูลทั้งหมด?"
-        description="ลบข้อมูลโรงเรียนและ log การ scrape ทั้งหมดใน Supabase นำเข้าใหม่ได้ด้วยปุ่ม ดึงข้อมูล OPEC"
+        description="ลบโรงเรียนและค่าเทอมที่อนุมัติแล้วทั้งหมดใน Supabase ดึงข้อมูล OPEC ใหม่ได้ แต่ค่าเทอมจะหายถาวร"
         confirmText="ล้างข้อมูล"
         cancelText="ยกเลิก"
         variant="danger"

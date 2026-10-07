@@ -31,6 +31,7 @@ import os
 import re
 import time
 import socket
+import threading
 import requests
 import urllib3
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -114,6 +115,8 @@ dns_cache = {}
 reference_registry = {}     # school_code -> url
 registry_by_name = {}       # normalized english name -> url
 brand_domains = {}          # distinctive brand token -> domain
+_registry_lock = threading.Lock()
+_registry_state = {"loaded": False}
 
 
 def _normalize_name(name):
@@ -126,27 +129,45 @@ def _domain_of(url):
     return re.sub(r'^(https?://)?(www\.)?', '', (url or '').lower()).split('/')[0].split(':')[0]
 
 
-def load_verified_registry():
+def reset_verified_registry():
+    """Forgets the loaded registry, so the next lookup reads it again (after an admin edits it)."""
+    with _registry_lock:
+        _registry_state["loaded"] = False
+
+
+def load_verified_registry(force=False):
     """
     Loads the hand-verified school_code -> official URL mapping, and derives two
     extra indexes from it:
       - registry_by_name: fallback match when OPEC reissues a school_code
       - brand_domains:    lets a new campus inherit its group's domain, replacing
                           the ~20 hardcoded per-school URLs the old version carried
+
+    Read on first use, not at import (so starting the service never waits on the
+    database), then kept; `force` or reset_verified_registry() makes the next call
+    read it again.
     """
-    global reference_registry
-    if reference_registry:
+    with _registry_lock:
+        if _registry_state["loaded"] and not force:
+            return reference_registry
+        reference_registry.clear()
+        registry_by_name.clear()
+        brand_domains.clear()
+        _read_registry()
+        _registry_state["loaded"] = True
         return reference_registry
 
+
+def _read_registry():
     brand_hits = {}
 
     # 1. Primary Source: Supabase official_website_registry table
     loaded_from_db = False
     try:
-        from supabase_sync import get_current_dsn, psycopg, dict_row
+        from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
         dsn = get_current_dsn()
         if dsn and psycopg:
-            with psycopg.connect(dsn, row_factory=dict_row) as conn:
+            with db_connect(dsn, row_factory=dict_row, connect_timeout=10) as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT school_code, school_name_th, school_name_en, website_url 
@@ -209,10 +230,6 @@ def load_verified_registry():
     print(f"[Registry] loaded {len(reference_registry)} verified schools "
           f"({sum(1 for v in reference_registry.values() if v)} with a URL), "
           f"{len(brand_domains)} brand domains")
-    return reference_registry
-
-# Load registry on module import
-load_verified_registry()
 
 def check_dns(host):
     """Fast DNS pre-check to eliminate non-existent domains in <5ms"""
@@ -458,10 +475,11 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
     """
     High-Speed Resolver for Task 3 (Button 3: Fetch Official Websites):
     - Reads existing schools from data/ folder.
-    - Resolves official websites with 100% accuracy and zero hanging.
-    - Emits rich, detailed real-time logs per school sequentially.
+    - Resolves each school's website through the tiers above, registry first.
+    - Emits a log line per school, in dataset order.
     - Periodically saves every 25 schools and notifies progress.
     """
+    load_verified_registry(force=True)   # URLs an admin verified since the last run
     schools = load_schools()
     if not schools:
         update_progress("ไม่พบข้อมูลโรงเรียน", 100, 100, "กรุณากดดึงข้อมูลจาก OPEC (ปุ่ม 1) ก่อน!")
@@ -535,7 +553,6 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
                 log_msg
             )
 
-        time.sleep(0.02)
 
         if completed_count % 25 == 0:
             save_schools(schools)
@@ -549,14 +566,14 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
 
     pct = round(resolved_count / total * 100, 1) if total > 0 else 0
     summary_log = (
-        f"ตรวจสอบและบันทึก Official Website ครบทั้ง {total} แห่งสำเร็จ!\n"
+        f"ตรวจสอบ Official Website ครบทั้ง {total} แห่งแล้ว\n"
         f"  - พบเว็บไซต์ทางการ: {resolved_count}/{total} แห่ง ({pct}%)\n"
         f"  - ทะเบียนทางการที่ผ่านการตรวจยืนยัน: {registry_source_count} แห่ง | OPEC: {opec_source_count} แห่ง | Live Domain: {live_match_count} แห่ง\n"
         f"  - ไม่มีเว็บไซต์ทางการ: {no_website_count} แห่ง\n"
-        f"  - บันทึกลง data/.json และ data/.csv เรียบร้อยแล้ว (100.0% Complete)"
+        f"  - บันทึกลง data/international_schools_thailand_opec.json และ .csv แล้ว"
     )
     update_progress(
-        "ค้นหา Official Website เสร็จสิ้น!",
+        "ค้นหา Official Website เสร็จแล้ว",
         total, total,
         summary_log
     )

@@ -24,8 +24,7 @@ export async function getScraperProgress(): Promise<ScraperProgressState | null>
   return null;
 }
 
-const BACKEND_DOWN =
-  "เชื่อมต่อ OPEC Service (พอร์ต 8004) ไม่ได้ — ตรวจสอบว่ารัน `python microservices/run_all.py` แล้วหรือยัง";
+const BACKEND_DOWN = "เชื่อมต่อ backend (พอร์ต 8004) ไม่ได้ ตรวจสอบว่าเปิด start-dev.bat อยู่";
 
 export async function postAction(endpoint: string): Promise<{ status: string }> {
   let res: Response;
@@ -57,12 +56,20 @@ export async function postAction(endpoint: string): Promise<{ status: string }> 
   return await res.json();
 }
 
+// 409: a pipeline job is running and would save over this edit; `detail` says so
+async function throwIfBusy(res: Response): Promise<void> {
+  if (res.status !== 409) return;
+  const body = await res.json().catch(() => ({}));
+  throw new Error(body.detail || "มีงานอื่นกำลังทำงานอยู่");
+}
+
 export async function updateSchoolWebsite(schoolCode: string, website: string): Promise<boolean> {
   const res = await fetch(`${API_BASE}/api/school/${schoolCode}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ website, website_source: "Manual Edit" }),
   });
+  await throwIfBusy(res);
   return res.ok;
 }
 
@@ -70,6 +77,7 @@ export async function resolveSchoolWebsite(schoolCode: string): Promise<OpecScho
   const res = await fetch(`${API_BASE}/api/school/${schoolCode}/resolve`, {
     method: "POST",
   });
+  await throwIfBusy(res);
   if (res.ok) {
     return await res.json();
   }
@@ -80,6 +88,7 @@ export async function enrichSchoolData(schoolCode: string): Promise<{ school: Op
   const res = await fetch(`${API_BASE}/api/school/${schoolCode}/enrich`, {
     method: "POST",
   });
+  await throwIfBusy(res);
   if (res.ok) {
     return await res.json();
   }
@@ -319,19 +328,6 @@ export async function getSupabaseStatus(): Promise<SupabaseStatusResponse> {
   };
 }
 
-export async function saveSupabaseConfig(databaseUrl: string): Promise<{ status: string; connection: SupabaseStatusResponse }> {
-  const res = await fetch(`${API_BASE}/api/supabase/config`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ database_url: databaseUrl }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || "บันทึกการตั้งค่าไม่สำเร็จ");
-  }
-  return await res.json();
-}
-
 export async function initSupabaseSchema(): Promise<{ status: string; message: string }> {
   const res = await fetch(`${API_BASE}/api/supabase/init-schema`, {
     method: "POST",
@@ -411,6 +407,7 @@ export async function verifySchoolWebsite(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ school_code: schoolCode, website, is_verified: isVerified }),
   });
+  await throwIfBusy(res);
   if (!res.ok) {
     throw new Error("ไม่สามารถบันทึกการรับรองเว็บไซต์ได้");
   }
@@ -426,6 +423,7 @@ export async function syncWebsiteRegistryFromText(): Promise<{
   const res = await fetch(`${API_BASE}/api/websites/sync-registry`, {
     method: "POST",
   });
+  await throwIfBusy(res);
   if (!res.ok) {
     throw new Error("ไม่สามารถซิงค์ข้อมูลจาก schoolAndURL.txt ได้");
   }
@@ -448,22 +446,6 @@ export async function getWebsiteHealthCheckStatus(): Promise<WebsiteHealthState>
   });
   if (!res.ok) {
     throw new Error("ไม่สามารถดึงสถานะการตรวจสุขภาพเว็บไซต์ได้");
-  }
-  return await res.json();
-}
-
-export async function enrichWithIsat(): Promise<{
-  isat_total: number;
-  matched_count: number;
-  db_updated: number;
-  samples: any[];
-}> {
-  const res = await fetch(`${API_BASE}/api/enrich/isat`, {
-    method: "POST",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "การเชื่อมต่อล้มเหลว" }));
-    throw new Error(err.detail || "ไม่สามารถดึงข้อมูลจาก ISAT ได้");
   }
   return await res.json();
 }

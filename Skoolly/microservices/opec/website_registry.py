@@ -8,13 +8,15 @@ Module for managing the Verified Official Website Registry:
 
 import os
 import re
+import threading
 import time
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import urllib3
 from data_manager import load_schools, save_schools
-from supabase_sync import get_current_dsn, psycopg, dict_row
+from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
+from fetch_official_websites import reset_verified_registry
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -27,6 +29,7 @@ health_session.headers.update({
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 })
 
+health_lock = threading.Lock()
 health_state: Dict[str, Any] = {
     "is_running": False,
     "current": 0,
@@ -135,7 +138,7 @@ def get_full_registry_status() -> Dict[str, Any]:
     db_registry_map = {}
     if dsn and psycopg:
         try:
-            with psycopg.connect(dsn, row_factory=dict_row) as conn:
+            with db_connect(dsn, row_factory=dict_row) as conn:
                 with conn.cursor() as cur:
                     # 1. Active schools
                     cur.execute("SELECT opec_school_code, name_th, name_en, official_website_url, website_source, province FROM school_data.schools")
@@ -277,7 +280,7 @@ def verify_or_update_school_url(school_code: str, website: str, is_verified: boo
     saved_verified_at_display = ""
     if dsn and psycopg:
         try:
-            with psycopg.connect(dsn, row_factory=dict_row) as conn:
+            with db_connect(dsn, row_factory=dict_row) as conn:
                 with conn.cursor() as cur:
                     # A) Upsert into permanent official_website_registry
                     cur.execute(
@@ -330,6 +333,7 @@ def verify_or_update_school_url(school_code: str, website: str, is_verified: boo
         if name_th:
             txt_entries[school_code]["name_th"] = name_th
         write_school_and_url_txt(txt_entries)
+    reset_verified_registry()   # the next website run must not put the old URL back
 
     return {
         "status": "success",
@@ -369,7 +373,7 @@ def bulk_sync_from_reference_txt() -> Dict[str, Any]:
     synced_supabase = 0
     if dsn and psycopg:
         try:
-            with psycopg.connect(dsn) as conn:
+            with db_connect(dsn) as conn:
                 with conn.cursor() as cur:
                     for code, e in txt_entries.items():
                         url = e.get("url", "").strip()
@@ -388,6 +392,7 @@ def bulk_sync_from_reference_txt() -> Dict[str, Any]:
                     conn.commit()
         except Exception as e:
             print("[Website Registry] Supabase bulk sync error:", e)
+    reset_verified_registry()
 
     return {
         "status": "success",
@@ -440,17 +445,24 @@ def run_bulk_health_check() -> Dict[str, Any]:
     Scans all registered school URLs in parallel using ThreadPoolExecutor,
     detecting dead links, 404s, timeouts, and updates Supabase.
     """
-    global health_state
-    if health_state["is_running"]:
-        return {"status": "already_running"}
+    with health_lock:
+        if health_state["is_running"]:
+            return {"status": "already_running"}
+        health_state["is_running"] = True
+    try:
+        return _bulk_health_check()
+    finally:
+        health_state["is_running"] = False
 
+
+def _bulk_health_check() -> Dict[str, Any]:
     dsn = get_current_dsn()
     if not dsn or not psycopg:
         return {"status": "error", "message": "Supabase not connected"}
 
     targets = []
     try:
-        with psycopg.connect(dsn, row_factory=dict_row) as conn:
+        with db_connect(dsn, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT school_code, website_url 
@@ -466,7 +478,6 @@ def run_bulk_health_check() -> Dict[str, Any]:
     if total == 0:
         return {"status": "empty", "message": "No websites in registry to check"}
 
-    health_state["is_running"] = True
     health_state["current"] = 0
     health_state["total"] = total
     health_state["percent"] = 0
@@ -496,7 +507,7 @@ def run_bulk_health_check() -> Dict[str, Any]:
                 health_state["message"] = f"ตรวจแล้ว {len(results)}/{total} แห่ง (พบปัญหา: {health_state['broken_count']} แห่ง)"
 
         # Batch update Supabase
-        with psycopg.connect(dsn) as conn:
+        with db_connect(dsn) as conn:
             with conn.cursor() as cur:
                 for code, status_code, is_broken, reason in results:
                     cur.execute("""
@@ -514,8 +525,6 @@ def run_bulk_health_check() -> Dict[str, Any]:
     except Exception as e:
         print("[Health Check] Error during bulk check:", e)
         health_state["message"] = f"เกิดข้อผิดพลาด: {e}"
-    finally:
-        health_state["is_running"] = False
 
     return {
         "status": "completed",

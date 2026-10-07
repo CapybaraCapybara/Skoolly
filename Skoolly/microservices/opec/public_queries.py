@@ -9,10 +9,9 @@ Only published / approved rows are returned, so nothing here needs admin rights.
 
 from typing import Any
 
-try:
-    from opec.supabase_sync import db_connect, dict_row, get_current_dsn
-except ImportError:
-    from supabase_sync import db_connect, dict_row, get_current_dsn  # type: ignore
+# Bare name like every other opec module: importing it as opec.supabase_sync as well
+# would load supabase_sync twice.
+from supabase_sync import db_connect, dict_row, get_current_dsn
 
 # Wording the calculator already understands (see getAddonAnnualMultiplier in calculatorUtils.ts)
 FREQUENCY_NOTES = {

@@ -28,21 +28,13 @@ for p in [CURRENT_DIR, BASE_DIR, OPEC_DIR]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-try:
-    from data_manager import load_schools
-except ImportError:
-    try:
-        from opec.data_manager import load_schools
-    except ImportError:
-        def load_schools():
-            path = os.path.join(BASE_DIR, "data", "international_schools_thailand_opec.json")
-            if os.path.exists(path):
-                with open(path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            return []
+from data_manager import load_schools  # type: ignore
+from website_registry import read_school_and_url_txt  # type: ignore
 
 ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://127.0.0.1:8000/saga/scrape-school")
 ORCHESTRATOR_HEALTH = "http://127.0.0.1:8000/docs"
+# Longer than the orchestrator's own scrape timeout (orchestrator.py SCRAPE_TIMEOUT_S = 300)
+SAGA_TIMEOUT_S = 360
 
 SUCCESS_FILE = os.path.join(BASE_DIR, "scrape_batch_success.json")
 FAILED_FILE = os.path.join(BASE_DIR, "scrape_batch_failed.json")
@@ -94,7 +86,7 @@ def scrape_single_school(school, session, delay_between_requests=1.5):
 
     t0 = time.time()
     try:
-        resp = session.post(ORCHESTRATOR_URL, json=payload, timeout=120)
+        resp = session.post(ORCHESTRATOR_URL, json=payload, timeout=SAGA_TIMEOUT_S)
         elapsed = round(time.time() - t0, 1)
 
         if resp.status_code == 200:
@@ -182,6 +174,15 @@ def run_batch_scrape(
         print("Error: No schools loaded from data_manager. Check data/ directory.")
         sys.exit(1)
     print(f"Loaded {len(all_schools)} total schools from registry.")
+
+    # The dataset only has a website once the "ค้นหา Website" step has run on it; until
+    # then take the hand-verified URL from reference/schoolAndURL.txt.
+    verified = read_school_and_url_txt()
+    for s in all_schools:
+        if not str(s.get("website") or "").strip().startswith("http"):
+            url = (verified.get(str(s.get("school_code") or "").strip()) or {}).get("url", "")
+            if url:
+                s["website"] = url
 
     # Filter schools with valid websites
     schools_with_web = [

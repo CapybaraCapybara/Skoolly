@@ -260,6 +260,7 @@ create table if not exists school_data.version_fees (
   display_name        text,                   -- ชื่อเทียบเคียง เช่น 'ป.1–ป.2 (Year 2–3)' (Admin ยืนยันแล้ว)
 
   annual_thb          numeric(12,2),
+  semester_thb        numeric(12,2),          -- ค่าเทอมต่อภาค (scraper, หน้าอนุมัติ, /api/public/fees ใช้)
   currency            char(3) not null default 'THB',
 
   academic_year       text,                   -- มิติ 3: "2568" / "2026/27"
@@ -269,7 +270,7 @@ create table if not exists school_data.version_fees (
   notes               text,
 
   constraint version_fees_has_amount
-    check (annual_thb is not null or notes is not null),
+    check (annual_thb is not null or semester_thb is not null or notes is not null),
   constraint version_fees_order_range
     check (order_start is null or order_end is null or order_start <= order_end)
 );
@@ -1375,7 +1376,21 @@ alter table school_data.school_versions
   add  constraint versions_confidence_range
        check (confidence_score is null or confidence_score between 0 and 1);
 
+-- create table if not exists ไม่แก้ตารางที่มีอยู่แล้ว: ฐานข้อมูลที่สร้างก่อนหรือหลังการแก้ version_fees
+-- วันที่ 28 ก.ย. 2569 จึงมีคอลัมน์ไม่ครบคนละแบบ สองคำสั่งนี้ทำให้ทุกฐานตรงกับตารางด้านบน
 alter table school_data.version_fees
+  add column if not exists semester_thb numeric(12,2),
+  add column if not exists order_start  int,
+  add column if not exists order_end    int,
+  add column if not exists display_name text;
+
+alter table school_data.version_fees
+  drop constraint if exists version_fees_has_amount,
+  add  constraint version_fees_has_amount
+       check (annual_thb is not null or semester_thb is not null or notes is not null),
+  drop constraint if exists version_fees_order_range,
+  add  constraint version_fees_order_range
+       check (order_start is null or order_end is null or order_start <= order_end),
   drop constraint if exists fees_amount_nonneg,
   add  constraint fees_amount_nonneg
        check ((annual_thb is null or annual_thb >= 0)

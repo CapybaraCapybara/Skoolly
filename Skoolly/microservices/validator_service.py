@@ -11,14 +11,16 @@ class ValidationRequest(BaseModel):
 @app.post("/validate")
 def validate_data(req: ValidationRequest):
     errors = []
+    warnings = []
     data = req.result_data
 
-    # Rule 1: Curriculum check
+    # Rule 1: Curriculum check. The extraction schema lets the model answer "unclear", and
+    # the curriculum already comes from OPEC, so this alone must not discard scraped fees.
     curriculum = data.get("curriculum")
     if not curriculum:
-        errors.append("Curriculum information is missing.")
+        warnings.append("Curriculum information is missing.")
     elif str(curriculum).strip().lower() in ["unclear", "none", "unknown"]:
-        errors.append(f"Curriculum type is unclear or unknown ('{curriculum}').")
+        warnings.append(f"Curriculum type is unclear or unknown ('{curriculum}').")
 
     # Rule 2: Tuition checks
     tuition_found = data.get("tuition_found", False)
@@ -86,12 +88,14 @@ def validate_data(req: ValidationRequest):
     if errors:
         return {
             "status": "failed",
-            "errors": errors
+            "errors": errors,
+            "warnings": warnings
         }
     else:
         return {
             "status": "success",
-            "message": "All validation rules passed."
+            "message": "All validation rules passed." if not warnings else "Passed with warnings.",
+            "warnings": warnings
         }
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import socket
 import subprocess
 import threading
 
@@ -46,11 +47,31 @@ def stream_logs(service_name: str, pipe):
         except Exception:
             pass
 
+def port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+def stop_all():
+    for name, p in processes:
+        if p.poll() is not None:
+            continue
+        print(f"  -> Stopping {name}...")
+        try:
+            p.terminate()
+            p.wait(timeout=3)
+        except Exception:
+            p.kill()
+
 try:
     print("[INFO] Starting Skoolly microservices (Saga Pattern)...")
     print(f"[INFO] Python Interpreter: {python_bin}")
-    
+
     for name, script, port in services:
+        # start-dev.bat already runs the OPEC Service; a second copy would only die on the port
+        if port_in_use(port):
+            print(f"  -> {name}: port {port} is already in use, assuming it is running - skipped")
+            continue
         script_path = os.path.join(dir_path, script)
         print(f"  -> Starting {name} on port {port}...")
         p = subprocess.Popen(
@@ -63,11 +84,11 @@ try:
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
         )
         processes.append((name, p))
-        
+
         # Start log streamer thread
         t = threading.Thread(target=stream_logs, args=(name, p.stdout), daemon=True)
         t.start()
-        
+
         time.sleep(1.0)
 
     print("\n[SUCCESS] All microservices started successfully! Press Ctrl+C to terminate.")
@@ -86,12 +107,7 @@ try:
 
 except KeyboardInterrupt:
     print("\n[INFO] Shutting down all microservices...")
-    for name, p in processes:
-        print(f"  -> Stopping {name}...")
-        try:
-            p.terminate()
-            p.wait(timeout=3)
-        except Exception:
-            p.kill()
+finally:
+    # Also on an unexpected exit: never leave the other services running headless
+    stop_all()
     print("[INFO] Shutdown complete.")
-

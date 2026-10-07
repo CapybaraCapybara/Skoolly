@@ -284,10 +284,10 @@ python db/import_opec.py --dry-run     # ลองก่อน rollback ไม�
 python db/import_opec.py               # เขียนจริง
 ```
 
-สคริปต์ map หลักสูตรได้ **~89%** ของค่าที่พบจริง (exact alias สำหรับค่าที่พบบ่อย + keyword
-pattern สำหรับ long tail ที่มีถึง 268 ค่าไม่ซ้ำ) ค่าที่ map ไม่ได้จะตกเป็น `SCHOOL_SPECIFIC` **พร้อมรายงาน
-ออกมาให้เห็นทุกค่า** ตาม Business Rule ของหัวข้อ 7.16 ใน Use Case Spec — ส่วนที่ map ด้วย keyword จะถูกเขียนกลับ
-เข้าคอลัมน์ `curriculums.aliases` (text[]) ให้ Admin ตรวจ/แก้ทีหลังได้โดยไม่ต้องแตะโค้ด
+สคริปต์นี้เรียกตัวนำเข้าตัวเดียวกับปุ่ม "ดึงข้อมูล OPEC" ในหน้า admin (`execute_opec_import` ใน
+`microservices/opec/supabase_sync.py`) หลักสูตรถูก map ด้วย keyword pattern เป็นรหัสในตาราง `curriculums`
+ค่าที่ map ไม่ได้จะตกเป็น `SCHOOL_SPECIFIC` ส่วนระดับชั้นที่ map ไม่ได้จะถูกรายงานออกมาตอนจบ
+ตาม Business Rule ของหัวข้อ 7.16 ใน Use Case Spec
 
 ถัดไป:
 

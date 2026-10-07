@@ -1,157 +1,40 @@
 """
 Import the OPEC dataset into Postgres (Phase 1 — Bootstrap).
 
-Reads data/international_schools_thailand_opec.json and upserts every school into
-school_data.schools, then maps the free-text Thai curriculum / level values onto the
-lookup tables so UC-01's filters actually work.
-
-Idempotent: re-running updates existing rows instead of duplicating them, keyed on
-`opec_school_code` (UC-12 E5). Everything runs in one transaction.
+Command-line front end to the importer the admin page uses (execute_opec_import in
+microservices/opec/supabase_sync.py), so there is one importer to keep in step with
+db/schema.sql. It reads data/international_schools_thailand_opec.json, upserts every school
+into school_data.schools keyed on `opec_school_code` (re-running updates rows instead of
+duplicating them, UC-12 E5) and maps the free-text curriculum / level values onto the codes
+in the lookup tables, so UC-01's filters work. Everything runs in one transaction.
 
 Usage:
     pip install "psycopg[binary]"
     # Put the Supabase connection string in .env as DATABASE_URL. Use the Session pooler
     # one (aws-0-<region>.pooler.supabase.com:5432) — the direct connection is IPv6-only.
-    python db/import_opec.py                  # Phase 1: schools only, nothing published yet
+    python db/import_opec.py                    # Phase 1: schools only, nothing published yet
     python db/import_opec.py --publish-initial  # also create a published v1 per school
+    python db/import_opec.py --dry-run          # run the whole import, then roll back
 
-By default no school becomes visible on the public site: `current_published_version_id`
-stays NULL, matching Phase 1 in the architecture doc. Pass --publish-initial to create an
-initial published version from the OPEC fields (name/address/levels/curriculums — no
-tuition), which is what UC-12 step 5 describes after an admin confirms the import.
+By default no published version is created: `current_published_version_id` stays NULL,
+matching Phase 1 in the architecture doc. --publish-initial creates an initial published
+version from the OPEC fields (name/address/levels/curriculums — no tuition), which is what
+UC-12 step 5 describes after an admin confirms the import.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
-import os
-import re
 import sys
-import unicodedata
-from collections import Counter
 from pathlib import Path
 
-try:
-    import psycopg
-    from psycopg.rows import dict_row
-except ImportError:
-    sys.exit('psycopg is required:  pip install "psycopg[binary]"')
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "microservices" / "opec"))
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_FILE = BASE_DIR / "data" / "international_schools_thailand_opec.json"
-
-# The dataset contains 268 distinct curriculum strings for 291 schools — free text typed by
-# each school, in two languages, with no shared vocabulary. Seeding an exact alias for every
-# one of them by hand is not maintainable, so exact aliases (school_data.curriculum_aliases)
-# handle the frequent values and these keyword patterns catch the long tail.
-#
-# A string can match several patterns and that is intentional: "สหราชอาณาจักร หลักสูตร IB"
-# is genuinely both British and IB, and school_curriculums is many-to-many.
-#
-# The (?<!ภาษา) guards matter: "ภาษาอังกฤษ" means the English *language* subject, not the
-# English curriculum — without the guard, every school that lists its teaching languages
-# would be filed under BRITISH and the UC-01 filter would return nonsense.
-CURRICULUM_PATTERNS: list[tuple[str, str]] = [
-    ("สหราชอาณาจักร (British)", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
-                                r"|IGCSE|GCSE|AS\s*(&|and)?\s*A\s*Level|A[\s-]?Level|Cambridge|เคมบริดจ์|แคมบริ"
-                                r"|Oxford|Early\s*Years?\s*Foundation|EYFS|Edexcel|BTEC|Pearson|Key\s*Stage"
-                                r"|English\s*National\s*Curric|\bENC\b|Wellington|เวลลิงตัน|AICE|St\s*Andrews"),
-    ("สหรัฐอเมริกา (American)", r"สหรัฐอเมริกา|สหรัฐอเมริก|อเมริกัน|อเมริกา|แคลิฟอร์เนีย|แมสซาชูเซตส์|มิสซิสซิปปี"
-                                r"|เวอร์จีเนีย|เพนซิลเวเนีย|Pennsylvania|นิวเจอร์ซีย์|New\s*Jersey|อะลาบามา"
-                                r"|American|California|\bCDE\b|Massachusetts|\bAERO\b|High\s*School\s*Diploma"
-                                r"|Common\s*Core|\bCCSS\b|Advanced\s*Placement|\bAP\b|\bU\.?S\.?\b"
-                                r"|District\s*of\s*Columbia|Chicago|Accelerated\s*Christian|School\s*of\s*Tomorrow"
-                                r"|\bWASC\b|BASIS|North\s*American\s*Division|\bNAD\b|Carson|Calvert|High\s*Reach"
-                                r"|ริเวอร์ไซด์|แอ๊ดเวนตีส|เอกมัย|ประชาคมนานาชาติ"),
-    ("นานาชาติ IB (International Baccalaureate)", r"International\s*Baccalaureate|\bIB\b|\bIBDP\b|\bPYP\b|\bMYP\b"
-                                                 r"|\bIB-CP\b|Diploma\s*Programme|\bIBO\b|Reignwood|เคไอเอส|KIS"),
-    ("สิงคโปร์ (Singapore)", r"สิงคโปร์|สิงค์โปร์|Singapore|Nurturing\s*Early\s*Learners|SISB|แองโกล"
-                             r"|Pre-School\s*Education\s*Unit|Primary\s*School\s*Curriculum"
-                             r"|National\s*Curriculum\s*for\s*Primary\s*School"),
-    ("ออสเตรเลีย (Australian)", r"ออสเตรเลีย|Australia|\bACARA\b|Western\s*Australian"),
-    ("แคนาดา (Canadian)", r"แคนาดา|แคนนาดา|Canad|บริติชโคลัมเบีย|British\s*Columbia|Ontario|Quebec"),
-    ("ฝรั่งเศส (French)", r"ฝรั่งเศส|French|France|Lyc[eé]e"),
-    ("เยอรมัน (German)", r"เยอรมัน|German|ทูริงเง่น|Thuringia"),
-    ("ญี่ปุ่น (Japanese)", r"ญี่ปุ่น|Japan|Culture,\s*Sports,\s*Science\s*and\s*Technology"),
-    ("จีน (Chinese)", r"จีน|Chinese|Mandarin|แมนดาริน"),
-    ("เกาหลี (Korean)", r"เกาหลี|Korea"),
-    ("อินเดีย (Indian)", r"อินเดีย|India|\bCBSE\b|ซิลเวอร์ไลน์|Central\s*Board\s*of\s*Secondary"),
-    ("มอนเตสซอรี (Montessori)", r"Montessori|มอนเตสซอรี|มอนเทสซอรี่|Hershey"),
-    ("ฟินแลนด์ (Finnish)", r"Finish|Finnish|FGES"),
-    ("ปฐมวัยสากล (Early Childhood / IPC)", r"International\s*Preschool|International\s*Primary|\bIPC\b|\bIMYC\b"
-                                           r"|HighScope|Creative\s*Curriculum|Child-Centered|ASDAN|Early\s*child"
-                                           r"|Early\s*Years\s*Development|ปฐมวัย|A\s*Child\'s\s*World"
-                                           r"|Kindergarten\s*Curriculum"),
-    ("ไทย (กระทรวงศึกษาธิการ)", r"วัฒนธรรมไทย|ประวัติศาสตร์ไทย|แกนกลางการศึกษาขั้นพื้นฐาน|ภาษาไทย"),
-    ("หลักสูตรเฉพาะของโรงเรียน", r"หลักสูตรของทางโรงเรียน|หลักสูตรนานาชาติ|หลักสูตรอินเตอร์"
-                                  r"|International\s*Curriculum|ประกาศนียบัตรนานาชาติ|ซีสเต็มส์"
-                                  r"|ดาเนียล|อริสตา|มัธยมศึกษาตอนปลาย"),
-]
-COMPILED_PATTERNS = [(code, re.compile(pattern, re.IGNORECASE)) for code, pattern in CURRICULUM_PATTERNS]
-
-GRADE_LEVEL_MAP: dict[str, str] = {
-    "ก่อนอนุบาล": "ก่อนอนุบาล",
-    "เตรียมอนุบาล": "ก่อนอนุบาล",
-    "อนุบาล": "อนุบาล",
-    "ประถมศึกษา": "ประถมศึกษา",
-    "มัธยมศึกษาตอนต้น": "มัธยมศึกษาตอนต้น",
-    "มัธยมศึกษาตอนปลาย": "มัธยมศึกษาตอนปลาย",
-}
-
-
-def match_curriculums(raw: str) -> set[str]:
-    """Every canonical code whose keywords appear in this free-text value."""
-    res = {code for code, pattern in COMPILED_PATTERNS if pattern.search(raw)}
-    return res or {"หลักสูตรเฉพาะของโรงเรียน"}
-
-
-def load_env() -> None:
-    """Minimal .env reader so this script has no dependency beyond psycopg."""
-    env_file = BASE_DIR / ".env"
-    if not env_file.exists():
-        return
-    for line in env_file.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
-
-
-def slugify(name_en: str | None, name_th: str, opec_code: str) -> str:
-    """ASCII slug from the English name; Thai names have no usable ASCII form, so those
-    fall back to the OPEC code, which is unique by definition."""
-    source = (name_en or "").strip()
-    ascii_form = unicodedata.normalize("NFKD", source).encode("ascii", "ignore").decode()
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_form).strip("-").lower()
-    return slug or f"school-{opec_code}"
-
-
-def to_int(value) -> int | None:
-    try:
-        return int(value) if value not in (None, "", []) else None
-    except (TypeError, ValueError):
-        return None
-
-
-def to_float(value) -> float | None:
-    try:
-        return float(value) if value not in (None, "", []) else None
-    except (TypeError, ValueError):
-        return None
-
-
-def clean(value) -> str | None:
-    """Empty strings in the dataset mean 'not found', which belongs in the DB as NULL."""
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
+from supabase_sync import execute_opec_import  # type: ignore  # found via the sys.path line above
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Import the OPEC dataset into school_data.schools")
     parser.add_argument(
         "--publish-initial",
         action="store_true",
@@ -160,238 +43,24 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="roll back instead of committing")
     args = parser.parse_args()
 
-    load_env()
-    dsn = os.environ.get("DATABASE_URL")
-    if not dsn:
-        sys.exit("DATABASE_URL is not set. Put the Supabase session-pooler string in .env")
-
-    if not DATA_FILE.exists():
-        sys.exit(f"dataset not found: {DATA_FILE}")
-
-    records = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    print(f"loaded {len(records)} schools from {DATA_FILE.name}")
-
-    inserted = updated = 0
-    unmapped_curriculums: Counter[str] = Counter()
-    auto_mapped: dict[str, list[str]] = {}
-    unmapped_levels: Counter[str] = Counter()
-    used_slugs: set[str] = set()
-
-    # prepare_threshold=None disables prepared statements, which the transaction pooler
-    # (port 6543) cannot handle. The session pooler is fine either way, so this just makes
-    # the script work whichever connection string was pasted into .env.
-    with psycopg.connect(dsn, row_factory=dict_row, prepare_threshold=None) as conn:
-        with conn.cursor() as cur:
-            cur.execute("select slug from school_data.schools")
-            used_slugs = {r["slug"] for r in cur.fetchall()}
-
-            for record in records:
-                opec_code = clean(record.get("school_code"))
-                name_th = clean(record.get("school_name_th"))
-                if not opec_code or not name_th:
-                    print(f"  skip: record without school_code/name — {record.get('no')}")
-                    continue
-
-                name_en = clean(record.get("school_name_en"))
-                slug = slugify(name_en, name_th, opec_code)
-                # Two schools can share an English name (different branches); keep slugs unique.
-                if slug in used_slugs:
-                    slug = f"{slug}-{opec_code[-4:]}"
-                used_slugs.add(slug)
-
-                lat = to_float(record.get("latitude"))
-                lng = to_float(record.get("longitude"))
-
-                # ── curriculums ──────────────────────────────────────────────────
-                codes = set()
-                for raw in record.get("curriculums") or []:
-                    raw = clean(raw)
-                    if not raw:
-                        continue
-                    derived = match_curriculums(raw)
-                    if derived:
-                        codes |= derived
-                        auto_mapped[raw] = sorted(derived)
-                    else:
-                        unmapped_curriculums[raw] += 1
-                        codes.add("OTHER")
-
-                # ── grade levels ─────────────────────────────────────────────────
-                level_codes = set()
-                for raw in record.get("levels_offered") or []:
-                    raw = clean(raw)
-                    if not raw:
-                        continue
-                    code = GRADE_LEVEL_MAP.get(raw, raw)
-                    level_codes.add(code)
-
-                curriculums_list = sorted(list(codes))
-                levels_offered_list = sorted(list(level_codes))
-
-                cur.execute(
-                    """
-                    insert into school_data.schools (
-                        opec_school_code, slug, name_th, name_en,
-                        official_website_url, website_source, opec_profile_url,
-                        official_phone, official_mobile, official_email,
-                        facebook_url, line_id, instagram_url, youtube_url,
-                        province, district, subdistrict, address,
-                        geom, gps_precision, gps_source,
-                        logo_url, level_range, levels_offered, curriculums,
-                        student_count, teacher_count,
-                        licensee_name, director_name, manager_name, government_support
-                    ) values (
-                        %(opec_code)s, %(slug)s, %(name_th)s, %(name_en)s,
-                        %(website)s, %(website_source)s, %(profile_url)s,
-                        %(phone)s, %(mobile)s, %(email)s,
-                        %(facebook)s, %(line_id)s, %(instagram)s, %(youtube)s,
-                        %(province)s, %(district)s, %(subdistrict)s, %(address)s,
-                        case when %(lng)s::double precision is null or %(lat)s::double precision is null then null
-                             else st_setsrid(st_makepoint(%(lng)s::double precision, %(lat)s::double precision), 4326)::geography end,
-                        %(gps_precision)s, %(gps_source)s,
-                        %(logo)s, %(level_range)s, %(levels_offered)s, %(curriculums)s,
-                        %(students)s, %(teachers)s,
-                        %(licensee_name)s, %(director_name)s, %(manager_name)s, %(government_support)s
-                    )
-                    on conflict (opec_school_code) do update set
-                        name_th = excluded.name_th,
-                        name_en = excluded.name_en,
-                        official_website_url = coalesce(school_data.schools.official_website_url,
-                                                        excluded.official_website_url),
-                        opec_profile_url = excluded.opec_profile_url,
-                        official_phone = excluded.official_phone,
-                        official_mobile = excluded.official_mobile,
-                        province = excluded.province,
-                        district = excluded.district,
-                        subdistrict = excluded.subdistrict,
-                        address = excluded.address,
-                        geom = excluded.geom,
-                        gps_precision = excluded.gps_precision,
-                        gps_source = excluded.gps_source,
-                        logo_url = excluded.logo_url,
-                        level_range = excluded.level_range,
-                        levels_offered = excluded.levels_offered,
-                        curriculums = excluded.curriculums,
-                        student_count = excluded.student_count,
-                        teacher_count = excluded.teacher_count,
-                        licensee_name = excluded.licensee_name,
-                        director_name = excluded.director_name,
-                        manager_name = excluded.manager_name,
-                        government_support = excluded.government_support,
-                        updated_at = now()
-                    returning school_id, (xmax = 0) as is_insert
-                    """,
-                    {
-                        "opec_code": opec_code,
-                        "slug": slug,
-                        "name_th": name_th,
-                        "name_en": name_en,
-                        "website": clean(record.get("website")),
-                        "website_source": clean(record.get("website_source")),
-                        "profile_url": clean(record.get("opec_profile_url")),
-                        "phone": clean(record.get("telephone")),
-                        "mobile": clean(record.get("mobile")),
-                        "email": clean(record.get("email")),
-                        "facebook": clean(record.get("facebook")),
-                        "line_id": clean(record.get("line_id")),
-                        "instagram": clean(record.get("instagram")),
-                        "youtube": clean(record.get("youtube")),
-                        "province": clean(record.get("province")) or "ไม่ระบุ",
-                        "district": clean(record.get("district")),
-                        "subdistrict": clean(record.get("subdistrict")),
-                        "address": clean(record.get("address")),
-                        "lat": lat,
-                        "lng": lng,
-                        "gps_precision": clean(record.get("gps_precision")),
-                        "gps_source": clean(record.get("gps_source")),
-                        "logo": clean(record.get("school_logo_url")),
-                        "level_range": clean(record.get("level_range")),
-                        "levels_offered": levels_offered_list,
-                        "curriculums": curriculums_list,
-                        "students": to_int(record.get("student_count")),
-                        "teachers": to_int(record.get("teacher_count")),
-                        "licensee_name": clean(record.get("licensee_name")),
-                        "director_name": clean(record.get("director_name")),
-                        "manager_name": clean(record.get("manager_name")),
-                        "government_support": clean(record.get("government_support")),
-                    },
-                )
-                row = cur.fetchone()
-                school_id = row["school_id"]
-                if row["is_insert"]:
-                    inserted += 1
-                else:
-                    updated += 1
-
-                # ── optional: initial published version (UC-12 step 5) ──────────
-                if args.publish_initial:
-                    snapshot = {
-                        "source": "opec_import",
-                        "name_th": name_th,
-                        "name_en": name_en,
-                        "address": clean(record.get("address")),
-                        "province": clean(record.get("province")),
-                        "levels_offered": record.get("levels_offered") or [],
-                        "curriculums": record.get("curriculums") or [],
-                        "student_count": to_int(record.get("student_count")),
-                        "teacher_count": to_int(record.get("teacher_count")),
-                        "fetched_at": clean(record.get("fetched_at")),
-                    }
-                    cur.execute(
-                        """
-                        insert into school_data.school_versions
-                            (school_id, version_number, status, source_type, data_snapshot)
-                        select %s, 1, 'published', 'opec_import', %s::jsonb
-                        where not exists (
-                            select 1 from school_data.school_versions where school_id = %s
-                        )
-                        returning version_id
-                        """,
-                        (school_id, json.dumps(snapshot, ensure_ascii=False), school_id),
-                    )
-                    created = cur.fetchone()
-                    if created:
-                        cur.execute(
-                            "update school_data.schools"
-                            "   set current_published_version_id = %s, pub_data_updated_at = now()"
-                            " where school_id = %s",
-                            (created["version_id"], school_id),
-                        )
-
-            if args.dry_run:
-                conn.rollback()
-                print("\n-- dry run: rolled back, nothing was written --")
-            else:
-                conn.commit()
-
-    print(f"\ninserted: {inserted}   updated: {updated}")
-
-    if auto_mapped:
-        print(f"\n{len(auto_mapped)} curriculum values were mapped by keyword and saved as aliases.")
-        print("Spot-check these — they are guesses, and an admin can correct any row in")
-        print("school_data.curriculum_aliases without touching this script:")
-        for raw, codes in sorted(auto_mapped.items())[:20]:
-            print(f"  {'+'.join(codes):<22} {raw}")
-        if len(auto_mapped) > 20:
-            print(f"  ... and {len(auto_mapped) - 20} more (query the table to see them all)")
-
-    if unmapped_curriculums:
-        print(f"\n{len(unmapped_curriculums)} curriculum values matched nothing (filed under OTHER).")
-        print("Add a real alias for these so UC-01's filter can find the schools:")
-        for raw, count in unmapped_curriculums.most_common():
-            print(f"  ({count:>3}x)  {raw}")
-    if unmapped_levels:
-        print(f"\n{len(unmapped_levels)} level values had no alias (school left unfiltered):")
-        for raw, count in unmapped_levels.most_common():
-            print(f"  ({count:>3}x)  {raw}")
-
-    if not args.publish_initial:
-        print(
-            "\nNo school is publicly visible yet: current_published_version_id is still NULL,"
-            "\nwhich is Phase 1 behaviour. Run with --publish-initial to create a published v1."
+    try:
+        result = execute_opec_import(
+            publish_initial=args.publish_initial,
+            dry_run=args.dry_run,
+            progress_callback=lambda task, current, total, message: print(message),
         )
+    except Exception as e:
+        print(f"Import failed: {e}", file=sys.stderr)
+        return 1
+
+    if result["unmapped_level_values"]:
+        print(f"\n{result['unmapped_levels']} level values had no code (those schools are left out "
+              f"of the level filter): {', '.join(result['unmapped_level_values'])}")
+    if result["unmapped_curriculums"]:
+        print(f"{result['unmapped_curriculums']} curriculum values matched no pattern and were filed "
+              f"under SCHOOL_SPECIFIC")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

@@ -179,6 +179,20 @@ def _fill_from_supabase(opec_schools: List[Dict[str, Any]], dsn: Optional[str]) 
             s["address"] = r["address"]
 
 
+def _fill_from_registry(opec_schools: List[Dict[str, Any]]) -> None:
+    """เว็บไซต์ที่ยังว่าง เติมจากทะเบียนเว็บไซต์ที่ยืนยันแล้ว (ใช้ได้แม้ไม่มี Supabase และก่อนรันขั้นค้นหา Website)"""
+    try:
+        from fetch_official_websites import load_verified_registry
+        registry = load_verified_registry()
+    except Exception as e:
+        print(f"[ISAT] อ่านทะเบียนเว็บไซต์ไม่ได้: {e}")
+        return
+    for s in opec_schools:
+        url = registry.get(s.get("school_code"))
+        if url and not s.get("website"):
+            s["website"] = url
+
+
 def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dict[str, Any]:
     """
     ดึงรายชื่อสมาชิก ISAT ทั้งหมด จับคู่กับโรงเรียน สช. แบบหนึ่งต่อหนึ่ง
@@ -194,10 +208,18 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
     log(f"ดึงข้อมูลสมาคม ISAT สำเร็จ: พบทั้งหมด {len(isat_schools)} โรงเรียน", 30, 100)
 
     opec_schools = load_schools()
+    # Every member missing from this list loses its flag below, here and in Supabase. A list
+    # far shorter than what we already flag means the ISAT page changed, not that half the
+    # association left overnight.
+    flagged = sum(1 for s in opec_schools if s.get("is_isat_member"))
+    if not isat_schools or len(isat_schools) < 0.5 * flagged:
+        raise RuntimeError(f"ISAT ส่งรายชื่อมา {len(isat_schools)} โรงเรียน แต่ตอนนี้มีสมาชิกที่จับคู่ไว้ {flagged} แห่ง "
+                           "ดูผิดปกติ (หน้าเว็บ ISAT อาจเปลี่ยน) จึงไม่ล้างธงสมาชิก")
     dsn = get_current_dsn() if apply_to_db else None
     # จับคู่บนสำเนา: ช่องที่เติมจาก Supabase ใช้ช่วยจับคู่เท่านั้น ไม่ถูกบันทึกทับไฟล์ในเครื่อง
     match_view = [dict(s) for s in opec_schools]
     _fill_from_supabase(match_view, dsn)
+    _fill_from_registry(match_view)
     by_code = {s.get("school_code"): s for s in opec_schools}
     log(f"โหลดข้อมูล สช.: {len(opec_schools)} โรงเรียน", 40, 100)
 
@@ -292,9 +314,11 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
         except Exception as e:
             log(f"เกิดข้อผิดพลาดในการบันทึก Supabase: {e}", 100, 100)
 
+    supabase_note = (f"Supabase: อัปเดต {db_updated} / ล้างธง {db_cleared}" if apply_to_db and dsn and psycopg
+                     else "ไม่ได้บันทึก Supabase")
     log(
-        f"ซิงค์ ISAT เสร็จสมบูรณ์! (จับคู่ได้ {matched_count} จาก {len(isat_schools)} รร., "
-        f"ไม่พบใน สช. {len(unmatched)} รร., Supabase: +{db_updated} / ล้าง {db_cleared})",
+        f"ซิงค์ ISAT เสร็จแล้ว (จับคู่ได้ {matched_count} จาก {len(isat_schools)} รร., "
+        f"ไม่พบใน สช. {len(unmatched)} รร., {supabase_note})",
         100, 100,
     )
 
