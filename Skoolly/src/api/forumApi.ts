@@ -51,23 +51,23 @@ function initials(name: string): string {
 
 function timeAgo(iso: string): string {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return "เมื่อสักครู่";
   const units: [number, string][] = [
-    [60 * 60 * 24 * 365, "y"],
-    [60 * 60 * 24 * 30, "mo"],
-    [60 * 60 * 24 * 7, "w"],
-    [60 * 60 * 24, "d"],
-    [60 * 60, "h"],
-    [60, "m"],
+    [60 * 60 * 24 * 365, "ปี"],
+    [60 * 60 * 24 * 30, "เดือน"],
+    [60 * 60 * 24 * 7, "สัปดาห์"],
+    [60 * 60 * 24, "วัน"],
+    [60 * 60, "ชั่วโมง"],
+    [60, "นาที"],
   ];
   for (const [size, label] of units) {
-    if (seconds >= size) return `${Math.floor(seconds / size)}${label} ago`;
+    if (seconds >= size) return `${Math.floor(seconds / size)} ${label}ที่แล้ว`;
   }
-  return "just now";
+  return "เมื่อสักครู่";
 }
 
 function mapComment(c: ApiComment): Comment {
-  const author = c.author?.trim() || "Parent";
+  const author = c.author?.trim() || "ผู้ปกครอง";
   return {
     id: c.id,
     author,
@@ -94,12 +94,12 @@ export async function getForum(): Promise<{ posts: Post[]; stats: ForumStats }> 
   const idByCode = new Map(schools.filter((s) => s.schoolCode).map((s) => [s.schoolCode!, s.id]));
 
   const posts = data.posts.map((p): Post => {
-    const author = p.author?.trim() || "Parent";
+    const author = p.author?.trim() || "ผู้ปกครอง";
     return {
       id: p.id,
       author,
       avatar: initials(author),
-      role: p.role === "admin" ? "Admin" : "Parent",
+      role: p.role === "admin" ? "ผู้ดูแล" : "ผู้ปกครอง",
       schoolTag: p.school_name,
       schoolId: p.school_code ? idByCode.get(p.school_code) ?? null : null,
       category: p.category,

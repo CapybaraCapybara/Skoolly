@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getPublishedFees } from "@/api/feesApi";
 import { getSchools } from "@/api/schoolsApi";
+import { curriculumLabel } from "@/lib/labels";
 import {
   ScrapedSchoolData,
   CalculatorState,
@@ -192,7 +193,7 @@ export function CostCalculatorPage({
     return [
       {
         id: "kg",
-        stageNum: "Early Years",
+        stageNum: "ช่วงที่ 1",
         title: "เตรียม / อนุบาล",
         subtitle: "อ.1 – อ.3",
         startIdx: s1Start,
@@ -200,7 +201,7 @@ export function CostCalculatorPage({
       },
       {
         id: "primary",
-        stageNum: "Primary",
+        stageNum: "ช่วงที่ 2",
         title: "ประถมศึกษา",
         subtitle: "ป.1 – ป.6",
         startIdx: s2Start,
@@ -208,7 +209,7 @@ export function CostCalculatorPage({
       },
       {
         id: "lower_sec",
-        stageNum: "Lower Sec",
+        stageNum: "ช่วงที่ 3",
         title: "มัธยมศึกษาตอนต้น",
         subtitle: "ม.1 – ม.3",
         startIdx: s3Start,
@@ -216,7 +217,7 @@ export function CostCalculatorPage({
       },
       {
         id: "graduation",
-        stageNum: "Upper Sec",
+        stageNum: "ช่วงที่ 4",
         title: "มัธยมศึกษาตอนปลาย",
         subtitle: "ม.4 – ม.6 (จบการศึกษา)",
         startIdx: s4Start,
@@ -617,7 +618,7 @@ export function CostCalculatorPage({
                             </span>
                             <div className="flex items-center gap-2 shrink-0">
                               <Badge variant="outline" className="text-[11px] px-2 py-0.5 border-warm-accent bg-warm-cream text-warm-charcoal">
-                                {sch.curriculum || "International"}
+                                {curriculumLabel(sch.curriculum || "International")}
                               </Badge>
                               {isSelected && <Check className="size-4 text-warm-bronze" />}
                             </div>
@@ -646,7 +647,7 @@ export function CostCalculatorPage({
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-warm-charcoal/70 mt-1">
                         <span className="font-semibold text-warm-bronze">
-                          {currentSchool.curriculum ? `หลักสูตร ${currentSchool.curriculum}` : "หลักสูตรนานาชาติ"}
+                          {currentSchool.curriculum ? `หลักสูตร ${curriculumLabel(currentSchool.curriculum)}` : "หลักสูตรนานาชาติ"}
                         </span>
                         <span>·</span>
                         <span className="text-warm-charcoal/60">
@@ -770,7 +771,7 @@ export function CostCalculatorPage({
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                          <span className={`text-[11px] font-bold ${
                             isCurrentEnd ? "text-white/80" : "text-warm-charcoal/50"
                           }`}>
                             {stage.stageNum}

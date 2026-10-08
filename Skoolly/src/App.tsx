@@ -149,7 +149,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="min-h-screen grid place-items-center bg-[#f8f6f1] text-xs text-[#14284b]/60">
-            กำลังโหลดระบบบริหารจัดการฐานข้อมูล (Admin Database)...
+            กำลังโหลดหน้า admin…
           </div>
         }
       >
@@ -287,7 +287,7 @@ export default function App() {
             setCompareModalOpen(false);
             goCalculator(schoolId);
           }}
-          onSaveComparison={() => showAuth("Sign in to save this comparison.")}
+          onSaveComparison={() => showAuth("บันทึกการเปรียบเทียบได้เมื่อเข้าสู่ระบบ")}
         />
       )}
 

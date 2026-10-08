@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 
 interface HeroProps {
   eyebrow?: string;
@@ -23,12 +23,12 @@ export interface HeroStat {
 }
 
 export function Hero({
-  eyebrow = 'School directory · Thailand',
-  headingPrefix = 'Find the Right International',
-  headingHighlight = 'School',
-  headingSuffix = 'For Your Child',
-  description = 'Compare fees, curricula and locations across licensed international schools.',
-  primaryCtaLabel = 'Sign Up Free',
+  eyebrow = 'โรงเรียนนานาชาติในประเทศไทย',
+  headingPrefix = 'ค้นหาโรงเรียน',
+  headingHighlight = 'นานาชาติ',
+  headingSuffix = 'สำหรับลูก',
+  description = 'เทียบค่าเทอม หลักสูตร และที่ตั้ง ของโรงเรียนนานาชาติที่ได้รับอนุญาตจาก สช.',
+  primaryCtaLabel = 'ค้นหาโรงเรียน',
   primaryCtaHref = '#schools',
   backgroundImage = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1000&h=800&fit=crop&auto=format',
   stats = [],
@@ -41,12 +41,15 @@ export function Hero({
           
           {/* ── LEFT COLUMN ────────────────────────────────────────────────── */}
           <div className="lg:col-span-6 flex flex-col items-start text-left z-10">
-            <span className="inline-block text-[11px] sm:text-xs font-bold tracking-widest text-warm-bronze uppercase mb-3 sm:mb-4">
+            <span className="inline-block text-xs sm:text-sm font-bold text-warm-bronze mb-3 sm:mb-4">
               {eyebrow}
             </span>
-            <h1 className="font-sans text-3xl sm:text-4xl md:text-5xl lg:text-[3.75rem] font-bold leading-[1.15] tracking-tight text-warm-charcoal mb-4 sm:mb-6">
-              {headingPrefix}{' '}
-              <span className="text-warm-bronze italic font-serif font-normal">{headingHighlight}</span>{' '}
+            {/* Thai: no spaces between the parts, taller line height for the vowel and tone marks,
+                and the highlight stays in the sans font (the serif has no Thai glyphs) */}
+            <h1 className="font-sans text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold leading-[1.35] tracking-tight text-warm-charcoal mb-4 sm:mb-6">
+              {headingPrefix}
+              <br />
+              <span className="text-warm-bronze">{headingHighlight}</span>
               {headingSuffix}
             </h1>
             <p className="text-warm-charcoal/70 text-sm sm:text-base md:text-lg leading-relaxed max-w-lg mb-6 sm:mb-8">
@@ -67,7 +70,7 @@ export function Hero({
             <div className="relative w-full max-w-[500px] h-[260px] sm:h-[360px] md:h-[450px] rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden border-4 sm:border-[8px] border-warm-card shadow-xl sm:shadow-2xl">
               <img
                 src={backgroundImage}
-                alt="International School Campus"
+                alt="ห้องเรียน"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -75,12 +78,12 @@ export function Hero({
             {/* Micro Badge — แสดงเฉพาะเมื่อมีรีวิวจริงในระบบ */}
             {averageRating != null && (
               <div className="absolute -bottom-3 left-2 sm:-bottom-4 sm:-left-4 bg-warm-cream border border-warm-accent rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-lg sm:shadow-xl z-20 flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-warm-bronze/10 flex items-center justify-center text-warm-bronze text-sm sm:text-base">
-                  ⭐
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-warm-bronze/10 flex items-center justify-center text-warm-bronze">
+                  <Star className="size-4 fill-current" />
                 </div>
                 <div>
                   <div className="text-xs sm:text-sm font-bold text-warm-charcoal">{averageRating.toFixed(1)} / 5.0</div>
-                  <div className="text-[9px] sm:text-[10px] text-warm-charcoal/60 uppercase tracking-wider font-semibold">Average Parent Rating</div>
+                  <div className="text-[10px] sm:text-xs text-warm-charcoal/60 font-semibold">คะแนนเฉลี่ยจากผู้ปกครอง</div>
                 </div>
               </div>
             )}

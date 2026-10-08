@@ -10,15 +10,15 @@ export function NoResults({ onReset }: NoResultsProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </div>
-      <h3 className="font-semibold text-warm-charcoal text-lg mb-1">No schools found</h3>
+      <h3 className="font-semibold text-warm-charcoal text-lg mb-1">ไม่พบโรงเรียน</h3>
       <p className="text-warm-charcoal/60 text-sm max-w-xs mb-5">
-        Try fewer filters or a higher tuition limit.
+        ลองลดตัวกรอง หรือเพิ่มเพดานค่าเทอม
       </p>
       <button
         onClick={onReset}
         className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 transition-colors cursor-pointer"
       >
-        Reset filters
+        ล้างตัวกรอง
       </button>
     </div>
   );

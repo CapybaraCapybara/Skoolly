@@ -8,6 +8,7 @@ import { useState } from "react";
 import type { Post } from "@/types";
 import { AvatarCircle } from "./AvatarCircle";
 import { CommentItem } from "./CommentItem";
+import { forumCategoryLabel } from "@/lib/labels";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Review: "bg-teal-50 text-teal-700 border-teal-200",
@@ -58,13 +59,13 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
                   onClick={() => onSchoolClick(post.schoolId!)}
                   className="text-xs font-medium text-teal-600 hover:text-teal-800 hover:underline transition-colors"
                 >
-                  🏫 {post.schoolTag}
+                  {post.schoolTag}
                 </button>
               )}
               <span
                 className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${CATEGORY_COLORS[post.category]}`}
               >
-                {post.category}
+                {forumCategoryLabel(post.category)}
               </span>
             </div>
           </div>
@@ -82,7 +83,7 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
             onClick={() => setExpanded((v) => !v)}
             className="text-xs text-teal-600 hover:text-teal-800 mt-1 font-medium"
           >
-            {expanded ? "Show less" : "Read more"}
+            {expanded ? "ย่อ" : "อ่านต่อ"}
           </button>
         )}
 
@@ -121,7 +122,7 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-            <span className="font-medium">{post.comments.length} comments</span>
+            <span className="font-medium">{post.comments.length} ความคิดเห็น</span>
           </button>
 
           {post.schoolId != null && (
@@ -129,7 +130,7 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
               onClick={() => onSchoolClick(post.schoolId!)}
               className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-600 transition-colors font-medium"
             >
-              View school →
+              ดูโรงเรียน →
             </button>
           )}
         </div>
@@ -149,19 +150,19 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
                 onClick={() => setExpanded(true)}
                 className="text-xs text-slate-500 hover:text-teal-600 ml-10 transition-colors"
               >
-                + {post.comments.length - 2} more comments
+                + ดูอีก {post.comments.length - 2} ความคิดเห็น
               </button>
             )}
 
             {/* New comment input */}
             <div className="flex gap-2 mt-2">
-              <AvatarCircle initials="ME" size="sm" />
+              <AvatarCircle initials="ฉ" size="sm" />
               <div className="flex-1 flex gap-2">
                 <input
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment"
+                  placeholder="แสดงความคิดเห็น"
                   className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && newComment.trim()) setNewComment("");
@@ -173,7 +174,7 @@ export function PostCard({ post, onLikePost, onLikeComment, onSchoolClick }: Pos
                     className="px-3 py-2 rounded-xl text-xs font-semibold text-white transition-all"
                     style={{ background: "linear-gradient(135deg,#456ca6,#233a5e)" }}
                   >
-                    Post
+                    ส่ง
                   </button>
                 )}
               </div>

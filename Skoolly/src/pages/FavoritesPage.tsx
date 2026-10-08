@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { School } from "@/types";
 import { StarRating, formatTuition, getSchoolInitials } from "@/components/schools/SchoolCard";
+import { badgeLabel, curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 
 interface FavoritesPageProps {
   schools: School[];
@@ -89,6 +90,7 @@ export function FavoritesPage({
       const matchesSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
+        (s.nameTh ? s.nameTh.toLowerCase().includes(q) : false) ||
         (s.location && s.location.toLowerCase().includes(q)) ||
         (s.curriculum && s.curriculum.toLowerCase().includes(q));
 
@@ -109,7 +111,7 @@ export function FavoritesPage({
       if (sortBy === "rating") {
         return (b.rating || 0) - (a.rating || 0);
       }
-      return a.name.localeCompare(b.name, "th");
+      return schoolNames(a).primary.localeCompare(schoolNames(b).primary, "th");
     });
 
     return result;
@@ -281,10 +283,10 @@ export function FavoritesPage({
                     >
                       <div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warm-accent text-warm-charcoal">
-                          {rec.curriculum}
+                          {curriculumLabel(rec.curriculum)}
                         </span>
                         <h4 className="mt-2 text-sm font-bold text-warm-charcoal line-clamp-1">
-                          {rec.name}
+                          {schoolNames(rec).primary}
                         </h4>
                         <p className="text-xs text-warm-charcoal/60 flex items-center gap-1 mt-1">
                           <MapPin className="w-3 h-3 text-warm-bronze shrink-0" />
@@ -350,7 +352,7 @@ export function FavoritesPage({
                     <option value="all">ทุกหลักสูตร</option>
                     {curriculums.map((c) => (
                       <option key={c} value={c}>
-                        {c}
+                        {curriculumLabel(c)}
                       </option>
                     ))}
                   </select>
@@ -416,7 +418,7 @@ export function FavoritesPage({
                         {school.logoUrl || (school.image?.startsWith("http") ? school.image : null) ? (
                           <img
                             src={school.logoUrl || school.image}
-                            alt={`โลโก้ ${school.name}`}
+                            alt={`ตราโรงเรียน ${schoolNames(school).primary}`}
                             referrerPolicy="no-referrer"
                             className="max-h-24 max-w-[80%] object-contain drop-shadow-xs group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
@@ -430,11 +432,11 @@ export function FavoritesPage({
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                           <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-warm-charcoal/90 text-white backdrop-blur-xs">
-                            {school.curriculum}
+                            {curriculumLabel(school.curriculum)}
                           </span>
                           {school.badge && (
                             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/90 text-white backdrop-blur-xs">
-                              {school.badge}
+                              {badgeLabel(school.badge)}
                             </span>
                           )}
                         </div>
@@ -458,9 +460,9 @@ export function FavoritesPage({
                           <h3
                             onClick={() => onSchoolClick(school.id)}
                             className="font-bold text-base sm:text-lg text-warm-charcoal hover:text-warm-bronze transition-colors cursor-pointer line-clamp-1"
-                            title={school.name}
+                            title={schoolNames(school).primary}
                           >
-                            {school.name}
+                            {schoolNames(school).primary}
                           </h3>
 
                           <div className="mt-1.5 flex items-center gap-1 text-xs text-warm-charcoal/60">
@@ -475,7 +477,7 @@ export function FavoritesPage({
                             </span>
                             {school.language && (
                               <span className="bg-warm-cream px-2 py-0.5 rounded-md border border-warm-accent/50">
-                                {school.language}
+                                {languageLabel(school.language)}
                               </span>
                             )}
                           </div>

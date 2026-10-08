@@ -7,8 +7,11 @@ import { NearbySchools } from "@/components/schools/NearbySchools";
 import type { School, Filters } from "@/types";
 import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";
+import { filterOptionLabel } from "@/lib/labels";
 
 const ITEMS_PER_PAGE = 9;
+
+const filterLabel = "block text-xs font-bold text-warm-charcoal/60 mb-1.5";
 
 function getPageNumbers(current: number, total: number): (number | string)[] {
   if (total <= 7) {
@@ -75,9 +78,9 @@ export function HomePage({
     const totalReviews = schools.reduce((sum, s) => sum + (s.reviewCount || 0), 0);
     const withFees = schools.filter((s) => s.tuitionStart > 0).length;
     return [
-      { value: schools.length.toLocaleString("en-US"), label: "Schools" },
-      { value: withFees.toLocaleString("en-US"), label: "With Fee Data" },
-      { value: totalReviews.toLocaleString("en-US"), label: "Parent Reviews" },
+      { value: schools.length.toLocaleString("en-US"), label: "โรงเรียน" },
+      { value: withFees.toLocaleString("en-US"), label: "มีข้อมูลค่าเทอม" },
+      { value: totalReviews.toLocaleString("en-US"), label: "รีวิวจากผู้ปกครอง" },
     ];
   }, [schools]);
 
@@ -141,12 +144,12 @@ export function HomePage({
       {/* ── HERO (Hero — nav hidden via CSS override) ───────────────────── */}
       <div className="[&_nav]:hidden">
         <Hero
-          eyebrow="School directory · Thailand"
-          headingPrefix="Find the Right International"
-          headingHighlight="School"
-          headingSuffix="For Your Child"
-          description={`Compare fees, curricula and locations across ${schools.length > 0 ? `${schools.length.toLocaleString("en-US")} ` : ""}licensed international schools.`}
-          primaryCtaLabel="Search Schools"
+          eyebrow="โรงเรียนนานาชาติในประเทศไทย"
+          headingPrefix="ค้นหาโรงเรียน"
+          headingHighlight="นานาชาติ"
+          headingSuffix="สำหรับลูก"
+          description={`เทียบค่าเทอม หลักสูตร และที่ตั้ง ของโรงเรียนนานาชาติ${schools.length > 0 ? ` ${schools.length.toLocaleString("en-US")} แห่ง` : ""}ที่ได้รับอนุญาตจาก สช.`}
+          primaryCtaLabel="ค้นหาโรงเรียน"
           primaryCtaHref="#schools"
           backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
           stats={heroStats}
@@ -162,15 +165,13 @@ export function HomePage({
               <svg className="w-4 h-4 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="text-sm font-bold tracking-tight text-warm-charcoal">Filter Schools</span>
-              <span className="ml-auto text-xs text-warm-bronze font-bold">{filteredSchools.length} matches</span>
+              <span className="text-sm font-bold tracking-tight text-warm-charcoal">ตัวกรอง</span>
+              <span className="ml-auto text-xs text-warm-bronze font-bold">พบ {filteredSchools.length} แห่ง</span>
             </div>
 
             {/* School Name Instant Search Bar (Filter ทันที) */}
             <div className="mb-5">
-              <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">
-                Search School Name / ค้นหาชื่อโรงเรียน
-              </label>
+              <label className={filterLabel}>ชื่อโรงเรียน</label>
               <div className="relative">
                 <input
                   type="text"
@@ -182,7 +183,7 @@ export function HomePage({
                       document.getElementById("schools")?.scrollIntoView({ behavior: "smooth" });
                     }
                   }}
-                  placeholder="พิมพ์ค้นหาชื่อโรงเรียนภาษาไทย หรือ English (เช่น Bangkok Prep, NIST, ร่วมฤดี)..."
+                  placeholder="พิมพ์ชื่อไทยหรืออังกฤษ เช่น ร่วมฤดี, Bangkok Prep, NIST"
                   className="w-full border border-warm-accent rounded-xl pl-10 pr-10 py-3 text-sm text-warm-charcoal bg-white/90 placeholder:text-warm-charcoal/40 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition shadow-inner"
                 />
                 <svg className="w-4 h-4 text-warm-charcoal/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -204,59 +205,59 @@ export function HomePage({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
               {/* Curriculum */}
               <div>
-                <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">Curriculum</label>
+                <label className={filterLabel}>หลักสูตร</label>
                 <select
                   value={filters.curriculum}
                   onChange={(e) => setFilter("curriculum", e.target.value)}
                   className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
                 >
-                  {CURRICULA.map((c) => <option key={c}>{c}</option>)}
+                  {CURRICULA.map((c) => <option key={c} value={c}>{filterOptionLabel(c)}</option>)}
                 </select>
               </div>
 
               {/* Grade Level */}
               <div>
-                <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">Grade Level</label>
+                <label className={filterLabel}>ระดับชั้น</label>
                 <select
                   value={filters.gradeLevel}
                   onChange={(e) => setFilter("gradeLevel", e.target.value)}
                   className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
                 >
-                  {GRADES.map((g) => <option key={g}>{g}</option>)}
+                  {GRADES.map((g) => <option key={g} value={g}>{filterOptionLabel(g)}</option>)}
                 </select>
               </div>
 
               {/* Teaching Language */}
               <div>
-                <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">Teaching Language</label>
+                <label className={filterLabel}>ภาษาที่ใช้สอน</label>
                 <select
                   value={filters.language}
                   onChange={(e) => setFilter("language", e.target.value)}
                   className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
                 >
-                  {LANGUAGES.map((l) => <option key={l}>{l}</option>)}
+                  {LANGUAGES.map((l) => <option key={l} value={l}>{filterOptionLabel(l)}</option>)}
                 </select>
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">Location / Distance</label>
+                <label className={filterLabel}>ที่ตั้ง</label>
                 <select
                   value={filters.location}
                   onChange={(e) => setFilter("location", e.target.value)}
                   className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
                 >
-                  {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+                  {LOCATIONS.map((l) => <option key={l} value={l}>{filterOptionLabel(l)}</option>)}
                 </select>
               </div>
 
               {/* Tuition Range */}
               <div className="sm:col-span-2 lg:col-span-2">
-                <label className="block text-xs font-bold text-warm-charcoal/60 mb-1.5 uppercase tracking-wider">
-                  Max Annual Tuition: <span className="text-warm-bronze font-bold">{formatTuition(filters.tuitionMax * 1000)}</span>
+                <label className={filterLabel}>
+                  ค่าเทอมต่อปีไม่เกิน <span className="text-warm-bronze font-bold">{formatTuition(filters.tuitionMax * 1000)}</span>
                 </label>
                 <div className="flex items-center gap-3 py-2">
-                  <span className="text-xs text-warm-charcoal/50 shrink-0">฿100K</span>
+                  <span className="text-xs text-warm-charcoal/50 shrink-0">฿100,000</span>
                   <input
                     type="range"
                     min={100}
@@ -266,7 +267,7 @@ export function HomePage({
                     onChange={(e) => setFilter("tuitionMax", Number(e.target.value))}
                     className="flex-1 h-1.5 rounded-full accent-warm-bronze bg-warm-accent"
                   />
-                  <span className="text-xs text-warm-charcoal/50 shrink-0">฿700K+</span>
+                  <span className="text-xs text-warm-charcoal/50 shrink-0">฿700,000+</span>
                 </div>
               </div>
             </div>
@@ -279,7 +280,7 @@ export function HomePage({
                 }}
                 className="sm:order-first text-sm text-warm-charcoal/60 hover:text-warm-charcoal font-semibold px-4 py-2.5 transition-colors cursor-pointer"
               >
-                Reset filters
+                ล้างตัวกรอง
               </button>
               <button
                 onClick={() => {
@@ -291,7 +292,7 @@ export function HomePage({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Search Schools
+                ค้นหา
               </button>
             </div>
           </div>
@@ -304,25 +305,25 @@ export function HomePage({
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-warm-charcoal">International Schools in Thailand</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-warm-charcoal">โรงเรียนนานาชาติในประเทศไทย</h2>
               <p className="text-warm-charcoal/60 text-sm mt-1">
-                {filteredSchools.length} school{filteredSchools.length !== 1 ? "s" : ""}
+                {filteredSchools.length} แห่ง
                 {filteredSchools.length > ITEMS_PER_PAGE && (
-                  <> · showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</>
+                  <> · แสดง {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</>
                 )}
-                {compareIds.length > 0 && <span className="text-warm-bronze font-medium"> · {compareIds.length} selected to compare</span>}
+                {compareIds.length > 0 && <span className="text-warm-bronze font-medium"> · เลือกเปรียบเทียบ {compareIds.length} แห่ง</span>}
               </p>
             </div>
-            <span className="text-xs text-warm-charcoal/60">Compare up to {MAX_COMPARE} schools</span>
+            <span className="text-xs text-warm-charcoal/60">เปรียบเทียบได้สูงสุด {MAX_COMPARE} แห่ง</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {loadState === "loading" ? (
-              <div className="col-span-full py-20 text-center text-sm text-warm-charcoal/50">Loading schools…</div>
+              <div className="col-span-full py-20 text-center text-sm text-warm-charcoal/50">กำลังโหลดรายชื่อโรงเรียน…</div>
             ) : loadState === "error" ? (
               <div className="col-span-full py-20 text-center">
-                <h3 className="font-semibold text-warm-charcoal text-lg mb-1">Couldn't load schools</h3>
-                <p className="text-warm-charcoal/60 text-sm">Please try refreshing the page in a moment.</p>
+                <h3 className="font-semibold text-warm-charcoal text-lg mb-1">โหลดรายชื่อโรงเรียนไม่สำเร็จ</h3>
+                <p className="text-warm-charcoal/60 text-sm">ลองรีเฟรชหน้านี้อีกครั้ง</p>
               </div>
             ) : paginatedSchools.length > 0
               ? paginatedSchools.map((school) => (
@@ -351,7 +352,7 @@ export function HomePage({
                 className="flex items-center gap-1 px-3.5 h-9 rounded-full text-xs font-semibold border border-warm-accent bg-warm-cream text-warm-charcoal hover:border-warm-bronze disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Previous</span>
+                <span className="hidden sm:inline">ก่อนหน้า</span>
               </button>
 
               {getPageNumbers(currentPage, totalPages).map((p, idx) => {
@@ -386,7 +387,7 @@ export function HomePage({
                 disabled={currentPage === totalPages}
                 className="flex items-center gap-1 px-3.5 h-9 rounded-full text-xs font-semibold border border-warm-accent bg-warm-cream text-warm-charcoal hover:border-warm-bronze disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                <span className="hidden sm:inline">Next</span>
+                <span className="hidden sm:inline">ถัดไป</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -404,21 +405,21 @@ export function HomePage({
       {/* ── TOOLS ─────────────────────────────────────────────────────────── */}
       <section id="features" className="py-12 border-t border-warm-accent/60 scroll-mt-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-bold tracking-tight text-warm-charcoal mb-6">Planning Tools</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-warm-charcoal mb-6">เครื่องมือวางแผน</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="rounded-[2rem] border border-warm-accent bg-warm-cream p-6 flex flex-col">
               <div className="flex size-11 items-center justify-center rounded-2xl bg-warm-bronze text-white mb-4">
                 <Calculator className="size-5" />
               </div>
-              <h3 className="text-lg font-bold text-warm-charcoal mb-1.5">Cost Calculator</h3>
+              <h3 className="text-lg font-bold text-warm-charcoal mb-1.5">คำนวณค่าใช้จ่าย</h3>
               <p className="text-sm text-warm-charcoal/70 leading-relaxed mb-6">
-                Add up tuition and one-time fees for the years your child will attend.
+                รวมค่าเทอมและค่าแรกเข้าตลอดปีที่ลูกจะเรียน
               </p>
               <button
                 onClick={onOpenCalculator}
                 className="mt-auto self-start inline-flex items-center gap-2 rounded-full bg-warm-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:bg-warm-charcoal/90 transition-colors cursor-pointer"
               >
-                Open calculator
+                เปิดเครื่องคำนวณ
                 <ArrowRight className="size-4" />
               </button>
             </div>
@@ -427,19 +428,19 @@ export function HomePage({
               <div className="flex size-11 items-center justify-center rounded-2xl bg-warm-charcoal text-white mb-4">
                 <MessageSquare className="size-5" />
               </div>
-              <h3 className="text-lg font-bold text-warm-charcoal mb-1.5">AI School Advisor</h3>
+              <h3 className="text-lg font-bold text-warm-charcoal mb-1.5">ผู้ช่วยเลือกโรงเรียน AI</h3>
               <p className="text-sm text-warm-charcoal/70 leading-relaxed mb-6">
-                Describe what you are looking for and get a shortlist of schools to visit.
+                บอกสิ่งที่ต้องการ แล้วรับรายชื่อโรงเรียนที่น่าไปดู
               </p>
               <div className="mt-auto flex items-center gap-3">
                 <button
-                  onClick={() => onRestrictedAction("Sign in to use the AI School Advisor.")}
+                  onClick={() => onRestrictedAction("ผู้ช่วยเลือกโรงเรียนใช้ได้เมื่อเข้าสู่ระบบ")}
                   className="inline-flex items-center gap-2 rounded-full border border-warm-charcoal px-5 py-2.5 text-sm font-semibold text-warm-charcoal hover:bg-warm-charcoal/5 transition-colors cursor-pointer"
                 >
-                  Try the advisor
+                  ลองใช้
                   <ArrowRight className="size-4" />
                 </button>
-                <span className="text-xs text-warm-charcoal/50">Sign-in required</span>
+                <span className="text-xs text-warm-charcoal/50">ต้องเข้าสู่ระบบ</span>
               </div>
             </div>
           </div>
@@ -457,7 +458,7 @@ export function HomePage({
               Skool<span className="text-warm-bronze">ly</span>
             </span>
           </div>
-          <p className="text-xs text-white/50">School data from OPEC and ISAT · © 2026 Skoolly</p>
+          <p className="text-xs text-white/50">ข้อมูลโรงเรียนจาก สช. และ ISAT · © 2026 Skoolly</p>
         </div>
       </footer>
     </div>

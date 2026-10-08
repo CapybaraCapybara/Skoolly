@@ -33,6 +33,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { BrandLogo, HeaderShell, NAV_PILL_CLASS } from '@/components/layout/HeaderShell';
+import { curriculumLabel, schoolNames } from '@/lib/labels';
 
 export type NavKey = 'schools' | 'calculator' | 'community' | 'favorites';
 
@@ -118,8 +119,8 @@ export function Navbar({
 
   return (
     <HeaderShell adminActive={false} onToggleAdmin={onAdmin}>
-      <nav aria-label="Main Navigation" className={NAV_PILL_CLASS}>
-        <BrandLogo onClick={onHome} label="Skoolly Home" />
+      <nav aria-label="เมนูหลัก" className={NAV_PILL_CLASS}>
+        <BrandLogo onClick={onHome} label="หน้าแรก Skoolly" />
 
         {/* ── Desktop links (>= lg) ─────────────────────────────────────────── */}
         <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
@@ -134,7 +135,7 @@ export function Navbar({
                   }}
                   className={navItem(current === 'schools')}
                 >
-                  Browse Schools
+                  รายชื่อโรงเรียน
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
@@ -147,20 +148,20 @@ export function Navbar({
                   }}
                   className={navItem(current === 'calculator')}
                 >
-                  Cost Calculator
+                  คำนวณค่าใช้จ่าย
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               {/* Find by Criteria (dropdown) */}
               <NavigationMenuItem>
-                <NavigationMenuTrigger className={navItem()}>Find by Criteria</NavigationMenuTrigger>
+                <NavigationMenuTrigger className={navItem()}>ค้นตามเงื่อนไข</NavigationMenuTrigger>
                 <NavigationMenuContent className="p-0">
                   <div className="grid w-3xl grid-cols-3 gap-6 divide-x divide-warm-accent px-8 py-8">
                     <div className="flex flex-col gap-3">
                       <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-card">
                         <GraduationCap className="h-5 w-5 text-warm-bronze" />
                       </div>
-                      <h4 className="text-sm font-semibold text-warm-charcoal">By Curriculum</h4>
+                      <h4 className="text-sm font-semibold text-warm-charcoal">ตามหลักสูตร</h4>
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {['British', 'American', 'IB', 'Bilingual'].map((c) => (
                           <a
@@ -178,7 +179,7 @@ export function Navbar({
                       <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-card">
                         <MapPin className="h-5 w-5 text-warm-bronze" />
                       </div>
-                      <h4 className="text-sm font-semibold text-warm-charcoal">By Location</h4>
+                      <h4 className="text-sm font-semibold text-warm-charcoal">ตามที่ตั้ง</h4>
                       <div className="mt-1 flex flex-col gap-2">
                         {topLocations.map((loc) => (
                           <a
@@ -194,23 +195,23 @@ export function Navbar({
 
                     {topSchool && (
                       <div className="flex flex-col pl-6">
-                        <h4 className="mb-4 text-xs uppercase text-warm-charcoal/60">Top Ranked</h4>
+                        <h4 className="mb-4 text-xs text-warm-charcoal/60">คะแนนสูงสุด</h4>
                         <a
                           href="#schools"
                           className="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl bg-warm-card p-5 ring ring-warm-bronze/40 transition-all"
                         >
                           <div>
                             <Badge variant="outline" className="mb-3 border-warm-accent bg-warm-cream text-xs text-warm-bronze">
-                              <Star className="mr-1 size-3 fill-current" /> Top Rated
+                              <Star className="mr-1 size-3 fill-current" /> คะแนนรีวิวสูง
                             </Badge>
-                            <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">{topSchool.name}</h4>
+                            <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">{schoolNames(topSchool).primary}</h4>
                             <p className="text-xs text-warm-charcoal/70">
-                              {topSchool.curriculum} curriculum · {topSchool.rating.toFixed(1)}★ ·{' '}
-                              {topSchool.reviewCount.toLocaleString('en-US')} parent reviews
+                              หลักสูตร {curriculumLabel(topSchool.curriculum)} · {topSchool.rating.toFixed(1)}★ ·{' '}
+                              {topSchool.reviewCount.toLocaleString('en-US')} รีวิว
                             </p>
                           </div>
                           <div className="mt-3 flex items-center text-xs font-semibold text-warm-bronze">
-                            View school{' '}
+                            ดูโรงเรียน{' '}
                             <ArrowUpRight className="ml-1 size-3.5 transition-transform group-hover:translate-x-0.5" />
                           </div>
                         </a>
@@ -222,7 +223,7 @@ export function Navbar({
 
               {/* AI Tools (dropdown, >= xl; folded into More below that) */}
               <NavigationMenuItem className="hidden xl:block">
-                <NavigationMenuTrigger className={navItem()}>AI Tools</NavigationMenuTrigger>
+                <NavigationMenuTrigger className={navItem()}>ผู้ช่วย AI</NavigationMenuTrigger>
                 <NavigationMenuContent className="p-0">
                   <div className="grid w-md max-w-[calc(100vw-3rem)] grid-cols-1 gap-4 px-6 py-6">
                     <a
@@ -233,9 +234,9 @@ export function Navbar({
                         <MessageSquare className="h-5 w-5" />
                       </div>
                       <div>
-                        <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">AI School Advisor</h4>
+                        <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">ผู้ช่วยเลือกโรงเรียน</h4>
                         <p className="text-xs text-warm-charcoal/70">
-                          Describe what you need and get a shortlist of schools.
+                          บอกสิ่งที่ต้องการ แล้วรับรายชื่อโรงเรียนที่น่าไปดู
                         </p>
                       </div>
                     </a>
@@ -252,7 +253,7 @@ export function Navbar({
                   }}
                   className={cn(navItem(), 'gap-1.5')}
                 >
-                  Compare
+                  เปรียบเทียบ
                   {compareCount > 0 && (
                     <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warm-bronze px-1 text-[10px] font-bold text-white">
                       {compareCount}
@@ -271,13 +272,13 @@ export function Navbar({
                   }}
                   className={navItem(current === 'community')}
                 >
-                  Community
+                  ชุมชน
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               {/* More (lg only): what doesn't fit */}
               <NavigationMenuItem className="xl:hidden">
-                <NavigationMenuTrigger className={navItem(current === 'community')}>More</NavigationMenuTrigger>
+                <NavigationMenuTrigger className={navItem(current === 'community')}>เพิ่มเติม</NavigationMenuTrigger>
                 <NavigationMenuContent className="p-0">
                   <div className="flex w-56 flex-col gap-1 p-2">
                     <a
@@ -285,7 +286,7 @@ export function Navbar({
                       className="flex items-center gap-2.5 rounded-xl p-2 text-sm font-medium text-warm-charcoal transition-colors hover:bg-warm-card"
                     >
                       <MessageSquare className="size-4 text-warm-bronze" />
-                      AI School Advisor
+                      ผู้ช่วยเลือกโรงเรียน
                     </a>
                     <button
                       type="button"
@@ -293,7 +294,7 @@ export function Navbar({
                       className="flex items-center gap-2.5 rounded-xl p-2 text-left text-sm font-medium text-warm-charcoal transition-colors hover:bg-warm-card cursor-pointer"
                     >
                       <Star className="size-4 text-warm-bronze" />
-                      Community
+                      ชุมชน
                     </button>
                   </div>
                 </NavigationMenuContent>
@@ -308,8 +309,8 @@ export function Navbar({
             type="button"
             onClick={onFavorites}
             className={cn(iconButton, current === 'favorites' && 'bg-warm-card text-warm-charcoal')}
-            title="Saved schools"
-            aria-label="Saved schools"
+            title="รายการโปรด"
+            aria-label="รายการโปรด"
           >
             <Heart className={cn('size-4', favoritesCount > 0 && 'fill-rose-500 text-rose-500')} />
             {favoritesCount > 0 && (
@@ -321,7 +322,7 @@ export function Navbar({
 
           {/* Compare shortcut below lg, where the Compare link is hidden */}
           {compareCount > 0 && (
-            <button type="button" onClick={onCompare} className={cn(iconButton, 'lg:hidden')} title="Compare" aria-label="Compare">
+            <button type="button" onClick={onCompare} className={cn(iconButton, 'lg:hidden')} title="เปรียบเทียบ" aria-label="เปรียบเทียบ">
               <GitCompare className="size-4 text-warm-bronze" />
               <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warm-bronze px-1 text-[9px] font-bold text-white ring-2 ring-warm-cream">
                 {compareCount}
@@ -343,8 +344,8 @@ export function Navbar({
                 type="button"
                 onClick={() => signOut()}
                 className="flex size-7 items-center justify-center rounded-full text-warm-charcoal/50 transition-colors hover:bg-warm-accent hover:text-warm-charcoal cursor-pointer"
-                title="Sign out"
-                aria-label="Sign out"
+                title="ออกจากระบบ"
+                aria-label="ออกจากระบบ"
               >
                 <LogOut className="size-3.5" />
               </button>
@@ -355,14 +356,14 @@ export function Navbar({
               onClick={onLogin}
               className="ml-1 hidden h-9 items-center rounded-full bg-warm-charcoal px-4 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 sm:inline-flex cursor-pointer"
             >
-              Log in
+              เข้าสู่ระบบ
             </button>
           )}
 
           {/* ── Mobile & tablet drawer (< lg) ─────────────────────────────── */}
           <div className="lg:hidden">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-              <SheetTrigger className={iconButton} aria-label="Open navigation menu">
+              <SheetTrigger className={iconButton} aria-label="เปิดเมนู">
                 <Menu className="size-5" />
               </SheetTrigger>
               <SheetContent
@@ -370,24 +371,24 @@ export function Navbar({
                 className="flex w-[320px] max-w-[85vw] flex-col gap-5 overflow-y-auto border-l border-warm-accent bg-warm-bg p-6 text-warm-charcoal shadow-2xl"
               >
                 <div className="border-b border-warm-accent/50 pb-3">
-                  <BrandLogo onClick={() => handleMobileNav(onHome)} label="Skoolly Home" />
+                  <BrandLogo onClick={() => handleMobileNav(onHome)} label="หน้าแรก Skoolly" />
                 </div>
 
                 <div className="flex flex-col gap-1.5 text-sm">
                   <button onClick={() => handleMobileNav(onHome)} className={drawerItem}>
                     <BookOpen className="size-4 text-warm-bronze" />
-                    Browse Schools
+                    รายชื่อโรงเรียน
                   </button>
 
                   <button onClick={() => handleMobileNav(onCalculator)} className={drawerItem}>
                     <Calculator className="size-4 text-warm-bronze" />
-                    Cost Calculator
+                    คำนวณค่าใช้จ่าย
                   </button>
 
                   <button onClick={() => handleMobileNav(onFavorites)} className={cn(drawerItem, 'justify-between')}>
                     <span className="flex items-center gap-3">
                       <Heart className={cn('size-4', favoritesCount > 0 ? 'fill-rose-500 text-rose-500' : 'text-warm-bronze')} />
-                      Saved Schools
+                      รายการโปรด
                     </span>
                     {favoritesCount > 0 && (
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">
@@ -399,7 +400,7 @@ export function Navbar({
                   <button onClick={() => handleMobileNav(onCompare)} className={cn(drawerItem, 'justify-between')}>
                     <span className="flex items-center gap-3">
                       <GitCompare className="size-4 text-warm-bronze" />
-                      Compare
+                      เปรียบเทียบ
                     </span>
                     {compareCount > 0 && (
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warm-bronze px-1.5 text-xs font-bold text-white">
@@ -413,11 +414,11 @@ export function Navbar({
                       <AccordionTrigger className="flex items-center justify-between rounded-xl px-3 py-2.5 font-medium text-warm-charcoal hover:bg-warm-cream hover:no-underline">
                         <span className="flex items-center gap-3">
                           <GraduationCap className="size-4 text-warm-bronze" />
-                          Find by Criteria
+                          ค้นตามเงื่อนไข
                         </span>
                       </AccordionTrigger>
                       <AccordionContent className="flex flex-col gap-2 pb-2 pl-9 pr-3 pt-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-warm-charcoal/50">Curriculums</span>
+                        <span className="text-xs font-bold text-warm-charcoal/50">หลักสูตร</span>
                         <div className="flex flex-wrap gap-1.5">
                           {['British', 'American', 'IB', 'Bilingual'].map((c) => (
                             <a
@@ -436,12 +437,12 @@ export function Navbar({
 
                   <button onClick={() => handleMobileNav(onForum)} className={drawerItem}>
                     <Star className="size-4 text-warm-bronze" />
-                    Community
+                    ชุมชน
                   </button>
 
                   <a href="#features" onClick={() => setSheetOpen(false)} className={drawerItem}>
                     <MessageSquare className="size-4 text-warm-bronze" />
-                    AI School Advisor
+                    ผู้ช่วยเลือกโรงเรียน
                   </a>
                 </div>
 
@@ -452,7 +453,7 @@ export function Navbar({
                       onClick={() => handleMobileNav(onLogin)}
                       className="w-full rounded-full bg-warm-charcoal py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 cursor-pointer"
                     >
-                      Log in
+                      เข้าสู่ระบบ
                     </button>
                   </div>
                 )}

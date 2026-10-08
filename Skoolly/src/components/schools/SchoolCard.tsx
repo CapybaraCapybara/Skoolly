@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
+import { badgeLabel, curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 
 export function formatTuition(n: number) {
   if (!n || n <= 0) return "ติดต่อโรงเรียน";
-  if (n >= 1000000) return `฿${(n / 1000000).toFixed(1)}M`;
-  return `฿${(n / 1000).toFixed(0)}K`;
+  return `฿${Math.round(n).toLocaleString("en-US")}`;
 }
 
 export function getSchoolInitials(name: string): string {
@@ -60,6 +60,7 @@ export function SchoolCard({
   const compareAtLimit = compareIds.length >= MAX_COMPARE && !isCompared;
 
   const logoSrc = (school.logoUrl && school.logoUrl.trim()) ? school.logoUrl : (school.image?.startsWith("http") ? school.image : null);
+  const names = schoolNames(school);
 
   return (
     <div className="card-hover bg-warm-cream rounded-[1.5rem] overflow-hidden border border-warm-accent shadow-xs flex flex-col transition-all hover:shadow-md">
@@ -72,7 +73,7 @@ export function SchoolCard({
         {logoSrc && !imgFailed ? (
           <img
             src={logoSrc}
-            alt={`${school.name} logo`}
+            alt={`ตราโรงเรียน ${names.primary}`}
             referrerPolicy="no-referrer"
             className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
@@ -87,7 +88,7 @@ export function SchoolCard({
         {/* Badge in top-left (e.g. ISAT Member, Boarding School) */}
         {school.badge && (
           <span className="absolute top-3 left-3 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze select-none">
-            {school.badge}
+            {badgeLabel(school.badge)}
           </span>
         )}
 
@@ -97,7 +98,7 @@ export function SchoolCard({
             e.stopPropagation();
             onToggleFavorite(school.id);
           }}
-          title={isFav ? "Remove from saved" : "Save school"}
+          title={isFav ? "เอาออกจากรายการโปรด" : "บันทึกไว้ในรายการโปรด"}
           className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border border-warm-accent hover:scale-105 active:scale-95"
           style={{ background: isFav ? "#ef4444" : "rgba(255,255,255,0.92)", backdropFilter: "blur(4px)" }}
         >
@@ -114,11 +115,11 @@ export function SchoolCard({
             onClick={() => onSchoolClick(school.id)}
             className="font-bold text-warm-charcoal text-[15px] leading-snug text-left hover:text-warm-bronze transition-colors line-clamp-2"
           >
-            {school.name}
+            {names.primary}
           </button>
-          {school.nameTh && school.nameTh !== school.name && (
+          {names.secondary && (
             <div className="text-xs text-warm-charcoal/65 line-clamp-1 mt-0.5">
-              {school.nameTh}
+              {names.secondary}
             </div>
           )}
 
@@ -133,7 +134,7 @@ export function SchoolCard({
                 {school.distance > 0 && (
                   <span className="text-warm-charcoal/60">
                     {" · "}
-                    {school.distance < 1 ? `${(school.distance * 1000).toFixed(0)} m` : `${school.distance.toFixed(1)} km`}
+                    {school.distance < 1 ? `${(school.distance * 1000).toFixed(0)} ม.` : `${school.distance.toFixed(1)} กม.`}
                   </span>
                 )}
               </span>
@@ -143,40 +144,40 @@ export function SchoolCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 11.5v4.5c0 1.1 3.1 3 7 3s7-1.9 7-3v-4.5" />
               </svg>
-              <span className="line-clamp-1">{school.grades || "Grades not listed"}</span>
+              <span className="line-clamp-1">{school.grades || "ไม่ระบุระดับชั้น"}</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 text-xs flex-wrap">
           <span className="bg-warm-accent/60 text-warm-charcoal px-2.5 py-0.5 rounded-md font-semibold">
-            {school.curriculum}
+            {curriculumLabel(school.curriculum)}
           </span>
           {school.isBoarding && (
             <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
-              Boarding
+              มีหอพัก
             </span>
           )}
           {school.language && (
             <span className="bg-white text-warm-charcoal/80 px-2 py-0.5 rounded-md font-medium border border-warm-accent">
-              {school.language}
+              {languageLabel(school.language)}
             </span>
           )}
         </div>
 
         <div className="mt-auto pt-3 flex items-end justify-between border-t border-warm-accent/60">
           <div>
-            <div className="text-[11px] uppercase font-bold tracking-wider text-warm-charcoal/60">
-              {school.tuitionStart > 0 ? "Tuition from" : "Tuition"}
+            <div className="text-[11px] font-bold text-warm-charcoal/60">
+              {school.tuitionStart > 0 ? "ค่าเทอมเริ่มต้น" : "ค่าเทอม"}
             </div>
             <div className="font-extrabold text-warm-charcoal text-base leading-tight mt-0.5">
               {school.tuitionStart > 0 ? (
                 <>
                   {formatTuition(school.tuitionStart)}
-                  <span className="text-xs font-normal text-warm-charcoal/60">/yr</span>
+                  <span className="text-xs font-normal text-warm-charcoal/60">/ปี</span>
                 </>
               ) : (
-                <span className="text-sm font-semibold text-warm-charcoal/75">Not published</span>
+                <span className="text-sm font-semibold text-warm-charcoal/75">ยังไม่เปิดเผย</span>
               )}
             </div>
           </div>
@@ -184,10 +185,10 @@ export function SchoolCard({
             {school.reviewCount > 0 && school.rating > 0 ? (
               <>
                 <StarRating rating={school.rating} />
-                <div className="text-xs text-warm-charcoal/60 mt-0.5">{school.reviewCount} reviews</div>
+                <div className="text-xs text-warm-charcoal/60 mt-0.5">{school.reviewCount} รีวิว</div>
               </>
             ) : (
-              <div className="text-xs text-warm-charcoal/60">No reviews yet</div>
+              <div className="text-xs text-warm-charcoal/60">ยังไม่มีรีวิว</div>
             )}
           </div>
         </div>
@@ -201,7 +202,7 @@ export function SchoolCard({
             }
           }}
           className="flex items-center gap-2 mt-1 text-xs select-none group cursor-pointer"
-          title={compareAtLimit ? `You already have ${MAX_COMPARE} schools. Click to swap one.` : undefined}
+          title={compareAtLimit ? `เลือกครบ ${MAX_COMPARE} แห่งแล้ว กดเพื่อสลับกับโรงเรียนที่เลือกไว้` : undefined}
         >
           <input
             type="checkbox"
@@ -215,11 +216,11 @@ export function SchoolCard({
             className="w-4 h-4 rounded accent-warm-bronze border-warm-accent cursor-pointer"
           />
           <span className={`transition-colors font-medium ${isCompared ? "text-warm-bronze font-bold" : "text-warm-charcoal/80 group-hover:text-warm-bronze"}`}>
-            {isCompared ? "Added to compare" : "Add to compare"}
+            {isCompared ? "เลือกเปรียบเทียบแล้ว" : "เพิ่มเพื่อเปรียบเทียบ"}
           </span>
           {compareAtLimit && (
             <span className="ml-auto text-[11px] font-semibold text-warm-charcoal/60">
-              {MAX_COMPARE}/{MAX_COMPARE} · swap
+              {MAX_COMPARE}/{MAX_COMPARE} · สลับ
             </span>
           )}
         </div>

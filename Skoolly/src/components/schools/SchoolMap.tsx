@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import type { School } from "@/types";
 import { formatTuition } from "@/components/schools/SchoolCard";
+import { curriculumLabel, schoolNames } from "@/lib/labels";
 
 export interface MapPoint {
   lat: number;
@@ -12,7 +13,7 @@ export interface MapPoint {
 export const EXAMPLE_LOCATION = {
   lat: 13.7306,
   lng: 100.5688,
-  label: "Sukhumvit, Bangkok",
+  label: "สุขุมวิท กรุงเทพฯ",
 };
 
 export type MapSelection = { id: number; from: "map" | "list" } | null;
@@ -60,7 +61,7 @@ function pinStyle(state: PinState, approximate: boolean): L.CircleMarkerOptions 
 }
 
 export function formatDistance(km: number) {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  return km < 1 ? `${Math.round(km * 1000)} ม.` : `${km.toFixed(1)} กม.`;
 }
 
 // School names come from the database and are rendered as popup / tooltip HTML
@@ -160,7 +161,7 @@ export function SchoolMap(props: SchoolMapProps) {
       icon: homeIcon,
       draggable: true,
       zIndexOffset: 1000,
-      title: "Drag to move",
+      title: "ลากเพื่อย้ายจุด",
     }).addTo(map);
     home.on("drag", () => circle.setLatLng(home.getLatLng()));
     home.on("dragend", () => {
@@ -203,7 +204,7 @@ export function SchoolMap(props: SchoolMapProps) {
       if (!school.coords) return;
       const approximate = school.coords.precision === "Approximate";
       const marker = L.circleMarker([school.coords.lat, school.coords.lng], pinStyle("far", approximate))
-        .bindTooltip(escapeHtml(school.name), { direction: "top", offset: [0, -8] })
+        .bindTooltip(escapeHtml(schoolNames(school).primary), { direction: "top", offset: [0, -8] })
         .bindPopup(() => popupHtml(school, propsRef.current.distances.get(school.id)), {
           maxWidth: 240,
           offset: [0, -6],
@@ -287,15 +288,15 @@ export function SchoolMap(props: SchoolMapProps) {
 }
 
 function popupHtml(school: School, km: number | undefined) {
-  const fee = school.tuitionStart > 0 ? `From ${formatTuition(school.tuitionStart)}/yr` : "Fees not published";
-  const meta = [km != null ? formatDistance(km) : null, school.curriculum].filter(Boolean).join(" · ");
+  const fee = school.tuitionStart > 0 ? `ค่าเทอมเริ่มต้น ${formatTuition(school.tuitionStart)}/ปี` : "ยังไม่เปิดเผยค่าเทอม";
+  const meta = [km != null ? formatDistance(km) : null, curriculumLabel(school.curriculum)].filter(Boolean).join(" · ");
   const approximate =
-    school.coords?.precision === "Approximate" ? `<div class="sk-popup-note">Approximate location</div>` : "";
+    school.coords?.precision === "Approximate" ? `<div class="sk-popup-note">ตำแหน่งโดยประมาณ</div>` : "";
   return `<div class="sk-popup">
-    <div class="sk-popup-name">${escapeHtml(school.name)}</div>
+    <div class="sk-popup-name">${escapeHtml(schoolNames(school).primary)}</div>
     <div class="sk-popup-meta">${escapeHtml(meta)}</div>
     <div class="sk-popup-fee">${fee}</div>
     ${approximate}
-    <button type="button" class="sk-popup-link" data-open-school="${school.id}">View school →</button>
+    <button type="button" class="sk-popup-link" data-open-school="${school.id}">ดูโรงเรียน →</button>
   </div>`;
 }

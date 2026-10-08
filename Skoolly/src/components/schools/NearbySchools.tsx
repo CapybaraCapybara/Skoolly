@@ -3,6 +3,7 @@ import { ArrowRight, LocateFixed, RotateCcw } from "lucide-react";
 import type { School } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatTuition } from "@/components/schools/SchoolCard";
+import { curriculumLabel, schoolNames } from "@/lib/labels";
 import {
   SchoolMap,
   EXAMPLE_LOCATION,
@@ -16,9 +17,9 @@ const RADII = [5, 10, 20];
 type LocationSource = "example" | "device" | "pin";
 
 const LOCATION_LABEL: Record<LocationSource, string> = {
-  example: `${EXAMPLE_LOCATION.label} (example)`,
-  device: "your current location",
-  pin: "the pinned location",
+  example: `${EXAMPLE_LOCATION.label} (ตัวอย่าง)`,
+  device: "ตำแหน่งของคุณ",
+  pin: "จุดที่ปักไว้",
 };
 
 function distanceKm(a: MapPoint, b: MapPoint) {
@@ -77,7 +78,7 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
 
   const locateMe = () => {
     if (!("geolocation" in navigator)) {
-      setGeoError("This browser can't share its location.");
+      setGeoError("เบราว์เซอร์นี้แชร์ตำแหน่งไม่ได้");
       return;
     }
     setLocating(true);
@@ -90,7 +91,7 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
         setLocating(false);
       },
       () => {
-        setGeoError("Couldn't get your location. Check the browser's location permission.");
+        setGeoError("หาตำแหน่งไม่ได้ ตรวจสอบว่าเบราว์เซอร์อนุญาตให้ใช้ตำแหน่ง");
         setLocating(false);
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
@@ -109,9 +110,9 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
       {/* Heading and controls */}
       <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-warm-charcoal">Schools Near You</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-warm-charcoal">โรงเรียนใกล้คุณ</h2>
           <p className="text-warm-charcoal/60 text-sm mt-1">
-            {nearby.length} school{nearby.length !== 1 ? "s" : ""} within {radiusKm} km of {LOCATION_LABEL[source]}
+            {nearby.length} แห่ง ในระยะ {radiusKm} กม. จาก{LOCATION_LABEL[source]}
           </p>
         </div>
 
@@ -123,7 +124,7 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
             className="inline-flex items-center gap-2 rounded-full border border-warm-accent bg-warm-cream px-4 py-2 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze disabled:opacity-60 cursor-pointer"
           >
             <LocateFixed className="size-4 text-warm-bronze" />
-            {locating ? "Locating…" : "Use my location"}
+            {locating ? "กำลังหาตำแหน่ง…" : "ใช้ตำแหน่งของฉัน"}
           </button>
           {source !== "example" && (
             <button
@@ -132,10 +133,10 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm text-warm-charcoal/60 transition-colors hover:text-warm-charcoal cursor-pointer"
             >
               <RotateCcw className="size-3.5" />
-              Reset
+              กลับจุดเริ่มต้น
             </button>
           )}
-          <div role="group" aria-label="Search radius" className="flex rounded-full border border-warm-accent bg-warm-cream p-1">
+          <div role="group" aria-label="รัศมีค้นหา" className="flex rounded-full border border-warm-accent bg-warm-cream p-1">
             {RADII.map((r) => (
               <button
                 key={r}
@@ -150,7 +151,7 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
                   radiusKm === r ? "bg-warm-charcoal text-white" : "text-warm-charcoal/70 hover:text-warm-charcoal"
                 )}
               >
-                {r} km
+                {r} กม.
               </button>
             ))}
           </div>
@@ -185,33 +186,33 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-warm-charcoal/60">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-3 rounded-full bg-warm-charcoal ring-2 ring-white" />
-              Within {radiusKm} km
+              ในระยะ {radiusKm} กม.
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-[#8f9bb0]" />
-              Further away
+              ไกลออกไป
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-3 rounded-full border-2 border-dashed border-warm-charcoal bg-warm-bg" />
-              Approximate location
+              ตำแหน่งโดยประมาณ
             </span>
-            <span>Drag the house pin to move it</span>
+            <span>ลากหมุดรูปบ้านเพื่อย้ายจุด</span>
           </div>
         </div>
 
         {/* Nearest schools */}
         <div className="flex h-[360px] sm:h-[480px] flex-col overflow-hidden rounded-[2rem] border border-warm-accent bg-warm-cream">
           <div className="flex items-center justify-between border-b border-warm-accent px-5 py-3.5">
-            <h3 className="text-sm font-bold text-warm-charcoal">Nearest first</h3>
-            <span className="text-xs text-warm-charcoal/60">{nearby.length} schools</span>
+            <h3 className="text-sm font-bold text-warm-charcoal">เรียงจากใกล้ที่สุด</h3>
+            <span className="text-xs text-warm-charcoal/60">{nearby.length} แห่ง</span>
           </div>
 
           <div ref={listRef} className="relative flex-1 overflow-y-auto scrollbar-thin">
             {schools.length === 0 ? (
-              <p className="p-5 text-sm text-warm-charcoal/60">Loading schools…</p>
+              <p className="p-5 text-sm text-warm-charcoal/60">กำลังโหลดรายชื่อโรงเรียน…</p>
             ) : nearby.length === 0 ? (
               <p className="p-5 text-sm text-warm-charcoal/60">
-                No schools within {radiusKm} km. Try a larger radius.
+                ไม่มีโรงเรียนในระยะ {radiusKm} กม. ลองขยายรัศมี
               </p>
             ) : (
               nearby.map((school) => {
@@ -239,15 +240,15 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-warm-charcoal line-clamp-1">{school.name}</div>
+                        <div className="text-sm font-semibold text-warm-charcoal line-clamp-1">{schoolNames(school).primary}</div>
                         <div className="mt-0.5 text-xs text-warm-charcoal/60 line-clamp-1">
-                          {school.curriculum} ·{" "}
-                          {school.tuitionStart > 0 ? `from ${formatTuition(school.tuitionStart)}/yr` : "fees not published"}
+                          {curriculumLabel(school.curriculum)} ·{" "}
+                          {school.tuitionStart > 0 ? `เริ่มต้น ${formatTuition(school.tuitionStart)}/ปี` : "ยังไม่เปิดเผยค่าเทอม"}
                         </div>
                       </div>
                       <span
                         className="shrink-0 text-xs font-semibold tabular-nums text-warm-bronze"
-                        title={approximate ? "Approximate location" : undefined}
+                        title={approximate ? "ตำแหน่งโดยประมาณ" : undefined}
                       >
                         {approximate ? "≈ " : ""}
                         {formatDistance(distances.get(school.id) ?? 0)}
@@ -262,7 +263,7 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
                         }}
                         className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-warm-charcoal hover:text-warm-bronze cursor-pointer"
                       >
-                        View school
+                        ดูโรงเรียน
                         <ArrowRight className="size-3.5" />
                       </button>
                     )}

@@ -1,6 +1,7 @@
 import React from "react";
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
+import { curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 
 interface CompareModalProps {
   compareIds: number[];
@@ -56,7 +57,7 @@ export function CompareModal({
         <div className="flex-1 overflow-x-auto overflow-y-auto p-4 sm:p-6">
           {selectedSchools.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-sm text-warm-charcoal/60">ยังไม่ได้เลือกโรงเรียน ติ๊ก Add to compare บนการ์ดโรงเรียนเพื่อเลือก</p>
+              <p className="text-sm text-warm-charcoal/60">ยังไม่ได้เลือกโรงเรียน ติ๊ก "เพิ่มเพื่อเปรียบเทียบ" บนการ์ดโรงเรียนเพื่อเลือก</p>
             </div>
           ) : (
             <div className="min-w-[640px]">
@@ -104,8 +105,11 @@ export function CompareModal({
                         }}
                         className="font-bold text-sm text-warm-charcoal hover:text-warm-bronze cursor-pointer line-clamp-2"
                       >
-                        {s.name}
+                        {schoolNames(s).primary}
                       </h3>
+                      {schoolNames(s).secondary && (
+                        <p className="mt-0.5 line-clamp-1 text-[11px] text-warm-charcoal/55">{schoolNames(s).secondary}</p>
+                      )}
                       <div className="flex items-center gap-1 mt-1 text-xs">
                         {s.reviewCount > 0 && s.rating > 0 ? (
                           <span className="text-amber-500 font-semibold">
@@ -149,7 +153,7 @@ export function CompareModal({
                     className="py-3 border-t border-warm-accent/40 text-sm font-medium text-warm-charcoal"
                   >
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-warm-accent/50 text-warm-charcoal">
-                      {s.curriculum}
+                      {curriculumLabel(s.curriculum)}
                     </span>
                   </div>
                 ))}
@@ -224,7 +228,7 @@ export function CompareModal({
                     key={`lang-${s.id}`}
                     className="py-3 border-t border-warm-accent/40 text-xs text-warm-charcoal/80"
                   >
-                    {s.language}
+                    {languageLabel(s.language)}
                   </div>
                 ))}
               </div>

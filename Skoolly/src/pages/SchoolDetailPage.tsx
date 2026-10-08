@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { School, SchoolDetail } from "@/types";
 import { getSchoolDetail } from "@/api/schoolsApi";
 import { getSchoolInitials } from "@/components/schools/SchoolCard";
+import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
 
 // ─── StarRating ─────────────────────────────────────────────────────────────
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
@@ -24,7 +25,7 @@ const TAB_LABELS: Record<string, string> = {
   Fees: "ค่าเทอม",
   Gallery: "รูปภาพ",
   Reviews: "รีวิว",
-  Forum: "ฟอรัม",
+  Forum: "ชุมชน",
 };
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
     (school as any).last_updated;
   const lastUpdatedDisplay = formatLastUpdated(rawLastUpdated);
 
+  const names = schoolNames(school);
   const logoSrc = detail.logoUrl || school.logoUrl || (school.image?.startsWith("http") ? school.image : null);
 
   return (
@@ -151,7 +153,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
             {logoSrc && !logoFailed ? (
               <img
                 src={logoSrc}
-                alt={`โลโก้ ${school.name}`}
+                alt={`ตราโรงเรียน ${names.primary}`}
                 referrerPolicy="no-referrer"
                 className="max-h-full max-w-full object-contain"
                 onError={() => setLogoFailed(true)}
@@ -168,7 +170,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
             <div className="flex items-center gap-2 flex-wrap mb-1.5">
               {school.badge && (
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full text-white bg-warm-bronze shadow-xs">
-                  {school.badge}
+                  {badgeLabel(school.badge)}
                 </span>
               )}
               {detail.schoolCode && (
@@ -178,12 +180,12 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               )}
             </div>
 
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl text-white font-bold leading-tight">
-              {school.name}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl text-white font-bold leading-snug">
+              {names.primary}
             </h1>
-            {school.nameTh && school.nameTh !== school.name && (
+            {names.secondary && (
               <p className="text-slate-300 text-sm sm:text-base mt-1 font-normal">
-                {school.nameTh}
+                {names.secondary}
               </p>
             )}
 
@@ -200,7 +202,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               <span>·</span>
               <span>{school.location}</span>
               <span>·</span>
-              <span>หลักสูตร {school.curriculum}</span>
+              <span>หลักสูตร {curriculumLabel(school.curriculum)}</span>
             </div>
           </div>
         </div>
@@ -293,7 +295,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                     ["นักเรียน", detail.students],
                     ["ครู", detail.teacherCount ? `${detail.teacherCount.toLocaleString()} คน` : "ไม่มีข้อมูล"],
                     ["นักเรียนต่อครู", detail.studentTeacherRatio ? `${detail.studentTeacherRatio} : 1` : "ไม่มีข้อมูล"],
-                    ["หลักสูตร", detail.curriculums?.length ? detail.curriculums.join(", ") : school.curriculum],
+                    ["หลักสูตร", detail.curriculums?.length ? detail.curriculums.join(", ") : curriculumLabel(school.curriculum)],
                     ["ระดับชั้น", detail.levelRange || school.grades || "ไม่มีข้อมูล"],
                     ["หอพัก", detail.isBoarding ? "มี" : "ไม่มี"],
                     ["สมาชิก ISAT", detail.isIsatMember ? "เป็นสมาชิก" : "ไม่ได้เป็นสมาชิก"],
@@ -479,7 +481,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   <div key={i} className="overflow-hidden rounded-2xl bg-slate-100 h-48">
                     <img
                       src={img.startsWith("http") ? img : `https://images.unsplash.com/${img}?w=600&h=400&fit=crop&auto=format`}
-                      alt={`${school.name} photo ${i + 1}`}
+                      alt={`รูปที่ ${i + 1} ของ ${names.primary}`}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
                   </div>

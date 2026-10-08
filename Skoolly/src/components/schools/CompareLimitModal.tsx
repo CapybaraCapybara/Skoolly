@@ -1,6 +1,7 @@
 import React from "react";
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
+import { curriculumLabel, schoolNames } from "@/lib/labels";
 
 interface CompareLimitModalProps {
   currentSchools: School[];
@@ -31,7 +32,7 @@ export function CompareLimitModal({
               เปรียบเทียบได้ครั้งละ {MAX_COMPARE} โรงเรียน
             </h3>
             <p className="text-sm text-warm-charcoal/60 mt-1">
-              เลือกโรงเรียนที่จะเอาออก เพื่อใส่ {newSchool.name} แทน
+              เลือกโรงเรียนที่จะเอาออก เพื่อใส่ {schoolNames(newSchool).primary} แทน
             </p>
           </div>
           <button
@@ -67,10 +68,10 @@ export function CompareLimitModal({
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-warm-charcoal truncate">
-                    {s.name}
+                    {schoolNames(s).primary}
                   </div>
                   <div className="text-[11px] text-warm-charcoal/60">
-                    {s.curriculum} · {s.tuitionStart > 0 ? `฿${s.tuitionStart.toLocaleString()}/ปี` : "ไม่มีข้อมูลค่าเทอม"}
+                    {curriculumLabel(s.curriculum)} ·{s.tuitionStart > 0 ? `฿${s.tuitionStart.toLocaleString()}/ปี` : "ไม่มีข้อมูลค่าเทอม"}
                   </div>
                 </div>
               </div>

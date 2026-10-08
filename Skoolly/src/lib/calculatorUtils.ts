@@ -219,7 +219,7 @@ export function calculateSchoolCosts(
   state: CalculatorState
 ): CalculationResult {
   const safeSchool: ScrapedSchoolData = school || {
-    school_name: "International School",
+    school_name: "โรงเรียนนานาชาติ",
     homepage_url: "",
     status: "ok",
     page_scraped: "",
@@ -370,8 +370,8 @@ export function calculateSchoolCosts(
     });
   }
 
-  const startLabel = grades[startIndex]?.display_name || grades[startIndex]?.grade_level || "Grade 1";
-  const endLabel = grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.display_name || grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.grade_level || `Grade ${duration}`;
+  const startLabel = grades[startIndex]?.display_name || grades[startIndex]?.grade_level || "ชั้นปีที่ 1";
+  const endLabel = grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.display_name || grades[Math.min(startIndex + duration - 1, grades.length - 1)]?.grade_level || `ชั้นปีที่ ${duration}`;
 
   // Insert Base Tuition line item at position 3
   lineItems.splice(3, 0, {
