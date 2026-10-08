@@ -160,7 +160,7 @@ export default function App() {
 
   const currentNav: NavKey | null =
     view === "home" || (typeof view === "object" && view.type === "school")
-      ? "schools"
+      ? "home"
       : view === "calculator" || (typeof view === "object" && view.type === "calculator")
         ? "calculator"
         : view === "forum"
