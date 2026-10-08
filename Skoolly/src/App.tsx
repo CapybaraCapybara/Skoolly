@@ -115,9 +115,10 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
-  const goLogin = useCallback((mode?: "signin" | "signup") => {
+  // Always opens on the sign-in form; the form links to sign-up
+  const goLogin = useCallback(() => {
     setView("login");
-    window.location.hash = mode === "signup" ? "signup" : "login";
+    window.location.hash = "login";
     window.scrollTo(0, 0);
   }, []);
 
@@ -142,11 +143,6 @@ export default function App() {
     });
   }
 
-  // If in login view, render dedicated LoginPage in full screen
-  if (view === "login") {
-    return <LoginPage onNavigateHome={goHome} />;
-  }
-
   // If in admin view, render Database AdminPage in full screen
   if (view === "admin" || view === "supabase-admin") {
     return (
@@ -165,8 +161,8 @@ export default function App() {
   const navBar = (
     <div className="sticky top-0 z-30 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: "blur(12px)" }}>
       <Navbar
-        onSignUp={() => goLogin("signup")}
-        onLogin={() => goLogin("signin")}
+        onSignUp={goLogin}
+        onLogin={goLogin}
         compareCount={compareIds.length}
         favoritesCount={favorites.size}
         onFavorites={goFavorites}
@@ -181,7 +177,11 @@ export default function App() {
   );
 
   let pageContent;
-  if (view === "forum") {
+  if (view === "login") {
+    // Shown with the normal navbar; #signup opens it in sign-up mode, #login / #signin in sign-in mode
+    const authMode = window.location.hash.replace(/^#\/?/, "") === "signup" ? "signup" : "signin";
+    pageContent = <LoginPage onNavigateHome={goHome} initialMode={authMode} />;
+  } else if (view === "forum") {
     pageContent = <ForumPage onSchoolClick={goSchool} />;
   } else if (view === "calculator" || (typeof view === "object" && view.type === "calculator")) {
     const initialId = typeof view === "object" && "schoolId" in view ? view.schoolId : undefined;

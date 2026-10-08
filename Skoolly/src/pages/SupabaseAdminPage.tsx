@@ -28,6 +28,7 @@ import {
   RefreshCw,
   Eye,
   BookOpen,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OpecSchoolRecord, ScraperProgressState, PendingVersionRecord } from "@/types/opec";
