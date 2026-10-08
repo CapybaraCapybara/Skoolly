@@ -1,17 +1,52 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, BookOpen, Calculator, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { ArrowRight, BookOpen, Calculator, Check, ChevronLeft, ChevronRight, Loader2, MessageSquare, Search, X } from "lucide-react";
 import Hero, { type HeroStat } from "@/components/schools/Hero";
-import { SchoolCard, formatTuition } from "@/components/schools/SchoolCard";
+import { SchoolCard } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
-import { NearbySchools } from "@/components/schools/NearbySchools";
-import type { School, Filters } from "@/types";
-import { CURRICULA, GRADES, LANGUAGES, LOCATIONS, MAX_COMPARE } from "@/constants";
+import { NearbySchools, distanceKm } from "@/components/schools/NearbySchools";
+import type { School, Filters, SortKey } from "@/types";
+import { FEE_SLIDER, LEVEL_OPTIONS, SORT_OPTIONS } from "@/constants";
 import { getSchools } from "@/api/schoolsApi";
-import { filterOptionLabel } from "@/lib/labels";
+import { schoolNames } from "@/lib/labels";
+import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 9;
 
 const filterLabel = "block text-xs font-bold text-warm-charcoal/60 mb-1.5";
+const selectClass =
+  "w-full cursor-pointer rounded-xl border border-warm-accent bg-white/70 px-3 py-2.5 text-sm text-warm-charcoal transition focus:border-warm-bronze focus:outline-none focus:ring-2 focus:ring-warm-bronze/30";
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+        active
+          ? "border-warm-charcoal bg-warm-charcoal text-white"
+          : "border-warm-accent bg-white/70 text-warm-charcoal/80 hover:border-warm-bronze hover:text-warm-charcoal"
+      )}
+    >
+      {active && <Check className="size-3.5" />}
+      {children}
+    </button>
+  );
+}
+
+/** Option list built from the data, most common first, with how many schools have each value */
+function countOptions(valuesPerSchool: string[][]) {
+  const counts = new Map<string, number>();
+  valuesPerSchool.forEach((values) => new Set(values).forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1)));
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "th"))
+    .map(([value, count]) => ({ value, count }));
+}
+
+const byThaiName = (a: School, b: School) => schoolNames(a).primary.localeCompare(schoolNames(b).primary, "th");
+// Schools without a published fee go last in both fee orders
+const feeOrLast = (s: School, last: number) => (s.tuitionStart > 0 ? s.tuitionStart : last);
 
 function getPageNumbers(current: number, total: number): (number | string)[] {
   if (total <= 7) {
@@ -27,12 +62,13 @@ function getPageNumbers(current: number, total: number): (number | string)[] {
 }
 
 const DEFAULT_FILTERS: Filters = {
-  searchQuery: "",
-  curriculum: "All Curricula",
-  gradeLevel: "All Grades",
-  tuitionMax: 700,
-  location: "Any Distance",
-  language: "All Languages",
+  query: "",
+  province: "",
+  curriculum: "",
+  maxFee: null,
+  levels: [],
+  isatOnly: false,
+  boardingOnly: false,
 };
 
 interface HomePageProps {
@@ -56,8 +92,12 @@ export function HomePage({
   onOpenCalculator,
   onCompareLimitReached,
 }: HomePageProps) {
+  // Filters apply as soon as they change; sorting is kept separate from filtering
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [sortBy, setSortBy] = useState<SortKey>("name-th");
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -91,40 +131,103 @@ export function HomePage({
     return rated.reduce((sum, s) => sum + s.rating * s.reviewCount, 0) / weight;
   }, [schools]);
 
-  // Reset to page 1 whenever applied filters change
+  // Province and curriculum choices come from the data, so every value in the database can be picked
+  const provinceOptions = useMemo(() => countOptions(schools.map((s) => (s.province ? [s.province] : []))), [schools]);
+  const curriculumOptions = useMemo(() => countOptions(schools.map((s) => s.curricula ?? [])), [schools]);
+  const isatCount = useMemo(() => schools.filter((s) => s.isIsatMember).length, [schools]);
+  const boardingCount = useMemo(() => schools.filter((s) => s.isBoarding).length, [schools]);
+  // How many schools teach each level, shown on the level chips
+  const levelCounts = useMemo(
+    () => new Map(countOptions(schools.map((s) => s.levels ?? [])).map((o) => [o.value, o.count])),
+    [schools]
+  );
+  const feeKnownCount = useMemo(() => schools.filter((s) => s.tuitionStart > 0).length, [schools]);
+
+  const filteredSchools = useMemo(() => {
+    const q = filters.query.trim().toLowerCase();
+
+    const list = schools
+      .filter((s) => {
+        if (q && ![s.name, s.nameTh, s.location].some((t) => t?.toLowerCase().includes(q))) return false;
+        if (filters.province && s.province !== filters.province) return false;
+        if (filters.curriculum && !(s.curricula ?? []).includes(filters.curriculum)) return false;
+        if (filters.levels.length > 0 && !filters.levels.every((lv) => (s.levels ?? []).includes(lv))) return false;
+        // A fee filter can only vouch for schools that have published their fees
+        if (filters.maxFee != null && !(s.tuitionStart > 0 && s.tuitionStart <= filters.maxFee)) return false;
+        if (filters.isatOnly && !s.isIsatMember) return false;
+        if (filters.boardingOnly && !s.isBoarding) return false;
+        return true;
+      })
+      .map((s) => (sortBy === "distance" && userPos && s.coords ? { ...s, distance: distanceKm(userPos, s.coords) } : s));
+
+    const NONE = Number.MAX_SAFE_INTEGER;
+    return list.sort((a, b) => {
+      switch (sortBy) {
+        case "name-en":
+          return a.name.localeCompare(b.name, "en");
+        case "opec":
+          // OPEC codes are 10-digit strings, so text order is code order; schools without one go last
+          return (a.schoolCode ?? "￿").localeCompare(b.schoolCode ?? "￿");
+        case "distance":
+          return (a.coords ? a.distance : NONE) - (b.coords ? b.distance : NONE) || byThaiName(a, b);
+        case "students":
+          return (b.studentCount ?? -1) - (a.studentCount ?? -1) || byThaiName(a, b);
+        case "fee-asc":
+          return feeOrLast(a, NONE) - feeOrLast(b, NONE) || byThaiName(a, b);
+        case "fee-desc":
+          return feeOrLast(b, -1) - feeOrLast(a, -1) || byThaiName(a, b);
+        default:
+          return byThaiName(a, b);
+      }
+    });
+  }, [schools, filters, sortBy, userPos]);
+
+  // Back to page 1 whenever the filters or the order change
   useEffect(() => {
     setCurrentPage(1);
-  }, [appliedFilters]);
+  }, [filters, sortBy]);
 
-  // Filter based on applied filters, not instantly on typing
-  const filteredSchools = schools.filter((s) => {
-    // School name search (matches English name, Thai name, or location)
-    if (appliedFilters.searchQuery && appliedFilters.searchQuery.trim() !== "") {
-      const q = appliedFilters.searchQuery.toLowerCase().trim();
-      const matchEn = s.name.toLowerCase().includes(q);
-      const matchTh = s.nameTh ? s.nameTh.toLowerCase().includes(q) : false;
-      const matchLoc = s.location ? s.location.toLowerCase().includes(q) : false;
-      if (!matchEn && !matchTh && !matchLoc) return false;
-    }
-    if (appliedFilters.curriculum !== "All Curricula" && s.curriculum !== appliedFilters.curriculum) return false;
-    if (appliedFilters.gradeLevel !== "All Grades") {
-      const g = (s.grades || "").toLowerCase();
-      const gl = appliedFilters.gradeLevel;
-      if (gl.includes("Pre-K") && !g.match(/pre-k|kindergarten|อนุบาล|early|ey|nursery|kg/i)) return false;
-      if (gl.includes("Primary") && !g.match(/primary|ประถม|gr 1|grade 1|year 1|k - 12|k-12/i)) return false;
-      if (gl.includes("Middle") && !g.match(/middle|มัธยมต้น|gr 6|grade 6|year 7|k - 12|k-12/i)) return false;
-      if (gl.includes("High") && !g.match(/high|มัธยมปลาย|secondary|gr 9|grade 9|year 10|sixth form|k - 12|k-12/i)) return false;
-    }
-    if (appliedFilters.language !== "All Languages" && s.language !== appliedFilters.language) return false;
-    if (s.tuitionStart / 1000 > appliedFilters.tuitionMax) return false;
-    if (appliedFilters.location === "Within 5 km" && s.distance > 5) return false;
-    if (appliedFilters.location === "Within 10 km" && s.distance > 10) return false;
-    if (appliedFilters.location === "Within 20 km" && s.distance > 20) return false;
-    return true;
-  });
-
-  const setFilter = (key: keyof Filters, value: string | number) =>
+  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
+
+  const toggleLevel = (level: string) =>
+    setFilter(
+      "levels",
+      filters.levels.includes(level) ? filters.levels.filter((l) => l !== level) : [...filters.levels, level]
+    );
+
+  const activeFilterCount =
+    [filters.query.trim(), filters.province, filters.curriculum].filter(Boolean).length +
+    (filters.maxFee != null ? 1 : 0) +
+    filters.levels.length +
+    (filters.isatOnly ? 1 : 0) +
+    (filters.boardingOnly ? 1 : 0);
+
+  // "Nearest first" needs the visitor's location; ask for it the first time that order is picked
+  const changeSort = (next: SortKey) => {
+    setGeoError(null);
+    if (next !== "distance" || userPos) {
+      setSortBy(next);
+      return;
+    }
+    if (!("geolocation" in navigator)) {
+      setGeoError("เบราว์เซอร์นี้แชร์ตำแหน่งไม่ได้ จึงเรียงตามระยะทางไม่ได้");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setSortBy("distance");
+        setLocating(false);
+      },
+      () => {
+        setGeoError("หาตำแหน่งไม่ได้ ตรวจสอบว่าเบราว์เซอร์อนุญาตให้ใช้ตำแหน่ง");
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredSchools.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -160,140 +263,136 @@ export function HomePage({
       {/* ── SEARCH / FILTER PANEL ─────────────────────────────────────────── */}
       <section className="relative z-10 -mt-12 pb-4">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="bg-warm-cream rounded-[2rem] shadow-xl p-6 md:p-8 border border-warm-accent">
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-4 h-4 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className="text-sm font-bold tracking-tight text-warm-charcoal">ตัวกรอง</span>
-              <span className="ml-auto text-xs text-warm-bronze font-bold">พบ {filteredSchools.length} แห่ง</span>
+          <div className="bg-warm-cream rounded-[2rem] shadow-xl p-5 sm:p-6 md:p-8 border border-warm-accent">
+            {/* Name search */}
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-warm-charcoal/40" />
+              <input
+                type="text"
+                value={filters.query}
+                onChange={(e) => setFilter("query", e.target.value)}
+                aria-label="ค้นหาชื่อโรงเรียน"
+                placeholder="ค้นหาชื่อโรงเรียน ไทยหรืออังกฤษ"
+                className="w-full rounded-full border border-warm-accent bg-white py-3.5 pl-11 pr-11 text-sm text-warm-charcoal placeholder:text-warm-charcoal/40 transition focus:border-warm-bronze focus:outline-none focus:ring-2 focus:ring-warm-bronze/30"
+              />
+              {filters.query && (
+                <button
+                  type="button"
+                  onClick={() => setFilter("query", "")}
+                  className="absolute right-3 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-warm-charcoal/50 transition-colors hover:bg-warm-accent/60 hover:text-warm-charcoal cursor-pointer"
+                  aria-label="ล้างข้อความค้นหา"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
 
-            {/* School Name Instant Search Bar (Filter ทันที) */}
-            <div className="mb-5">
-              <label className={filterLabel}>ชื่อโรงเรียน</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={filters.searchQuery || ""}
-                  onChange={(e) => setFilter("searchQuery", e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setAppliedFilters(filters);
-                      document.getElementById("schools")?.scrollIntoView({ behavior: "smooth" });
-                    }
-                  }}
-                  placeholder="พิมพ์ชื่อไทยหรืออังกฤษ เช่น ร่วมฤดี, Bangkok Prep, NIST"
-                  className="w-full border border-warm-accent rounded-xl pl-10 pr-10 py-3 text-sm text-warm-charcoal bg-white/90 placeholder:text-warm-charcoal/40 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition shadow-inner"
-                />
-                <svg className="w-4 h-4 text-warm-charcoal/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                {filters.searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setFilter("searchQuery", "")}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-warm-charcoal/50 hover:text-warm-charcoal bg-warm-accent/50 hover:bg-warm-accent rounded-full w-5 h-5 flex items-center justify-center cursor-pointer transition-colors"
-                    title="ล้างข้อความค้นหา"
-                  >
-                    ✕
-                  </button>
+            {/* Province, curriculum, fee */}
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <label>
+                <span className={filterLabel}>จังหวัด</span>
+                <select value={filters.province} onChange={(e) => setFilter("province", e.target.value)} className={selectClass}>
+                  <option value="">ทุกจังหวัด</option>
+                  {provinceOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.value} ({o.count})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className={filterLabel}>หลักสูตร</span>
+                <select value={filters.curriculum} onChange={(e) => setFilter("curriculum", e.target.value)} className={selectClass}>
+                  <option value="">ทุกหลักสูตร</option>
+                  {curriculumOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.value} ({o.count})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div>
+                <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                  <label htmlFor="fee-slider" className="text-xs font-bold text-warm-charcoal/60">
+                    ค่าเทอมต่อปี
+                  </label>
+                  <span className="text-xs font-bold text-warm-bronze">
+                    {filters.maxFee == null ? "ไม่จำกัด" : `ไม่เกิน ฿${filters.maxFee.toLocaleString("en-US")}`}
+                  </span>
+                </div>
+                {/* Same height as the selects next to it; the top end of the slider means no limit */}
+                <div className="flex h-[42px] items-center">
+                  <input
+                    id="fee-slider"
+                    type="range"
+                    min={FEE_SLIDER.min}
+                    max={FEE_SLIDER.max}
+                    step={FEE_SLIDER.step}
+                    value={filters.maxFee ?? FEE_SLIDER.max}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setFilter("maxFee", value >= FEE_SLIDER.max ? null : value);
+                    }}
+                    aria-valuetext={filters.maxFee == null ? "ไม่จำกัด" : `ไม่เกิน ${filters.maxFee.toLocaleString("en-US")} บาท`}
+                    className="h-1.5 w-full cursor-pointer"
+                  />
+                </div>
+                {filters.maxFee != null && (
+                  <span className="mt-1 block text-xs text-warm-charcoal/55">
+                    นับเฉพาะโรงเรียนที่ประกาศค่าเทอมแล้ว ตอนนี้มี {feeKnownCount} แห่ง
+                  </span>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
-              {/* Curriculum */}
+            {/* Levels and other options */}
+            <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:gap-10">
               <div>
-                <label className={filterLabel}>หลักสูตร</label>
-                <select
-                  value={filters.curriculum}
-                  onChange={(e) => setFilter("curriculum", e.target.value)}
-                  className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
-                >
-                  {CURRICULA.map((c) => <option key={c} value={c}>{filterOptionLabel(c)}</option>)}
-                </select>
+                <span className={filterLabel}>ระดับชั้นที่ต้องการ</span>
+                <div className="flex flex-wrap gap-2">
+                  {LEVEL_OPTIONS.map((lv) => (
+                    <Chip key={lv.value} active={filters.levels.includes(lv.value)} onClick={() => toggleLevel(lv.value)}>
+                      {lv.label} <span className="opacity-60">{levelCounts.get(lv.value) ?? 0}</span>
+                    </Chip>
+                  ))}
+                </div>
+                {filters.levels.length > 1 && (
+                  <span className="mt-1.5 block text-xs text-warm-charcoal/55">แสดงเฉพาะโรงเรียนที่เปิดสอนครบทุกระดับที่เลือก</span>
+                )}
               </div>
-
-              {/* Grade Level */}
               <div>
-                <label className={filterLabel}>ระดับชั้น</label>
-                <select
-                  value={filters.gradeLevel}
-                  onChange={(e) => setFilter("gradeLevel", e.target.value)}
-                  className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
-                >
-                  {GRADES.map((g) => <option key={g} value={g}>{filterOptionLabel(g)}</option>)}
-                </select>
-              </div>
-
-              {/* Teaching Language */}
-              <div>
-                <label className={filterLabel}>ภาษาที่ใช้สอน</label>
-                <select
-                  value={filters.language}
-                  onChange={(e) => setFilter("language", e.target.value)}
-                  className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
-                >
-                  {LANGUAGES.map((l) => <option key={l} value={l}>{filterOptionLabel(l)}</option>)}
-                </select>
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className={filterLabel}>ที่ตั้ง</label>
-                <select
-                  value={filters.location}
-                  onChange={(e) => setFilter("location", e.target.value)}
-                  className="w-full border border-warm-accent rounded-xl px-3 py-3 text-sm text-warm-charcoal bg-white/70 focus:outline-none focus:ring-2 focus:ring-warm-bronze transition"
-                >
-                  {LOCATIONS.map((l) => <option key={l} value={l}>{filterOptionLabel(l)}</option>)}
-                </select>
-              </div>
-
-              {/* Tuition Range */}
-              <div className="sm:col-span-2 lg:col-span-2">
-                <label className={filterLabel}>
-                  ค่าเทอมต่อปีไม่เกิน <span className="text-warm-bronze font-bold">{formatTuition(filters.tuitionMax * 1000)}</span>
-                </label>
-                <div className="flex items-center gap-3 py-2">
-                  <span className="text-xs text-warm-charcoal/50 shrink-0">฿100,000</span>
-                  <input
-                    type="range"
-                    min={100}
-                    max={700}
-                    step={10}
-                    value={filters.tuitionMax}
-                    onChange={(e) => setFilter("tuitionMax", Number(e.target.value))}
-                    className="flex-1 h-1.5 rounded-full accent-warm-bronze bg-warm-accent"
-                  />
-                  <span className="text-xs text-warm-charcoal/50 shrink-0">฿700,000+</span>
+                <span className={filterLabel}>อื่น ๆ</span>
+                <div className="flex flex-wrap gap-2">
+                  <Chip active={filters.isatOnly} onClick={() => setFilter("isatOnly", !filters.isatOnly)}>
+                    สมาชิก ISAT <span className="opacity-60">{isatCount}</span>
+                  </Chip>
+                  <Chip active={filters.boardingOnly} onClick={() => setFilter("boardingOnly", !filters.boardingOnly)}>
+                    มีหอพัก <span className="opacity-60">{boardingCount}</span>
+                  </Chip>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-warm-accent/40">
-              <button
-                onClick={() => {
-                  setFilters(DEFAULT_FILTERS);
-                  setAppliedFilters(DEFAULT_FILTERS);
-                }}
-                className="sm:order-first text-sm text-warm-charcoal/60 hover:text-warm-charcoal font-semibold px-4 py-2.5 transition-colors cursor-pointer"
+            {/* Results are live; this just jumps to them */}
+            <div className="mt-6 flex items-center justify-between gap-3 border-t border-warm-accent/50 pt-4">
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="text-sm font-semibold text-warm-charcoal/60 transition-colors hover:text-warm-charcoal cursor-pointer"
+                >
+                  ล้างตัวกรอง ({activeFilterCount})
+                </button>
+              ) : (
+                <span className="hidden text-sm text-warm-charcoal/50 sm:inline">ผลลัพธ์อัปเดตทันทีที่เลือก</span>
+              )}
+              <a
+                href="#schools"
+                className="ml-auto inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-warm-charcoal px-6 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-warm-charcoal/90"
               >
-                ล้างตัวกรอง
-              </button>
-              <button
-                onClick={() => {
-                  setAppliedFilters(filters);
-                  document.getElementById("schools")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="flex-1 sm:flex-none sm:ml-auto flex items-center justify-center gap-2 px-8 py-3 rounded-full text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 transition-all shadow-md active:scale-[0.98] cursor-pointer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                ค้นหา
-              </button>
+                ดูรายชื่อ {filteredSchools.length} แห่ง
+                <ArrowRight className="size-4" />
+              </a>
             </div>
           </div>
         </div>
@@ -314,8 +413,31 @@ export function HomePage({
                 {compareIds.length > 0 && <span className="text-warm-bronze font-medium"> · เลือกเปรียบเทียบ {compareIds.length} แห่ง</span>}
               </p>
             </div>
-            <span className="text-xs text-warm-charcoal/60">เปรียบเทียบได้สูงสุด {MAX_COMPARE} แห่ง</span>
+            <div className="flex items-center gap-3">
+              {locating && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-warm-charcoal/60">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  กำลังหาตำแหน่ง…
+                </span>
+              )}
+              <label className="flex items-center gap-2 text-sm text-warm-charcoal/60">
+                เรียงตาม
+                <select
+                  value={sortBy}
+                  onChange={(e) => changeSort(e.target.value as SortKey)}
+                  disabled={locating}
+                  className="cursor-pointer rounded-full border border-warm-accent bg-warm-cream px-3.5 py-2 text-sm font-medium text-warm-charcoal transition focus:border-warm-bronze focus:outline-none focus:ring-2 focus:ring-warm-bronze/30 disabled:opacity-60"
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
+          {geoError && <p className="-mt-3 mb-5 text-sm text-rose-700">{geoError}</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {loadState === "loading" ? (

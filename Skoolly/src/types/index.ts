@@ -18,7 +18,12 @@ export interface School {
   nameTh?: string;
   schoolCode?: string | null;
   curriculum: string;
+  /** Every curriculum the school lists with OPEC, e.g. "สหราชอาณาจักร (British)" */
+  curricula?: string[];
   location: string;
+  province?: string;
+  /** Levels from OPEC: ก่อนอนุบาล, อนุบาล, ประถมศึกษา, มัธยมศึกษาตอนต้น, มัธยมศึกษาตอนปลาย */
+  levels?: string[];
   tuitionStart: number;
   tuitionMax?: number | null;
   rating: number;
@@ -106,13 +111,20 @@ export interface SchoolDetail {
 
 // ─── Filters (UI state only — not persisted) ──────────────────────────────────
 export interface Filters {
-  searchQuery?: string;
+  query: string;
+  /** "" = every province */
+  province: string;
+  /** "" = every curriculum; otherwise an OPEC curriculum name */
   curriculum: string;
-  gradeLevel: string;
-  tuitionMax: number;
-  location: string;
-  language: string;
+  /** Max yearly fee in baht; null = no limit */
+  maxFee: number | null;
+  /** Levels the school must offer, all of them */
+  levels: string[];
+  isatOnly: boolean;
+  boardingOnly: boolean;
 }
+
+export type SortKey = "name-th" | "name-en" | "opec" | "distance" | "students" | "fee-asc" | "fee-desc";
 
 // ─── Forum (stored in DB) ─────────────────────────────────────────────────────
 export interface Comment {
