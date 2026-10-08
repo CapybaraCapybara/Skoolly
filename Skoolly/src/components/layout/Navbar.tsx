@@ -11,7 +11,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -29,18 +28,17 @@ import {
   MessageSquare,
   Menu,
   ArrowUpRight,
-  User,
   Heart,
   GitCompare,
-  Sparkles,
-  ChevronDown,
-  ExternalLink,
-  ShieldCheck,
-  MoreHorizontal,
+  LogOut,
 } from 'lucide-react';
+import { BrandLogo, HeaderShell, NAV_PILL_CLASS } from '@/components/layout/HeaderShell';
+
+export type NavKey = 'schools' | 'calculator' | 'community' | 'favorites';
 
 interface NavbarProps {
-  onSignUp?: () => void;
+  /** Page the user is on, highlighted in the bar */
+  current?: NavKey | null;
   onLogin?: () => void;
   compareCount?: number;
   onCompare?: () => void;
@@ -48,13 +46,29 @@ interface NavbarProps {
   onForum?: () => void;
   onHome?: () => void;
   onAdmin?: () => void;
-  onScrape?: () => void;
   favoritesCount?: number;
   onFavorites?: () => void;
 }
 
+// One look for every item in the bar: links and dropdown triggers alike
+const navItem = (active = false) =>
+  cn(
+    'h-9 rounded-full bg-transparent px-2.5 py-0 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer xl:px-3',
+    'focus:bg-transparent focus-visible:bg-warm-accent/50',
+    'data-open:bg-warm-card data-open:text-warm-charcoal data-popup-open:bg-warm-card data-popup-open:text-warm-charcoal',
+    active
+      ? 'bg-warm-card text-warm-charcoal hover:bg-warm-card focus:bg-warm-card'
+      : 'text-warm-charcoal/70 hover:bg-warm-accent/50 hover:text-warm-charcoal'
+  );
+
+const iconButton =
+  'relative flex size-9 shrink-0 items-center justify-center rounded-full text-warm-charcoal/70 transition-colors hover:bg-warm-accent/50 hover:text-warm-charcoal cursor-pointer';
+
+const drawerItem =
+  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-left font-medium text-warm-charcoal transition-colors hover:bg-warm-cream cursor-pointer';
+
 export function Navbar({
-  onSignUp,
+  current = null,
   onLogin,
   compareCount = 0,
   onCompare,
@@ -62,7 +76,6 @@ export function Navbar({
   onForum,
   onHome,
   onAdmin,
-  onScrape,
   favoritesCount = 0,
   onFavorites,
 }: NavbarProps) {
@@ -101,133 +114,99 @@ export function Navbar({
     setSheetOpen(false);
   };
 
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || '';
+
   return (
-    <header className="sticky top-0 z-40 w-full py-2.5 sm:py-3.5 bg-warm-bg/95 border-b border-warm-accent/30 transition-all backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-3 sm:px-6 lg:px-8">
-        {/* Floating Navbar Pill */}
-        <nav
-          aria-label="Main Navigation"
-          className="flex h-14 sm:h-16 w-full items-center justify-between gap-1.5 sm:gap-3 rounded-full border border-warm-accent bg-warm-cream/95 px-2.5 sm:px-4 shadow-xs transition-all"
-        >
-          {/* ── 1. LOGO ──────────────────────────────────────────────────────── */}
-          <button
-            onClick={onHome}
-            className="flex items-center gap-2 pl-1 sm:pl-2 pr-1 hover:opacity-85 transition-opacity shrink-0 cursor-pointer"
-            aria-label="Skoolly Home"
-          >
-            <div className="flex h-8 w-8 sm:h-8.5 sm:w-8.5 items-center justify-center rounded-xl text-white bg-warm-bronze shadow-2xs">
-              <BookOpen className="size-4" />
-            </div>
-            <span className="text-base sm:text-lg font-bold tracking-tight text-warm-charcoal">
-              Skool<span className="text-warm-bronze">ly</span>
-            </span>
-          </button>
+    <HeaderShell adminActive={false} onToggleAdmin={onAdmin}>
+      <nav aria-label="Main Navigation" className={NAV_PILL_CLASS}>
+        <BrandLogo onClick={onHome} label="Skoolly Home" />
 
-          {/* ── 2. DESKTOP NAVIGATION (Visible on >= lg / 1024px) ─────────────── */}
-          <div className="hidden lg:flex items-center justify-center min-w-0 flex-1 px-1">
-            <NavigationMenu
-              className={cn(
-                'static max-w-full',
-                '[&>div:last-child]:inset-x-0 [&>div:last-child]:top-full [&>div:last-child]:w-full',
-                '[&_[data-slot=navigation-menu-viewport]]:mx-auto [&_[data-slot=navigation-menu-viewport]]:-mt-4 [&_[data-slot=navigation-menu-viewport]]:max-w-4xl [&_[data-slot=navigation-menu-viewport]]:ring-0',
-                '[&_[data-slot=navigation-menu-viewport]]:rounded-[2rem] [&_[data-slot=navigation-menu-viewport]]:border [&_[data-slot=navigation-menu-viewport]]:border-warm-accent',
-                '[&_[data-slot=navigation-menu-viewport]]:bg-warm-cream [&_[data-slot=navigation-menu-viewport]]:shadow-2xl',
-                '[&_[data-slot=navigation-menu-viewport]]:transition-all [&_[data-slot=navigation-menu-viewport]]:duration-200'
-              )}
-            >
-              <NavigationMenuList className="gap-0.5 xl:gap-1 flex-nowrap">
-                {/* Browse Schools */}
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
-                    href="#schools"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onHome?.();
-                    }}
-                  >
-                    Browse Schools
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
+        {/* ── Desktop links (>= lg) ─────────────────────────────────────────── */}
+        <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
+          <NavigationMenu className="max-w-full">
+            <NavigationMenuList className="flex-nowrap gap-0.5">
+              <NavigationMenuItem>
+                <NavigationMenuLink
+                  href="#schools"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onHome?.();
+                  }}
+                  className={navItem(current === 'schools')}
+                >
+                  Browse Schools
+                </NavigationMenuLink>
+              </NavigationMenuItem>
 
-                {/* Cost Calculator */}
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    href="#calculator"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onCalculator?.();
-                    }}
-                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
-                  >
-                    Cost Calculator
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink
+                  href="#calculator"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onCalculator?.();
+                  }}
+                  className={navItem(current === 'calculator')}
+                >
+                  Cost Calculator
+                </NavigationMenuLink>
+              </NavigationMenuItem>
 
-                {/* Find by Criteria (Dropdown) */}
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
-                    Find by Criteria
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="p-0">
-                    <div className="grid w-3xl grid-cols-3 gap-6 divide-x divide-warm-accent px-8 py-8">
-                      <div className="flex flex-col gap-3">
-                        <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-card">
-                          <GraduationCap className="h-5 w-5 text-warm-bronze" />
-                        </div>
-                        <h4 className="text-sm font-semibold text-warm-charcoal">By Curriculum</h4>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          {['British', 'American', 'IB', 'Bilingual'].map((c) => (
-                            <a
-                              key={c}
-                              href="#schools"
-                              className="rounded-full border border-warm-accent px-2.5 py-0.5 text-xs font-medium text-warm-charcoal/80 hover:border-warm-bronze hover:text-warm-bronze transition-colors"
-                            >
-                              {c}
-                            </a>
-                          ))}
-                        </div>
+              {/* Find by Criteria (dropdown) */}
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={navItem()}>Find by Criteria</NavigationMenuTrigger>
+                <NavigationMenuContent className="p-0">
+                  <div className="grid w-3xl grid-cols-3 gap-6 divide-x divide-warm-accent px-8 py-8">
+                    <div className="flex flex-col gap-3">
+                      <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-card">
+                        <GraduationCap className="h-5 w-5 text-warm-bronze" />
                       </div>
-
-                      <div className="flex flex-col gap-3 pl-6">
-                        <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-card">
-                          <MapPin className="h-5 w-5 text-warm-bronze" />
-                        </div>
-                        <h4 className="text-sm font-semibold text-warm-charcoal">By Location</h4>
-                        <div className="flex flex-col gap-2 mt-1">
-                          {topLocations.map(
-                            (loc) => (
-                              <a
-                                key={loc}
-                                href="#schools"
-                                className="text-sm font-medium tracking-tight text-warm-charcoal/70 transition-colors hover:text-warm-bronze"
-                              >
-                                {loc}
-                              </a>
-                            )
-                          )}
-                        </div>
+                      <h4 className="text-sm font-semibold text-warm-charcoal">By Curriculum</h4>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {['British', 'American', 'IB', 'Bilingual'].map((c) => (
+                          <a
+                            key={c}
+                            href="#schools"
+                            className="rounded-full border border-warm-accent px-2.5 py-0.5 text-xs font-medium text-warm-charcoal/80 transition-colors hover:border-warm-bronze hover:text-warm-bronze"
+                          >
+                            {c}
+                          </a>
+                        ))}
                       </div>
+                    </div>
 
-                      {topSchool && (
+                    <div className="flex flex-col gap-3 pl-6">
+                      <div className="mb-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-card">
+                        <MapPin className="h-5 w-5 text-warm-bronze" />
+                      </div>
+                      <h4 className="text-sm font-semibold text-warm-charcoal">By Location</h4>
+                      <div className="mt-1 flex flex-col gap-2">
+                        {topLocations.map((loc) => (
+                          <a
+                            key={loc}
+                            href="#schools"
+                            className="text-sm font-medium tracking-tight text-warm-charcoal/70 transition-colors hover:text-warm-bronze"
+                          >
+                            {loc}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+
+                    {topSchool && (
                       <div className="flex flex-col pl-6">
-                        <h4 className="mb-4 text-xs text-warm-charcoal/60 uppercase">Top Ranked</h4>
+                        <h4 className="mb-4 text-xs uppercase text-warm-charcoal/60">Top Ranked</h4>
                         <a
                           href="#schools"
-                          className="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-5 ring ring-warm-bronze/40 transition-all bg-warm-card"
+                          className="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl bg-warm-card p-5 ring ring-warm-bronze/40 transition-all"
                         >
                           <div>
-                            <Badge
-                              variant="outline"
-                              className="mb-3 border-warm-accent bg-warm-cream text-warm-bronze text-xs"
-                            >
-                              <Star className="size-3 mr-1 fill-current" /> Top Rated
+                            <Badge variant="outline" className="mb-3 border-warm-accent bg-warm-cream text-xs text-warm-bronze">
+                              <Star className="mr-1 size-3 fill-current" /> Top Rated
                             </Badge>
-                            <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">
-                              {topSchool.name}
-                            </h4>
+                            <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">{topSchool.name}</h4>
                             <p className="text-xs text-warm-charcoal/70">
-                              {topSchool.curriculum} curriculum · {topSchool.rating.toFixed(1)}★ · {topSchool.reviewCount.toLocaleString('en-US')} parent reviews
+                              {topSchool.curriculum} curriculum · {topSchool.rating.toFixed(1)}★ ·{' '}
+                              {topSchool.reviewCount.toLocaleString('en-US')} parent reviews
                             </p>
                           </div>
                           <div className="mt-3 flex items-center text-xs font-semibold text-warm-bronze">
@@ -236,376 +215,252 @@ export function Navbar({
                           </div>
                         </a>
                       </div>
-                      )}
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+                    )}
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
 
-                {/* AI Tools (Dropdown) */}
-                <NavigationMenuItem className="hidden xl:block">
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
-                    AI Tools
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="p-0">
-                    <div className="grid w-md max-w-[calc(100vw-3rem)] grid-cols-1 gap-4 px-6 py-6">
-                      <a
-                        href="#features"
-                        className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 hover:border-warm-bronze transition-all"
-                      >
-                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white bg-warm-charcoal">
-                          <MessageSquare className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-warm-charcoal mb-1">
-                            AI School Advisor
-                          </h4>
-                          <p className="text-xs text-warm-charcoal/70">
-                            Describe what you need and get a shortlist of schools.
-                          </p>
-                        </div>
-                      </a>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
+              {/* AI Tools (dropdown, >= xl; folded into More below that) */}
+              <NavigationMenuItem className="hidden xl:block">
+                <NavigationMenuTrigger className={navItem()}>AI Tools</NavigationMenuTrigger>
+                <NavigationMenuContent className="p-0">
+                  <div className="grid w-md max-w-[calc(100vw-3rem)] grid-cols-1 gap-4 px-6 py-6">
+                    <a
+                      href="#features"
+                      className="group flex flex-col gap-3 rounded-2xl border border-warm-accent bg-warm-card p-5 transition-all hover:border-warm-bronze"
+                    >
+                      <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-warm-charcoal text-white">
+                        <MessageSquare className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="mb-1 text-sm font-semibold text-warm-charcoal">AI School Advisor</h4>
+                        <p className="text-xs text-warm-charcoal/70">
+                          Describe what you need and get a shortlist of schools.
+                        </p>
+                      </div>
+                    </a>
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
 
-                {/* Compare */}
-                <NavigationMenuItem>
-                  <NavigationMenuLink
-                    href="#compare"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onCompare?.();
-                    }}
-                    className="flex items-center gap-1.5 rounded-full bg-transparent px-2 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
-                  >
-                    <span>Compare</span>
+              <NavigationMenuItem>
+                <NavigationMenuLink
+                  href="#compare"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onCompare?.();
+                  }}
+                  className={cn(navItem(), 'gap-1.5')}
+                >
+                  Compare
+                  {compareCount > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warm-bronze px-1 text-[10px] font-bold text-white">
+                      {compareCount}
+                    </span>
+                  )}
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+
+              {/* Community (>= xl; folded into More below that) */}
+              <NavigationMenuItem className="hidden xl:block">
+                <NavigationMenuLink
+                  href="#forum"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onForum?.();
+                  }}
+                  className={navItem(current === 'community')}
+                >
+                  Community
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+
+              {/* More (lg only): what doesn't fit */}
+              <NavigationMenuItem className="xl:hidden">
+                <NavigationMenuTrigger className={navItem(current === 'community')}>More</NavigationMenuTrigger>
+                <NavigationMenuContent className="p-0">
+                  <div className="flex w-56 flex-col gap-1 p-2">
+                    <a
+                      href="#features"
+                      className="flex items-center gap-2.5 rounded-xl p-2 text-sm font-medium text-warm-charcoal transition-colors hover:bg-warm-card"
+                    >
+                      <MessageSquare className="size-4 text-warm-bronze" />
+                      AI School Advisor
+                    </a>
+                    <button
+                      type="button"
+                      onClick={onForum}
+                      className="flex items-center gap-2.5 rounded-xl p-2 text-left text-sm font-medium text-warm-charcoal transition-colors hover:bg-warm-card cursor-pointer"
+                    >
+                      <Star className="size-4 text-warm-bronze" />
+                      Community
+                    </button>
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
+
+        {/* ── Right side ────────────────────────────────────────────────────── */}
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={onFavorites}
+            className={cn(iconButton, current === 'favorites' && 'bg-warm-card text-warm-charcoal')}
+            title="Saved schools"
+            aria-label="Saved schools"
+          >
+            <Heart className={cn('size-4', favoritesCount > 0 && 'fill-rose-500 text-rose-500')} />
+            {favoritesCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-warm-cream">
+                {favoritesCount}
+              </span>
+            )}
+          </button>
+
+          {/* Compare shortcut below lg, where the Compare link is hidden */}
+          {compareCount > 0 && (
+            <button type="button" onClick={onCompare} className={cn(iconButton, 'lg:hidden')} title="Compare" aria-label="Compare">
+              <GitCompare className="size-4 text-warm-bronze" />
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warm-bronze px-1 text-[9px] font-bold text-white ring-2 ring-warm-cream">
+                {compareCount}
+              </span>
+            </button>
+          )}
+
+          {user ? (
+            <div className="ml-1 flex h-9 items-center gap-2 rounded-full border border-warm-accent bg-warm-card pl-1 pr-1">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="size-7 rounded-full object-cover" />
+              ) : (
+                <span className="flex size-7 items-center justify-center rounded-full bg-warm-charcoal text-xs font-bold text-white">
+                  {(displayName || 'U').charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="hidden max-w-[110px] truncate text-sm font-medium text-warm-charcoal md:inline">{displayName}</span>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="flex size-7 items-center justify-center rounded-full text-warm-charcoal/50 transition-colors hover:bg-warm-accent hover:text-warm-charcoal cursor-pointer"
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut className="size-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onLogin}
+              className="ml-1 hidden h-9 items-center rounded-full bg-warm-charcoal px-4 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 sm:inline-flex cursor-pointer"
+            >
+              Log in
+            </button>
+          )}
+
+          {/* ── Mobile & tablet drawer (< lg) ─────────────────────────────── */}
+          <div className="lg:hidden">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger className={iconButton} aria-label="Open navigation menu">
+                <Menu className="size-5" />
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="flex w-[320px] max-w-[85vw] flex-col gap-5 overflow-y-auto border-l border-warm-accent bg-warm-bg p-6 text-warm-charcoal shadow-2xl"
+              >
+                <div className="border-b border-warm-accent/50 pb-3">
+                  <BrandLogo onClick={() => handleMobileNav(onHome)} label="Skoolly Home" />
+                </div>
+
+                <div className="flex flex-col gap-1.5 text-sm">
+                  <button onClick={() => handleMobileNav(onHome)} className={drawerItem}>
+                    <BookOpen className="size-4 text-warm-bronze" />
+                    Browse Schools
+                  </button>
+
+                  <button onClick={() => handleMobileNav(onCalculator)} className={drawerItem}>
+                    <Calculator className="size-4 text-warm-bronze" />
+                    Cost Calculator
+                  </button>
+
+                  <button onClick={() => handleMobileNav(onFavorites)} className={cn(drawerItem, 'justify-between')}>
+                    <span className="flex items-center gap-3">
+                      <Heart className={cn('size-4', favoritesCount > 0 ? 'fill-rose-500 text-rose-500' : 'text-warm-bronze')} />
+                      Saved Schools
+                    </span>
+                    {favoritesCount > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">
+                        {favoritesCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button onClick={() => handleMobileNav(onCompare)} className={cn(drawerItem, 'justify-between')}>
+                    <span className="flex items-center gap-3">
+                      <GitCompare className="size-4 text-warm-bronze" />
+                      Compare
+                    </span>
                     {compareCount > 0 && (
-                      <span className="flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white bg-warm-bronze">
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warm-bronze px-1.5 text-xs font-bold text-white">
                         {compareCount}
                       </span>
                     )}
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
+                  </button>
 
-                {/* Community (Visible on >= xl) */}
-                <NavigationMenuItem className="hidden xl:block">
-                  <NavigationMenuLink
-                    href="#forum"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onForum?.();
-                    }}
-                    className="rounded-full bg-transparent px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-colors hover:text-warm-bronze cursor-pointer whitespace-nowrap"
-                  >
+                  <Accordion className="w-full">
+                    <AccordionItem value="criteria" className="border-none">
+                      <AccordionTrigger className="flex items-center justify-between rounded-xl px-3 py-2.5 font-medium text-warm-charcoal hover:bg-warm-cream hover:no-underline">
+                        <span className="flex items-center gap-3">
+                          <GraduationCap className="size-4 text-warm-bronze" />
+                          Find by Criteria
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="flex flex-col gap-2 pb-2 pl-9 pr-3 pt-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-warm-charcoal/50">Curriculums</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {['British', 'American', 'IB', 'Bilingual'].map((c) => (
+                            <a
+                              key={c}
+                              href="#schools"
+                              onClick={() => setSheetOpen(false)}
+                              className="rounded-full border border-warm-accent bg-warm-cream px-2.5 py-1 text-xs text-warm-charcoal/80 hover:border-warm-bronze"
+                            >
+                              {c}
+                            </a>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
+                  <button onClick={() => handleMobileNav(onForum)} className={drawerItem}>
+                    <Star className="size-4 text-warm-bronze" />
                     Community
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-
-                {/* Scrape Management Button (Visible on >= 2xl) */}
-                <NavigationMenuItem className="hidden 2xl:block">
-                  <button
-                    type="button"
-                    onClick={onScrape || onAdmin}
-                    className="flex items-center gap-1 rounded-full bg-warm-card px-2.5 py-1 text-xs font-bold text-warm-charcoal/90 border border-warm-accent transition-all hover:border-warm-bronze hover:text-warm-bronze shadow-2xs whitespace-nowrap cursor-pointer shrink-0"
-                    title="Admin console"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>Admin</span>
                   </button>
-                </NavigationMenuItem>
 
-                {/* ── Overflow / More Dropdown (Visible on lg to xl screens) ── */}
-                <NavigationMenuItem className="block 2xl:hidden">
-                  <NavigationMenuTrigger className="h-auto rounded-full bg-transparent px-2.5 py-1.5 text-xs xl:text-sm font-medium text-warm-charcoal/80 transition-all hover:bg-warm-accent/50 hover:text-warm-charcoal focus:bg-transparent data-[state=open]:bg-warm-accent whitespace-nowrap">
-                    <MoreHorizontal className="size-4 mr-1 text-warm-charcoal/60" />
-                    <span>More</span>
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="p-0">
-                    <div className="flex flex-col gap-2 p-3 w-64 bg-warm-card rounded-2xl border border-warm-accent shadow-xl">
-                      <a
-                        href="#features"
-                        className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-warm-cream transition-colors text-xs font-semibold text-warm-charcoal"
-                      >
-                        <MessageSquare className="size-4 text-warm-bronze" />
-                        <span>AI School Advisor</span>
-                      </a>
-
-                      <button
-                        onClick={onForum}
-                        className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-warm-cream transition-colors text-xs font-semibold text-warm-charcoal text-left cursor-pointer"
-                      >
-                        <Star className="size-4 text-warm-bronze" />
-                        <span>Community</span>
-                      </button>
-
-                      <div className="my-1 border-t border-warm-accent/60" />
-
-                      <button
-                        type="button"
-                        onClick={onScrape || onAdmin}
-                        className="flex items-center justify-between p-2 rounded-xl bg-warm-cream hover:bg-warm-accent/50 transition-colors text-xs font-bold text-warm-charcoal text-left cursor-pointer border border-warm-accent/50"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          Admin console
-                        </span>
-                      </button>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
-
-          {/* ── 3. ACTIONS (Right Side - Fully adaptive) ──────────────────────── */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Favorites Heart Icon (Visible on ALL devices) */}
-            <button
-              type="button"
-              onClick={onFavorites}
-              className="relative flex items-center justify-center rounded-full text-warm-charcoal/80 hover:text-rose-600 hover:bg-rose-50/80 p-2 transition-all cursor-pointer size-8 sm:size-9 shrink-0"
-              title="Saved schools"
-              aria-label="Favorites"
-            >
-              <Heart
-                className={`size-4 sm:size-4.5 transition-transform hover:scale-110 active:scale-95 ${
-                  favoritesCount > 0 ? 'text-rose-500 fill-rose-500' : ''
-                }`}
-              />
-              {favoritesCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[9px] font-bold text-white bg-rose-500 ring-2 ring-warm-cream shadow-xs">
-                  {favoritesCount}
-                </span>
-              )}
-            </button>
-
-            {/* Quick Compare Badge on Tablet/Mobile (Visible on < lg when compareCount > 0) */}
-            {compareCount > 0 && (
-              <button
-                type="button"
-                onClick={onCompare}
-                className="lg:hidden relative flex items-center justify-center rounded-full text-warm-charcoal/80 hover:bg-warm-accent/50 p-2 transition-colors cursor-pointer size-8"
-                title="Compare"
-                aria-label="Compare"
-              >
-                <GitCompare className="size-4 text-warm-bronze" />
-                <span className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 px-0.5 items-center justify-center rounded-full text-[8px] font-bold text-white bg-warm-bronze">
-                  {compareCount}
-                </span>
-              </button>
-            )}
-
-            {/* User Profile / Auth State */}
-            {user ? (
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <div className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full bg-warm-card border border-warm-accent/80 text-xs font-medium text-warm-charcoal shadow-2xs">
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="avatar"
-                      className="w-5 h-5 rounded-full object-cover border border-warm-accent"
-                    />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-warm-charcoal text-white flex items-center justify-center text-[10px] font-bold">
-                      {(profile?.display_name || user.email || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <span className="hidden md:inline max-w-[90px] truncate text-[11px] font-semibold text-warm-charcoal">
-                    {profile?.display_name || user.email?.split('@')[0]}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => signOut()}
-                    className="text-[10px] text-gray-400 hover:text-red-600 transition-colors ml-0.5 cursor-pointer font-medium"
-                    title="ออกจากระบบ (Sign Out)"
-                  >
-                    ออก
-                  </button>
+                  <a href="#features" onClick={() => setSheetOpen(false)} className={drawerItem}>
+                    <MessageSquare className="size-4 text-warm-bronze" />
+                    AI School Advisor
+                  </a>
                 </div>
-              </div>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onLogin}
-                  className="rounded-full text-warm-charcoal/70 hover:bg-warm-accent/50 size-8 sm:size-8.5 shrink-0 cursor-pointer"
-                  title="เข้าสู่ระบบ (Sign In)"
-                  aria-label="User Account"
-                >
-                  <User className="size-4" />
-                </Button>
 
-                <Button
-                  onClick={onSignUp}
-                  className="hidden sm:inline-flex rounded-full px-3.5 lg:px-4 py-1.5 text-xs xl:text-sm font-semibold text-white bg-warm-charcoal hover:bg-warm-charcoal/90 whitespace-nowrap shadow-xs transition-all shrink-0 cursor-pointer"
-                >
-                  Sign Up Free
-                </Button>
-              </>
-            )}
-
-            {/* ── 4. MOBILE & TABLET DRAWER (Visible on < lg / < 1024px) ───────── */}
-            <div className="lg:hidden">
-              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetTrigger
-                  className="inline-flex items-center justify-center rounded-full p-2 text-warm-charcoal hover:bg-warm-accent/50 transition-colors cursor-pointer size-8.5"
-                  aria-label="Open navigation menu"
-                >
-                  <Menu className="size-5" />
-                </SheetTrigger>
-                <SheetContent
-                  side="right"
-                  className="flex w-[320px] max-w-[85vw] flex-col gap-5 p-6 bg-warm-bg text-warm-charcoal border-l border-warm-accent shadow-2xl overflow-y-auto"
-                >
-                  {/* Drawer Logo */}
-                  <div className="flex items-center gap-2 pb-2 border-b border-warm-accent/50">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg text-white bg-warm-bronze">
-                      <BookOpen className="size-4" />
-                    </div>
-                    <span className="text-base font-bold text-warm-charcoal">
-                      Skool<span className="text-warm-bronze">ly</span>
-                    </span>
-                  </div>
-
-                  {/* Drawer Navigation Links */}
-                  <div className="flex flex-col gap-1.5 text-sm">
-                    {/* Primary actions */}
+                {!user && (
+                  <div className="mt-auto border-t border-warm-accent/50 pt-4">
                     <button
-                      onClick={() => handleMobileNav(onHome)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
-                    >
-                      <BookOpen className="size-4 text-warm-bronze" />
-                      <span>Browse Schools</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleMobileNav(onCalculator)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
-                    >
-                      <Calculator className="size-4 text-warm-bronze" />
-                      <span>Cost Calculator</span>
-                    </button>
-
-                    <button
-                      onClick={() => handleMobileNav(onFavorites)}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
-                    >
-                      <span className="flex items-center gap-3">
-                        <Heart
-                          className={`size-4 ${
-                            favoritesCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-warm-bronze'
-                          }`}
-                        />
-                        <span>Saved Schools</span>
-                      </span>
-                      {favoritesCount > 0 && (
-                        <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full text-xs font-bold text-white bg-rose-500">
-                          {favoritesCount}
-                        </span>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => handleMobileNav(onCompare)}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
-                    >
-                      <span className="flex items-center gap-3">
-                        <GitCompare className="size-4 text-warm-bronze" />
-                        <span>Compare</span>
-                      </span>
-                      {compareCount > 0 && (
-                        <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full text-xs font-bold text-white bg-warm-bronze">
-                          {compareCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* Criteria Accordion */}
-                    <Accordion className="w-full">
-                      <AccordionItem value="criteria" className="border-none">
-                        <AccordionTrigger className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal hover:no-underline">
-                          <span className="flex items-center gap-3">
-                            <GraduationCap className="size-4 text-warm-bronze" />
-                            <span>Find by Criteria</span>
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-1 pb-2 pl-9 pr-3 flex flex-col gap-2">
-                          <span className="text-[10px] text-warm-charcoal/50 uppercase font-bold tracking-wider">
-                            Curriculums
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {['British', 'American', 'IB', 'Bilingual'].map((c) => (
-                              <a
-                                key={c}
-                                href="#schools"
-                                onClick={() => setSheetOpen(false)}
-                                className="px-2.5 py-1 rounded-full text-xs bg-warm-cream border border-warm-accent text-warm-charcoal/80 hover:border-warm-bronze"
-                              >
-                                {c}
-                              </a>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-
-                    {/* Community */}
-                    <button
-                      onClick={() => handleMobileNav(onForum)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
-                    >
-                      <Star className="size-4 text-warm-bronze" />
-                      <span>Community</span>
-                    </button>
-
-                    {/* AI Advisor */}
-                    <a
-                      href="#features"
-                      onClick={() => setSheetOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-warm-cream font-medium text-warm-charcoal text-left transition-colors cursor-pointer"
-                    >
-                      <MessageSquare className="size-4 text-warm-bronze" />
-                      <span>AI School Advisor</span>
-                    </a>
-
-                    {/* Scrape Management (Admin) */}
-                    <div className="pt-2 mt-2 border-t border-warm-accent/50">
-                      <button
-                        type="button"
-                        onClick={() => handleMobileNav(onScrape || onAdmin)}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-warm-cream/70 hover:bg-warm-accent/50 border border-warm-accent/60 font-semibold text-warm-charcoal text-left transition-colors cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2 text-xs">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          Admin console
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Drawer Footer Buttons */}
-                  <div className="mt-auto pt-4 flex flex-col gap-2.5 border-t border-warm-accent/50">
-                    <Button
-                      variant="outline"
+                      type="button"
                       onClick={() => handleMobileNav(onLogin)}
-                      className="w-full rounded-full border-warm-accent text-warm-charcoal hover:bg-warm-cream font-semibold"
+                      className="w-full rounded-full bg-warm-charcoal py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 cursor-pointer"
                     >
                       Log in
-                    </Button>
-                    <Button
-                      onClick={() => handleMobileNav(onSignUp)}
-                      className="w-full rounded-full bg-warm-charcoal text-white hover:bg-warm-charcoal/90 font-semibold shadow-sm"
-                    >
-                      Sign Up Free
-                    </Button>
+                    </button>
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+                )}
+              </SheetContent>
+            </Sheet>
           </div>
-        </nav>
-      </div>
-    </header>
+        </div>
+      </nav>
+    </HeaderShell>
   );
 }

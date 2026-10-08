@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { Navbar } from "@/components/layout/Navbar";
+import { Navbar, type NavKey } from "@/components/layout/Navbar";
 import { HomePage } from "@/pages/HomePage";
 import { ForumPage } from "@/pages/ForumPage";
 import { SchoolDetailPage } from "@/pages/SchoolDetailPage";
@@ -158,22 +158,30 @@ export default function App() {
     );
   }
 
+  const currentNav: NavKey | null =
+    view === "home" || (typeof view === "object" && view.type === "school")
+      ? "schools"
+      : view === "calculator" || (typeof view === "object" && view.type === "calculator")
+        ? "calculator"
+        : view === "forum"
+          ? "community"
+          : view === "favorites"
+            ? "favorites"
+            : null;
+
   const navBar = (
-    <div className="sticky top-0 z-30 bg-warm-bg/95 border-b border-warm-accent/30" style={{ backdropFilter: "blur(12px)" }}>
-      <Navbar
-        onSignUp={goLogin}
-        onLogin={goLogin}
-        compareCount={compareIds.length}
-        favoritesCount={favorites.size}
-        onFavorites={goFavorites}
-        onCompare={() => setCompareModalOpen(true)}
-        onCalculator={() => goCalculator()}
-        onForum={goForum}
-        onHome={goHome}
-        onAdmin={goAdmin}
-        onScrape={goAdmin}
-      />
-    </div>
+    <Navbar
+      current={currentNav}
+      onLogin={goLogin}
+      compareCount={compareIds.length}
+      favoritesCount={favorites.size}
+      onFavorites={goFavorites}
+      onCompare={() => setCompareModalOpen(true)}
+      onCalculator={() => goCalculator()}
+      onForum={goForum}
+      onHome={goHome}
+      onAdmin={goAdmin}
+    />
   );
 
   let pageContent;

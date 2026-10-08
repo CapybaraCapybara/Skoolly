@@ -13,7 +13,6 @@ import {
   Bot,
   ShieldCheck,
   Users,
-  ArrowLeft,
   Loader2,
   Database,
   MapPin,
@@ -27,10 +26,10 @@ import {
   ExternalLink,
   RefreshCw,
   Eye,
-  BookOpen,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo, HeaderShell, NAV_PILL_CLASS } from "@/components/layout/HeaderShell";
 import type { OpecSchoolRecord, ScraperProgressState, PendingVersionRecord } from "@/types/opec";
 import {
   getSupabaseSchools,
@@ -633,63 +632,32 @@ export function SupabaseAdminPage({
 
   return (
     <div className="min-h-screen bg-warm-bg text-warm-charcoal flex flex-col antialiased">
-      {/* Top navbar — same floating pill as the parent-facing Navbar */}
-      <header className="sticky top-0 z-40 w-full py-2.5 sm:py-3.5 bg-warm-bg/95 border-b border-warm-accent/30 backdrop-blur-md">
-        <div className="mx-auto max-w-[1440px] px-3 sm:px-6 lg:px-8">
-          <nav
-            aria-label="Admin Navigation"
-            className="flex h-14 sm:h-16 items-center justify-between gap-3 rounded-full border border-warm-accent bg-warm-cream/95 px-2.5 sm:px-4 shadow-xs"
-          >
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <button
-                type="button"
-                onClick={onBack}
-                className="flex items-center gap-2 pl-1 sm:pl-2 pr-1 hover:opacity-85 transition-opacity shrink-0 cursor-pointer"
-                aria-label="กลับหน้าหลัก Skoolly"
-              >
-                <div className="flex h-8 w-8 sm:h-8.5 sm:w-8.5 items-center justify-center rounded-xl text-white bg-warm-bronze shadow-2xs">
-                  <BookOpen className="size-4" />
-                </div>
-                <span className="text-base sm:text-lg font-bold tracking-tight text-warm-charcoal">
-                  Skool<span className="text-warm-bronze">ly</span>
-                </span>
-              </button>
-              <span className="rounded-full bg-warm-charcoal px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-white shrink-0">
-                Admin
-              </span>
-              <span className="hidden lg:block h-5 w-px bg-warm-accent" />
-              <span className="hidden lg:block truncate text-sm font-medium text-warm-charcoal/70">
-                ระบบจัดการข้อมูลโรงเรียนนานาชาติ
-              </span>
-            </div>
+      {/* Same header shell as the public Navbar; the Admin switch outside the pill leads back to the site */}
+      <HeaderShell adminActive onToggleAdmin={onBack}>
+        <nav aria-label="Admin Navigation" className={NAV_PILL_CLASS}>
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandLogo onClick={onBack} label="กลับหน้าหลัก Skoolly" />
+            <span className="hidden h-5 w-px bg-warm-accent sm:block" />
+            <span className="hidden truncate text-sm font-medium text-warm-charcoal/70 sm:block">
+              ระบบจัดการข้อมูลโรงเรียนนานาชาติ
+            </span>
+          </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleOpenSupabaseModal}
-                className="inline-flex items-center gap-2 rounded-full border border-warm-accent bg-white/70 px-3 sm:px-3.5 py-2 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze cursor-pointer"
-                title="จัดการและตรวจสอบการเชื่อมต่อ Supabase Database"
-              >
-                <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-                </span>
-                <Database className="size-4 text-warm-bronze" />
-                <span className="hidden sm:inline">Supabase</span>
-              </button>
-              <button
-                type="button"
-                onClick={onBack}
-                className="inline-flex items-center gap-1.5 rounded-full bg-warm-charcoal px-3 sm:px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 cursor-pointer"
-                title="กลับสู่หน้าเว็บไซต์ Skoolly"
-              >
-                <ArrowLeft className="size-4" />
-                <span className="hidden sm:inline">กลับหน้าเว็บไซต์</span>
-              </button>
-            </div>
-          </nav>
-        </div>
-      </header>
+          <button
+            type="button"
+            onClick={handleOpenSupabaseModal}
+            className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-warm-accent bg-white/70 px-3.5 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze cursor-pointer"
+            title="จัดการและตรวจสอบการเชื่อมต่อ Supabase Database"
+          >
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+            </span>
+            <Database className="size-4 text-warm-bronze" />
+            <span className="hidden sm:inline">Supabase</span>
+          </button>
+        </nav>
+      </HeaderShell>
 
       <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex gap-6 lg:gap-8">
         {/* Sidebar Nav */}
