@@ -17,7 +17,6 @@ import {
   Bed,
 } from "lucide-react";
 import type { OpecSchoolRecord, ProvinceStat, TopSchool } from "@/types/opec";
-import { normalizeCurriculum } from "@/api/opecApi";
 
 interface OpecDashboardProps {
   schools: OpecSchoolRecord[];
@@ -27,7 +26,6 @@ interface OpecDashboardProps {
 export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) {
   const [provinceSearch, setProvinceSearch] = useState("");
   const [curriculumSearch, setCurriculumSearch] = useState("");
-  const [curriculumMode, setCurriculumMode] = useState<"normalized" | "raw">("normalized");
 
   // Aggregate KPI metrics
   const kpi = useMemo(() => {
@@ -159,13 +157,14 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
     };
   }, [schools]);
 
-  // Curriculum Stats (Standardized vs Raw)
+  // Curriculum names as stored by the pipeline (already standardized to one name per curriculum),
+  // the same list the public school filter uses
   const curriculumStats = useMemo(() => {
     const map: Record<string, number> = {};
     schools.forEach((s) => {
       const currs = s.curriculums && s.curriculums.length > 0 ? s.curriculums : ["หลักสูตรสากลทั่วไป"];
       currs.forEach((c) => {
-        const key = curriculumMode === "normalized" ? normalizeCurriculum(c) : c.trim();
+        const key = c.trim();
         map[key] = (map[key] || 0) + 1;
       });
     });
@@ -178,7 +177,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         pct: Math.round((count / total) * 100),
       }))
       .sort((a, b) => b.count - a.count);
-  }, [schools, curriculumMode]);
+  }, [schools]);
 
   const filteredCurriculums = useMemo(() => {
     if (!curriculumSearch.trim()) return curriculumStats;
@@ -679,33 +678,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <div className="flex bg-warm-cream border border-warm-accent p-1 rounded-xl text-xs">
-              <button
-                type="button"
-                onClick={() => setCurriculumMode("normalized")}
-                className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  curriculumMode === "normalized"
-                    ? "bg-warm-charcoal text-white shadow-xs"
-                    : "text-[#78716c] hover:text-warm-charcoal"
-                }`}
-              >
-                จัดกลุ่ม
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurriculumMode("raw")}
-                className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                  curriculumMode === "raw"
-                    ? "bg-warm-charcoal text-white shadow-xs"
-                    : "text-[#78716c] hover:text-warm-charcoal"
-                }`}
-              >
-                ตามชื่อ สช.
-              </button>
-            </div>
-
-            <div className="relative flex-1 min-w-[160px]">
+          <div className="mb-3">
+            <div className="relative">
               <Search className="w-4 h-4 text-[#a8a29e] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -727,11 +701,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
                     "",
                     schools.filter((s) => {
                       const list = s.curriculums && s.curriculums.length > 0 ? s.curriculums : ["หลักสูตรสากลทั่วไป"];
-                      return list.some((item) =>
-                        curriculumMode === "normalized"
-                          ? normalizeCurriculum(item) === c.name
-                          : item.trim() === c.name
-                      );
+                      return list.some((item) => item.trim() === c.name);
                     })
                   )
                 }
