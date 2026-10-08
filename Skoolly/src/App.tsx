@@ -197,7 +197,6 @@ export default function App() {
       <CostCalculatorPage
         initialSchoolId={initialId}
         onBack={goHome}
-        onSelectSchool={goSchool}
       />
     );
   } else if (typeof view === "object" && view.type === "school") {

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useDeferredValue } from "react";
 import {
-  Sparkles,
   RefreshCw,
   Search,
   ExternalLink,
@@ -12,13 +11,6 @@ import {
   Eye,
   Play,
   Loader2,
-  Layers,
-  Calendar,
-  Building,
-  HelpCircle,
-  ShieldCheck,
-  ChevronRight,
-  Filter,
 } from "lucide-react";
 import type { ScrapeLogRecord, PendingVersionRecord, ScraperProgressState } from "@/types/opec";
 import { getScrapeLogs, triggerBatchScrape } from "@/api/opecApi";
@@ -352,7 +344,6 @@ export function ScraperLogsDashboard({
                 filteredLogs.map((log, idx) => {
                   const isOk = log.status === "ok";
                   const isNoTuition = log.status === "no_tuition_found";
-                  const isError = !isOk && !isNoTuition;
 
                   const dateFormatted = log.created_at
                     ? new Date(log.created_at).toLocaleString("th-TH", {

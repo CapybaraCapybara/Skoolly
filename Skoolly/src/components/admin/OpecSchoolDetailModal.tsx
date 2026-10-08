@@ -140,12 +140,12 @@ export function OpecSchoolDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-warm-charcoal/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-warm-charcoal/60 backdrop-blur-xs overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-5xl my-auto max-h-[94vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn text-warm-charcoal">
+      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-5xl my-auto max-h-[94vh] flex flex-col shadow-2xl overflow-hidden text-warm-charcoal">
         {/* =========================================================================
             1. TOP HEADER (Exact format from user's reference image)
            ========================================================================= */}
@@ -742,7 +742,7 @@ export function OpecSchoolDetailModal({
               <span>{showJson ? "ซ่อนข้อมูลดิบ" : "ดูข้อมูลดิบ (JSON)"}</span>
             </button>
             {showJson && (
-              <div className="mt-2 relative animate-fadeIn">
+              <div className="mt-2 relative">
                 <button
                   type="button"
                   onClick={handleCopyJson}

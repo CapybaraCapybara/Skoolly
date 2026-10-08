@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   X,
   ExternalLink,
-  ShieldCheck,
   CheckCircle2,
   XCircle,
   AlertCircle,
@@ -11,13 +10,10 @@ import {
   Layers,
   Sparkles,
   ArrowRight,
-  School,
   FileText,
-  AlertTriangle,
   Loader2,
   Building,
   Check,
-  Eye,
   Calendar,
   TrendingUp,
   TrendingDown,
@@ -26,10 +22,8 @@ import {
   BookOpen,
   Info,
   Building2,
-  Clock,
-  HeartPulse,
 } from "lucide-react";
-import type { PendingVersionRecord, VersionFeeItem } from "@/types/opec";
+import type { PendingVersionRecord } from "@/types/opec";
 
 interface VersionApprovalModalProps {
   version: PendingVersionRecord | null;
@@ -118,12 +112,6 @@ export function VersionApprovalModal({
   const newCurriculums: string[] = version.scraped_curriculums || [];
   const addedCurriculums = newCurriculums.filter(
     (c) => !prevCurriculums.some((pc) => pc.toLowerCase().trim() === c.toLowerCase().trim())
-  );
-  const unchangedCurriculums = newCurriculums.filter((c) =>
-    prevCurriculums.some((pc) => pc.toLowerCase().trim() === c.toLowerCase().trim())
-  );
-  const removedCurriculums = prevCurriculums.filter(
-    (pc) => !newCurriculums.some((c) => c.toLowerCase().trim() === pc.toLowerCase().trim())
   );
 
   // Map fees for before vs after comparison
@@ -214,7 +202,7 @@ export function VersionApprovalModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-warm-charcoal/65 backdrop-blur-xs overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-warm-charcoal/65 backdrop-blur-xs overflow-y-auto"
       onClick={onClose}
     >
       <div

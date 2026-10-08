@@ -244,21 +244,19 @@ export function HomePage({
 
   return (
     <div>
-      {/* ── HERO (Hero — nav hidden via CSS override) ───────────────────── */}
-      <div className="[&_nav]:hidden">
-        <Hero
-          eyebrow="โรงเรียนนานาชาติในประเทศไทย"
-          headingPrefix="ค้นหาโรงเรียน"
-          headingHighlight="นานาชาติ"
-          headingSuffix="สำหรับลูก"
-          description={`เทียบค่าเทอม หลักสูตร และที่ตั้ง ของโรงเรียนนานาชาติ${schools.length > 0 ? ` ${schools.length.toLocaleString("en-US")} แห่ง` : ""}ที่ได้รับอนุญาตจาก สช.`}
-          primaryCtaLabel="ค้นหาโรงเรียน"
-          primaryCtaHref="#schools"
-          backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
-          stats={heroStats}
-          averageRating={averageRating}
-        />
-      </div>
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
+      <Hero
+        eyebrow="โรงเรียนนานาชาติในประเทศไทย"
+        headingPrefix="ค้นหาโรงเรียน"
+        headingHighlight="นานาชาติ"
+        headingSuffix="สำหรับลูก"
+        description={`เทียบค่าเทอม หลักสูตร และที่ตั้ง ของโรงเรียนนานาชาติ${schools.length > 0 ? ` ${schools.length.toLocaleString("en-US")} แห่ง` : ""}ที่ได้รับอนุญาตจาก สช.`}
+        primaryCtaLabel="ค้นหาโรงเรียน"
+        primaryCtaHref="#schools"
+        backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
+        stats={heroStats}
+        averageRating={averageRating}
+      />
 
       {/* ── SEARCH / FILTER PANEL ─────────────────────────────────────────── */}
       <section className="relative z-10 -mt-12 pb-4">
@@ -456,7 +454,6 @@ export function HomePage({
                   favorites={favorites}
                   onToggleCompare={onToggleCompare}
                   onToggleFavorite={onToggleFavorite}
-                  onRestrictedAction={onRestrictedAction}
                   onSchoolClick={onSchoolClick}
                   onCompareLimitReached={onCompareLimitReached}
                 />

@@ -16,8 +16,6 @@ import {
   Users,
   Info,
   GraduationCap,
-  Minus,
-  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +38,6 @@ import {
 interface CostCalculatorPageProps {
   initialSchoolId?: number;
   onBack: () => void;
-  onSelectSchool?: (id: number) => void;
 }
 
 export function CostCalculatorPage({
@@ -382,12 +379,6 @@ export function CostCalculatorPage({
         (s.curriculum && s.curriculum.toLowerCase().includes(q))
     );
   }, [schoolsData, searchQuery]);
-
-  // Maximum duration years remaining from current starting grade
-  const maxDurationYears = Math.max(
-    1,
-    grades.length > 0 ? grades.length - calcState.startingGradeIndex : 1
-  );
 
   // When starting grade changes, clamp duration to remaining years
   const handleStartingGradeChange = (newIdx: number) => {

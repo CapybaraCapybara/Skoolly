@@ -212,12 +212,12 @@ export function OpecUrlVerificationModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-warm-charcoal/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-warm-charcoal/60 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Top Header */}
         <div className="px-6 py-4 border-b border-warm-accent bg-white flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">

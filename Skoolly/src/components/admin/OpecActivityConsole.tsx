@@ -14,9 +14,6 @@ import {
   ChevronDown,
   Search,
   ArrowDownCircle,
-  Filter,
-  Sparkles,
-  Layers,
 } from "lucide-react";
 import type { ScraperProgressState } from "@/types/opec";
 
@@ -364,20 +361,16 @@ export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleP
           >
             {filteredLogs.length > 0 ? (
               filteredLogs.map((log) => {
-                let badgeColor = "text-warm-bronze bg-warm-bronze/10 border-warm-bronze/30";
                 let icon = <Info className="w-3 h-3 text-warm-bronze" />;
                 let rowBg = "hover:bg-white/[0.03]";
 
                 if (log.level === "success") {
-                  badgeColor = "text-emerald-400 bg-emerald-950/40 border-emerald-800/40";
                   icon = <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />;
                   rowBg = "hover:bg-emerald-950/20";
                 } else if (log.level === "warning") {
-                  badgeColor = "text-amber-400 bg-amber-950/40 border-amber-800/40";
                   icon = <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />;
                   rowBg = "hover:bg-amber-950/20";
                 } else if (log.level === "error") {
-                  badgeColor = "text-rose-400 bg-rose-950/40 border-rose-800/40";
                   icon = <XCircle className="w-3 h-3 text-rose-400 shrink-0" />;
                   rowBg = "bg-rose-950/10 hover:bg-rose-950/25";
                 }

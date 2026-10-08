@@ -1,4 +1,3 @@
-import React from "react";
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 import { curriculumLabel, schoolNames } from "@/lib/labels";

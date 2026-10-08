@@ -55,7 +55,7 @@ def atomic_save_json(filepath, data):
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         os.replace(tmp, filepath)
-    except Exception as e:
+    except Exception:
         # Fallback for Windows file lock
         try:
             with open(filepath, "w", encoding="utf-8") as f:

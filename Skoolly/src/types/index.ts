@@ -9,7 +9,6 @@ export type View =
   | "login"
   | { type: "school"; id: number }
   | { type: "calculator"; schoolId?: number };
-export * from "./opec";
 
 // ─── School (core record — stored in DB) ──────────────────────────────────────
 export interface School {

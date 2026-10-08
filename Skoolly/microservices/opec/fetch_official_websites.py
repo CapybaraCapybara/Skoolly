@@ -67,7 +67,6 @@ def _find_reference_file():
         d = os.path.dirname(d)
     return ""
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 REFERENCE_FILE = _find_reference_file()
 
 DISQUALIFIED_DOMAINS = {

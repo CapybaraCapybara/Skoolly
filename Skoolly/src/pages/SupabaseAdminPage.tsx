@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Layers,
-  CloudDownload,
   Trash2,
   Download,
   LayoutDashboard,
@@ -15,14 +13,10 @@ import {
   Users,
   Loader2,
   Database,
-  MapPin,
-  Globe,
   Wand2,
-  Languages,
   Award,
   Zap,
   Stamp,
-  Sparkles,
   ExternalLink,
   RefreshCw,
   Eye,

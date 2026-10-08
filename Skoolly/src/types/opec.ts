@@ -88,31 +88,12 @@ export interface ScraperProgressState {
   logs: string[];
 }
 
-export interface DashboardKpis {
-  totalSchools: number;
-  totalProvinces: number;
-  totalStudents: number;
-  avgStudents: number;
-  totalTeachers: number;
-  studentTeacherRatio: string;
-  websitesCount: number;
-  websitesPct: number;
-  gpsExactCount: number;
-  gpsExactPct: number;
-}
-
 export interface ProvinceStat {
   province: string;
   count: number;
   pct: number;
   hasWebsite: number;
   hasGps: number;
-}
-
-export interface CurriculumStat {
-  name: string;
-  count: number;
-  pct: number;
 }
 
 export interface TopSchool {

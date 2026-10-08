@@ -47,12 +47,12 @@ export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsit
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-warm-charcoal/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-warm-charcoal/60 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
+      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="p-5 border-b border-warm-accent bg-warm-cream flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import sys
 import time
 import unicodedata
 import uuid
@@ -225,7 +224,7 @@ def test_database_connection(dsn: str | None = None) -> dict[str, Any]:
         with db_connect(target_dsn, connect_timeout=5, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT 1 as ping")
-                ping_res = cur.fetchone()
+                cur.fetchone()
 
                 # Check if school_data schema exists
                 cur.execute(

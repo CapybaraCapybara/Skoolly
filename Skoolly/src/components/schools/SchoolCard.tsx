@@ -40,7 +40,6 @@ interface SchoolCardProps {
   favorites: Set<number>;
   onToggleCompare: (id: number) => void;
   onToggleFavorite: (id: number) => void;
-  onRestrictedAction: (reason: string) => void;
   onSchoolClick: (id: number) => void;
   onCompareLimitReached?: (school: School) => void;
 }

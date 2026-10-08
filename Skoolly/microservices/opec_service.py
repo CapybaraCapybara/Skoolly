@@ -283,7 +283,6 @@ def step_scrape_school(progress, school_id, school_name, website):
 def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
     """Batch scrapes all schools that have an official website into draft versions and records logs."""
     try:
-        from supabase_sync import fetch_supabase_schools
         supa_data = fetch_supabase_schools(limit=1000)
         schools = supa_data.get("schools", [])
     except Exception as e:
@@ -312,7 +311,6 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
         website = str(s.get("website") or s.get("official_website") or "").strip()
         school_id = s.get("school_id") or s.get("school_code")
         curr_num = idx + 1
-        curr_pct = round((curr_num / total) * 100)
 
         progress(f"กำลัง Scrape: {name} ({curr_num}/{total})", curr_num, total, f"[{curr_num}/{total}] กำลังสแกน {website}")
 
