@@ -253,12 +253,12 @@ export function mapSupabaseToDomainDetail(
   const fees: SchoolFee[] = [];
   if (record.pub_tuition_min_thb && record.pub_tuition_min_thb > 0) {
     fees.push({
-      label: "ค่าธรรมเนียมการศึกษาเริ่มต้น (Starting Tuition)",
+      label: "ค่าเทอมเริ่มต้น",
       amount: `฿${record.pub_tuition_min_thb.toLocaleString()} / ปี`,
     });
     if (record.pub_tuition_max_thb && record.pub_tuition_max_thb > record.pub_tuition_min_thb) {
       fees.push({
-        label: "ค่าธรรมเนียมการศึกษาสูงสุด (Maximum Tuition)",
+        label: "ค่าเทอมสูงสุด",
         amount: `฿${record.pub_tuition_max_thb.toLocaleString()} / ปี`,
       });
     }

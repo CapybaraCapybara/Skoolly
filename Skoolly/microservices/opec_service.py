@@ -56,7 +56,7 @@ from website_registry import (  # type: ignore
     get_health_state,
 )
 from enrich_from_isat import run_isat_enrichment  # type: ignore
-from public_queries import fetch_published_fees, fetch_forum_posts  # type: ignore
+from public_queries import fetch_published_fees, fetch_forum_posts, fetch_school_sources  # type: ignore
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
@@ -484,6 +484,17 @@ def get_public_fees():
         return fetch_published_fees()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/public/schools/{school_code}/sources")
+def get_public_school_sources(school_code: str):
+    """Where a school's data came from and when, plus its published safety details."""
+    try:
+        data = fetch_school_sources(school_code.strip())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if data is None:
+        raise HTTPException(status_code=404, detail="ไม่พบโรงเรียนนี้")
+    return data
 
 @app.get("/api/public/forum/posts")
 def get_public_forum_posts(limit: int = 100):

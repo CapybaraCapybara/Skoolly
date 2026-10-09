@@ -44,7 +44,7 @@ export function Hero({
             </span>
             {/* Thai: no spaces between the parts, taller line height for the vowel and tone marks,
                 and the highlight stays in the sans font (the serif has no Thai glyphs) */}
-            <h1 className="font-sans text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold leading-[1.35] tracking-tight text-warm-charcoal mb-4 sm:mb-6">
+            <h1 className="font-sans text-3xl sm:text-4xl md:text-5xl xl:text-[3.5rem] font-bold leading-[1.35] tracking-tight text-warm-charcoal mb-4 sm:mb-6">
               {headingPrefix}
               <br />
               <span className="text-warm-bronze">{headingHighlight}</span>

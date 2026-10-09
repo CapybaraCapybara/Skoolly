@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import type { School, SchoolDetail } from "@/types";
 import { getSchoolDetail } from "@/api/schoolsApi";
+import { getSchoolSources, type SchoolSafetyDetail, type SchoolSources } from "@/api/sourcesApi";
 import { getSchoolInitials } from "@/components/schools/SchoolCard";
 import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
+import { Check, ExternalLink } from "lucide-react";
 
 // ─── StarRating ─────────────────────────────────────────────────────────────
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
@@ -56,12 +58,40 @@ function formatLastUpdated(val?: string | number): string {
   return str;
 }
 
+/** "13 ก.ย. 2569" in Bangkok time; OPEC fetch times are stored as Bangkok local time without a zone */
+function formatThaiDate(value?: string | null): string | null {
+  if (!value) return null;
+  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(value) ? `${value.replace(" ", "T")}+07:00` : value;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" });
+}
+
+const hostOf = (url?: string | null) => {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+};
+
+const SAFETY_ITEMS: { key: keyof Omit<SchoolSafetyDetail, "highlights" | "policy_summary" | "policy_url">; label: string }[] = [
+  { key: "child_safeguarding_policy", label: "นโยบายคุ้มครองเด็ก" },
+  { key: "security_guards", label: "เจ้าหน้าที่รักษาความปลอดภัย" },
+  { key: "cctv_monitoring", label: "กล้องวงจรปิด" },
+  { key: "visitor_access_control", label: "ควบคุมการเข้าออกของผู้มาติดต่อ" },
+  { key: "nurse_medical_clinic", label: "ห้องพยาบาลและพยาบาล" },
+  { key: "air_quality_pm25_protocol", label: "มาตรการรับมือฝุ่น PM2.5" },
+];
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: SchoolDetailPageProps) {
   const [tab, setTab] = useState("Overview");
   const [detail, setDetail] = useState<SchoolDetail | null>(null);
   const [detailMissing, setDetailMissing] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [sources, setSources] = useState<SchoolSources | null>(null);
 
   // ── Fetch extended school detail from the API layer on mount ───────────────
   useEffect(() => {
@@ -73,6 +103,15 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
       })
       .catch(() => setDetailMissing(true));
   }, [school.id]);
+
+  // Data sources and dates, plus published safety details; the page works without them
+  useEffect(() => {
+    setSources(null);
+    if (!school.schoolCode) return;
+    getSchoolSources(school.schoolCode)
+      .then(setSources)
+      .catch(() => setSources(null));
+  }, [school.schoolCode]);
 
   if (detailMissing) {
     return (
@@ -104,6 +143,13 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
   const names = schoolNames(school);
   const logoSrc = detail.logoUrl || school.logoUrl || (school.image?.startsWith("http") ? school.image : null);
 
+  const opecDate = formatThaiDate(sources?.opec.fetched_at) ?? formatThaiDate(sources?.opec.imported_at);
+  const website = sources?.website ?? null;
+  const websiteHost = hostOf(website?.page_url);
+  const websiteDate = formatThaiDate(website?.collected_at);
+  const websiteApproved = formatThaiDate(website?.approved_at);
+  const safety = sources?.safety ?? null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── Hero Header: Branded School Presentation with Official Logo ── */}
@@ -128,12 +174,12 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
             <div
               id="school-last-updated-badge"
               className="flex items-center gap-1.5 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white text-xs font-medium px-3.5 py-1.5 rounded-full shadow-md select-none"
-              title="วันที่อัปเดตข้อมูลล่าสุด"
+              title="วันที่ข้อมูลของโรงเรียนนี้อัปเดตล่าสุด"
             >
               <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-slate-300">อัปเดต:</span>
+              <span className="text-slate-300">ข้อมูลล่าสุด</span>
               <span className="font-semibold text-white">{lastUpdatedDisplay}</span>
             </div>
 
@@ -141,7 +187,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              <span>ข้อมูลจาก สช.</span>
+              <span>{website ? "ข้อมูลจาก สช. และเว็บไซต์โรงเรียน" : "ข้อมูลจาก สช."}</span>
             </div>
           </div>
         </div>
@@ -238,10 +284,10 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 <p className="text-slate-600 text-sm leading-relaxed">{detail.about}</p>
               </div>
 
-              {/* Facilities */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="font-semibold text-navy-900 text-lg mb-3">สิ่งอำนวยความสะดวก</h2>
-                {detail.facilities && detail.facilities.length > 0 ? (
+              {/* Facilities: hidden until there is data (nothing fills detail.facilities yet) */}
+              {detail.facilities && detail.facilities.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                  <h2 className="font-semibold text-navy-900 text-lg mb-3">สิ่งอำนวยความสะดวก</h2>
                   <div className="grid grid-cols-2 gap-2">
                     {detail.facilities.map((f) => (
                       <div key={f} className="flex items-center gap-2 text-sm text-slate-700">
@@ -252,30 +298,76 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-sm text-slate-600">
-                    <p className="text-slate-600 mb-3">ยังไม่มีข้อมูล</p>
-                    {detail.website && (
-                      <a
-                        href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        ดูเว็บไซต์โรงเรียน ↗
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Child safeguarding policy */}
+              {/* Safety and child protection: published details from version_safety, shown in full */}
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="font-semibold text-navy-900 text-lg mb-3">นโยบายคุ้มครองเด็ก</h2>
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">ความปลอดภัยและการคุ้มครองเด็ก</h2>
 
-                {detail.safety?.safeguardingPolicy ? (
-                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 text-sm font-medium text-emerald-800">
-                    ✓ โรงเรียนมีนโยบายคุ้มครองเด็ก (Child Safeguarding Policy)
+                {safety ? (
+                  <div className="space-y-5">
+                    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {SAFETY_ITEMS.map((item) => {
+                        const found = safety[item.key] === true;
+                        return (
+                          <li
+                            key={item.key}
+                            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm ${
+                              found ? "border-warm-accent bg-warm-cream text-warm-charcoal" : "border-slate-100 bg-slate-50 text-slate-400"
+                            }`}
+                          >
+                            {found ? (
+                              <Check className="size-4 shrink-0 text-warm-bronze" />
+                            ) : (
+                              <span className="size-4 shrink-0 text-center leading-4">–</span>
+                            )}
+                            <span className={found ? "font-medium" : ""}>{item.label}</span>
+                            {!found && <span className="ml-auto text-xs">ไม่พบข้อมูล</span>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    {safety.highlights.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-navy-900">จุดเด่น</h3>
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-slate-600">
+                          {safety.highlights.map((h) => (
+                            <li key={h}>{h}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {safety.policy_summary && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-navy-900">สรุปนโยบาย</h3>
+                        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{safety.policy_summary}</p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                      <p className="text-xs text-slate-500">
+                        ข้อมูลจากเว็บไซต์โรงเรียน{websiteDate ? ` ณ ${websiteDate}` : ""}
+                        {SAFETY_ITEMS.some((i) => safety[i.key] !== true) && ' · "ไม่พบข้อมูล" คือเว็บไซต์ไม่ได้ระบุไว้'}
+                      </p>
+                      {safety.policy_url && (
+                        <a
+                          href={safety.policy_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-warm-accent bg-white px-4 py-2 text-xs font-semibold text-warm-charcoal transition-colors hover:border-warm-bronze"
+                        >
+                          หน้านโยบายของโรงเรียน
+                          <ExternalLink className="size-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : detail.safety?.safeguardingPolicy ? (
+                  <div className="bg-warm-cream border border-warm-accent rounded-xl p-4 text-sm font-medium text-warm-charcoal">
+                    โรงเรียนมีนโยบายคุ้มครองเด็ก
                   </div>
                 ) : (
                   <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4 text-sm text-slate-600">
@@ -307,6 +399,39 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   ))}
                 </div>
               </div>
+
+              {/* Where the data on this page came from, and when */}
+              {sources && (
+                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
+                  <h3 className="font-semibold text-navy-900 mb-3 text-sm">ที่มาของข้อมูล</h3>
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <div className="font-semibold text-navy-900">ข้อมูลทั่วไป</div>
+                      <div className="mt-0.5 text-slate-500">
+                        ระบบ สช.{opecDate ? ` · ดึงข้อมูลเมื่อ ${opecDate}` : ""}
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-50 pt-3">
+                      <div className="font-semibold text-navy-900">ค่าเทอมและความปลอดภัย</div>
+                      {website ? (
+                        <div className="mt-0.5 text-slate-500">
+                          {website.page_url ? (
+                            <a href={website.page_url} target="_blank" rel="noreferrer" className="text-teal-700 hover:underline">
+                              {websiteHost ?? "เว็บไซต์โรงเรียน"} ↗
+                            </a>
+                          ) : (
+                            "เว็บไซต์โรงเรียน"
+                          )}
+                          {websiteDate && <> · เก็บข้อมูลเมื่อ {websiteDate}</>}
+                          {websiteApproved && <div className="mt-0.5">ตรวจสอบและเผยแพร่เมื่อ {websiteApproved}</div>}
+                        </div>
+                      ) : (
+                        <div className="mt-0.5 text-slate-500">ยังไม่มีข้อมูลจากเว็บไซต์โรงเรียน</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Location */}
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
@@ -387,7 +512,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 <h3 className="font-semibold text-navy-900 mb-2 text-sm">ค่าเทอมเริ่มต้น</h3>
                 {school.tuitionStart > 0 ? (
                   <>
-                    <div className="text-2xl font-bold text-navy-900">฿{(school.tuitionStart / 1000).toFixed(0)}K</div>
+                    <div className="text-2xl font-bold text-navy-900">฿{school.tuitionStart.toLocaleString("en-US")}</div>
                     <div className="text-xs text-slate-500 mt-0.5">ต่อปี</div>
                     <button
                       onClick={() => setTab("Fees")}
@@ -424,6 +549,19 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                       <span className="font-bold text-navy-900">{f.amount}</span>
                     </div>
                   ))}
+                  {website && (
+                    <p className="pt-2 text-xs text-slate-500">
+                      ที่มา:{" "}
+                      {website.page_url ? (
+                        <a href={website.page_url} target="_blank" rel="noreferrer" className="text-teal-700 hover:underline">
+                          {websiteHost ?? "เว็บไซต์โรงเรียน"} ↗
+                        </a>
+                      ) : (
+                        "เว็บไซต์โรงเรียน"
+                      )}
+                      {websiteDate && <> · ข้อมูล ณ {websiteDate}</>}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-6 text-center mb-6">

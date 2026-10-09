@@ -2,6 +2,7 @@
 public_queries.py
 Read-only queries for the public (parent-facing) site:
 - Published tuition fees per school, shaped for the Cost Calculator
+- Where a school's data came from and when, with its published safety details
 - Approved forum posts with comments, plus forum stats
 
 Only published / approved rows are returned, so nothing here needs admin rights.
@@ -118,6 +119,67 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
         school["tuition_min_thb"] = min(amounts) if amounts else None
         school["tuition_max_thb"] = max(amounts) if amounts else None
     return result
+
+
+def _iso(value: Any) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, Any] | None:
+    """Where one school's published data came from and when, plus its published safety details.
+
+    - opec: when the OPEC record was fetched (kept in the first import snapshot)
+    - website: set only when the published version was scraped from the school's site and approved
+    - safety: from the published version only; versions still awaiting review are not shown
+    """
+    target_dsn = _require_dsn(dsn)
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT s.school_id, s.current_published_version_id,
+                       v.source_type::text AS source_type, v.scraped_page_url, v.submitted_at, v.reviewed_at,
+                       o.data_snapshot->>'fetched_at' AS opec_fetched_at, o.created_at AS opec_imported_at
+                FROM school_data.schools s
+                LEFT JOIN school_data.school_versions v ON v.version_id = s.current_published_version_id
+                LEFT JOIN LATERAL (
+                    SELECT data_snapshot, created_at FROM school_data.school_versions
+                    WHERE school_id = s.school_id AND source_type = 'opec_import'
+                    ORDER BY version_number LIMIT 1
+                ) o ON TRUE
+                WHERE s.opec_school_code = %s AND s.status <> 'archived'
+            """, (opec_code,))
+            row = cur.fetchone()
+            if not row:
+                return None
+
+            safety = None
+            if row["current_published_version_id"]:
+                cur.execute("""
+                    SELECT security_guards, cctv_monitoring, nurse_medical_clinic, child_safeguarding_policy,
+                           air_quality_pm25_protocol, visitor_access_control, highlights, policy_summary, policy_url
+                    FROM school_data.version_safety
+                    WHERE version_id = %s
+                """, (row["current_published_version_id"],))
+                safety = cur.fetchone()
+
+    website = None
+    if row["source_type"] == "scraper":
+        website = {
+            "page_url": row["scraped_page_url"],
+            "collected_at": _iso(row["submitted_at"]),
+            "approved_at": _iso(row["reviewed_at"]),
+        }
+
+    return {
+        "opec": {
+            # Local time string from the OPEC fetch, e.g. "2026-09-13 17:48:31"
+            "fetched_at": row["opec_fetched_at"],
+            "imported_at": _iso(row["opec_imported_at"]),
+        },
+        "website": website,
+        "safety": dict(safety, highlights=list(safety["highlights"] or [])) if safety else None,
+    }
 
 
 def fetch_forum_posts(limit: int = 100, dsn: str | None = None) -> dict[str, Any]:
