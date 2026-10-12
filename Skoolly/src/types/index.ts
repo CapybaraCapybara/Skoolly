@@ -31,7 +31,10 @@ export interface School {
   language: string;
   grades: string;
   image: string;
+  /** Kept as data only; the UI shows `initials` instead of school logos */
   logoUrl?: string | null;
+  /** Auto-generated from the raw English name (keeps acronyms like NIST) */
+  initials: string;
   badge?: string | null;
   lastUpdated?: string;
   studentCount?: number | null;

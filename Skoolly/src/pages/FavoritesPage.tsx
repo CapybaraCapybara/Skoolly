@@ -17,7 +17,8 @@ import {
   X,
 } from "lucide-react";
 import { School } from "@/types";
-import { StarRating, formatTuition, getSchoolInitials } from "@/components/schools/SchoolCard";
+import { StarRating, formatTuition } from "@/components/schools/SchoolCard";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { badgeLabel, curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 
 interface FavoritesPageProps {
@@ -410,24 +411,16 @@ export function FavoritesPage({
                       key={school.id}
                       className="group bg-white rounded-3xl border border-warm-accent shadow-sm hover:shadow-md hover:border-warm-bronze/40 transition-all flex flex-col overflow-hidden"
                     >
-                      {/* Logo header */}
+                      {/* Initials header */}
                       <div
                         className="relative h-44 bg-gradient-to-b from-white via-warm-cream/40 to-warm-accent/20 border-b border-warm-accent/40 flex items-center justify-center p-4 cursor-pointer group"
                         onClick={() => onSchoolClick(school.id)}
                       >
-                        {school.logoUrl || (school.image?.startsWith("http") ? school.image : null) ? (
-                          <img
-                            src={school.logoUrl || school.image}
-                            alt={`ตราโรงเรียน ${schoolNames(school).primary}`}
-                            referrerPolicy="no-referrer"
-                            className="max-h-24 max-w-[80%] object-contain drop-shadow-xs group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-2xl bg-white border border-warm-accent shadow-xs flex items-center justify-center text-warm-bronze font-bold text-lg select-none">
-                            {getSchoolInitials(school.name)}
-                          </div>
-                        )}
+                        <SchoolMonogram
+                          initials={school.initials}
+                          seed={school.name}
+                          className="size-24 rounded-3xl text-3xl shadow-xs group-hover:scale-105 transition-transform duration-300"
+                        />
 
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">

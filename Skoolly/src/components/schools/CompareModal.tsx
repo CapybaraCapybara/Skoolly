@@ -1,6 +1,7 @@
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 import { curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 
 interface CompareModalProps {
   compareIds: number[];
@@ -83,18 +84,7 @@ export function CompareModal({
                       ✕
                     </button>
                     <div className="relative h-28 rounded-xl overflow-hidden bg-slate-50 border border-warm-accent/30 flex items-center justify-center p-2.5">
-                      {s.logoUrl || (s.image?.startsWith("http") ? s.image : null) ? (
-                        <img
-                          src={s.logoUrl || s.image}
-                          alt={s.name}
-                          referrerPolicy="no-referrer"
-                          className="max-h-full max-w-[85%] object-contain"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-xl bg-warm-bronze/10 border border-warm-bronze/20 flex items-center justify-center text-warm-bronze font-bold text-sm">
-                          {s.name.slice(0, 3).toUpperCase()}
-                        </div>
-                      )}
+                      <SchoolMonogram initials={s.initials} seed={s.name} className="size-16 rounded-2xl text-xl" />
                     </div>
                     <div>
                       <h3
