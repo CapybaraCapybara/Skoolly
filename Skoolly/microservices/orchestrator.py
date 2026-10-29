@@ -14,7 +14,7 @@ class SagaRequest(BaseModel):
 # Seconds. A scrape loads pages with Playwright and may wait out several Gemini rate-limit
 # back-offs; validation and saving are quick. batch_scrape_runner.py waits a little longer
 # than the whole saga, so it never gives up on a school that is still being saved.
-SCRAPE_TIMEOUT_S = 300
+SCRAPE_TIMEOUT_S = 600  # scraper may retry Playwright once with doubled timeouts
 STEP_TIMEOUT_S = 60
 
 def post_json(url: str, data: Dict[str, Any], timeout: float = STEP_TIMEOUT_S):

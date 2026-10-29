@@ -1,3 +1,5 @@
+
+
 @echo off
 chcp 65001 >nul
 setlocal EnableDelayedExpansion
@@ -6,6 +8,7 @@ cd /d "%~dp0"
 
 rem ── Ports ─────────────────────────────────────────────────────────────
 rem  Vite proxies /api to 127.0.0.1:8004 (vite.config.ts) — change both together.
+if not defined SCRAPER_PORT set "SCRAPER_PORT=8001"
 if not defined API_PORT set "API_PORT=8004"
 if not defined WEB_PORT set "WEB_PORT=8443"
 
@@ -16,6 +19,7 @@ set "B=%ESC%[1m"
 set "DIM=%ESC%[90m"
 set "GOLD=%ESC%[33m"
 set "BLUE=%ESC%[94m"
+set "MAGENTA=%ESC%[95m"
 set "CYAN=%ESC%[36m"
 set "OK=%ESC%[92m"
 set "ERR=%ESC%[91m"
@@ -26,17 +30,27 @@ echo.
 echo   %B%%GOLD%Skoolly%R%%B% · Dev Server%R%
 echo %LINE%
 echo   %DIM%Service      Port    URL%R%
+echo   %MAGENTA%Scraper%R%      %B%%SCRAPER_PORT%%R%    http://127.0.0.1:%SCRAPER_PORT%   %DIM%FastAPI + Playwright + Gemini%R%
 echo   %BLUE%Backend%R%      %B%%API_PORT%%R%    http://127.0.0.1:%API_PORT%   %DIM%FastAPI, auto-reloads on .py changes%R%
 echo   %CYAN%Frontend%R%     %B%%WEB_PORT%%R%    http://localhost:%WEB_PORT%    %DIM%Vite%R%
 echo %LINE%
 echo.
 
 rem ── Pre-flight checks ─────────────────────────────────────────────────
-where python >nul 2>&1 || (set "MSG=python was not found in PATH" & goto :fail)
+if defined VIRTUAL_ENV (
+    set "PYTHON_EXE=python"
+) else if exist ".venv\Scripts\python.exe" (
+    set "PYTHON_EXE=.venv\Scripts\python.exe"
+) else (
+    set "PYTHON_EXE=python"
+)
+
+"%PYTHON_EXE%" -c "import sys" >nul 2>&1 || (set "MSG=python was not found in PATH or .venv" & goto :fail)
 where node   >nul 2>&1 || (set "MSG=node was not found in PATH" & goto :fail)
 if not exist "node_modules\vite\bin\vite.js" (set "MSG=Dependencies are not installed. Run npm install first." & goto :fail)
 
 set "BUSY="
+call :port_up %SCRAPER_PORT% && set "BUSY=!BUSY! port %SCRAPER_PORT% (scraper)"
 call :port_up %API_PORT% && set "BUSY=!BUSY! port %API_PORT% (backend)"
 call :port_up %WEB_PORT% && set "BUSY=!BUSY! port %WEB_PORT% (frontend)"
 if defined BUSY (
@@ -47,15 +61,22 @@ if defined BUSY (
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
 
-rem ── 1/2 Backend ───────────────────────────────────────────────────────
-echo   %BLUE%[1/2]%R% Starting backend on port %API_PORT% ...
-start "" /b python -m uvicorn opec_service:app --app-dir microservices --host 127.0.0.1 --port %API_PORT% --reload --reload-dir microservices
+rem ── 1/3 Scraper Service ──────────────────────────────────────────────────
+echo   %MAGENTA%[1/3]%R% Starting scraper service on port %SCRAPER_PORT% ...
+start "" /b "%PYTHON_EXE%" -m uvicorn scraper_service:app --app-dir microservices --host 127.0.0.1 --port %SCRAPER_PORT% --reload --reload-dir microservices
+call :wait_port %SCRAPER_PORT% 60 || (set "DOWN=Scraper failed to start - see the error above" & goto :stop)
+echo   %OK%[ OK ]%R% Scraper ready    http://127.0.0.1:%SCRAPER_PORT%
+echo.
+
+rem ── 2/3 Backend ──────────────────────────────────────────────────────────
+echo   %BLUE%[2/3]%R% Starting backend on port %API_PORT% ...
+start "" /b "%PYTHON_EXE%" -m uvicorn opec_service:app --app-dir microservices --host 127.0.0.1 --port %API_PORT% --reload --reload-dir microservices
 call :wait_port %API_PORT% 60 || (set "DOWN=Backend failed to start - see the error above" & goto :stop)
 echo   %OK%[ OK ]%R% Backend ready    http://127.0.0.1:%API_PORT%
 echo.
 
-rem ── 2/2 Frontend ──────────────────────────────────────────────────────
-echo   %CYAN%[2/2]%R% Starting frontend on port %WEB_PORT% ...
+rem ── 3/3 Frontend ─────────────────────────────────────────────────────────
+echo   %CYAN%[3/3]%R% Starting frontend on port %WEB_PORT% ...
 start "" /b node node_modules\vite\bin\vite.js --host 0.0.0.0 --port %WEB_PORT%
 call :wait_port %WEB_PORT% 60 || (set "DOWN=Frontend failed to start - see the error above" & goto :stop)
 ping -n 2 127.0.0.1 >nul
@@ -65,22 +86,25 @@ echo   %OK%%B%All services are up%R%
 echo.
 echo   Website       %B%http://localhost:%WEB_PORT%%R%
 echo   Admin         http://localhost:%WEB_PORT%/#admin
-echo   API docs      http://127.0.0.1:%API_PORT%/docs
+echo   Backend docs  http://127.0.0.1:%API_PORT%/docs
+echo   Scraper docs  http://127.0.0.1:%SCRAPER_PORT%/docs
 echo.
-echo   %DIM%Logs from both services follow below · Press Ctrl+C to stop everything%R%
+echo   %DIM%Logs from all services follow below · Press Ctrl+C to stop everything%R%
 echo %LINE%
 echo.
 
-rem ── Watch both; if one stops, stop the other too ──────────────────────
+rem ── Watch all; if one stops, stop the others too ───────────────────────
 :monitor
 ping -n 4 127.0.0.1 >nul
+call :still_up %SCRAPER_PORT% || (set "DOWN=Scraper stopped" & goto :stop)
 call :still_up %API_PORT% || (set "DOWN=Backend stopped" & goto :stop)
 call :still_up %WEB_PORT% || (set "DOWN=Frontend stopped" & goto :stop)
 goto :monitor
 
 :stop
 echo.
-echo   %ERR%[STOP]%R% !DOWN! - shutting down the other service too
+echo   %ERR%[STOP]%R% !DOWN! - shutting down all services
+call :kill_port %SCRAPER_PORT%
 call :kill_port %API_PORT%
 call :kill_port %WEB_PORT%
 echo   %DIM%Everything has been stopped.%R%

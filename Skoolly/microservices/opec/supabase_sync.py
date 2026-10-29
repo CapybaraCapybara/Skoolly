@@ -1550,7 +1550,26 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                     snapshot = json.loads(snapshot)
                 except Exception:
                     snapshot = {}
-            new_curriculums = snapshot.get("curriculums")
+
+            # Normalize raw AI curriculums to valid database canonical codes using match_curriculums
+            raw_curr = snapshot.get("curriculums") or snapshot.get("curriculum")
+            normalized_curr_set: set[str] = set()
+
+            if isinstance(raw_curr, list):
+                for item in raw_curr:
+                    matched = match_curriculums(str(item))
+                    if matched:
+                        normalized_curr_set.update(matched)
+                    elif str(item).strip().upper() in {c[0] for c in CURRICULUM_PATTERNS}:
+                        normalized_curr_set.add(str(item).strip().upper())
+            elif isinstance(raw_curr, str) and raw_curr.strip():
+                matched = match_curriculums(raw_curr)
+                if matched:
+                    normalized_curr_set.update(matched)
+                elif raw_curr.strip().upper() in {c[0] for c in CURRICULUM_PATTERNS}:
+                    normalized_curr_set.add(raw_curr.strip().upper())
+
+            new_curriculums = sorted(list(normalized_curr_set)) if normalized_curr_set else None
 
             # Project to main schools table
             cur.execute("""

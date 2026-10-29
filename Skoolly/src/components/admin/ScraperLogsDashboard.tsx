@@ -319,17 +319,19 @@ export function ScraperLogsDashboard({
 
       {/* Scrape Logs Table */}
       <div className="border border-warm-accent rounded-[2rem] bg-white overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-warm-cream/80 text-[#78716c] font-bold border-b border-warm-accent">
+        <div className="overflow-x-auto scrollbar-thin">
+          <table className="w-full text-left text-xs min-w-[840px]">
+            <thead className="bg-warm-cream/90 text-[#78716c] font-bold border-b border-warm-accent">
               <tr>
-                <th className="py-3.5 px-4 font-mono text-center w-14">#</th>
-                <th className="py-3.5 px-4 min-w-[130px]">เวลา / วันที่</th>
-                <th className="py-3.5 px-4 min-w-[200px]">โรงเรียน (ชื่อ / รหัส OPEC)</th>
-                <th className="py-3.5 px-4 min-w-[140px]">สถานะ (Status)</th>
-                <th className="py-3.5 px-4 text-right">เวลาที่ใช้</th>
-                <th className="py-3.5 px-4 min-w-[240px]">AI Model & ผลการวิเคราะห์</th>
-                <th className="py-3.5 px-4 text-center min-w-[140px]">การกระทำ</th>
+                <th className="py-3 px-3 font-mono text-center w-12">#</th>
+                <th className="py-3 px-3 min-w-[120px]">เวลา / วันที่</th>
+                <th className="py-3 px-3 min-w-[170px]">โรงเรียน (ชื่อ / รหัส OPEC)</th>
+                <th className="py-3 px-3 min-w-[115px] text-center">สถานะ</th>
+                <th className="py-3 px-3 text-right w-20">เวลาที่ใช้</th>
+                <th className="py-3 px-3 min-w-[200px]">AI Model & ผลการวิเคราะห์</th>
+                <th className="py-3 px-4 text-center min-w-[130px] sticky right-0 bg-warm-cream z-10 border-l border-warm-accent/60 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">
+                  การกระทำ
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ece4d8]">
@@ -356,13 +358,13 @@ export function ScraperLogsDashboard({
                     : "—";
 
                   return (
-                    <tr key={log.log_id || idx} className="hover:bg-[#faf7f2]/80 transition-colors odd:bg-white even:bg-[#faf7f2]/30">
-                      <td className="py-3.5 px-4 text-center text-[#a8a29e] font-mono">{idx + 1}</td>
-                      <td className="py-3.5 px-4 font-mono text-[#78716c] whitespace-nowrap">
+                    <tr key={log.log_id || idx} className="group hover:bg-[#faf7f2] transition-colors odd:bg-white even:bg-[#faf7f2]/30">
+                      <td className="py-3 px-3 text-center text-[#a8a29e] font-mono">{idx + 1}</td>
+                      <td className="py-3 px-3 font-mono text-[#78716c] whitespace-nowrap">
                         <div className="font-semibold text-warm-charcoal">{dateFormatted}</div>
                         <div className="text-[10px] text-[#a8a29e]">Phase: {log.phase}</div>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-3">
                         <div className="font-bold text-warm-charcoal">
                           {log.name_th || `โรงเรียน ID: ${log.school_id?.substring(0, 8) || "—"}`}
                         </div>
@@ -372,10 +374,10 @@ export function ScraperLogsDashboard({
                               {log.opec_school_code}
                             </span>
                           )}
-                          {log.name_en && <span className="truncate max-w-[180px]">{log.name_en}</span>}
+                          {log.name_en && <span className="truncate max-w-[170px]">{log.name_en}</span>}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-3 px-3 whitespace-nowrap text-center">
                         {isOk ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -393,10 +395,10 @@ export function ScraperLogsDashboard({
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-[#78716c] whitespace-nowrap">
+                      <td className="py-3 px-3 text-right font-mono text-[#78716c] whitespace-nowrap">
                         {log.elapsed_sec ? `${log.elapsed_sec.toFixed(1)}s` : "—"}
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-[#57534e]">
+                      <td className="py-3 px-3 text-xs text-[#57534e]">
                         <div className="font-mono text-[10px] text-warm-bronze font-semibold mb-0.5">
                           {log.ai_model || "gemini-flash-lite"}
                         </div>
@@ -415,11 +417,11 @@ export function ScraperLogsDashboard({
                           </a>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                      <td className="py-3 px-4 text-center whitespace-nowrap sticky right-0 bg-white group-odd:bg-white group-even:bg-[#fbf9f6] group-hover:bg-[#faf7f2] z-10 border-l border-warm-accent/60 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">
                         <button
                           type="button"
                           onClick={() => handleOpenLogDiff(log)}
-                          className="px-3.5 py-1.5 rounded-full bg-warm-cream hover:bg-warm-charcoal hover:text-white border border-warm-accent text-warm-charcoal font-semibold text-xs transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                          className="px-3 py-1.5 rounded-full bg-warm-cream hover:bg-warm-charcoal hover:text-white border border-warm-accent text-warm-charcoal font-semibold text-xs transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
                           title="ดูข้อมูลที่ Scrape ได้และเปรียบเทียบ Diff"
                         >
                           <Eye className="w-3.5 h-3.5 text-warm-bronze" />

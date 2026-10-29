@@ -33,8 +33,8 @@ from website_registry import read_school_and_url_txt  # type: ignore
 
 ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://127.0.0.1:8000/saga/scrape-school")
 ORCHESTRATOR_HEALTH = "http://127.0.0.1:8000/docs"
-# Longer than the orchestrator's own scrape timeout (orchestrator.py SCRAPE_TIMEOUT_S = 300)
-SAGA_TIMEOUT_S = 360
+# Longer than the orchestrator's own scrape timeout (orchestrator.py SCRAPE_TIMEOUT_S = 600)
+SAGA_TIMEOUT_S = 660
 
 SUCCESS_FILE = os.path.join(BASE_DIR, "scrape_batch_success.json")
 FAILED_FILE = os.path.join(BASE_DIR, "scrape_batch_failed.json")

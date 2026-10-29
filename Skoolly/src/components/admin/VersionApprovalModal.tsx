@@ -206,7 +206,7 @@ export function VersionApprovalModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl bg-warm-cream border border-[#e5dcce] rounded-[2rem] shadow-2xl overflow-hidden my-6 flex flex-col max-h-[92vh]"
+        className="relative w-full max-w-6xl bg-warm-cream border border-[#e5dcce] rounded-[2rem] shadow-2xl overflow-hidden my-6 flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -290,82 +290,82 @@ export function VersionApprovalModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="px-5 sm:px-7 pt-3 bg-warm-cream border-b border-warm-accent flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+        <div className="px-4 sm:px-6 pt-2.5 bg-warm-cream border-b border-warm-accent flex items-center gap-1.5 sm:gap-2 overflow-x-auto shrink-0 scrollbar-thin">
           <button
             type="button"
             onClick={() => setActiveTab("diff")}
-            className={`px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "diff"
                 ? "bg-white border-warm-charcoal text-warm-charcoal shadow-xs"
                 : "border-transparent text-[#78716c] hover:text-warm-charcoal"
             }`}
           >
-            <Layers className="w-4 h-4 text-warm-bronze" />
-            <span>ภาพรวมความต่าง (Diff Summary)</span>
+            <Layers className="w-4 h-4 text-warm-bronze shrink-0" />
+            <span>ภาพรวมความต่าง</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("fees")}
-            className={`px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "fees"
                 ? "bg-white border-warm-charcoal text-warm-charcoal shadow-xs"
                 : "border-transparent text-[#78716c] hover:text-warm-charcoal"
             }`}
           >
-            <Coins className="w-4 h-4 text-amber-600" />
+            <Coins className="w-4 h-4 text-amber-600 shrink-0" />
             <span>ค่าเทอม ({version.fees?.length || 0})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("curriculums")}
-            className={`px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "curriculums"
                 ? "bg-white border-warm-charcoal text-warm-charcoal shadow-xs"
                 : "border-transparent text-[#78716c] hover:text-warm-charcoal"
             }`}
           >
-            <BookOpen className="w-4 h-4 text-indigo-600" />
+            <BookOpen className="w-4 h-4 text-indigo-600 shrink-0" />
             <span>หลักสูตร ({newCurriculums.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("general")}
-            className={`px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "general"
                 ? "bg-white border-warm-charcoal text-warm-charcoal shadow-xs"
                 : "border-transparent text-[#78716c] hover:text-warm-charcoal"
             }`}
           >
-            <Info className="w-4 h-4 text-blue-600" />
+            <Info className="w-4 h-4 text-blue-600 shrink-0" />
             <span>ข้อมูลทั่วไป</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("facilities")}
-            className={`px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "facilities"
                 ? "bg-white border-warm-charcoal text-warm-charcoal shadow-xs"
                 : "border-transparent text-[#78716c] hover:text-warm-charcoal"
             }`}
           >
-            <Building2 className="w-4 h-4 text-teal-600" />
+            <Building2 className="w-4 h-4 text-teal-600 shrink-0" />
             <span>สิ่งอำนวยความสะดวก ({version.scraped_facilities?.length || 0})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("safety")}
-            className={`px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`px-3 sm:px-3.5 py-2 rounded-t-xl text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
               activeTab === "safety"
                 ? "bg-white border-warm-charcoal text-warm-charcoal shadow-xs"
                 : "border-transparent text-[#78716c] hover:text-warm-charcoal"
             }`}
           >
-            <Shield className="w-4 h-4 text-emerald-600" />
+            <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>ความปลอดภัย (Safety)</span>
           </button>
         </div>

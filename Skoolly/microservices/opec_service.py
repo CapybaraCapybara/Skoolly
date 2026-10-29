@@ -47,6 +47,7 @@ from supabase_sync import (  # type: ignore
     save_scraped_draft_version,
     fetch_scrape_logs,
     log_school_scrape,
+    db_connect,
 )
 from website_registry import (  # type: ignore
     get_full_registry_status,
@@ -75,7 +76,7 @@ app.add_middleware(
 # Scraper Service (scraper_service.py). Not started by start-dev.bat: run it on its own when
 # scraping tuition. A scrape can wait out several Gemini rate-limit back-offs, hence the timeout.
 SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://127.0.0.1:8001/scrape")
-SCRAPE_TIMEOUT_S = 300
+SCRAPE_TIMEOUT_S = 600  # scraper may retry Playwright once with doubled timeouts
 # Results the batch scraper saved through the Saga pipeline (db_service.py)
 RESULTS_FILE = os.path.join(BASE_DIR, "results.json")
 
@@ -256,13 +257,16 @@ def _previous_scrape_result(school_name, website):
 def step_scrape_school(progress, school_id, school_name, website):
     """Scrapes one school's fees into a pending_review version for an admin to approve."""
     progress(f"กำลัง scrape ค่าเทอม: {school_name}", 15, 100, f"เริ่มสแกน {website} ({school_name})")
-    result, problem = None, ""
+    result, problem, blocked = None, "", False
     try:
         resp = requests.post(SCRAPER_URL, json={"school_name": school_name, "homepage_url": website},
                              timeout=SCRAPE_TIMEOUT_S)
         body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
         if resp.ok and body.get("status") == "success":
             result = body.get("result_data")
+        elif body.get("status") == "blocked":
+            # robots.txt says no: skip the school, never fall back to an older result
+            problem, blocked = f"ข้ามโรงเรียนนี้: {body.get('error')}", True
         else:
             problem = f"Scraper ทำไม่สำเร็จ: {body.get('error') or body.get('detail') or f'HTTP {resp.status_code}'}"
     except requests.RequestException as e:
@@ -270,7 +274,8 @@ def step_scrape_school(progress, school_id, school_name, website):
                    if isinstance(e, requests.ConnectionError) else f"Scraper ไม่ตอบกลับ: {e}")
 
     if result is None:
-        result = _previous_scrape_result(school_name, website)
+        if not blocked:
+            result = _previous_scrape_result(school_name, website)
         if result is None:
             raise RuntimeError(problem)
         progress(f"กำลังบันทึกแบบร่าง: {school_name}", 80, 100, f"{problem} จึงใช้ผลที่เคย scrape ไว้ใน results.json แทน")
@@ -280,8 +285,39 @@ def step_scrape_school(progress, school_id, school_name, website):
              f"บันทึกแบบร่าง version {draft.get('version_number')} ของ {school_name} รอแอดมินอนุมัติ")
 
 
-def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
-    """Batch scrapes all schools that have an official website into draft versions and records logs."""
+def _scraper_alive() -> bool:
+    """True if the scraper service answers on its port (FastAPI serves /docs)."""
+    try:
+        return requests.get(SCRAPER_URL.rsplit("/", 1)[0] + "/docs", timeout=5).ok
+    except requests.RequestException:
+        return False
+
+
+def _failed_school_ids() -> set[str]:
+    """school_id of schools whose latest scrape (ignoring admin-approval rows) never got a result."""
+    with db_connect(get_current_dsn()) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                WITH runs AS (
+                  SELECT DISTINCT ON (school_id) school_id, status::text AS status
+                  FROM school_data.school_scrape_log
+                  WHERE school_id IS NOT NULL
+                    AND COALESCE(ai_reasoning, '') <> 'Admin approved and published draft to live database'
+                  ORDER BY school_id, created_at DESC)
+                SELECT school_id::text FROM runs WHERE status IN ('nav_failed', 'error', 'timeout')
+            """)
+            return {r[0] for r in cur.fetchall()}
+
+
+MAX_CONSECUTIVE_FAILS = 5
+
+
+def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only_failed: bool = False):
+    """Batch scrapes all schools that have an official website into draft versions and records logs.
+
+    only_failed=True re-runs just the schools whose latest scrape returned nothing
+    (nav_failed / error / timeout), so already-scraped schools don't get duplicate drafts.
+    """
     try:
         supa_data = fetch_supabase_schools(limit=1000)
         schools = supa_data.get("schools", [])
@@ -293,6 +329,9 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
         s for s in schools 
         if str(s.get("website") or s.get("official_website_url") or s.get("official_website") or "").strip()
     ]
+    if only_failed:
+        failed_ids = _failed_school_ids()
+        with_websites = [s for s in with_websites if str(s.get("school_id") or "") in failed_ids]
     if max_schools and max_schools > 0:
         with_websites = with_websites[:max_schools]
     
@@ -302,8 +341,14 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
         return
 
     progress(f"เริ่ม Batch Scrape ทั้งหมด {total} โรงเรียน...", 0, total, f"ตรวจพบโรงเรียนที่มีเว็บไซต์ทางการ {total} แห่ง")
+    if not _scraper_alive():
+        progress("Scraper service ไม่ตอบ", 0, total,
+                 f"เรียก {SCRAPER_URL} ไม่ได้ เปิด scraper (ไม่ใช้ --reload) แล้วรันใหม่")
+        return
+
     success_count = 0
     fail_count = 0
+    consecutive_fails = 0
     batch_run_id = str(uuid.uuid4())
 
     for idx, s in enumerate(with_websites):
@@ -316,19 +361,29 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
 
         result = None
         error_msg = ""
+        fail_status = "error"
+        t_req = time.time()
         try:
             resp = requests.post(SCRAPER_URL, json={"school_name": name, "homepage_url": website}, timeout=SCRAPE_TIMEOUT_S)
-            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            ctype = resp.headers.get("content-type", "")
+            body = resp.json() if ctype.startswith("application/json") else {}
             if resp.ok and body.get("status") == "success":
                 result = body.get("result_data")
-            elif body.get("error"):
-                error_msg = body.get("error")
-            elif not resp.ok:
-                error_msg = f"HTTP {resp.status_code}: {resp.text[:200]}"
+            elif body.get("status") == "blocked":
+                # robots.txt says no: log it as blocked, no draft, no fallback to an older result
+                error_msg, fail_status = body.get("error") or "robots.txt disallow", "blocked"
+            else:
+                # keep everything needed to tell why: code, type, scraper status/error, start of body
+                error_msg = (f"HTTP {resp.status_code} | {ctype or 'no content-type'} | "
+                             f"status={body.get('status')!r} | error={body.get('error')!r} | "
+                             f"body={resp.text[:200]!r}")
+        except requests.Timeout as ex:
+            error_msg, fail_status = f"Timeout: {ex}", "timeout"
         except Exception as ex:
-            error_msg = str(ex)
+            error_msg = f"{type(ex).__name__}: {ex}"
+        elapsed = round(time.time() - t_req, 2)
 
-        if result is None:
+        if result is None and fail_status != "blocked":
             result = _previous_scrape_result(name, website)
 
         if result:
@@ -336,6 +391,7 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
             try:
                 save_scraped_draft_version(school_id, result)
                 success_count += 1
+                consecutive_fails = 0
             except Exception as e:
                 fail_count += 1
                 log_school_scrape(
@@ -351,11 +407,18 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None):
             log_school_scrape(
                 school_id=school_id,
                 phase="extract",
-                status="nav_failed",
+                status=fail_status,
                 run_id=batch_run_id,
                 page_scraped=website,
-                error_message=error_msg or "Could not connect to website or scraper service",
+                elapsed_sec=elapsed,
+                error_message=error_msg or "empty response from scraper",
             )
+            if fail_status != "blocked":  # a robots.txt refusal says nothing about the scraper's health
+                consecutive_fails += 1
+            if consecutive_fails >= MAX_CONSECUTIVE_FAILS and not _scraper_alive():
+                progress("หยุด batch: scraper ไม่ตอบ", curr_num, total,
+                         f"ล้มติดกัน {consecutive_fails} โรงเรียนและ scraper ไม่ตอบ — หยุดไว้ก่อนเพื่อไม่ให้ล้มทั้งรอบ")
+                break
 
         time.sleep(1.0)
 
@@ -622,14 +685,16 @@ def get_supabase_scrape_logs_endpoint(limit: int = 150, offset: int = 0):
 
 class BatchScrapePayload(BaseModel):
     max_schools: Optional[int] = None
+    only_failed: bool = False
 
 @app.post("/api/scraper/batch-run")
 def trigger_batch_scrape(payload: Optional[BatchScrapePayload] = None):
     max_count = payload.max_schools if payload else None
+    only_failed = payload.only_failed if payload else False
     return _start_job(
         "กำลังรัน Batch Scrape โรงเรียนที่มีเว็บไซต์...",
         "เริ่มกระบวนการ Scrape ข้อมูลโรงเรียนนานาชาติทั้งหมดที่มีลิงก์ทางการใน Database",
-        [("Batch Scrape Websites", lambda p: step_batch_scrape_websites(p, max_count))]
+        [("Batch Scrape Websites", lambda p: step_batch_scrape_websites(p, max_count, only_failed))]
     )
 
 class UpdateSchoolPayload(BaseModel):

@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 import pdfplumber
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Error as PlaywrightError
+from urllib import robotparser
+from urllib.parse import urlsplit
 from google import genai
 
 # Load environment from the parent directory's .env file
@@ -558,7 +560,7 @@ def _extract_page_content_with_tables(p) -> str:
         pass
     return txt
 
-def extract_pdf_text(page, pdf_url, max_chars=8000, min_chars_per_page=20) -> dict:
+def extract_pdf_text(page, pdf_url, max_chars=8000, min_chars_per_page=20, timeout_ms=20000) -> dict:
     """
     ฟังก์ชันดึงข้อความจากไฟล์ PDF:
     - คำนวณ total_extracted_chars เทียบกับ total_pages เพื่อเช็ค likely_scanned
@@ -568,7 +570,7 @@ def extract_pdf_text(page, pdf_url, max_chars=8000, min_chars_per_page=20) -> di
     """
     try:
         # 1. ดาวน์โหลดไฟล์ PDF
-        resp = page.context.request.get(pdf_url, timeout=20000)
+        resp = page.context.request.get(pdf_url, timeout=timeout_ms)
         if not resp.ok:
             return {"text": "", "likely_scanned": False}
 
@@ -707,42 +709,84 @@ def _launch_browser(p, add_log=None):
     return p.chromium.launch(headless=True)
 
 
-def _scrape_fallback_requests(req: ScrapeRequest, client: genai.Client, add_log, t0: float):
-    """Fallback scraping using requests + BeautifulSoup if Playwright fails."""
-    import requests
-    from bs4 import BeautifulSoup
-    add_log("fallback_requests", "Initiating HTTP requests fallback...", req.homepage_url)
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "th,en-US;q=0.9,en;q=0.8",
-    }
-    resp = requests.get(req.homepage_url, headers=headers, timeout=20)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    for tag in soup(["script", "style", "nav", "footer", "svg"]):
-        tag.decompose()
-    homepage_text = soup.get_text(separator=" ", strip=True)[:15000]
-    combined_text = f"=== HOMEPAGE ({req.homepage_url}) ===\n" + homepage_text
+# robots.txt (RFC 9309) -------------------------------------------------------
+# No custom User-Agent is sent; rules are read for "*" (the group that applies to every bot).
+ROBOTS_AGENT = "*"
+# A site asking for a longer Crawl-delay than this gets only its homepage scraped.
+MAX_CRAWL_DELAY_S = 30
 
-    extraction = call_with_retry(client, ai_extract, client, req.school_name, combined_text, log_fn=add_log)
-    annual_values = [
-        g["annual_thb"] for g in extraction.get("tuition_by_grade", [])
-        if g.get("annual_thb")
-    ]
-    extraction["tuition_min_thb"] = min(annual_values) if annual_values else None
-    extraction["tuition_max_thb"] = max(annual_values) if annual_values else None
 
-    return {
-        "school_name": req.school_name,
-        "homepage_url": req.homepage_url,
-        "status": "ok",
-        "page_scraped": req.homepage_url,
-        "fee_page_discovery": "fallback_requests",
-        "identity_verified": True,
-        "needs_ocr_review": False,
-        "elapsed_sec": round(time.time() - t0, 1),
-        **extraction,
-    }
+class RobotsGate:
+    """Checks robots.txt before every page/PDF this scraper loads. One fetch per host, cached per scrape.
+
+    RFC 9309: 2xx -> obey the rules; 4xx (e.g. no robots.txt) -> no restrictions;
+    5xx or unreachable -> assume everything is disallowed.
+    """
+
+    def __init__(self, request_ctx, add_log, timeout_ms):
+        self.request_ctx = request_ctx
+        self.add_log = add_log
+        self.timeout_ms = timeout_ms
+        self.rules = {}        # origin -> RobotFileParser | "allow_all" | "disallow_all"
+        self.last_load = {}    # origin -> time.time() of the last page load
+
+    @staticmethod
+    def _origin(url):
+        parts = urlsplit(url)
+        return f"{parts.scheme}://{parts.netloc}".lower()
+
+    def _rules_for(self, origin):
+        if origin in self.rules:
+            return self.rules[origin]
+        robots_url = origin + "/robots.txt"
+        try:
+            resp = self.request_ctx.get(robots_url, timeout=self.timeout_ms)
+            if resp.ok:
+                rule = robotparser.RobotFileParser()
+                rule.parse(resp.text().splitlines())
+            elif 400 <= resp.status < 500:
+                rule = "allow_all"
+            else:
+                rule = "disallow_all"
+            self.add_log("robots_txt", f"HTTP {resp.status} -> {rule if isinstance(rule, str) else 'rules loaded'}", robots_url)
+        except Exception as ex:
+            rule = "disallow_all"
+            self.add_log("robots_txt", f"unreachable ({ex}) -> disallow_all", robots_url, status="warning")
+        self.rules[origin] = rule
+        return rule
+
+    def allowed(self, url):
+        rule = self._rules_for(self._origin(url))
+        if rule == "allow_all":
+            return True
+        if rule == "disallow_all":
+            return False
+        return rule.can_fetch(ROBOTS_AGENT, url)
+
+    def before_load(self, url):
+        """Call right before loading url. False = robots.txt says no (or the asked Crawl-delay is too long)."""
+        if not self.allowed(url):
+            self.add_log("robots_disallow", "skipped: robots.txt disallows this URL", url, status="warning")
+            return False
+        origin = self._origin(url)
+        rule = self.rules.get(origin)
+        delay = rule.crawl_delay(ROBOTS_AGENT) if isinstance(rule, robotparser.RobotFileParser) else None
+        last = self.last_load.get(origin)
+        if delay and last is not None:
+            if float(delay) > MAX_CRAWL_DELAY_S:
+                self.add_log("robots_crawl_delay", f"skipped: Crawl-delay {delay}s > {MAX_CRAWL_DELAY_S}s", url, status="warning")
+                return False
+            wait = float(delay) - (time.time() - last)
+            if wait > 0:
+                self.add_log("robots_crawl_delay", f"waiting {wait:.1f}s for Crawl-delay {delay}s", url)
+                time.sleep(wait)
+        self.last_load[origin] = time.time()
+        return True
+
+
+# Timeouts of the first try; when Playwright fails part-way the scrape is retried once
+# with every timeout multiplied by the next factor (instead of the old requests fallback).
+TIMEOUT_SCALES = (1, 2)
 
 
 @app.post("/scrape")
@@ -769,214 +813,241 @@ def scrape_endpoint(req: ScrapeRequest):
     result = {"school_name": req.school_name, "homepage_url": req.homepage_url, "status": "ok"}
     t0 = time.time()
 
-    try:
-        with sync_playwright() as p:
-            browser = _launch_browser(p, add_log=add_log)
-            context = browser.new_context()
-            page = context.new_page()
+    for attempt, scale in enumerate(TIMEOUT_SCALES, 1):
+        ms = lambda base, scale=scale: int(base * scale)
+        try:
+            with sync_playwright() as p:
+                robots_ctx = p.request.new_context()
+                gate = RobotsGate(robots_ctx, add_log, ms(10000))
+                if not gate.before_load(req.homepage_url):
+                    robots_ctx.dispose()
+                    return {
+                        "status": "blocked",
+                        "error": f"robots.txt disallows {req.homepage_url}",
+                        "logs": logs
+                    }
+                browser = _launch_browser(p, add_log=add_log)
+                context = browser.new_context()
+                page = context.new_page()
 
-            network_pdfs = []
-            def on_response(response):
+                network_pdfs = []
+                def on_response(response):
+                    try:
+                        url = response.url
+                        ctype = response.headers.get("content-type", "")
+                        if ".pdf" in url.lower() or "application/pdf" in ctype.lower():
+                            network_pdfs.append(url)
+                    except Exception:
+                        pass
+
+                page.on("response", on_response)
+
+                add_log("navigate", "opening homepage", req.homepage_url)
+                page.goto(req.homepage_url, timeout=ms(20000), wait_until="domcontentloaded")
                 try:
-                    url = response.url
-                    ctype = response.headers.get("content-type", "")
-                    if ".pdf" in url.lower() or "application/pdf" in ctype.lower():
-                        network_pdfs.append(url)
+                    page.wait_for_load_state("networkidle", timeout=ms(8000))
                 except Exception:
                     pass
 
-            page.on("response", on_response)
-
-            add_log("navigate", "opening homepage", req.homepage_url)
-            page.goto(req.homepage_url, timeout=20000, wait_until="domcontentloaded")
-            try:
-                page.wait_for_load_state("networkidle", timeout=8000)
-            except Exception:
-                pass
-
-            # 1. Discover both Fee & Safety / Policy candidate links
-            fee_candidates, safety_candidates = get_candidate_links(page)
-            if not fee_candidates and not safety_candidates:
-                add_log(
-                    "link_discovery_retry",
-                    "retrying candidate link extraction after 4000ms wait",
-                    url=req.homepage_url,
-                    reasoning="Initial scan returned 0 fee candidates and 0 safety candidates; waiting for delayed JS render",
-                    status="warning"
-                )
-                page.wait_for_timeout(4000)
+                # 1. Discover both Fee & Safety / Policy candidate links
                 fee_candidates, safety_candidates = get_candidate_links(page)
+                if not fee_candidates and not safety_candidates:
+                    add_log(
+                        "link_discovery_retry",
+                        "retrying candidate link extraction after 4000ms wait",
+                        url=req.homepage_url,
+                        reasoning="Initial scan returned 0 fee candidates and 0 safety candidates; waiting for delayed JS render",
+                        status="warning"
+                    )
+                    page.wait_for_timeout(ms(4000))
+                    fee_candidates, safety_candidates = get_candidate_links(page)
+                fee_candidates = [c for c in fee_candidates if gate.allowed(c["href"])]
+                safety_candidates = [c for c in safety_candidates if gate.allowed(c["href"])]
             
-            # Choose fee page
-            fee_idx, fee_reasoning = call_with_retry(client, ai_choose_link, client, req.school_name, fee_candidates, log_fn=add_log)
-            add_log("ai_navigate_fee_decision", f"chose fee index {fee_idx}", reasoning=fee_reasoning)
+                # Choose fee page
+                fee_idx, fee_reasoning = call_with_retry(client, ai_choose_link, client, req.school_name, fee_candidates, log_fn=add_log)
+                add_log("ai_navigate_fee_decision", f"chose fee index {fee_idx}", reasoning=fee_reasoning)
 
-            # Determine fee page discovery status
-            if fee_idx is not None and 0 <= fee_idx < len(fee_candidates):
-                fee_page_discovery = "found"
-            elif not fee_candidates:
-                fee_page_discovery = "no_candidates"
-            else:
-                fee_page_discovery = "fallback_homepage"
-
-            # Choose safety / policy page
-            safety_idx, safety_reasoning = call_with_retry(client, ai_choose_safety_link, client, req.school_name, safety_candidates, log_fn=add_log)
-            add_log("ai_navigate_safety_decision", f"chose safety index {safety_idx}", reasoning=safety_reasoning)
-
-            # 2. Capture Homepage text for general info & facilities before navigating
-            homepage_html = page.content()
-            homepage_text = clean_page_text(homepage_html)
-
-            # Scrape Tuition Fee Page
-            # network_pdfs keeps growing across pages: each page only counts what it loaded itself
-            target_fee_url = req.homepage_url
-            fee_pdf_mark = 0
-            if fee_page_discovery == "found":
-                target_fee_url = fee_candidates[fee_idx]["href"]
-                fee_pdf_mark = len(network_pdfs)
-                try:
-                    page.goto(target_fee_url, timeout=20000, wait_until="domcontentloaded")
-                    page.wait_for_timeout(1000)
-                    add_log("navigate", "opened candidate fee page", target_fee_url)
-                except Exception as ex:
-                    # The homepage text is still worth extracting from
-                    add_log("navigate", f"fee page failed to load ({ex}) — using homepage text",
-                            target_fee_url, status="fallback")
-                    target_fee_url = req.homepage_url
+                # Determine fee page discovery status
+                if fee_idx is not None and 0 <= fee_idx < len(fee_candidates):
+                    fee_page_discovery = "found"
+                elif not fee_candidates:
+                    fee_page_discovery = "no_candidates"
+                else:
                     fee_page_discovery = "fallback_homepage"
-                    fee_pdf_mark = 0
-                    page.goto(req.homepage_url, timeout=20000, wait_until="domcontentloaded")
-            elif fee_page_discovery == "no_candidates":
-                add_log("navigate", "no fee page candidates found — using homepage text", req.homepage_url, status="fallback")
-            else:
-                add_log("navigate", "fee page candidates rejected by AI — using homepage text", req.homepage_url, status="fallback")
 
-            add_log(
-                "fee_discovery_result",
-                f"fee_page_discovery is '{fee_page_discovery}'",
-                url=target_fee_url,
-                reasoning=fee_reasoning,
-                status="ok" if fee_page_discovery == "found" else "fallback"
-            )
+                # Choose safety / policy page
+                safety_idx, safety_reasoning = call_with_retry(client, ai_choose_safety_link, client, req.school_name, safety_candidates, log_fn=add_log)
+                add_log("ai_navigate_safety_decision", f"chose safety index {safety_idx}", reasoning=safety_reasoning)
 
-            fee_html = page.content()
-            combined_text = f"=== HOMEPAGE ({req.homepage_url}) ===\n" + homepage_text
-            if target_fee_url != req.homepage_url:
-                combined_text += f"\n\n=== TUITION & FEE PAGE ({target_fee_url}) ===\n" + clean_page_text(fee_html)
+                # 2. Capture Homepage text for general info & facilities before navigating
+                homepage_html = page.content()
+                homepage_text = clean_page_text(homepage_html)
 
-            # Detect PDFs on fee page
-            needs_ocr_review = False
-            fee_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs[fee_pdf_mark:])
-            for pu in fee_pdf_urls:
-                add_log("pdf_detected", "found PDF on fee page", pu)
-                pdf_res = extract_pdf_text(page, pu)
-                pdf_text = pdf_res.get("text", "")
-                if pdf_res.get("likely_scanned"):
-                    needs_ocr_review = True
-                    add_log("pdf_scanned_no_text_layer", "Fee PDF appears to be a scanned image with no text layer", url=pu, status="warning")
-                if pdf_text:
-                    combined_text += f"\n\n--- Fee PDF content from {pu} ---\n{pdf_text}"
-                    add_log("pdf_extracted", f"extracted {len(pdf_text)} chars from fee PDF", pu)
+                # Scrape Tuition Fee Page
+                # network_pdfs keeps growing across pages: each page only counts what it loaded itself
+                target_fee_url = req.homepage_url
+                fee_pdf_mark = 0
+                if fee_page_discovery == "found" and not gate.before_load(fee_candidates[fee_idx]["href"]):
+                    fee_page_discovery = "robots_disallowed"
+                if fee_page_discovery == "found":
+                    target_fee_url = fee_candidates[fee_idx]["href"]
+                    fee_pdf_mark = len(network_pdfs)
+                    try:
+                        page.goto(target_fee_url, timeout=ms(20000), wait_until="domcontentloaded")
+                        page.wait_for_timeout(ms(1000))
+                        add_log("navigate", "opened candidate fee page", target_fee_url)
+                    except Exception as ex:
+                        # The homepage text is still worth extracting from
+                        add_log("navigate", f"fee page failed to load ({ex}) — using homepage text",
+                                target_fee_url, status="fallback")
+                        target_fee_url = req.homepage_url
+                        fee_page_discovery = "fallback_homepage"
+                        fee_pdf_mark = 0
+                        gate.before_load(req.homepage_url)
+                        page.goto(req.homepage_url, timeout=ms(20000), wait_until="domcontentloaded")
+                elif fee_page_discovery == "no_candidates":
+                    add_log("navigate", "no fee page candidates found — using homepage text", req.homepage_url, status="fallback")
+                else:
+                    add_log("navigate", "fee page candidates rejected by AI — using homepage text", req.homepage_url, status="fallback")
 
-            # 3. Scrape Safety, Security & Safeguarding Policy Page
-            safety_policy_url = None
-            safety_pdf_urls = []
-            if safety_idx is not None and 0 <= safety_idx < len(safety_candidates):
-                safety_url = safety_candidates[safety_idx]["href"]
-                safety_policy_url = safety_url
-                safety_pdf_mark = len(network_pdfs)
-                try:
-                    page.goto(safety_url, timeout=20000, wait_until="domcontentloaded")
-                    page.wait_for_timeout(1000)
-                    add_log("navigate_safety", "opened candidate safety/policy page", safety_url)
-                    
-                    safety_html = page.content()
-                    safety_text = clean_page_text(safety_html)
-                    combined_text += f"\n\n=== CAMPUS SAFETY & SAFEGUARDING POLICY PAGE ({safety_url}) ===\n{safety_text}"
-
-                    # Detect policy PDFs (e.g. Safeguarding Policy, Child Protection Policy PDF)
-                    safety_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs[safety_pdf_mark:])
-                    for spu in safety_pdf_urls:
-                        add_log("pdf_detected_safety", "found policy PDF on safety page", spu)
-                        policy_res = extract_pdf_text(page, spu)
-                        policy_pdf_text = policy_res.get("text", "")
-                        if policy_res.get("likely_scanned"):
-                            needs_ocr_review = True
-                            add_log("pdf_scanned_no_text_layer", "Policy PDF appears to be a scanned image with no text layer", url=spu, status="warning")
-                        if policy_pdf_text:
-                            combined_text += f"\n\n--- Policy PDF Content from {spu} ---\n{policy_pdf_text}"
-                            add_log("pdf_extracted_safety", f"extracted {len(policy_pdf_text)} chars from policy PDF", spu)
-                except Exception as ex:
-                    add_log("safety_scrape_warning", f"failed to load safety page: {ex}", safety_url, status="warning")
-
-            # 4. Verify school identity against scraped content
-            identity_verified, brand_tokens = verify_school_identity(req.school_name, combined_text)
-            if not identity_verified:
                 add_log(
-                    "identity_mismatch_warning",
-                    f"school identity mismatch: none of brand tokens {brand_tokens} found in scraped text",
+                    "fee_discovery_result",
+                    f"fee_page_discovery is '{fee_page_discovery}'",
                     url=target_fee_url,
-                    reasoning=f"Checked brand tokens: {brand_tokens}",
-                    status="warning"
+                    reasoning=fee_reasoning,
+                    status="ok" if fee_page_discovery == "found" else "fallback"
                 )
 
-            # 5. Extract structured fee & safety data with Gemini
-            extraction = call_with_retry(client, ai_extract, client, req.school_name, combined_text, log_fn=add_log)
+                fee_html = page.content()
+                combined_text = f"=== HOMEPAGE ({req.homepage_url}) ===\n" + homepage_text
+                if target_fee_url != req.homepage_url:
+                    combined_text += f"\n\n=== TUITION & FEE PAGE ({target_fee_url}) ===\n" + clean_page_text(fee_html)
 
-            # Apply centralized confidence capping (identity mismatch <= 0.3, fee discovery fallback <= 0.4)
-            extraction = apply_confidence_caps(extraction, fee_page_discovery, identity_verified)
+                # Detect PDFs on fee page
+                needs_ocr_review = False
+                fee_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs[fee_pdf_mark:])
+                for pu in fee_pdf_urls:
+                    if not gate.before_load(pu):
+                        continue
+                    add_log("pdf_detected", "found PDF on fee page", pu)
+                    pdf_res = extract_pdf_text(page, pu, timeout_ms=ms(20000))
+                    pdf_text = pdf_res.get("text", "")
+                    if pdf_res.get("likely_scanned"):
+                        needs_ocr_review = True
+                        add_log("pdf_scanned_no_text_layer", "Fee PDF appears to be a scanned image with no text layer", url=pu, status="warning")
+                    if pdf_text:
+                        combined_text += f"\n\n--- Fee PDF content from {pu} ---\n{pdf_text}"
+                        add_log("pdf_extracted", f"extracted {len(pdf_text)} chars from fee PDF", pu)
 
-            add_log(
-                "extract", "extraction complete",
-                reasoning=extraction.get("confidence_reasoning", ""),
-                confidence=extraction.get("confidence")
-            )
+                # 3. Scrape Safety, Security & Safeguarding Policy Page
+                safety_policy_url = None
+                safety_pdf_urls = []
+                if (safety_idx is not None and 0 <= safety_idx < len(safety_candidates)
+                        and gate.before_load(safety_candidates[safety_idx]["href"])):
+                    safety_url = safety_candidates[safety_idx]["href"]
+                    safety_policy_url = safety_url
+                    safety_pdf_mark = len(network_pdfs)
+                    try:
+                        page.goto(safety_url, timeout=ms(20000), wait_until="domcontentloaded")
+                        page.wait_for_timeout(ms(1000))
+                        add_log("navigate_safety", "opened candidate safety/policy page", safety_url)
+                    
+                        safety_html = page.content()
+                        safety_text = clean_page_text(safety_html)
+                        combined_text += f"\n\n=== CAMPUS SAFETY & SAFEGUARDING POLICY PAGE ({safety_url}) ===\n{safety_text}"
 
-            # If a policy URL was scraped and extraction didn't specify one, attach direct PDF URL or safety page URL
-            if extraction.get("safety_and_security"):
-                if safety_pdf_urls and not extraction["safety_and_security"].get("policy_url"):
-                    extraction["safety_and_security"]["policy_url"] = safety_pdf_urls[0]
-                elif safety_policy_url and not extraction["safety_and_security"].get("policy_url"):
-                    extraction["safety_and_security"]["policy_url"] = safety_policy_url
+                        # Detect policy PDFs (e.g. Safeguarding Policy, Child Protection Policy PDF)
+                        safety_pdf_urls = find_pdf_urls(page, network_seen=network_pdfs[safety_pdf_mark:])
+                        for spu in safety_pdf_urls:
+                            if not gate.before_load(spu):
+                                continue
+                            add_log("pdf_detected_safety", "found policy PDF on safety page", spu)
+                            policy_res = extract_pdf_text(page, spu, timeout_ms=ms(20000))
+                            policy_pdf_text = policy_res.get("text", "")
+                            if policy_res.get("likely_scanned"):
+                                needs_ocr_review = True
+                                add_log("pdf_scanned_no_text_layer", "Policy PDF appears to be a scanned image with no text layer", url=spu, status="warning")
+                            if policy_pdf_text:
+                                combined_text += f"\n\n--- Policy PDF Content from {spu} ---\n{policy_pdf_text}"
+                                add_log("pdf_extracted_safety", f"extracted {len(policy_pdf_text)} chars from policy PDF", spu)
+                    except Exception as ex:
+                        add_log("safety_scrape_warning", f"failed to load safety page: {ex}", safety_url, status="warning")
 
-            annual_values = [
-                g["annual_thb"] for g in extraction.get("tuition_by_grade", [])
-                if g.get("annual_thb")
-            ]
-            extraction["tuition_min_thb"] = min(annual_values) if annual_values else None
-            extraction["tuition_max_thb"] = max(annual_values) if annual_values else None
+                # 4. Verify school identity against scraped content
+                identity_verified, brand_tokens = verify_school_identity(req.school_name, combined_text)
+                if not identity_verified:
+                    add_log(
+                        "identity_mismatch_warning",
+                        f"school identity mismatch: none of brand tokens {brand_tokens} found in scraped text",
+                        url=target_fee_url,
+                        reasoning=f"Checked brand tokens: {brand_tokens}",
+                        status="warning"
+                    )
 
-            result.update({
-                "page_scraped": target_fee_url,
-                "fee_page_discovery": fee_page_discovery,
-                "identity_verified": identity_verified,
-                "needs_ocr_review": needs_ocr_review,
-                "elapsed_sec": round(time.time() - t0, 1),
-                **extraction,
-            })
+                # 5. Extract structured fee & safety data with Gemini
+                extraction = call_with_retry(client, ai_extract, client, req.school_name, combined_text, log_fn=add_log)
+
+                # Apply centralized confidence capping (identity mismatch <= 0.3, fee discovery fallback <= 0.4)
+                extraction = apply_confidence_caps(extraction, fee_page_discovery, identity_verified)
+
+                add_log(
+                    "extract", "extraction complete",
+                    reasoning=extraction.get("confidence_reasoning", ""),
+                    confidence=extraction.get("confidence")
+                )
+
+                # If a policy URL was scraped and extraction didn't specify one, attach direct PDF URL or safety page URL
+                if extraction.get("safety_and_security"):
+                    if safety_pdf_urls and not extraction["safety_and_security"].get("policy_url"):
+                        extraction["safety_and_security"]["policy_url"] = safety_pdf_urls[0]
+                    elif safety_policy_url and not extraction["safety_and_security"].get("policy_url"):
+                        extraction["safety_and_security"]["policy_url"] = safety_policy_url
+
+                annual_values = [
+                    g["annual_thb"] for g in extraction.get("tuition_by_grade", [])
+                    if g.get("annual_thb")
+                ]
+                extraction["tuition_min_thb"] = min(annual_values) if annual_values else None
+                extraction["tuition_max_thb"] = max(annual_values) if annual_values else None
+
+                result.update({
+                    "page_scraped": target_fee_url,
+                    "fee_page_discovery": fee_page_discovery,
+                    "identity_verified": identity_verified,
+                    "needs_ocr_review": needs_ocr_review,
+                    "elapsed_sec": round(time.time() - t0, 1),
+                    **extraction,
+                })
             
-            browser.close()
+                browser.close()
+                robots_ctx.dispose()
 
-        return {
-            "status": "success",
-            "result_data": result,
-            "logs": logs
-        }
-
-    except Exception as e:
-        add_log("playwright_exception", f"Playwright encountered an error: {e}. Attempting requests fallback...", status="warning")
-        try:
-            fb_res = _scrape_fallback_requests(req, client, add_log, t0)
             return {
                 "status": "success",
-                "result_data": fb_res,
+                "result_data": result,
                 "logs": logs
             }
-        except Exception as fb_err:
-            add_log("error", f"Both Playwright and HTTP fallback failed: {fb_err}", status="failed")
+
+        except PlaywrightError as e:
+            # Playwright gave up part-way (slow site, timeout, crash): try again with longer timeouts
+            if attempt < len(TIMEOUT_SCALES):
+                add_log("playwright_retry",
+                        f"Playwright error: {e}. Retrying with timeouts x{TIMEOUT_SCALES[attempt]}",
+                        status="warning")
+                continue
+            add_log("error", f"Playwright failed after {attempt} attempts: {e}", status="failed")
             return {
                 "status": "failed",
-                "error": f"{e} (HTTP fallback: {fb_err})",
+                "error": f"Playwright failed after {attempt} attempts: {e}",
+                "logs": logs
+            }
+        except Exception as e:
+            # Not a browser problem (e.g. Gemini quota): a longer timeout would not help
+            add_log("error", f"Scrape failed: {e}", status="failed")
+            return {
+                "status": "failed",
+                "error": str(e),
                 "logs": logs
             }
 
