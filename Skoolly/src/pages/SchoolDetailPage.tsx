@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { School, SchoolDetail } from "@/types";
 import { getSchoolDetail } from "@/api/schoolsApi";
 import { getSchoolSources, type SchoolSafetyDetail, type SchoolSources } from "@/api/sourcesApi";
-import { getSchoolInitials } from "@/components/schools/SchoolCard";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
 import { Check, ExternalLink } from "lucide-react";
 
@@ -90,7 +90,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
   const [tab, setTab] = useState("Overview");
   const [detail, setDetail] = useState<SchoolDetail | null>(null);
   const [detailMissing, setDetailMissing] = useState(false);
-  const [logoFailed, setLogoFailed] = useState(false);
   const [sources, setSources] = useState<SchoolSources | null>(null);
 
   // ── Fetch extended school detail from the API layer on mount ───────────────
@@ -141,7 +140,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
   const lastUpdatedDisplay = formatLastUpdated(rawLastUpdated);
 
   const names = schoolNames(school);
-  const logoSrc = detail.logoUrl || school.logoUrl || (school.image?.startsWith("http") ? school.image : null);
 
   const opecDate = formatThaiDate(sources?.opec.fetched_at) ?? formatThaiDate(sources?.opec.imported_at);
   const website = sources?.website ?? null;
@@ -152,7 +150,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ── Hero Header: Branded School Presentation with Official Logo ── */}
+      {/* ── Hero Header: school initials and names ── */}
       <div className="relative min-h-[290px] md:min-h-[320px] bg-gradient-to-br from-slate-900 via-navy-950 to-slate-900 overflow-hidden flex flex-col justify-between p-6 md:p-8">
         {/* Soft background ambient glow */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -192,23 +190,15 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
           </div>
         </div>
 
-        {/* Hero main identity: Official School Logo & Verified Titles */}
+        {/* Hero main identity: initials & titles */}
         <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col md:flex-row items-start md:items-center gap-5 my-auto pt-6 pb-2">
-          {/* Official Logo Container */}
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-3 shadow-xl border border-white/20 flex items-center justify-center shrink-0">
-            {logoSrc && !logoFailed ? (
-              <img
-                src={logoSrc}
-                alt={`ตราโรงเรียน ${names.primary}`}
-                referrerPolicy="no-referrer"
-                className="max-h-full max-w-full object-contain"
-                onError={() => setLogoFailed(true)}
-              />
-            ) : (
-              <div className="w-full h-full rounded-xl bg-warm-bronze/10 border border-warm-bronze/20 flex flex-col items-center justify-center text-warm-bronze font-bold text-xl tracking-wider select-none">
-                {getSchoolInitials(school.name)}
-              </div>
-            )}
+          {/* White frame keeps dark-toned initials readable on the navy hero */}
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-2 shadow-xl border border-white/20 flex items-center justify-center shrink-0">
+            <SchoolMonogram
+              initials={school.initials}
+              seed={school.name}
+              className="size-full rounded-xl text-3xl sm:text-4xl"
+            />
           </div>
 
           {/* School Titles & Metadata */}
@@ -627,18 +617,11 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-xs">
-                <div className="w-20 h-20 mx-auto mb-3 p-2 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center">
-                  {logoSrc && !logoFailed ? (
-                    <img
-                      src={logoSrc}
-                      alt={school.name}
-                      referrerPolicy="no-referrer"
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-2xl font-bold text-slate-400">🏫</span>
-                  )}
-                </div>
+                <SchoolMonogram
+                  initials={school.initials}
+                  seed={school.name}
+                  className="size-20 mx-auto mb-3 rounded-2xl text-2xl"
+                />
                 <h3 className="font-bold text-navy-900 text-base mb-4">ยังไม่มีรูปภาพ</h3>
                 {detail.website && (
                   <a

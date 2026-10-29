@@ -1,6 +1,7 @@
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 import { curriculumLabel, schoolNames } from "@/lib/labels";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 
 interface CompareLimitModalProps {
   currentSchools: School[];
@@ -51,20 +52,7 @@ export function CompareLimitModal({
               className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-warm-accent/60 hover:border-warm-bronze transition-colors shadow-2xs"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-lg bg-slate-50 border border-warm-accent/40 flex items-center justify-center shrink-0 p-1">
-                  {s.logoUrl || (s.image?.startsWith("http") ? s.image : null) ? (
-                    <img
-                      src={s.logoUrl || s.image}
-                      alt={s.name}
-                      referrerPolicy="no-referrer"
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-[10px] font-bold text-warm-bronze">
-                      {s.name.slice(0, 3).toUpperCase()}
-                    </span>
-                  )}
-                </div>
+                <SchoolMonogram initials={s.initials} seed={s.name} className="size-11 rounded-lg text-sm" />
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-warm-charcoal truncate">
                     {schoolNames(s).primary}

@@ -1,24 +1,11 @@
-import { useState } from "react";
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
 import { badgeLabel, curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 
 export function formatTuition(n: number) {
   if (!n || n <= 0) return "ติดต่อโรงเรียน";
   return `฿${Math.round(n).toLocaleString("en-US")}`;
-}
-
-export function getSchoolInitials(name: string): string {
-  if (!name) return "SCH";
-  const words = name
-    .replace(/[()]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 0 && !/^(of|and|the|in|at|for|co|ltd)$/i.test(w));
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
-  return words
-    .slice(0, 4)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 }
 
 export function StarRating({ rating }: { rating: number }) {
@@ -53,36 +40,24 @@ export function SchoolCard({
   onSchoolClick,
   onCompareLimitReached,
 }: SchoolCardProps) {
-  const [imgFailed, setImgFailed] = useState(false);
   const isCompared = compareIds.includes(school.id);
   const isFav = favorites.has(school.id);
   const compareAtLimit = compareIds.length >= MAX_COMPARE && !isCompared;
 
-  const logoSrc = (school.logoUrl && school.logoUrl.trim()) ? school.logoUrl : (school.image?.startsWith("http") ? school.image : null);
   const names = schoolNames(school);
 
   return (
     <div className="card-hover bg-warm-cream rounded-[1.5rem] overflow-hidden border border-warm-accent shadow-xs flex flex-col transition-all hover:shadow-md">
-      {/* ── Logo area: OPEC logos are white-background JPEGs cropped tight to the artwork,
-             so they sit on plain white with padding to blend in and keep clear of the edges ── */}
+      {/* ── Initials area (school logos aren't shown without permission) ── */}
       <div
-        className="relative h-44 bg-white border-b border-warm-accent/50 flex items-center justify-center px-12 pt-10 pb-6 cursor-pointer group"
+        className="relative h-44 bg-white border-b border-warm-accent/50 flex items-center justify-center cursor-pointer group"
         onClick={() => onSchoolClick(school.id)}
       >
-        {logoSrc && !imgFailed ? (
-          <img
-            src={logoSrc}
-            alt={`ตราโรงเรียน ${names.primary}`}
-            referrerPolicy="no-referrer"
-            className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            onError={() => setImgFailed(true)}
-          />
-        ) : (
-          <div className="w-16 h-16 rounded-2xl bg-warm-cream border border-warm-accent flex items-center justify-center text-warm-bronze font-bold text-xl tracking-wider select-none group-hover:scale-105 transition-transform">
-            {getSchoolInitials(school.name)}
-          </div>
-        )}
+        <SchoolMonogram
+          initials={school.initials}
+          seed={school.name}
+          className="size-24 rounded-3xl text-3xl shadow-xs transition-transform duration-300 group-hover:scale-105"
+        />
 
         {/* Badge in top-left (e.g. ISAT Member, Boarding School) */}
         {school.badge && (

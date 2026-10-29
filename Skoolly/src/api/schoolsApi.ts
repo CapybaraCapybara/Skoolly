@@ -17,6 +17,7 @@
 import type { School, SchoolCoords, SchoolDetail, SchoolFee, SchoolReview } from "@/types";
 import type { SupabaseSchoolRecord } from "@/types/opec";
 import { getSupabaseSchools } from "@/api/opecApi";
+import { schoolInitials } from "@/lib/schoolInitials";
 
 type MergedData = {
   schools: School[];
@@ -153,6 +154,8 @@ export function mapSupabaseToDomainSchool(
   const id = parseNumericId(record, index, claimedIds);
 
   const name = formatSchoolName(record.name_en, record.name_th);
+  // From the raw name: title-casing above turns "RBIS" into "Rbis"
+  const initials = schoolInitials(record.name_en?.trim() || record.name_th);
   const nameTh = record.name_th?.trim() || undefined;
   const schoolCode = record.opec_school_code || null;
   const curriculum = normalizeCurriculum(record.curriculums);
@@ -203,6 +206,7 @@ export function mapSupabaseToDomainSchool(
     grades,
     image,
     logoUrl,
+    initials,
     badge,
     lastUpdated,
     studentCount: record.student_count ?? null,

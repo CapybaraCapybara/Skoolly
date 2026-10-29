@@ -19,6 +19,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
+import { schoolInitials } from "@/lib/schoolInitials";
 
 function formatDisplayDate(dateStr?: string | null): string {
   if (!dateStr || dateStr.trim() === "" || dateStr === "—") return "—";
@@ -151,21 +153,12 @@ export function OpecSchoolDetailModal({
            ========================================================================= */}
         <div className="p-4 sm:p-5 border-b border-warm-accent flex items-center justify-between bg-white shadow-xs shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
-            {/* School Crest / Logo Avatar */}
-            {school.school_logo_url ? (
-              <img
-                src={school.school_logo_url}
-                alt="Logo"
-                className="w-12 h-12 rounded-xl object-contain border border-warm-accent bg-white/70 p-1 shadow-xs shrink-0"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-xl bg-warm-bronze/10 text-warm-bronze flex items-center justify-center border border-warm-bronze/20 shadow-xs shrink-0">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-            )}
+            {/* Initials, same as the public pages (logos aren't shown without permission) */}
+            <SchoolMonogram
+              initials={schoolInitials(school.school_name_en || school.school_name_th)}
+              seed={school.school_name_en || school.school_name_th || ""}
+              className="size-12 rounded-xl text-sm shadow-xs"
+            />
 
             <div className="min-w-0">
               {/* Thai Name & Badges Row */}
