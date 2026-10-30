@@ -202,13 +202,11 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
 
         {/* Hero main identity: initials & titles */}
         <div className="relative z-10 max-w-5xl mx-auto w-full flex flex-col md:flex-row items-start md:items-center gap-5 my-auto pt-6 pb-2">
-          {/* White frame keeps dark-toned initials readable on the navy hero */}
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-2 shadow-xl border border-white/20 flex items-center justify-center shrink-0">
-            <SchoolMonogram
-              initials={school.initials}
-              className="size-full rounded-xl text-3xl sm:text-4xl"
-            />
-          </div>
+          {/* No white frame (it boxed the tile in a third colour); a faint ring keeps the navy tile visible on the navy hero */}
+          <SchoolMonogram
+            initials={school.initials}
+            className="size-24 sm:size-28 rounded-2xl text-3xl sm:text-4xl shadow-xl ring-1 ring-white/20"
+          />
 
           {/* School Titles & Metadata */}
           <div className="flex-1 min-w-0">
