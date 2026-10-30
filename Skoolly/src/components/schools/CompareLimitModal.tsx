@@ -52,7 +52,7 @@ export function CompareLimitModal({
               className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white border border-warm-accent/60 hover:border-warm-bronze transition-colors shadow-2xs"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <SchoolMonogram initials={s.initials} seed={s.name} className="size-11 rounded-lg text-sm" />
+                <SchoolMonogram initials={s.initials} className="size-11 rounded-lg text-sm" />
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-warm-charcoal truncate">
                     {schoolNames(s).primary}

@@ -84,7 +84,7 @@ export function CompareModal({
                       ✕
                     </button>
                     <div className="relative h-28 rounded-xl overflow-hidden bg-slate-50 border border-warm-accent/30 flex items-center justify-center p-2.5">
-                      <SchoolMonogram initials={s.initials} seed={s.name} className="size-16 rounded-2xl text-xl" />
+                      <SchoolMonogram initials={s.initials} className="size-16 rounded-2xl text-xl" />
                     </div>
                     <div>
                       <h3

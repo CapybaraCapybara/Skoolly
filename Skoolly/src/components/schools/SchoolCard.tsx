@@ -1,7 +1,6 @@
 import { School } from "@/types";
 import { MAX_COMPARE } from "@/constants";
-import { badgeLabel, curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
-import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
+import { curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 
 export function formatTuition(n: number) {
   if (!n || n <= 0) return "ติดต่อโรงเรียน";
@@ -48,56 +47,54 @@ export function SchoolCard({
 
   return (
     <div className="card-hover bg-warm-cream rounded-[1.5rem] overflow-hidden border border-warm-accent shadow-xs flex flex-col transition-all hover:shadow-md">
-      {/* ── Initials area (school logos aren't shown without permission) ── */}
+      {/* ── Names in both languages (school logos aren't shown without permission) ── */}
       <div
-        className="relative h-44 bg-white border-b border-warm-accent/50 flex items-center justify-center cursor-pointer group"
+        className="bg-white border-b border-warm-accent/50 px-5 pt-4 pb-5 cursor-pointer group"
         onClick={() => onSchoolClick(school.id)}
       >
-        <SchoolMonogram
-          initials={school.initials}
-          seed={school.name}
-          className="size-24 rounded-3xl text-3xl shadow-xs transition-transform duration-300 group-hover:scale-105"
-        />
-
-        {/* Badge in top-left (e.g. ISAT Member, Boarding School) */}
-        {school.badge && (
-          <span className="absolute top-3 left-3 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white bg-warm-bronze select-none">
-            {badgeLabel(school.badge)}
+        <div className="flex items-center gap-2 min-h-8">
+          {/* Curriculum, because every school has one (ISAT doesn't, which made the corner come and go) */}
+          <span className="min-w-0 truncate text-[11px] font-semibold px-2.5 py-1 rounded-full bg-warm-accent/50 text-warm-charcoal border border-warm-accent select-none">
+            หลักสูตร {curriculumLabel(school.curriculum)}
           </span>
-        )}
 
-        {/* Favorite heart button in top-right */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(school.id);
-          }}
-          title={isFav ? "เอาออกจากรายการโปรด" : "บันทึกไว้ในรายการโปรด"}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border border-warm-accent hover:scale-105 active:scale-95"
-          style={{ background: isFav ? "#ef4444" : "rgba(255,255,255,0.92)", backdropFilter: "blur(4px)" }}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isFav ? "white" : "none"} stroke={isFav ? "white" : "#14284b"} strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(school.id);
+            }}
+            title={isFav ? "เอาออกจากรายการโปรด" : "บันทึกไว้ในรายการโปรด"}
+            className="ml-auto w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer border border-warm-accent hover:scale-105 active:scale-95"
+            style={{ background: isFav ? "#ef4444" : "rgba(255,255,255,0.92)" }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isFav ? "white" : "none"} stroke={isFav ? "white" : "#14284b"} strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-3 h-1 w-8 rounded-full bg-warm-bronze" />
+        {/* Fixed height for two Thai lines plus the English line, so cards side by side line up (one column on phones needs none) */}
+        <div className="mt-3 sm:min-h-[5rem]">
+          {/* No onClick of its own: the click bubbles to the header. w-full because a button shrinks to its text */}
+          <button
+            type="button"
+            className="w-full text-left font-bold text-warm-charcoal text-xl leading-[1.4] group-hover:text-warm-bronze transition-colors line-clamp-2 cursor-pointer"
+          >
+            {names.primary}
+          </button>
+          {names.secondary && (
+            <div className="text-sm text-warm-charcoal/60 line-clamp-1 mt-1">
+              {names.secondary}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Card body ── */}
       <div className="p-4 flex flex-col gap-3 flex-1">
         <div>
-          <button
-            onClick={() => onSchoolClick(school.id)}
-            className="font-bold text-warm-charcoal text-[15px] leading-snug text-left hover:text-warm-bronze transition-colors line-clamp-2"
-          >
-            {names.primary}
-          </button>
-          {names.secondary && (
-            <div className="text-xs text-warm-charcoal/65 line-clamp-1 mt-0.5">
-              {names.secondary}
-            </div>
-          )}
-
-          <div className="mt-2.5 space-y-1 text-xs text-warm-charcoal/80">
+          <div className="space-y-1 text-xs text-warm-charcoal/80">
             <div className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 shrink-0 text-warm-bronze" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -124,9 +121,11 @@ export function SchoolCard({
         </div>
 
         <div className="flex items-center gap-1.5 text-xs flex-wrap">
-          <span className="bg-warm-accent/60 text-warm-charcoal px-2.5 py-0.5 rounded-md font-semibold">
-            {curriculumLabel(school.curriculum)}
-          </span>
+          {school.isIsatMember && (
+            <span className="bg-warm-bronze/10 text-warm-bronze border border-warm-bronze/25 px-2 py-0.5 rounded-md font-semibold">
+              สมาชิก ISAT
+            </span>
+          )}
           {school.isBoarding && (
             <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
               มีหอพัก
@@ -134,7 +133,7 @@ export function SchoolCard({
           )}
           {school.language && (
             <span className="bg-white text-warm-charcoal/80 px-2 py-0.5 rounded-md font-medium border border-warm-accent">
-              {languageLabel(school.language)}
+              ภาษา{languageLabel(school.language)}
             </span>
           )}
         </div>
@@ -156,13 +155,11 @@ export function SchoolCard({
             </div>
           </div>
           <div className="text-right">
-            {school.reviewCount > 0 && school.rating > 0 ? (
+            {school.reviewCount > 0 && school.rating > 0 && (
               <>
                 <StarRating rating={school.rating} />
                 <div className="text-xs text-warm-charcoal/60 mt-0.5">{school.reviewCount} รีวิว</div>
               </>
-            ) : (
-              <div className="text-xs text-warm-charcoal/60">ยังไม่มีรีวิว</div>
             )}
           </div>
         </div>

@@ -206,7 +206,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
           <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white p-2 shadow-xl border border-white/20 flex items-center justify-center shrink-0">
             <SchoolMonogram
               initials={school.initials}
-              seed={school.name}
               className="size-full rounded-xl text-3xl sm:text-4xl"
             />
           </div>
@@ -696,7 +695,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-xs">
                 <SchoolMonogram
                   initials={school.initials}
-                  seed={school.name}
                   className="size-20 mx-auto mb-3 rounded-2xl text-2xl"
                 />
                 <h3 className="font-bold text-navy-900 text-base mb-4">ยังไม่มีรูปภาพ</h3>

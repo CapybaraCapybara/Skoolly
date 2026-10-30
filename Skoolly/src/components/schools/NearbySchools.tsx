@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, LocateFixed, RotateCcw } from "lucide-react";
+import { ArrowRight, RotateCcw } from "lucide-react";
 import type { School } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatTuition } from "@/components/schools/SchoolCard";
@@ -14,11 +14,10 @@ import {
 
 const RADII = [5, 10, 20];
 
-type LocationSource = "example" | "device" | "pin";
+type LocationSource = "example" | "pin";
 
 const LOCATION_LABEL: Record<LocationSource, string> = {
   example: `${EXAMPLE_LOCATION.label} (ตัวอย่าง)`,
-  device: "ตำแหน่งของคุณ",
   pin: "จุดที่ปักไว้",
 };
 
@@ -43,8 +42,6 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
   const [radiusKm, setRadiusKm] = useState(10);
   const [selected, setSelected] = useState<MapSelection>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const mapped = useMemo(() => schools.filter((s) => s.coords), [schools]);
@@ -76,33 +73,10 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
     }
   }, [selected]);
 
-  const locateMe = () => {
-    if (!("geolocation" in navigator)) {
-      setGeoError("เบราว์เซอร์นี้แชร์ตำแหน่งไม่ได้");
-      return;
-    }
-    setLocating(true);
-    setGeoError(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setSource("device");
-        setSelected(null);
-        setLocating(false);
-      },
-      () => {
-        setGeoError("หาตำแหน่งไม่ได้ ตรวจสอบว่าเบราว์เซอร์อนุญาตให้ใช้ตำแหน่ง");
-        setLocating(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
-  };
-
   const resetLocation = () => {
     setCenter({ lat: EXAMPLE_LOCATION.lat, lng: EXAMPLE_LOCATION.lng });
     setSource("example");
     setSelected(null);
-    setGeoError(null);
   };
 
   return (
@@ -117,15 +91,6 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={locateMe}
-            disabled={locating}
-            className="inline-flex items-center gap-2 rounded-full border border-warm-accent bg-warm-cream px-4 py-2 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze disabled:opacity-60 cursor-pointer"
-          >
-            <LocateFixed className="size-4 text-warm-bronze" />
-            {locating ? "กำลังหาตำแหน่ง…" : "ใช้ตำแหน่งของฉัน"}
-          </button>
           {source !== "example" && (
             <button
               type="button"
@@ -157,8 +122,6 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
           </div>
         </div>
       </div>
-
-      {geoError && <p className="-mt-2 mb-4 text-sm text-rose-700">{geoError}</p>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Map */}

@@ -18,8 +18,7 @@ import {
 } from "lucide-react";
 import { School } from "@/types";
 import { StarRating, formatTuition } from "@/components/schools/SchoolCard";
-import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
-import { badgeLabel, curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
+import { curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 
 interface FavoritesPageProps {
   schools: School[];
@@ -409,68 +408,73 @@ export function FavoritesPage({
                   return (
                     <div
                       key={school.id}
-                      className="group bg-white rounded-3xl border border-warm-accent shadow-sm hover:shadow-md hover:border-warm-bronze/40 transition-all flex flex-col overflow-hidden"
+                      className="group bg-warm-cream rounded-3xl border border-warm-accent shadow-sm hover:shadow-md hover:border-warm-bronze/40 transition-all flex flex-col overflow-hidden"
                     >
-                      {/* Initials header */}
+                      {/* Names in both languages, same layout as SchoolCard */}
                       <div
-                        className="relative h-44 bg-gradient-to-b from-white via-warm-cream/40 to-warm-accent/20 border-b border-warm-accent/40 flex items-center justify-center p-4 cursor-pointer group"
+                        className="bg-white border-b border-warm-accent/50 px-5 pt-4 pb-5 cursor-pointer"
                         onClick={() => onSchoolClick(school.id)}
                       >
-                        <SchoolMonogram
-                          initials={school.initials}
-                          seed={school.name}
-                          className="size-24 rounded-3xl text-3xl shadow-xs group-hover:scale-105 transition-transform duration-300"
-                        />
-
-                        {/* Badges */}
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-warm-charcoal/90 text-white backdrop-blur-xs">
-                            {curriculumLabel(school.curriculum)}
+                        <div className="flex items-center gap-2 min-h-8">
+                          <span className="min-w-0 truncate text-[11px] font-semibold px-2.5 py-1 rounded-full bg-warm-accent/50 text-warm-charcoal border border-warm-accent select-none">
+                            หลักสูตร {curriculumLabel(school.curriculum)}
                           </span>
-                          {school.badge && (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/90 text-white backdrop-blur-xs">
-                              {badgeLabel(school.badge)}
-                            </span>
-                          )}
+
+                          {/* Favorite button (Active Heart) */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavorite(school.id);
+                            }}
+                            title="นำออกจากรายการถูกใจ"
+                            className="ml-auto w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <Heart className="w-4 h-4 fill-current" />
+                          </button>
                         </div>
 
-                        {/* Favorite button (Active Heart) */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleFavorite(school.id);
-                          }}
-                          title="นำออกจากรายการถูกใจ"
-                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <Heart className="w-4 h-4 fill-current" />
-                        </button>
+                        <div className="mt-3 h-1 w-8 rounded-full bg-warm-bronze" />
+                        <div className="mt-3 md:min-h-[5rem]">
+                          <h3
+                            className="font-bold text-xl leading-[1.4] text-warm-charcoal group-hover:text-warm-bronze transition-colors line-clamp-2"
+                            title={schoolNames(school).primary}
+                          >
+                            {schoolNames(school).primary}
+                          </h3>
+                          {schoolNames(school).secondary && (
+                            <div className="text-sm text-warm-charcoal/60 line-clamp-1 mt-1">
+                              {schoolNames(school).secondary}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Content Body */}
                       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
                         <div>
-                          <h3
-                            onClick={() => onSchoolClick(school.id)}
-                            className="font-bold text-base sm:text-lg text-warm-charcoal hover:text-warm-bronze transition-colors cursor-pointer line-clamp-1"
-                            title={schoolNames(school).primary}
-                          >
-                            {schoolNames(school).primary}
-                          </h3>
-
-                          <div className="mt-1.5 flex items-center gap-1 text-xs text-warm-charcoal/60">
+                          <div className="flex items-center gap-1 text-xs text-warm-charcoal/60">
                             <MapPin className="w-3.5 h-3.5 text-warm-bronze shrink-0" />
                             <span className="truncate">{school.location}</span>
                           </div>
 
                           <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-warm-charcoal/70">
+                            {school.isIsatMember && (
+                              <span className="bg-warm-bronze/10 text-warm-bronze border border-warm-bronze/25 px-2 py-0.5 rounded-md font-semibold">
+                                สมาชิก ISAT
+                              </span>
+                            )}
+                            {school.isBoarding && (
+                              <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
+                                มีหอพัก
+                              </span>
+                            )}
                             <span className="inline-flex items-center gap-1 bg-warm-cream px-2 py-0.5 rounded-md border border-warm-accent/50">
                               <GraduationCap className="w-3 h-3 text-warm-bronze" />
                               {school.grades || "ไม่มีข้อมูลระดับชั้น"}
                             </span>
                             {school.language && (
                               <span className="bg-warm-cream px-2 py-0.5 rounded-md border border-warm-accent/50">
-                                {languageLabel(school.language)}
+                                ภาษา{languageLabel(school.language)}
                               </span>
                             )}
                           </div>
@@ -492,11 +496,7 @@ export function FavoritesPage({
                               </div>
                             </div>
                             <div className="text-right">
-                              {school.reviewCount > 0 && school.rating > 0 ? (
-                                <StarRating rating={school.rating} />
-                              ) : (
-                                <span className="text-[11px] text-warm-charcoal/50 italic">ยังไม่มีรีวิว</span>
-                              )}
+                              {school.reviewCount > 0 && school.rating > 0 && <StarRating rating={school.rating} />}
                             </div>
                           </div>
 

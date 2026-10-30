@@ -156,7 +156,6 @@ export function OpecSchoolDetailModal({
             {/* Initials, same as the public pages (logos aren't shown without permission) */}
             <SchoolMonogram
               initials={schoolInitials(school.school_name_en || school.school_name_th)}
-              seed={school.school_name_en || school.school_name_th || ""}
               className="size-12 rounded-xl text-sm shadow-xs"
             />
 
