@@ -15,8 +15,18 @@ import {
   ChevronRight,
   ShieldCheck,
   Bed,
+  Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import type { OpecSchoolRecord, ProvinceStat, TopSchool } from "@/types/opec";
+
+// What counts as "filled" for each field in the completeness panel
+const COVERAGE_FIELDS: { label: string; icon: LucideIcon; has: (s: OpecSchoolRecord) => boolean }[] = [
+  { label: "ค่าเทอม", icon: Wallet, has: (s) => Number(s.tuition_min_thb) > 0 },
+  { label: "เว็บไซต์", icon: Globe, has: (s) => Boolean(s.website?.trim()) },
+  { label: "พิกัดระดับอาคาร", icon: Crosshair, has: (s) => s.gps_precision === "Exact" },
+  { label: "ระดับชั้นที่เปิดสอน", icon: GraduationCap, has: (s) => (s.levels_offered?.length ?? 0) > 0 || Boolean(s.level_range) },
+];
 
 interface OpecDashboardProps {
   schools: OpecSchoolRecord[];
@@ -223,18 +233,19 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
     };
   }, [schools]);
 
-  // Spatial / Completeness
-  const spatialStats = useMemo(() => {
-    let exact = 0;
-    let approx = 0;
-    let webLive = 0;
-    schools.forEach((s) => {
-      if (s.gps_precision === "Exact") exact++;
-      else if (s.latitude && s.longitude) approx++;
-      if (s.website && s.website.trim()) webLive++;
-    });
-    return { exact, approx, webLive };
-  }, [schools]);
+  const coverage = useMemo(
+    () =>
+      COVERAGE_FIELDS.map((f) => {
+        const filled = schools.filter(f.has);
+        return {
+          ...f,
+          filled,
+          missing: schools.filter((s) => !f.has(s)),
+          pct: Math.round((filled.length / (schools.length || 1)) * 100),
+        };
+      }),
+    [schools]
+  );
 
   // ISAT Membership & Global Accreditations Stats
   const isatStats = useMemo(() => {
@@ -397,6 +408,53 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
           <div className="text-xs text-[#456ca6] mt-1 font-bold">
             {kpi.gpsExact} แห่ง
           </div>
+        </div>
+      </div>
+
+      {/* Data completeness: each count opens the list of schools behind it */}
+      <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs">
+        <div className="flex items-center gap-2.5 mb-4">
+          <Satellite className="w-5 h-5 text-[#456ca6]" />
+          <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
+            ความครบของข้อมูล
+          </h3>
+        </div>
+
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {coverage.map((f) => (
+            <div key={f.label} className="p-3.5 rounded-2xl bg-white/70 border border-warm-accent/60">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <f.icon className="w-4 h-4 text-warm-bronze flex-shrink-0" />
+                  <span className="font-bold text-xs text-warm-charcoal truncate">{f.label}</span>
+                </div>
+                <span className="text-xs font-bold tabular-nums text-warm-charcoal">{f.pct}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-warm-accent/70 rounded-full mt-2 overflow-hidden">
+                <div className="h-full bg-warm-bronze rounded-full" style={{ width: `${f.pct}%` }} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  disabled={f.filled.length === 0}
+                  onClick={() => onOpenDrillDown(`มีข้อมูล${f.label}`, "", f.filled)}
+                  className="px-2.5 py-1.5 rounded-xl border border-warm-accent bg-warm-cream text-warm-charcoal hover:border-[#456ca6] disabled:opacity-50 disabled:pointer-events-none cursor-pointer transition-colors flex items-center justify-between"
+                >
+                  <span>มี</span>
+                  <span className="font-bold tabular-nums">{f.filled.length}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={f.missing.length === 0}
+                  onClick={() => onOpenDrillDown(`ยังไม่มีข้อมูล${f.label}`, "", f.missing)}
+                  className="px-2.5 py-1.5 rounded-xl border border-warm-bronze/40 bg-warm-bronze/10 text-warm-bronze hover:border-warm-bronze disabled:opacity-50 disabled:pointer-events-none cursor-pointer transition-colors flex items-center justify-between"
+                >
+                  <span>ยังไม่มี</span>
+                  <span className="font-bold tabular-nums">{f.missing.length}</span>
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -788,7 +846,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         </div>
       </div>
 
-      {/* Row 3: Government Support & Digital Data Completeness */}
+      {/* Row 3: Government Support and ISAT & Boarding on the left, Accreditations spanning both on the right */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Government Support */}
         <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs">
@@ -844,84 +902,6 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
           </div>
         </div>
 
-        {/* Spatial & Digital Quality */}
-        <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs">
-          <div className="flex items-center gap-2.5 mb-4">
-            <Satellite className="w-5 h-5 text-[#456ca6]" />
-            <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-              ความครบของข้อมูล
-            </h3>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div
-              onClick={() =>
-                onOpenDrillDown(
-                  "พิกัดระดับอาคาร",
-                  "",
-                  schools.filter((s) => s.gps_precision === "Exact")
-                )
-              }
-              className="p-3.5 rounded-2xl bg-white/70 hover:bg-warm-cream border border-warm-accent/60 cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2.5">
-                <Crosshair className="w-4 h-4 text-[#456ca6]" />
-                <span className="font-bold text-warm-charcoal">
-                  พิกัดระดับอาคาร
-                </span>
-              </div>
-              <span className="font-bold px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
-                {spatialStats.exact} แห่ง
-              </span>
-            </div>
-
-            <div
-              onClick={() =>
-                onOpenDrillDown(
-                  "พิกัดโดยประมาณ",
-                  "ระดับอำเภอหรือตำบล",
-                  schools.filter((s) => s.latitude && s.longitude && s.gps_precision !== "Exact")
-                )
-              }
-              className="p-3.5 rounded-2xl bg-white/70 hover:bg-warm-cream border border-warm-accent/60 cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2.5">
-                <MapPin className="w-4 h-4 text-warm-bronze" />
-                <span className="font-bold text-warm-charcoal">
-                  พิกัดโดยประมาณ (อำเภอ/ตำบล)
-                </span>
-              </div>
-              <span className="font-bold px-2.5 py-1 rounded-full bg-warm-card text-warm-bronze border border-warm-accent">
-                {spatialStats.approx} แห่ง
-              </span>
-            </div>
-
-            <div
-              onClick={() =>
-                onOpenDrillDown(
-                  "มีเว็บไซต์ทางการ",
-                  "",
-                  schools.filter((s) => s.website && s.website.trim())
-                )
-              }
-              className="p-3.5 rounded-2xl bg-white/70 hover:bg-warm-cream border border-warm-accent/60 cursor-pointer transition-all flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2.5">
-                <Globe className="w-4 h-4 text-[#456ca6]" />
-                <span className="font-bold text-warm-charcoal">
-                  มีเว็บไซต์ทางการ
-                </span>
-              </div>
-              <span className="font-bold px-2.5 py-1 rounded-full bg-warm-card text-warm-charcoal border border-warm-accent">
-                {spatialStats.webLive} แห่ง
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: ISAT Membership, Boarding Schools & Global Accreditations (CIS / WASC / ONESQA) */}
-      <div className="grid lg:grid-cols-2 gap-6">
         {/* ISAT Membership & Boarding Schools Highlight */}
         <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs flex flex-col justify-between">
           <div>
@@ -994,7 +974,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         </div>
 
         {/* Global Accreditations Breakdown */}
-        <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs flex flex-col">
+        <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs flex flex-col lg:col-start-2 lg:row-start-1 lg:row-span-2">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <Award className="w-5 h-5 text-teal-700" />

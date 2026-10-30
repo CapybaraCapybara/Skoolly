@@ -160,6 +160,7 @@ export function SupabaseAdminPage({
         director_name: s.director_name || "",
         manager_name: s.manager_name || "",
         government_support: s.government_support || "",
+        tuition_min_thb: s.pub_tuition_min_thb ?? null,
         school_logo_url: s.school_logo_url || s.logo_url || "",
         is_isat_member: Boolean(s.is_isat_member),
         is_boarding: Boolean(s.is_boarding),

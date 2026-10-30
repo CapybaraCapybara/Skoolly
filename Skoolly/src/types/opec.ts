@@ -38,6 +38,7 @@ export interface OpecSchoolRecord {
   director_name?: string;
   manager_name?: string;
   government_support?: string; // "ไม่รับเงินอุดหนุน" | "รับเงินอุดหนุน"
+  tuition_min_thb?: number | null; // published fee, empty until a fee version is approved
   school_history?: string;
   vision?: string;
   mission?: string;

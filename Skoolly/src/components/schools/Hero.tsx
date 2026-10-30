@@ -33,7 +33,7 @@ export function Hero({
   averageRating = null,
 }: HeroProps) {
   return (
-    <section className="relative bg-warm-bg pt-4 sm:pt-8 pb-12 sm:pb-16 px-4 sm:px-8 md:px-12 lg:px-16 overflow-hidden">
+    <section className="relative bg-warm-bg pt-4 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-8 md:px-12 lg:px-16 overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
@@ -91,11 +91,11 @@ export function Hero({
 
         {/* ── STATS SECTION (Dwello style) ────────────────────────────────── */}
         {stats.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 sm:gap-6 md:gap-12 mt-10 sm:mt-16 pt-8 sm:pt-12 border-t border-warm-accent/40 text-left max-w-3xl">
+          <div className="grid grid-cols-3 divide-x divide-warm-accent mt-10 sm:mt-14 rounded-2xl sm:rounded-3xl border border-warm-accent bg-warm-cream shadow-sm">
             {stats.map((stat) => (
-              <div key={stat.label}>
+              <div key={stat.label} className="px-2 py-5 sm:px-6 sm:py-7 text-center">
                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-warm-charcoal">{stat.value}</div>
-                <div className="text-[11px] sm:text-xs md:text-sm text-warm-charcoal/60 font-medium mt-0.5 sm:mt-1 leading-tight">{stat.label}</div>
+                <div className="text-xs sm:text-sm text-warm-bronze font-semibold mt-1">{stat.label}</div>
               </div>
             ))}
           </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, type ReactNode } from "react";
-import { ArrowRight, BookOpen, Calculator, Check, ChevronLeft, ChevronRight, Loader2, MessageSquare, Search, X } from "lucide-react";
+import { ArrowRight, BookOpen, Calculator, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, MessageSquare, Search, X } from "lucide-react";
+import { Select } from "@base-ui/react/select";
 import Hero, { type HeroStat } from "@/components/schools/Hero";
 import { SchoolCard } from "@/components/schools/SchoolCard";
 import { NoResults } from "@/components/schools/NoResults";
@@ -15,6 +16,52 @@ const ITEMS_PER_PAGE = 9;
 const filterLabel = "block text-xs font-bold text-warm-charcoal/60 mb-1.5";
 const selectClass =
   "w-full cursor-pointer rounded-xl border border-warm-accent bg-white/70 px-3 py-2.5 text-sm text-warm-charcoal transition focus:border-warm-bronze focus:outline-none focus:ring-2 focus:ring-warm-bronze/30";
+
+const optionClass =
+  "flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-warm-charcoal outline-none select-none data-highlighted:bg-warm-accent/60 data-selected:font-bold";
+
+// A native <option> can't lay out its text, so this keeps each count in its own right-aligned column
+function CountSelect({
+  label,
+  allLabel,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  allLabel: string;
+  value: string;
+  options: { value: string; count: number }[];
+  onChange: (value: string) => void;
+}) {
+  const items = [{ value: null, label: allLabel }, ...options.map((o) => ({ value: o.value, label: o.value }))];
+  return (
+    <Select.Root items={items} value={value || null} onValueChange={(v) => onChange(v ?? "")}>
+      <Select.Label className={filterLabel}>{label}</Select.Label>
+      <Select.Trigger className={cn(selectClass, "flex items-center justify-between gap-2 text-left")}>
+        <Select.Value className="truncate" />
+        <Select.Icon>
+          <ChevronDown className="size-4 shrink-0 text-warm-charcoal/60" />
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner sideOffset={4} alignItemWithTrigger={false} className="z-50">
+          <Select.Popup className="max-h-[min(var(--available-height),22rem)] w-(--anchor-width) overflow-y-auto rounded-xl border border-warm-accent bg-warm-cream p-1 shadow-xl">
+            <Select.Item value={null} className={optionClass}>
+              <Select.ItemText>{allLabel}</Select.ItemText>
+            </Select.Item>
+            {options.map((o) => (
+              <Select.Item key={o.value} value={o.value} className={optionClass}>
+                <Select.ItemText>{o.value}</Select.ItemText>
+                <span className="shrink-0 tabular-nums text-warm-charcoal/50">{o.count}</span>
+              </Select.Item>
+            ))}
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  );
+}
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
@@ -126,18 +173,6 @@ export function HomePage({
       .catch(() => setLoadState("error"));
   }, []);
 
-  // Hero numbers come from the loaded schools so they always match the database
-  const heroStats = useMemo<HeroStat[]>(() => {
-    if (schools.length === 0) return [];
-    const totalReviews = schools.reduce((sum, s) => sum + (s.reviewCount || 0), 0);
-    const withFees = schools.filter((s) => s.tuitionStart > 0).length;
-    return [
-      { value: schools.length.toLocaleString("en-US"), label: "โรงเรียน" },
-      { value: withFees.toLocaleString("en-US"), label: "มีข้อมูลค่าเทอม" },
-      { value: totalReviews.toLocaleString("en-US"), label: "รีวิวจากผู้ปกครอง" },
-    ];
-  }, [schools]);
-
   const averageRating = useMemo(() => {
     const rated = schools.filter((s) => s.reviewCount > 0 && s.rating > 0);
     const weight = rated.reduce((sum, s) => sum + s.reviewCount, 0);
@@ -148,6 +183,15 @@ export function HomePage({
   // Province and curriculum choices come from the data, so every value in the database can be picked
   const provinceOptions = useMemo(() => countOptions(schools.map((s) => (s.province ? [s.province] : []))), [schools]);
   const curriculumOptions = useMemo(() => countOptions(schools.map((s) => s.curricula ?? [])), [schools]);
+  // Hero numbers come from the loaded schools so they always match the database
+  const heroStats = useMemo<HeroStat[]>(() => {
+    if (schools.length === 0) return [];
+    return [
+      { value: schools.length.toLocaleString("en-US"), label: "โรงเรียน" },
+      { value: provinceOptions.length.toLocaleString("en-US"), label: "จังหวัด" },
+      { value: curriculumOptions.length.toLocaleString("en-US"), label: "หลักสูตร" },
+    ];
+  }, [schools, provinceOptions, curriculumOptions]);
   const isatCount = useMemo(() => schools.filter((s) => s.isIsatMember).length, [schools]);
   const boardingCount = useMemo(() => schools.filter((s) => s.isBoarding).length, [schools]);
   // How many schools teach each level, shown on the level chips
@@ -301,28 +345,24 @@ export function HomePage({
 
             {/* Province, curriculum, fee */}
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <label>
-                <span className={filterLabel}>จังหวัด</span>
-                <select value={filters.province} onChange={(e) => setFilter("province", e.target.value)} className={selectClass}>
-                  <option value="">ทุกจังหวัด</option>
-                  {provinceOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.value} ({o.count})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span className={filterLabel}>หลักสูตร</span>
-                <select value={filters.curriculum} onChange={(e) => setFilter("curriculum", e.target.value)} className={selectClass}>
-                  <option value="">ทุกหลักสูตร</option>
-                  {curriculumOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.value} ({o.count})
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div>
+                <CountSelect
+                  label="จังหวัด"
+                  allLabel="ทุกจังหวัด"
+                  value={filters.province}
+                  options={provinceOptions}
+                  onChange={(v) => setFilter("province", v)}
+                />
+              </div>
+              <div>
+                <CountSelect
+                  label="หลักสูตร"
+                  allLabel="ทุกหลักสูตร"
+                  value={filters.curriculum}
+                  options={curriculumOptions}
+                  onChange={(v) => setFilter("curriculum", v)}
+                />
+              </div>
               <div>
                 <div className="mb-1.5 flex items-baseline justify-between gap-2">
                   <label htmlFor="fee-slider" className="text-xs font-bold text-warm-charcoal/60">
