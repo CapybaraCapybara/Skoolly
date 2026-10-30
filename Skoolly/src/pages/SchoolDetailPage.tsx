@@ -235,16 +235,16 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
             )}
 
             <div className="flex items-center gap-3 mt-3 text-slate-300 text-xs sm:text-sm flex-wrap">
-              {school.reviewCount > 0 && school.rating > 0 ? (
-                <div className="flex items-center gap-1.5">
-                  <StarRating rating={school.rating} size="lg" />
-                  <span className="text-white font-semibold">{school.rating}</span>
-                  <span className="text-slate-400">({school.reviewCount} รีวิว)</span>
-                </div>
-              ) : (
-                <span className="text-slate-400 italic">ยังไม่มีรีวิว</span>
+              {school.reviewCount > 0 && school.rating > 0 && (
+                <>
+                  <div className="flex items-center gap-1.5">
+                    <StarRating rating={school.rating} size="lg" />
+                    <span className="text-white font-semibold">{school.rating}</span>
+                    <span className="text-slate-400">({school.reviewCount} รีวิว)</span>
+                  </div>
+                  <span>·</span>
+                </>
               )}
-              <span>·</span>
               <span>{school.location}</span>
               <span>·</span>
               <span>หลักสูตร {curriculumLabel(school.curriculum)}</span>
