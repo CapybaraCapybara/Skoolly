@@ -4,6 +4,12 @@ import { getSchoolDetail } from "@/api/schoolsApi";
 import { getSchoolSources, type SchoolSafetyDetail, type SchoolSources } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
+import {
+  ACCREDITATION_KIND_LABELS,
+  explainAccreditations,
+  groupByKind,
+  programCategoryLabel,
+} from "@/lib/highlights";
 import { Check, ExternalLink } from "lucide-react";
 
 // ─── StarRating ─────────────────────────────────────────────────────────────
@@ -147,6 +153,10 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
   const websiteDate = formatThaiDate(website?.collected_at);
   const websiteApproved = formatThaiDate(website?.approved_at);
   const safety = sources?.safety ?? null;
+  const programs = sources?.signature_programs ?? null;
+  const programCategories = [...new Set((programs ?? []).map((p) => programCategoryLabel(p.category)))];
+  const facilities = sources?.facilities ?? [];
+  const accreditationGroups = groupByKind(explainAccreditations(detail.accreditation ?? []));
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -274,12 +284,55 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 <p className="text-slate-600 text-sm leading-relaxed">{detail.about}</p>
               </div>
 
-              {/* Facilities: hidden until there is data (nothing fills detail.facilities yet) */}
-              {detail.facilities && detail.facilities.length > 0 && (
+              {/* Signature programmes: what the school itself presents as distinctive (published website version) */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                <h2 className="font-semibold text-navy-900 text-lg mb-1">จุดเด่นและโปรแกรมพิเศษ</h2>
+                {programs && programs.length > 0 ? (
+                  <>
+                    <div className="mt-2 mb-4 flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-slate-500">เน้นด้าน</span>
+                      {programCategories.map((c) => (
+                        <span key={c} className="rounded-full bg-warm-cream border border-warm-accent px-2.5 py-0.5 text-xs font-semibold text-warm-charcoal">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                    <ul className="space-y-3">
+                      {programs.map((p) => (
+                        <li key={p.name} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-navy-900">{p.name}</span>
+                            <span className="rounded-md bg-white border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-500">
+                              {programCategoryLabel(p.category)}
+                            </span>
+                          </div>
+                          {p.description && <p className="mt-1 text-sm leading-relaxed text-slate-600">{p.description}</p>}
+                          {p.evidence && (
+                            <p className="mt-1.5 text-xs italic text-slate-400">“{p.evidence}”</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      โรงเรียนเป็นผู้ระบุเองบนเว็บไซต์{websiteDate ? ` · ข้อมูล ณ ${websiteDate}` : ""} · ข้อความในเครื่องหมายคำพูดคัดมาจากเว็บไซต์โดยตรง
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 rounded-xl border border-slate-200/60 bg-slate-50 p-4 text-sm text-slate-600">
+                    {programs
+                      ? "เว็บไซต์โรงเรียนไม่ได้ระบุโปรแกรมพิเศษไว้ในหน้าที่ระบบเก็บข้อมูล"
+                      : "ยังไม่มีข้อมูล"}
+                    <span className="mt-1 block text-xs text-slate-500">ไม่ได้แปลว่าโรงเรียนไม่มี สอบถามโรงเรียนได้โดยตรง</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Facilities: hidden until the published website version lists some */}
+              {facilities.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
                   <h2 className="font-semibold text-navy-900 text-lg mb-3">สิ่งอำนวยความสะดวก</h2>
                   <div className="grid grid-cols-2 gap-2">
-                    {detail.facilities.map((f) => (
+                    {facilities.map((f) => (
                       <div key={f} className="flex items-center gap-2 text-sm text-slate-700">
                         <svg className="w-4 h-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -290,6 +343,44 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   </div>
                 </div>
               )}
+
+              {/* Accreditation: from ISAT, grouped by how strong the recognition is */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+                <h2 className="font-semibold text-navy-900 text-lg mb-3">การรับรองมาตรฐาน</h2>
+                {accreditationGroups.length > 0 ? (
+                  <div className="space-y-4">
+                    {accreditationGroups.map(([kind, items]) => (
+                      <div key={kind}>
+                        <h3 className="text-sm font-semibold text-navy-900">{ACCREDITATION_KIND_LABELS[kind].title}</h3>
+                        <p className="mt-0.5 text-xs text-slate-500">{ACCREDITATION_KIND_LABELS[kind].meaning}</p>
+                        <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {items.map((a) => (
+                            <li key={a.code} className="rounded-xl border border-teal-100 bg-teal-50/60 px-3.5 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-teal-800">{a.label}</span>
+                                {a.candidate && (
+                                  <span className="rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[11px] text-amber-700">
+                                    อยู่ระหว่างขอรับรอง
+                                  </span>
+                                )}
+                              </div>
+                              {a.fullName && <div className="mt-0.5 text-xs text-slate-500">{a.fullName}</div>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    <p className="border-t border-slate-100 pt-3 text-xs text-slate-500">
+                      ข้อมูลจากสมาคมโรงเรียนนานาชาติแห่งประเทศไทย (ISAT) · โรงเรียนอาจมีการรับรองอื่นที่ยังไม่อยู่ในรายการนี้
+                    </p>
+                  </div>
+                ) : (
+                  <p className="rounded-xl border border-slate-200/60 bg-slate-50 p-4 text-sm text-slate-600">
+                    ยังไม่มีข้อมูลการรับรองมาตรฐาน
+                    <span className="mt-1 block text-xs text-slate-500">ไม่ได้แปลว่าโรงเรียนไม่ได้รับการรับรอง สอบถามโรงเรียนได้โดยตรง</span>
+                  </p>
+                )}
+              </div>
 
               {/* Safety and child protection: published details from version_safety, shown in full */}
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
@@ -482,20 +573,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                   </div>
                 </div>
               </div>
-
-              {/* Accreditation */}
-              {detail.accreditation && detail.accreditation.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                  <h3 className="font-semibold text-navy-900 mb-2 text-sm">การรับรองมาตรฐาน</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {detail.accreditation.map((a) => (
-                      <span key={a} className="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-semibold px-2.5 py-1 rounded-full">
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Starting Tuition */}
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">

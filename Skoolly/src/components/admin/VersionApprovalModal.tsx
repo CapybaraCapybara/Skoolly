@@ -24,6 +24,7 @@ import {
   Building2,
 } from "lucide-react";
 import type { PendingVersionRecord } from "@/types/opec";
+import { programCategoryLabel } from "@/lib/highlights";
 
 interface VersionApprovalModalProps {
   version: PendingVersionRecord | null;
@@ -804,6 +805,31 @@ export function VersionApprovalModal({
               ) : (
                 <div className="py-8 text-center text-[#78716c] bg-[#faf7f2] rounded-2xl border border-dashed border-[#e5dcce]">
                   ไม่พบรายการสิ่งอำนวยความสะดวกระบุไว้ชัดเจน
+                </div>
+              )}
+
+              <h4 className="pt-2 text-xs font-bold text-warm-charcoal uppercase tracking-wider">
+                โปรแกรมพิเศษที่ตรวจพบบนเว็บไซต์ ({version.scraped_signature_programs?.length || 0})
+              </h4>
+              {version.scraped_signature_programs && version.scraped_signature_programs.length > 0 ? (
+                <div className="space-y-2.5">
+                  {version.scraped_signature_programs.map((prog, idx) => (
+                    <div key={idx} className="p-3.5 rounded-2xl bg-warm-cream/60 border border-warm-accent text-xs text-warm-charcoal">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">{prog.name}</span>
+                        <span className="rounded-md bg-white border border-warm-accent px-1.5 py-0.5 text-[11px]">
+                          {programCategoryLabel(prog.category)}
+                        </span>
+                      </div>
+                      {prog.description && <p className="mt-1">{prog.description}</p>}
+                      {/* The scraper already checked this quote exists in the page text; the admin checks it fits */}
+                      {prog.evidence && <p className="mt-1 italic text-[#78716c]">“{prog.evidence}”</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-[#78716c] bg-[#faf7f2] rounded-2xl border border-dashed border-[#e5dcce]">
+                  ไม่พบโปรแกรมพิเศษระบุไว้ชัดเจน
                 </div>
               )}
             </div>

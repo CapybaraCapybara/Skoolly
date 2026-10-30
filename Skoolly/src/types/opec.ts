@@ -282,6 +282,7 @@ export interface PendingVersionRecord {
     is_boarding?: boolean;
   };
   scraped_facilities?: string[];
+  scraped_signature_programs?: { name: string; category?: string; description?: string; evidence?: string }[];
   previous_fees?: VersionFeeItem[];
   previous_safety?: VersionSafetyData | null;
   previous_curriculums?: string[];

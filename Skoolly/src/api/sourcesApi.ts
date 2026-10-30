@@ -18,6 +18,15 @@ export interface SchoolSafetyDetail {
   policy_url: string | null;
 }
 
+export interface SignatureProgram {
+  name: string;
+  /** One of ProgramCategory in lib/highlights.ts */
+  category: string | null;
+  description: string | null;
+  /** Text quoted from the school's website, checked by the scraper to really be there */
+  evidence: string | null;
+}
+
 export interface SchoolSources {
   opec: {
     /** Local (Bangkok) time of the OPEC fetch, e.g. "2026-09-13 17:48:31" */
@@ -27,6 +36,9 @@ export interface SchoolSources {
   /** Present only when the published fees / safety were collected from the school's website and approved */
   website: { page_url: string | null; collected_at: string | null; approved_at: string | null } | null;
   safety: SchoolSafetyDetail | null;
+  /** From the published website version. null = not collected yet; [] = the site mentions none */
+  signature_programs: SignatureProgram[] | null;
+  facilities: string[] | null;
 }
 
 export async function getSchoolSources(schoolCode: string): Promise<SchoolSources | null> {

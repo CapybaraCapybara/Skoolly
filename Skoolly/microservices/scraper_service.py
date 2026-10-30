@@ -95,6 +95,23 @@ EXTRACT_SCHEMA = {
             "items": {"type": "string"},
             "description": "สิ่งอำนวยความสะดวกในโรงเรียน เช่น ['สระว่ายน้ำโอลิมปิก', 'สนามฟุตบอล', 'ห้องปฏิบัติการวิทยาศาสตร์', 'โรงละคร', 'ห้องแล็บหุ่นยนต์ STEM', 'สนามเทนนิส', 'หอสมุด']",
         },
+        "signature_programs": {
+            "type": "array",
+            "description": "โปรแกรมพิเศษที่โรงเรียนนำเสนอว่าเป็นจุดเด่นของตัวเอง (ไม่ใช่วิชาพื้นฐานที่ทุกโรงเรียนสอน) ว่างได้ถ้าไม่พบ",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "ชื่อโปรแกรมตามที่เว็บเขียน เช่น 'Tennis Academy', 'VEX Robotics Programme'"},
+                    "category": {
+                        "type": "string",
+                        "enum": ["academic", "stem", "arts", "sports", "languages", "leadership_service", "wellbeing_support", "other"],
+                    },
+                    "description": {"type": "string", "description": "อธิบายสั้น ๆ 1 ประโยค เป็นภาษาไทย"},
+                    "evidence": {"type": "string", "description": "ข้อความที่คัดลอกมาจากหน้าเว็บ/PDF ตรง ๆ ไม่เกิน 150 ตัวอักษร ที่ยืนยันว่ามีโปรแกรมนี้"},
+                },
+                "required": ["name", "category", "description", "evidence"],
+            },
+        },
         "tuition_found": {"type": "boolean"},
         "tuition_by_grade": {
             "type": "array",
@@ -182,8 +199,8 @@ EXTRACT_SCHEMA = {
         "confidence_reasoning": {"type": "string"},
     },
     "required": [
-        "curriculum", "tuition_found", "tuition_by_grade",
-        "hidden_costs", "safety_and_security", "confidence", "confidence_reasoning",
+        "curriculum", "tuition_found", "tuition_by_grade", "hidden_costs", "signature_programs",
+        "safety_and_security", "confidence", "confidence_reasoning",
     ],
 }
 
@@ -473,6 +490,25 @@ def apply_confidence_caps(
 
     return extraction
 
+def _squash(text: str) -> str:
+    return re.sub(r"\s+", " ", text or "").strip().lower()
+
+
+def keep_programs_with_evidence(programs, scraped_text: str):
+    """Splits signature programmes into (kept, dropped): a programme is kept only when its
+    quoted evidence really appears in the scraped text, so Gemini cannot invent one."""
+    haystack = _squash(scraped_text)
+    kept, dropped = [], []
+    for prog in programs or []:
+        evidence = _squash(prog.get("evidence", "")).strip(" .\"'…")
+        # Long quotes are often cut or reflowed by the model: matching the opening is enough
+        if len(evidence) >= 12 and evidence[:60] in haystack:
+            kept.append(prog)
+        else:
+            dropped.append(prog)
+    return kept, dropped
+
+
 def clean_page_text(html, max_chars=9000):
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header", "svg", "noscript"]):
@@ -688,6 +724,16 @@ Extract:
    - Air quality (PM2.5 positive pressure filtration or air purifiers) and emergency drills
    - Bulleted highlights of key safety features
    - A concise policy summary and policy URL if detected.
+7. Signature programs: specialised programmes the school itself presents as distinctive, e.g. a sports
+   academy, a robotics/STEM competition team, a music conservatory track, a Mandarin bilingual stream,
+   a university partnership, a learning-support centre. Rules:
+   - Only include what the content explicitly describes. Do NOT infer a programme from a facility alone
+     (a pool is a facility; a "Swim Academy" with squads and coaching is a programme).
+   - Do NOT include standard subjects, the curriculum itself (IB, IGCSE, AP), or vague marketing claims
+     such as "academic excellence" or "holistic education".
+   - "description" is one sentence written in Thai (keep the programme "name" as the site writes it).
+   - "evidence" must be text copied verbatim from the content above, so a reviewer can find it.
+   - At most 6 programmes, the most specific first. Return an empty list if none are described.
 
 Give an honest confidence score (0-1) for how complete and clear the data actually is, and briefly explain your reasoning.
 Respond only via the provided JSON schema."""
@@ -1063,6 +1109,18 @@ def scrape_endpoint(req: ScrapeRequest):
 
                 # Apply centralized confidence capping (identity mismatch <= 0.3, fee discovery fallback <= 0.4)
                 extraction = apply_confidence_caps(extraction, fee_page_discovery, identity_verified)
+
+                kept_programs, dropped_programs = keep_programs_with_evidence(
+                    extraction.get("signature_programs"), combined_text
+                )
+                extraction["signature_programs"] = kept_programs
+                for prog in dropped_programs:
+                    add_log(
+                        "signature_program_dropped",
+                        f"dropped '{prog.get('name', '')}': evidence not found in scraped text",
+                        reasoning=prog.get("evidence", ""),
+                        status="warning",
+                    )
 
                 add_log(
                     "extract", "extraction complete",

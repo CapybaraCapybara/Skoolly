@@ -131,6 +131,8 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
     - opec: when the OPEC record was fetched (kept in the first import snapshot)
     - website: set only when the published version was scraped from the school's site and approved
     - safety: from the published version only; versions still awaiting review are not shown
+    - signature_programs / facilities: from the published scraped version; None when that version
+      was scraped before the field existed (unknown), [] when the site mentions none
     """
     target_dsn = _require_dsn(dsn)
 
@@ -139,6 +141,8 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
             cur.execute("""
                 SELECT s.school_id, s.current_published_version_id,
                        v.source_type::text AS source_type, v.scraped_page_url, v.submitted_at, v.reviewed_at,
+                       v.data_snapshot->'signature_programs' AS signature_programs,
+                       v.data_snapshot->'facilities' AS facilities,
                        o.data_snapshot->>'fetched_at' AS opec_fetched_at, o.created_at AS opec_imported_at
                 FROM school_data.schools s
                 LEFT JOIN school_data.school_versions v ON v.version_id = s.current_published_version_id
@@ -164,12 +168,22 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
                 safety = cur.fetchone()
 
     website = None
+    signature_programs = None
+    facilities = None
     if row["source_type"] == "scraper":
         website = {
             "page_url": row["scraped_page_url"],
             "collected_at": _iso(row["submitted_at"]),
             "approved_at": _iso(row["reviewed_at"]),
         }
+        if isinstance(row["signature_programs"], list):
+            signature_programs = [
+                {k: p.get(k) for k in ("name", "category", "description", "evidence")}
+                for p in row["signature_programs"]
+                if isinstance(p, dict) and p.get("name")
+            ]
+        if isinstance(row["facilities"], list):
+            facilities = [f for f in row["facilities"] if isinstance(f, str) and f.strip()]
 
     return {
         "opec": {
@@ -179,6 +193,8 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
         },
         "website": website,
         "safety": dict(safety, highlights=list(safety["highlights"] or [])) if safety else None,
+        "signature_programs": signature_programs,
+        "facilities": facilities,
     }
 
 

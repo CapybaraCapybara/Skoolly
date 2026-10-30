@@ -1366,6 +1366,7 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                 v["scraped_curriculums"] = snapshot.get("curriculums") or ([snapshot.get("curriculum")] if snapshot.get("curriculum") else [])
                 v["scraped_general_info"] = snapshot.get("general_info") or {}
                 v["scraped_facilities"] = snapshot.get("facilities") or []
+                v["scraped_signature_programs"] = snapshot.get("signature_programs") or []
 
                 # 1. Fetch version fees
                 cur.execute("""
