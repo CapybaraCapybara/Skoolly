@@ -157,6 +157,9 @@ export function HomePage({
   // Filters apply as soon as they change; sorting is kept separate from filtering
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [sortBy, setSortBy] = useState<SortKey>("name-th");
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [geoNote, setGeoNote] = useState<string | null>(null);
   const [schools, setSchools] = useState<School[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -214,8 +217,8 @@ export function HomePage({
         if (filters.boardingOnly && !s.isBoarding) return false;
         return true;
       })
-      // shortcut: "nearest" measures from the map's fixed example point, switch to the visitor's location once that feature is built
-      .map((s) => (sortBy === "distance" && s.coords ? { ...s, distance: distanceKm(EXAMPLE_LOCATION, s.coords) } : s));
+      // Until the visitor shares their location, "nearest" measures from the map's example point
+      .map((s) => (sortBy === "distance" && s.coords ? { ...s, distance: distanceKm(userPos ?? EXAMPLE_LOCATION, s.coords) } : s));
 
     const NONE = Number.MAX_SAFE_INTEGER;
     return list.sort((a, b) => {
@@ -237,7 +240,7 @@ export function HomePage({
           return byThaiName(a, b);
       }
     });
-  }, [schools, filters, sortBy]);
+  }, [schools, filters, sortBy, userPos]);
 
   // Back to page 1 whenever the filters or the order change
   useEffect(() => {
@@ -259,6 +262,33 @@ export function HomePage({
     filters.levels.length +
     (filters.isatOnly ? 1 : 0) +
     (filters.boardingOnly ? 1 : 0);
+
+  // "Nearest first" asks for the visitor's location the first time it is picked
+  const changeSort = (next: SortKey) => {
+    setSortBy(next);
+    setGeoNote(null);
+    if (next !== "distance" || userPos) return;
+    if (!("geolocation" in navigator)) {
+      setGeoNote(`เบราว์เซอร์นี้แชร์ตำแหน่งไม่ได้ จึงวัดระยะจาก${EXAMPLE_LOCATION.label}แทน`);
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        if (pos.coords.accuracy > 1000) {
+          setGeoNote(`ตำแหน่งที่เบราว์เซอร์ให้มาอาจคลาดเคลื่อนประมาณ ${(pos.coords.accuracy / 1000).toFixed(1)} กม.`);
+        }
+        setLocating(false);
+      },
+      () => {
+        setGeoNote(`หาตำแหน่งไม่ได้ จึงวัดระยะจาก${EXAMPLE_LOCATION.label}แทน`);
+        setLocating(false);
+      },
+      // Fresh and precise: a coarse or cached fix can land kilometres away on a desktop
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredSchools.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -435,7 +465,16 @@ export function HomePage({
                 {filteredSchools.length > ITEMS_PER_PAGE && (
                   <> · แสดง {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredSchools.length)}</>
                 )}
-                {sortBy === "distance" && <> · วัดระยะจาก{EXAMPLE_LOCATION.label} (ตัวอย่าง)</>}
+                {sortBy === "distance" && (
+                  <>
+                    {" · "}
+                    {locating
+                      ? "กำลังหาตำแหน่ง…"
+                      : userPos
+                        ? "วัดระยะจากตำแหน่งของคุณ"
+                        : `วัดระยะจาก${EXAMPLE_LOCATION.label} (ตัวอย่าง)`}
+                  </>
+                )}
                 {compareIds.length > 0 && <span className="text-warm-bronze font-medium"> · เลือกเปรียบเทียบ {compareIds.length} แห่ง</span>}
               </p>
             </div>
@@ -444,7 +483,7 @@ export function HomePage({
                 เรียงตาม
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortKey)}
+                  onChange={(e) => changeSort(e.target.value as SortKey)}
                   className="cursor-pointer rounded-full border border-warm-accent bg-warm-cream px-3.5 py-2 text-sm font-medium text-warm-charcoal transition focus:border-warm-bronze focus:outline-none focus:ring-2 focus:ring-warm-bronze/30"
                 >
                   {SORT_OPTIONS.map((o) => (
@@ -456,6 +495,8 @@ export function HomePage({
               </label>
             </div>
           </div>
+
+          {geoNote && <p className="-mt-3 mb-5 text-sm text-warm-charcoal/60">{geoNote}</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {loadState === "loading" ? (

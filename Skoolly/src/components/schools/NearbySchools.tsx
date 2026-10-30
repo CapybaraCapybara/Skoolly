@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, LocateFixed, RotateCcw } from "lucide-react";
 import type { School } from "@/types";
 import { cn } from "@/lib/utils";
 import { formatTuition } from "@/components/schools/SchoolCard";
@@ -14,10 +14,11 @@ import {
 
 const RADII = [5, 10, 20];
 
-type LocationSource = "example" | "pin";
+type LocationSource = "example" | "device" | "pin";
 
 const LOCATION_LABEL: Record<LocationSource, string> = {
   example: `${EXAMPLE_LOCATION.label} (ตัวอย่าง)`,
+  device: "ตำแหน่งของคุณ",
   pin: "จุดที่ปักไว้",
 };
 
@@ -42,6 +43,9 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
   const [radiusKm, setRadiusKm] = useState(10);
   const [selected, setSelected] = useState<MapSelection>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [accuracyM, setAccuracyM] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const mapped = useMemo(() => schools.filter((s) => s.coords), [schools]);
@@ -73,10 +77,35 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
     }
   }, [selected]);
 
+  const locateMe = () => {
+    if (!("geolocation" in navigator)) {
+      setGeoError("เบราว์เซอร์นี้แชร์ตำแหน่งไม่ได้");
+      return;
+    }
+    setLocating(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setAccuracyM(pos.coords.accuracy);
+        setSource("device");
+        setSelected(null);
+        setLocating(false);
+      },
+      () => {
+        setGeoError("หาตำแหน่งไม่ได้ ตรวจสอบว่าเบราว์เซอร์อนุญาตให้ใช้ตำแหน่ง");
+        setLocating(false);
+      },
+      // Fresh and precise: a coarse or cached fix can land kilometres away on a desktop
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
   const resetLocation = () => {
     setCenter({ lat: EXAMPLE_LOCATION.lat, lng: EXAMPLE_LOCATION.lng });
     setSource("example");
     setSelected(null);
+    setGeoError(null);
   };
 
   return (
@@ -91,6 +120,15 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={locateMe}
+            disabled={locating}
+            className="inline-flex items-center gap-2 rounded-full border border-warm-accent bg-warm-cream px-4 py-2 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze disabled:opacity-60 cursor-pointer"
+          >
+            <LocateFixed className="size-4 text-warm-bronze" />
+            {locating ? "กำลังหาตำแหน่ง…" : "ใช้ตำแหน่งของฉัน"}
+          </button>
           {source !== "example" && (
             <button
               type="button"
@@ -122,6 +160,13 @@ export function NearbySchools({ schools, onOpenSchool }: NearbySchoolsProps) {
           </div>
         </div>
       </div>
+
+      {geoError && <p className="-mt-2 mb-4 text-sm text-rose-700">{geoError}</p>}
+      {source === "device" && accuracyM != null && accuracyM > 1000 && (
+        <p className="-mt-2 mb-4 text-sm text-warm-charcoal/60">
+          ตำแหน่งที่เบราว์เซอร์ให้มาอาจคลาดเคลื่อนประมาณ {(accuracyM / 1000).toFixed(1)} กม. ถ้าไม่ตรง ลากหมุดรูปบ้านไปวางที่ที่ถูกต้องได้
+        </p>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Map */}
