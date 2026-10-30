@@ -58,7 +58,7 @@ export function VersionApprovalModal({
   let scrapedMax: number | null = null;
   if (version.fees && version.fees.length > 0) {
     const annualAmounts = version.fees
-      .map((f) => f.annual_thb || (f.semester_thb ? f.semester_thb * 2 : null))
+      .map((f) => f.annual_thb || null)
       .filter((v): v is number => v !== null && v > 0);
     if (annualAmounts.length > 0) {
       scrapedMin = Math.min(...annualAmounts);
@@ -71,7 +71,7 @@ export function VersionApprovalModal({
   let prevMax: number | null = version.current_pub_max_thb ?? null;
   if ((!prevMin || !prevMax) && version.previous_fees && version.previous_fees.length > 0) {
     const prevAnnualAmounts = version.previous_fees
-      .map((f) => f.annual_thb || (f.semester_thb ? f.semester_thb * 2 : null))
+      .map((f) => f.annual_thb || null)
       .filter((v): v is number => v !== null && v > 0);
     if (prevAnnualAmounts.length > 0) {
       prevMin = Math.min(...prevAnnualAmounts);
@@ -124,14 +124,14 @@ export function VersionApprovalModal({
   (version.previous_fees || []).forEach((pf) => {
     gradeFeeMap.set(pf.grade_label, {
       grade: pf.grade_label,
-      prevAnnual: pf.annual_thb ?? (pf.semester_thb ? pf.semester_thb * 2 : null),
+      prevAnnual: pf.annual_thb ?? null,
       notes: pf.notes,
     });
   });
 
   (version.fees || []).forEach((nf) => {
     const existing = gradeFeeMap.get(nf.grade_label);
-    const newAnnual = nf.annual_thb ?? (nf.semester_thb ? nf.semester_thb * 2 : null);
+    const newAnnual = nf.annual_thb ?? null;
     if (existing) {
       existing.newAnnual = newAnnual;
       existing.newNotes = nf.notes;

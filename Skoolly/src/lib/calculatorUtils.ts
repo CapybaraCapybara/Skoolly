@@ -343,7 +343,7 @@ export function calculateSchoolCosts(
   for (let y = 0; y < duration; y++) {
     const gradeIdx = Math.min(startIndex + y, Math.max(0, grades.length - 1));
     const gradeItem = grades[gradeIdx] || { grade_level: `Year ${y + 1}`, annual_thb: 500000, semester_thb: null };
-    const tuitionForYear = gradeItem.annual_thb || (gradeItem.semester_thb ? gradeItem.semester_thb * 2 : 500000);
+    const tuitionForYear = gradeItem.annual_thb || 500000;
 
     const oneTimeForYear = y === 0 ? oneTimeTotalTHB : 0;
     const addonsForYear = annualAddonsPerYear;

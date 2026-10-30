@@ -8,11 +8,11 @@ class ValidationRequest(BaseModel):
     school_name: str
     result_data: Dict[str, Any]
 
-@app.post("/validate")
-def validate_data(req: ValidationRequest):
+def validate_result(data: Dict[str, Any]) -> tuple[list[str], list[str]]:
+    """Business rules for one scrape result. Returns (errors, warnings); any error rejects it.
+    opec_service.py imports this too, so drafts saved without the Saga pass the same rules."""
     errors = []
     warnings = []
-    data = req.result_data
 
     # Rule 1: Curriculum check. The extraction schema lets the model answer "unclear", and
     # the curriculum already comes from OPEC, so this alone must not discard scraped fees.
@@ -85,6 +85,12 @@ def validate_data(req: ValidationRequest):
             if "policy_summary" in safety and not isinstance(safety.get("policy_summary"), str):
                 errors.append("'safety_and_security.policy_summary' must be a string.")
 
+    return errors, warnings
+
+
+@app.post("/validate")
+def validate_data(req: ValidationRequest):
+    errors, warnings = validate_result(req.result_data)
     if errors:
         return {
             "status": "failed",

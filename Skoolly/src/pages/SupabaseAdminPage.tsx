@@ -961,7 +961,7 @@ export function SupabaseAdminPage({
                       {pendingVersions.map((v) => {
                         const confScore = v.confidence_score ? Math.round(v.confidence_score * 100) : null;
                         const annualAmounts = (v.fees || [])
-                          .map((f) => f.annual_thb || (f.semester_thb ? f.semester_thb * 2 : null))
+                          .map((f) => f.annual_thb || null)
                           .filter((amt): amt is number => amt !== null && amt > 0);
                         const minTuition = annualAmounts.length > 0 ? Math.min(...annualAmounts) : null;
                         const maxTuition = annualAmounts.length > 0 ? Math.max(...annualAmounts) : null;

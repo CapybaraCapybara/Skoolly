@@ -1023,9 +1023,10 @@ begin
   update school_data.schools s
      set current_published_version_id = p_version_id,
          pub_data_updated_at          = now(),
-         pub_tuition_min_thb          = (select min(coalesce(annual_thb, semester_thb * 2))
+         -- annual_thb เท่านั้น: โรงเรียนมีทั้งแบบ 2 และ 3 เทอม จึงคูณ semester_thb เป็นค่าต่อปีไม่ได้
+         pub_tuition_min_thb          = (select min(nullif(annual_thb, 0))
                                            from school_data.version_fees where version_id = p_version_id),
-         pub_tuition_max_thb          = (select max(coalesce(annual_thb, semester_thb * 2))
+         pub_tuition_max_thb          = (select max(nullif(annual_thb, 0))
                                            from school_data.version_fees where version_id = p_version_id),
          pub_has_safeguarding_policy  = (select child_safeguarding_policy
                                            from school_data.version_safety where version_id = p_version_id),

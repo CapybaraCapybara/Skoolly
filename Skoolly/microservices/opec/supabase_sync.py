@@ -1510,12 +1510,13 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
 
             school_id = ver["school_id"]
 
+            # annual_thb only: a school may have 2 or 3 terms, so semester_thb can't be annualized
             cur.execute("""
-                SELECT 
-                    MIN(COALESCE(annual_thb, semester_thb * 2)) as min_tuition,
-                    MAX(COALESCE(annual_thb, semester_thb * 2)) as max_tuition
+                SELECT
+                    MIN(annual_thb) as min_tuition,
+                    MAX(annual_thb) as max_tuition
                 FROM school_data.version_fees
-                WHERE version_id = %s AND (annual_thb > 0 OR semester_thb > 0)
+                WHERE version_id = %s AND annual_thb > 0
             """, (version_id,))
             fees_calc = cur.fetchone() or {"min_tuition": None, "max_tuition": None}
             min_tuition = fees_calc.get("min_tuition")

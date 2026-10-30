@@ -120,8 +120,10 @@ EXTRACT_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "grade_level": {"type": "string", "description": "เช่น 'Year 1', 'Grade 6-8', 'Kindergarten'"},
-                    "annual_thb": {"type": "number", "nullable": True},
-                    "semester_thb": {"type": "number", "nullable": True},
+                    "annual_thb": {"type": "number", "nullable": True,
+                                   "description": "ค่าเทอมรวมทั้งปี ถ้าเว็บให้แค่ค่าต่อเทอม ให้คูณจำนวนเทอมจริงของโรงเรียน (2 หรือ 3) แล้วใส่ที่นี่ ถ้าไม่รู้จำนวนเทอมให้เป็น null"},
+                    "semester_thb": {"type": "number", "nullable": True,
+                                     "description": "ค่าเทอมต่อหนึ่งเทอม/ภาค ตามที่เว็บเขียน (ไม่ต้องคูณ)"},
                     "notes": {"type": "string"},
                 },
                 "required": ["grade_level"],

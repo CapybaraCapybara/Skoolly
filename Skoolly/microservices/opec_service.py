@@ -58,6 +58,9 @@ from website_registry import (  # type: ignore
 )
 from enrich_from_isat import run_isat_enrichment  # type: ignore
 from public_queries import fetch_published_fees, fetch_forum_posts, fetch_school_sources  # type: ignore
+if MICROSERVICES_DIR not in sys.path:
+    sys.path.insert(0, MICROSERVICES_DIR)
+from validator_service import validate_result  # noqa: E402
 
 app = FastAPI(
     title="OPEC International Schools Admin Service",
@@ -77,8 +80,6 @@ app.add_middleware(
 # scraping tuition. A scrape can wait out several Gemini rate-limit back-offs, hence the timeout.
 SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://127.0.0.1:8001/scrape")
 SCRAPE_TIMEOUT_S = 600  # scraper may retry Playwright once with doubled timeouts
-# Results the batch scraper saved through the Saga pipeline (db_service.py)
-RESULTS_FILE = os.path.join(BASE_DIR, "results.json")
 
 # In-memory Scraper State
 scraper_state = {
@@ -237,27 +238,18 @@ WEBSITES = ("ค้นหา Website", step_websites)
 GPS = ("ปักหมุด GPS", step_gps)
 
 
-def _previous_scrape_result(school_name, website):
-    """What the batch scraper already saved for this school in results.json, if anything."""
-    try:
-        with open(RESULTS_FILE, "r", encoding="utf-8") as f:
-            items = json.load(f)
-    except (OSError, ValueError):
-        return None
-    name = (school_name or "").strip().casefold()
-    site = (website or "").strip().rstrip("/").casefold()
-    for it in items if isinstance(items, list) else []:
-        if name and str(it.get("school_name") or "").strip().casefold() == name:
-            return it
-        if site and str(it.get("homepage_url") or "").strip().rstrip("/").casefold() == site:
-            return it
-    return None
+def _validation_problem(result):
+    """Error text when a scrape result breaks validator_service rules, else empty string."""
+    errors, _ = validate_result(result)
+    return "ข้อมูลที่ scrape มาไม่ผ่านการตรวจ: " + "; ".join(errors) if errors else ""
 
 
 def step_scrape_school(progress, school_id, school_name, website):
-    """Scrapes one school's fees into a pending_review version for an admin to approve."""
+    """Scrapes one school's fees into a pending_review version for an admin to approve.
+
+    A failed scrape saves nothing: an older result saved again would look like fresh data to the admin."""
     progress(f"กำลัง scrape ค่าเทอม: {school_name}", 15, 100, f"เริ่มสแกน {website} ({school_name})")
-    result, problem, blocked = None, "", False
+    result, problem = None, ""
     try:
         resp = requests.post(SCRAPER_URL, json={"school_name": school_name, "homepage_url": website},
                              timeout=SCRAPE_TIMEOUT_S)
@@ -265,8 +257,7 @@ def step_scrape_school(progress, school_id, school_name, website):
         if resp.ok and body.get("status") == "success":
             result = body.get("result_data")
         elif body.get("status") == "blocked":
-            # robots.txt says no: skip the school, never fall back to an older result
-            problem, blocked = f"ข้ามโรงเรียนนี้: {body.get('error')}", True
+            problem = f"ข้ามโรงเรียนนี้: {body.get('error')}"
         else:
             problem = f"Scraper ทำไม่สำเร็จ: {body.get('error') or body.get('detail') or f'HTTP {resp.status_code}'}"
     except requests.RequestException as e:
@@ -274,11 +265,10 @@ def step_scrape_school(progress, school_id, school_name, website):
                    if isinstance(e, requests.ConnectionError) else f"Scraper ไม่ตอบกลับ: {e}")
 
     if result is None:
-        if not blocked:
-            result = _previous_scrape_result(school_name, website)
-        if result is None:
-            raise RuntimeError(problem)
-        progress(f"กำลังบันทึกแบบร่าง: {school_name}", 80, 100, f"{problem} จึงใช้ผลที่เคย scrape ไว้ใน results.json แทน")
+        raise RuntimeError(problem)
+    problem = _validation_problem(result)
+    if problem:
+        raise RuntimeError(problem)
 
     draft = save_scraped_draft_version(school_id, result)
     progress(f"บันทึกแบบร่างแล้ว: {school_name}", 100, 100,
@@ -383,8 +373,12 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
             error_msg = f"{type(ex).__name__}: {ex}"
         elapsed = round(time.time() - t_req, 2)
 
-        if result is None and fail_status != "blocked":
-            result = _previous_scrape_result(name, website)
+        # A failed scrape saves no draft (never an older result in its place), and neither does
+        # a result that breaks validator_service rules
+        if result is not None:
+            error_msg = _validation_problem(result)
+            if error_msg:
+                result = None
 
         if result:
             result["run_id"] = batch_run_id
