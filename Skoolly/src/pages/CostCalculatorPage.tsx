@@ -30,6 +30,9 @@ import {
   getSchoolGrades,
   getSchoolAvailableAddons,
   getAddonAnnualMultiplier,
+  findEntranceFee,
+  findSiblingEntranceFee,
+  entranceFeeForTier,
   CURRENCY_RATES,
   loadLiveCurrencyRates,
   type CurrencyRateInfo,
@@ -351,22 +354,12 @@ export function CostCalculatorPage({
     return enPart ? `${thaiPart} (${enPart})` : thaiPart;
   };
 
-  // Check if current school has specific sibling discount in scraped data
-  const hasPatanaSiblingDiscount = useMemo(() => {
-    return Boolean(
-      currentSchool?.hidden_costs?.some((c) =>
-        c.name.toLowerCase().includes("second and subsequent")
-      )
-    );
-  }, [currentSchool]);
-
-  // Check if current school has alumni discount entry
-  const hasHarrowAlumniDiscount = useMemo(() => {
-    return Boolean(
-      currentSchool?.hidden_costs?.some((c) =>
-        (c.notes || "").toLowerCase().includes("alumni")
-      )
-    );
+  // Entrance fees for a first and a later child, when the school publishes both with amounts
+  const siblingEntranceFees = useMemo(() => {
+    const first = findEntranceFee(currentSchool);
+    const sibling = findSiblingEntranceFee(currentSchool);
+    if (typeof first?.amount_thb !== "number" || !sibling) return null;
+    return { first: first.amount_thb, sibling: sibling.amount_thb };
   }, [currentSchool]);
 
   // Filtered schools for search dropdown (no fee shown)
@@ -419,19 +412,8 @@ export function CostCalculatorPage({
 
   const mandatoryRegFee = useMemo(() => {
     if (!currentSchool) return null;
-    if (calcState.childTier === "second_child") {
-      const item2 = currentSchool?.hidden_costs?.find((c) => /second and subsequent/i.test(c.name));
-      if (item2 && typeof item2.amount_thb === "number") return item2.amount_thb;
-    }
-    const item = currentSchool?.hidden_costs?.find(
-      (c) => !/second and subsequent/i.test(c.name) && /entrance|registration|admission|guaranteed/i.test(c.name)
-    );
-    if (!item || typeof item.amount_thb !== "number") return null;
-    let fee = item.amount_thb;
-    if (calcState.childTier === "alumni" && /harrow/i.test(currentSchool.school_name)) {
-      fee = Math.max(0, fee - 100000);
-    }
-    return fee;
+    const item = entranceFeeForTier(currentSchool, calcState.childTier);
+    return item && typeof item.amount_thb === "number" ? item.amount_thb : null;
   }, [currentSchool, calcState.childTier]);
 
   const mandatoryDeposit = useMemo(() => {
@@ -1188,8 +1170,8 @@ export function CostCalculatorPage({
                 </div>
               </div>
 
-              {/* Case 1: School has explicit sibling entry in results.json (e.g. Bangkok Patana) */}
-              {hasPatanaSiblingDiscount ? (
+              {/* The school publishes a separate entrance fee for a second or later child */}
+              {siblingEntranceFees ? (
                 <div className="space-y-3">
                   <p className="text-xs text-warm-charcoal/70">
                     ส่วนลดค่าแรกเข้าสำหรับบุตรคนที่สองขึ้นไป
@@ -1207,7 +1189,7 @@ export function CostCalculatorPage({
                         {calcState.childTier === "first_child" && <Check className="size-3.5 text-warm-bronze" />}
                       </div>
                       <span className="text-[11px] text-warm-charcoal/60 mt-1">
-                        ค่าแรกเข้า ฿250,000
+                        ค่าแรกเข้า {formatCurrency(siblingEntranceFees.first, curr)}
                       </span>
                     </button>
 
@@ -1220,56 +1202,20 @@ export function CostCalculatorPage({
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-emerald-900">บุตรคนที่สองขึ้นไป</span>
-                        <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">ลด ฿50,000</Badge>
+                        {siblingEntranceFees.first > siblingEntranceFees.sibling && (
+                          <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">
+                            ลด {formatCurrency(siblingEntranceFees.first - siblingEntranceFees.sibling, curr)}
+                          </Badge>
+                        )}
                       </div>
                       <span className="text-[11px] text-emerald-800/80 mt-1">
-                        ค่าแรกเข้า ฿200,000
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ) : hasHarrowAlumniDiscount ? (
-                /* Case 2: Harrow alumni discount */
-                <div className="space-y-3">
-                  <p className="text-xs text-warm-charcoal/70">
-                    ส่วนลดค่าแรกเข้าสำหรับบุตรศิษย์เก่า
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setCalcState((p) => ({ ...p, childTier: "first_child" }))}
-                      className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${calcState.childTier !== "alumni"
-                        ? "border-warm-bronze bg-warm-card ring-1 ring-warm-bronze shadow-xs"
-                        : "border-warm-accent bg-warm-bg/70 hover:border-warm-bronze/50"
-                        }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-warm-charcoal">นักเรียนทั่วไป</span>
-                        {calcState.childTier !== "alumni" && <Check className="size-3.5 text-warm-bronze" />}
-                      </div>
-                      <span className="text-[11px] text-warm-charcoal/60 mt-1">
-                        ค่าแรกเข้า ฿225,000
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => setCalcState((p) => ({ ...p, childTier: "alumni" }))}
-                      className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${calcState.childTier === "alumni"
-                        ? "border-emerald-600 bg-emerald-50/80 ring-1 ring-emerald-600 shadow-xs"
-                        : "border-warm-accent bg-warm-bg/70 hover:border-emerald-500/50"
-                        }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-900">บุตรศิษย์เก่า</span>
-                        <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0">ลด ฿100,000</Badge>
-                      </div>
-                      <span className="text-[11px] text-emerald-800/80 mt-1">
-                        ค่าแรกเข้า ฿125,000
+                        ค่าแรกเข้า {formatCurrency(siblingEntranceFees.sibling, curr)}
                       </span>
                     </button>
                   </div>
                 </div>
               ) : (
-                /* Case 3: the school publishes no discount */
+                /* The school publishes no discount */
                 <div className="p-6 rounded-2xl border border-warm-accent/70 bg-warm-bg/60 text-center flex flex-col items-center gap-1.5">
                   <Info className="size-5 text-warm-charcoal/40" />
                   <span className="text-xs font-semibold text-warm-charcoal">

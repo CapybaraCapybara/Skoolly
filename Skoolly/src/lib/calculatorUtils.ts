@@ -18,9 +18,20 @@ export interface ScrapedTuitionGrade {
   notes?: string;
 }
 
+export type FeeFrequency =
+  | "once"
+  | "per_year"
+  | "per_semester"
+  | "per_term"
+  | "per_month"
+  | "conditional"
+  | "unknown";
+
 export interface ScrapedHiddenCost {
   name: string;
   amount_thb: number;
+  /** school_data.fee_frequency; "unknown" or missing falls back to reading the notes */
+  frequency?: FeeFrequency | null;
   notes?: string;
 }
 
@@ -46,7 +57,7 @@ export interface CalculatorState {
   // Selected dynamic add-on cost names from school's actual hidden_costs
   selectedAddonNames: string[];
   // Child / Sibling status
-  childTier: "first_child" | "second_child" | "alumni";
+  childTier: "first_child" | "second_child";
   customSiblingDiscountPercent: number; // 0, 5, 10, 15
   currency: CurrencyCode;
 }
@@ -151,6 +162,11 @@ export function getSchoolGrades(school?: ScrapedSchoolData): ScrapedTuitionGrade
   return school?.tuition_by_grade ?? [];
 }
 
+// "enrol" covers Enrolment/Enrollment; re-enrolment is charged again each year, so it isn't an entrance fee
+const ENTRANCE_FEE_RE = /entrance|registration|admission|guaranteed|enrol/i;
+const RE_ENROL_RE = /re-?\s?(enrol|registration)/i;
+const SIBLING_FEE_RE = /second and subsequent|2nd child|second child|subsequent child|sibling/i;
+
 /**
  * Helper to identify if an item is a mandatory one-time admission fee
  */
@@ -159,12 +175,36 @@ export function isMandatoryAdmissionFee(cost: ScrapedHiddenCost): boolean {
   const name = cost.name.toLowerCase();
   return (
     name.includes("application") ||
-    name.includes("entrance") ||
-    name.includes("registration") ||
-    name.includes("admission") ||
-    name.includes("guaranteed place") ||
+    (ENTRANCE_FEE_RE.test(name) && !RE_ENROL_RE.test(name)) ||
     name.includes("deposit")
   );
+}
+
+function hasAmount(cost: ScrapedHiddenCost | undefined): cost is ScrapedHiddenCost {
+  return Boolean(cost && typeof cost.amount_thb === "number");
+}
+
+/** The entrance fee for a first child, as published by the school */
+export function findEntranceFee(school?: ScrapedSchoolData | null): ScrapedHiddenCost | undefined {
+  return school?.hidden_costs?.find(
+    (c) => c?.name && ENTRANCE_FEE_RE.test(c.name) && !RE_ENROL_RE.test(c.name) && !SIBLING_FEE_RE.test(c.name)
+  );
+}
+
+/** The reduced entrance fee for a second or later child, if the school publishes one with an amount */
+export function findSiblingEntranceFee(school?: ScrapedSchoolData | null): ScrapedHiddenCost | undefined {
+  const item = school?.hidden_costs?.find(
+    (c) => c?.name && ENTRANCE_FEE_RE.test(c.name) && SIBLING_FEE_RE.test(c.name)
+  );
+  return hasAmount(item) ? item : undefined;
+}
+
+/** Entrance fee row that applies to the chosen child tier */
+export function entranceFeeForTier(
+  school: ScrapedSchoolData | undefined,
+  childTier: CalculatorState["childTier"]
+): ScrapedHiddenCost | undefined {
+  return (childTier === "second_child" && findSiblingEntranceFee(school)) || findEntranceFee(school);
 }
 
 /**
@@ -193,22 +233,43 @@ export function getSchoolAvailableAddons(school?: ScrapedSchoolData): ScrapedHid
   );
 }
 
+// Times a year each frequency is charged; 0 means only once, in year 1
+const FREQUENCY_MULTIPLIER: Partial<Record<FeeFrequency, number>> = {
+  once: 0,
+  per_year: 1,
+  per_semester: 2,
+  per_term: 3,
+  per_month: 12,
+};
+
+// Same phrases as FEE_FREQUENCY_PATTERNS in supabase_sync.py, for rows still marked unknown
+const FREQUENCY_PATTERNS: [FeeFrequency, RegExp][] = [
+  ["once", /\bonce\b|one[- ]?time|one[- ]?off|lump[- ]sum|ครั้งเดียว|แรกเข้า/i],
+  ["per_year", /per (?:academic |school )?year|per annum|\bannual(?:ly)?\b|\byearly\b|a year\b|ต่อปี|รายปี/i],
+  ["per_semester", /(?:per|each|a|every) semester|semesterly|\/\s?semester|ต่อภาค|รายภาค/i],
+  ["per_term", /(?:per|each|a|every) term\b|\btermly\b|\/\s?term\b|\bterm (?:rate|fee)|\bterm 1\b|ต่อเทอม|รายเทอม/i],
+  ["per_month", /per month|\bmonthly\b|a month\b|\/\s?month\b|ต่อเดือน|รายเดือน/i],
+];
+
+/** Frequency from the wording; the earliest phrase wins, since notes like "per year (or 10,000 per semester)" give two rates */
+function guessFrequency(text: string): FeeFrequency | null {
+  let best: { at: number; freq: FeeFrequency } | null = null;
+  for (const [freq, re] of FREQUENCY_PATTERNS) {
+    const at = text.search(re);
+    if (at >= 0 && (!best || at < best.at)) best = { at, freq };
+  }
+  return best?.freq ?? null;
+}
+
 /**
- * Annualized cost multiplier for an add-on item based on notes (e.g. per semester = x2, per term = x3)
+ * Annualized cost multiplier for an add-on item: the stored frequency when known,
+ * otherwise read from the notes, then the name. Defaults to once a year.
  */
 export function getAddonAnnualMultiplier(cost: ScrapedHiddenCost): number {
-  const notes = (cost.notes || "").toLowerCase();
-  const name = cost.name.toLowerCase();
-  if (notes.includes("semester") || name.includes("semester")) {
-    return 2;
-  }
-  if (notes.includes("term") || name.includes("term")) {
-    return 3;
-  }
-  if (notes.includes("once only") || notes.includes("one-time") || notes.includes("one-off")) {
-    return 0; // 0 means charged only once in year 1
-  }
-  return 1; // standard per year
+  const freq = (cost.frequency && FREQUENCY_MULTIPLIER[cost.frequency] !== undefined)
+    ? cost.frequency
+    : guessFrequency(cost.notes || "") ?? guessFrequency(cost.name);
+  return (freq && FREQUENCY_MULTIPLIER[freq]) ?? 1;
 }
 
 /**
@@ -252,23 +313,9 @@ export function calculateSchoolCosts(
     notes: hasAppFee ? (appFeeObj.notes || "") : "ไม่ระบุในเอกสาร",
   });
 
-  // Registration / Entrance / Capital Fee (Mandatory, with child tier awareness)
-  let regFeeObj: ScrapedHiddenCost | undefined;
-  if (state.childTier === "second_child") {
-    regFeeObj = hiddenCosts.find((c) => c && c.name && /second and subsequent/i.test(c.name));
-  }
-  if (!regFeeObj) {
-    regFeeObj = hiddenCosts.find(
-      (c) => c && c.name && !/second and subsequent/i.test(c.name) && /entrance|registration|admission|guaranteed/i.test(c.name)
-    );
-  }
-
-  const hasRegFee = Boolean(regFeeObj && typeof regFeeObj.amount_thb === "number");
-  let regFee = (regFeeObj && typeof regFeeObj.amount_thb === "number") ? regFeeObj.amount_thb : 0;
-  // If alumni discount applies (e.g. Harrow THB 100,000 discount)
-  if (hasRegFee && state.childTier === "alumni" && /harrow/i.test(safeSchool.school_name)) {
-    regFee = Math.max(0, regFee - 100000);
-  }
+  // Registration / Entrance / Enrolment Fee (Mandatory, with child tier awareness)
+  const regFeeObj = entranceFeeForTier(safeSchool, state.childTier);
+  const regFee = hasAmount(regFeeObj) ? regFeeObj.amount_thb : 0;
 
   oneTimeTotalTHB += regFee;
   lineItems.push({

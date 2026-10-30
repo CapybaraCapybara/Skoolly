@@ -14,15 +14,6 @@ from typing import Any
 # would load supabase_sync twice.
 from supabase_sync import db_connect, dict_row, get_current_dsn
 
-# Wording the calculator already understands (see getAddonAnnualMultiplier in calculatorUtils.ts)
-FREQUENCY_NOTES = {
-    "once": "once only",
-    "per_year": "per year",
-    "per_term": "billed termly",
-    "per_month": "per month",
-    "conditional": "conditional",
-}
-
 
 def _require_dsn(dsn: str | None) -> str:
     target = dsn or get_current_dsn()
@@ -44,10 +35,8 @@ def _display_name(name_en: str | None, name_th: str | None) -> str:
 
 
 def _extra_fee_notes(row: dict[str, Any]) -> str:
+    # frequency goes out as its own field; the notes already say it in the school's words
     parts = []
-    freq = FREQUENCY_NOTES.get(row.get("frequency") or "")
-    if freq:
-        parts.append(freq)
     if row.get("refundable") is True:
         parts.append("refundable")
     elif row.get("refundable") is False:
@@ -110,6 +99,7 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
                     schools[row["school_id"]]["hidden_costs"].append({
                         "name": row["name"],
                         "amount_thb": _num(row["amount_thb"]),
+                        "frequency": row["frequency"],
                         "notes": _extra_fee_notes(row),
                     })
 

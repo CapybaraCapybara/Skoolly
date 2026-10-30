@@ -1630,6 +1630,31 @@ def reject_school_version(version_id: str, reason: str | None = None, dsn: str |
     }
 
 
+# Phrases that state how often an extra fee is charged. Notes often give two rates, e.g.
+# "per year (or 10,000 per semester)", and amount_thb is the first one, so the earliest
+# phrase in the text wins rather than whichever pattern is checked first.
+FEE_FREQUENCY_PATTERNS: list[tuple[str, str]] = [
+    ("once", r"\bonce\b|one[- ]?time|one[- ]?off|lump[- ]sum|ครั้งเดียว|แรกเข้า"),
+    ("per_year", r"per (?:academic |school )?year|per annum|\bannual(?:ly)?\b|\byearly\b|a year\b|ต่อปี|รายปี"),
+    ("per_semester", r"(?:per|each|a|every) semester|semesterly|/\s?semester|ต่อภาค|รายภาค"),
+    ("per_term", r"(?:per|each|a|every) term\b|\btermly\b|/\s?term\b|\bterm (?:rate|fee)|\bterm 1\b|ต่อเทอม|รายเทอม"),
+    ("per_month", r"per month|\bmonthly\b|a month\b|/\s?month\b|ต่อเดือน|รายเดือน"),
+]
+
+
+def guess_fee_frequency(name: str | None, notes: str | None) -> str:
+    """fee_frequency from the wording of an extra fee, for rows the model left unknown.
+    Notes are read before the name; deposits are paid once unless the text says otherwise."""
+    for text in (notes or "", name or ""):
+        hits = [(m.start(), freq) for freq, pattern in FEE_FREQUENCY_PATTERNS
+                if (m := re.search(pattern, text, re.IGNORECASE))]
+        if hits:
+            return min(hits)[1]
+    if re.search(r"deposit|เงินประกัน|มัดจำ", name or "", re.IGNORECASE):
+        return "once"
+    return "unknown"
+
+
 def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn: str | None = None) -> dict[str, Any]:
     """
     Saves new scraped data as a draft version in school_data.school_versions
@@ -1704,7 +1729,8 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
             freq_map = {
                 "once": "once", "one_time": "once", "ครั้งเดียว": "once", "แรกเข้า": "once",
                 "per_year": "per_year", "annual": "per_year", "ต่อปี": "per_year", "รายปี": "per_year",
-                "per_term": "per_term", "termly": "per_term", "ต่อเทอม": "per_term", "รายภาค": "per_term",
+                "per_semester": "per_semester", "semester": "per_semester", "ต่อภาค": "per_semester", "รายภาค": "per_semester",
+                "per_term": "per_term", "termly": "per_term", "ต่อเทอม": "per_term",
                 "per_month": "per_month", "monthly": "per_month", "ต่อเดือน": "per_month", "รายเดือน": "per_month",
                 "conditional": "conditional", "optional": "conditional", "ทางเลือก": "conditional"
             }
@@ -1714,8 +1740,8 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
                     continue
                 amount = to_float(hc.get("amount_thb"))
                 raw_freq = (clean(hc.get("frequency")) or "unknown").lower()
-                freq = freq_map.get(raw_freq, "unknown")
                 notes = clean(hc.get("notes"))
+                freq = freq_map.get(raw_freq) or guess_fee_frequency(name, notes)
                 cur.execute("""
                     INSERT INTO school_data.version_extra_fees
                         (version_id, name, amount_thb, frequency, notes)

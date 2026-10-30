@@ -141,9 +141,14 @@ EXTRACT_SCHEMA = {
                         "nullable": True,
                         "description": "ใส่จำนวนเงินถ้าระบุไว้ในหน้าเว็บ/PDF ไม่งั้นเว้น null",
                     },
+                    "frequency": {
+                        "type": "string",
+                        "enum": ["once", "per_year", "per_semester", "per_term", "per_month", "conditional", "unknown"],
+                        "description": "จ่ายบ่อยแค่ไหน ตาม amount_thb ที่ใส่: per_semester = ต่อภาค (ปีละ 2), per_term = ต่อเทอม (ปีละ 3), conditional = จ่ายเฉพาะบางคน/บางกรณี, ไม่ระบุให้ใส่ unknown",
+                    },
                     "notes": {"type": "string", "description": "เช่น 'once only', 'per year', 'refundable'"},
                 },
-                "required": ["name"],
+                "required": ["name", "frequency"],
             },
         },
         "safety_and_security": {

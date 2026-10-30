@@ -59,8 +59,10 @@ exception when duplicate_object then null; end $$;
 
 do $$ begin
   create type school_data.fee_frequency as enum
-    ('once', 'per_year', 'per_term', 'per_month', 'conditional', 'unknown');
+    ('once', 'per_year', 'per_semester', 'per_term', 'per_month', 'conditional', 'unknown');
 exception when duplicate_object then null; end $$;
+-- per_semester (ปีละ 2 ภาค) แยกจาก per_term (ปีละ 3 เทอม) เพราะเครื่องคิดเลขคูณต่างกัน
+alter type school_data.fee_frequency add value if not exists 'per_semester' before 'per_term';
 
 do $$ begin
   create type community.report_status as enum
