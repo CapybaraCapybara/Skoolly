@@ -19,6 +19,7 @@ import {
 import { School } from "@/types";
 import { StarRating, formatTuition } from "@/components/schools/SchoolCard";
 import { curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
+import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 
 interface FavoritesPageProps {
   schools: School[];
@@ -410,49 +411,52 @@ export function FavoritesPage({
                       key={school.id}
                       className="group bg-warm-cream rounded-3xl border border-warm-accent shadow-sm hover:shadow-md hover:border-warm-bronze/40 transition-all flex flex-col overflow-hidden"
                     >
-                      {/* Names in both languages, same layout as SchoolCard */}
+                      {/* Initials header, same layout as SchoolCard */}
                       <div
-                        className="bg-white border-b border-warm-accent/50 px-5 pt-4 pb-5 cursor-pointer"
+                        className="relative h-44 bg-white border-b border-warm-accent/50 flex items-center justify-center cursor-pointer"
                         onClick={() => onSchoolClick(school.id)}
                       >
-                        <div className="flex items-center gap-2 min-h-8">
-                          <span className="min-w-0 truncate text-[11px] font-semibold px-2.5 py-1 rounded-full bg-warm-accent/50 text-warm-charcoal border border-warm-accent select-none">
-                            หลักสูตร {curriculumLabel(school.curriculum)}
-                          </span>
+                        <SchoolMonogram
+                          initials={school.initials}
+                          className="size-24 rounded-3xl text-3xl shadow-xs group-hover:scale-105 transition-transform duration-300"
+                        />
 
-                          {/* Favorite button (Active Heart) */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onToggleFavorite(school.id);
-                            }}
-                            title="นำออกจากรายการถูกใจ"
-                            className="ml-auto w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                          >
-                            <Heart className="w-4 h-4 fill-current" />
-                          </button>
-                        </div>
+                        <span className="absolute top-3 left-3 max-w-[60%] truncate text-[11px] font-semibold px-2.5 py-1 rounded-full bg-warm-accent/50 text-warm-charcoal border border-warm-accent select-none">
+                          หลักสูตร {curriculumLabel(school.curriculum)}
+                        </span>
 
-                        <div className="mt-3 h-1 w-8 rounded-full bg-warm-bronze" />
-                        <div className="mt-3 md:min-h-[5rem]">
-                          <h3
-                            className="font-bold text-xl leading-[1.4] text-warm-charcoal group-hover:text-warm-bronze transition-colors line-clamp-2"
-                            title={schoolNames(school).primary}
-                          >
-                            {schoolNames(school).primary}
-                          </h3>
-                          {schoolNames(school).secondary && (
-                            <div className="text-sm text-warm-charcoal/60 line-clamp-1 mt-1">
-                              {schoolNames(school).secondary}
-                            </div>
-                          )}
-                        </div>
+                        {/* Favorite button (Active Heart) */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(school.id);
+                          }}
+                          title="นำออกจากรายการถูกใจ"
+                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Heart className="w-4 h-4 fill-current" />
+                        </button>
                       </div>
 
                       {/* Content Body */}
                       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center gap-1 text-xs text-warm-charcoal/60">
+                          <div>
+                            <h3
+                              onClick={() => onSchoolClick(school.id)}
+                              className="font-bold text-base leading-[1.4] text-warm-charcoal hover:text-warm-bronze transition-colors cursor-pointer line-clamp-2"
+                              title={schoolNames(school).primary}
+                            >
+                              {schoolNames(school).primary}
+                            </h3>
+                            {schoolNames(school).secondary && (
+                              <div className="text-xs text-warm-charcoal/60 line-clamp-1 mt-0.5">
+                                {schoolNames(school).secondary}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-2.5 flex items-center gap-1 text-xs text-warm-charcoal/60">
                             <MapPin className="w-3.5 h-3.5 text-warm-bronze shrink-0" />
                             <span className="truncate">{school.location}</span>
                           </div>
