@@ -48,17 +48,31 @@ const byThaiName = (a: School, b: School) => schoolNames(a).primary.localeCompar
 // Schools without a published fee go last in both fee orders
 const feeOrLast = (s: School, last: number) => (s.tuitionStart > 0 ? s.tuitionStart : last);
 
-function getPageNumbers(current: number, total: number): (number | string)[] {
-  if (total <= 7) {
+function getPageNumbers(current: number, total: number, siblings: number = 2): (number | string)[] {
+  if (total <= 7 + siblings) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, "...", total];
+
+  const left = Math.max(current - siblings, 1);
+  const right = Math.min(current + siblings, total);
+
+  const showLeftDots = left > 3;
+  const showRightDots = right < total - 2;
+
+  if (!showLeftDots && showRightDots) {
+    const leftCount = Math.max(3 + 2 * siblings, right);
+    const leftRange = Array.from({ length: leftCount }, (_, i) => i + 1);
+    return [...leftRange, "...", total];
   }
-  if (current >= total - 3) {
-    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+
+  if (showLeftDots && !showRightDots) {
+    const start = Math.min(total - (2 + 2 * siblings), left);
+    const rightRange = Array.from({ length: total - start + 1 }, (_, i) => start + i);
+    return [1, "...", ...rightRange];
   }
-  return [1, "...", current - 1, current, current + 1, "...", total];
+
+  const middleRange = Array.from({ length: right - left + 1 }, (_, i) => left + i);
+  return [1, "...", ...middleRange, "...", total];
 }
 
 const DEFAULT_FILTERS: Filters = {
