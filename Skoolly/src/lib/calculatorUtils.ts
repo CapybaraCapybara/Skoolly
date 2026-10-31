@@ -342,7 +342,8 @@ export function calculateSchoolCosts(
   });
 
   // 2. Multi-Year Schedule & Annual Tuition
-  const duration = Math.max(1, Math.min(state.durationYears || 1, 15));
+  // 17 = every year from pre-nursery to ม.6 (the 0-16 scale in grade_years.py)
+  const duration = Math.max(1, Math.min(state.durationYears || 1, 17));
   const startIndex = Math.max(0, Math.min(state.startingGradeIndex || 0, Math.max(0, grades.length - 1)));
 
   // 3. Dynamic Add-ons calculation (Only for selected items that this school actually has)

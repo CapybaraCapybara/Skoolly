@@ -132,7 +132,8 @@ export function CostCalculatorPage({
       if (
         g.level_code === "KINDERGARTEN" ||
         g.level_code === "PRE_NURSERY" ||
-        (typeof g.order_end === "number" && g.order_end <= 3) ||
+        // order_* use the 0-16 scale of grade_years.py: 0-4 ก่อนอนุบาล-อ.3, 5-10 ป.1-6, 11-13 ม.1-3
+        (typeof g.order_end === "number" && g.order_end <= 4) ||
         g.display_name?.includes("อ.") ||
         g.display_name?.includes("เตรียมอนุบาล")
       ) {
@@ -149,7 +150,7 @@ export function CostCalculatorPage({
       const g = grades[i];
       if (
         g.level_code === "PRIMARY" ||
-        (typeof g.order_end === "number" && g.order_end >= 4 && g.order_end <= 9) ||
+        (typeof g.order_end === "number" && g.order_end >= 5 && g.order_end <= 10) ||
         g.display_name?.includes("ป.")
       ) {
         return i;
@@ -165,7 +166,7 @@ export function CostCalculatorPage({
       const g = grades[i];
       if (
         g.level_code === "LOWER_SECONDARY" ||
-        (typeof g.order_end === "number" && g.order_end >= 10 && g.order_end <= 12) ||
+        (typeof g.order_end === "number" && g.order_end >= 11 && g.order_end <= 13) ||
         g.display_name?.includes("ม.1") ||
         g.display_name?.includes("ม.2") ||
         g.display_name?.includes("ม.3")

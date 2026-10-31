@@ -115,7 +115,9 @@ EXTRACT_SCHEMA = {
         "tuition_found": {"type": "boolean"},
         "tuition_by_grade": {
             "type": "array",
-            "description": "ค่าเทอมแยกตามระดับชั้น ใช้ปีการศึกษาล่าสุด/ใหม่สุดที่เจอเท่านั้น",
+            "description": "ค่าเทอมแยกตามระดับชั้น ใช้ปีการศึกษาล่าสุด/ใหม่สุดที่เจอเท่านั้น "
+                           "ค่าที่จ่ายเพิ่มจากค่าเทอมปกติ เช่น extended hours, after-school care, early drop-off, "
+                           "ค่าหอพัก ให้ใส่ใน hidden_costs ไม่ใช่ที่นี่",
             "items": {
                 "type": "object",
                 "properties": {

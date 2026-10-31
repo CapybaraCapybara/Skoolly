@@ -13,6 +13,7 @@ from typing import Any
 # Bare name like every other opec module: importing it as opec.supabase_sync as well
 # would load supabase_sync twice.
 from supabase_sync import db_connect, dict_row, get_current_dsn
+from grade_years import year_rows
 
 
 def _require_dsn(dsn: str | None) -> str:
@@ -57,12 +58,16 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
                 SELECT s.school_id::text AS school_id, s.opec_school_code, s.name_en, s.name_th,
                        s.official_website_url, s.curriculums, v.scraped_page_url,
                        f.grade_label, f.level_code, f.annual_thb, f.semester_thb,
-                       f.academic_year, f.notes
+                       f.academic_year, f.notes,
+                       -- where the row sits on the school's own page, which lists grades youngest first
+                       (SELECT min(e.i) FROM jsonb_array_elements(v.data_snapshot->'tuition_by_grade')
+                                             WITH ORDINALITY e(item, i)
+                         WHERE e.item->>'grade_level' = f.grade_label) AS page_pos
                 FROM school_data.version_fees f
                 JOIN school_data.schools s ON s.current_published_version_id = f.version_id
                 JOIN school_data.school_versions v ON v.version_id = f.version_id
                 WHERE s.status <> 'archived' AND f.annual_thb IS NOT NULL
-                ORDER BY s.name_en NULLS LAST, s.name_th, f.annual_thb
+                ORDER BY s.name_en NULLS LAST, s.name_th, page_pos
             """)
             for row in cur.fetchall():
                 school = schools.setdefault(row["school_id"], {
@@ -72,6 +77,7 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
                     "homepage_url": row["official_website_url"] or "",
                     "page_scraped": row["scraped_page_url"] or "",
                     "curriculum": ", ".join(c.replace("_", " ").title() for c in row["curriculums"] or []),
+                    "curriculum_codes": row["curriculums"] or [],
                     "status": "ok",
                     "tuition_found": True,
                     "tuition_by_grade": [],
@@ -85,6 +91,7 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
                     "annual_thb": _num(row["annual_thb"]),
                     "semester_thb": _num(row["semester_thb"]),
                     "notes": " · ".join(notes),
+                    "page_pos": row["page_pos"],
                 })
 
             if schools:
@@ -108,6 +115,9 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
         amounts = [g["annual_thb"] for g in school["tuition_by_grade"] if g["annual_thb"]]
         school["tuition_min_thb"] = min(amounts) if amounts else None
         school["tuition_max_thb"] = max(amounts) if amounts else None
+        # The calculator counts one row as one school year
+        school["tuition_by_grade"] = [{k: v for k, v in g.items() if k != "page_pos"}
+                                      for g in year_rows(school["tuition_by_grade"], school.pop("curriculum_codes"))]
     return result
 
 

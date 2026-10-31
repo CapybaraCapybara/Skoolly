@@ -257,9 +257,8 @@ create table if not exists school_data.version_fees (
 
   grade_label         text not null,          -- ข้อความดิบจากเว็บ เช่น "Year 7 - Year 9"
   level_code          text,                   -- รหัสระดับชั้น เช่น 'PRIMARY', 'KINDERGARTEN' (nullable)
-  order_start         int,                    -- order_index ของชั้นแรกในช่วง (เช่น 5 สำหรับ ป.1)
-  order_end           int,                    -- order_index ของชั้นสุดท้ายในช่วง (เช่น 6 สำหรับ ป.1-ป.2)
-  display_name        text,                   -- ชื่อเทียบเคียง เช่น 'ป.1–ป.2 (Year 2–3)' (Admin ยืนยันแล้ว)
+  -- ลำดับชั้นและชื่อเทียบเคียงไม่เก็บในตาราง: /api/public/fees คำนวณตอนอ่านจาก grade_label
+  -- ด้วย microservices/opec/grade_years.py
 
   annual_thb          numeric(12,2),
   semester_thb        numeric(12,2),          -- ค่าเทอมต่อภาค (scraper, หน้าอนุมัติ, /api/public/fees ใช้)
@@ -272,9 +271,7 @@ create table if not exists school_data.version_fees (
   notes               text,
 
   constraint version_fees_has_amount
-    check (annual_thb is not null or semester_thb is not null or notes is not null),
-  constraint version_fees_order_range
-    check (order_start is null or order_end is null or order_start <= order_end)
+    check (annual_thb is not null or semester_thb is not null or notes is not null)
 );
 
 -- ── 3.6 ค่าใช้จ่ายแฝง (hidden_costs) ──────────────────────────────────────────
@@ -340,9 +337,9 @@ create table if not exists school_data.official_website_registry (
   school_code     text primary key,            -- รหัส OPEC (ตรงกับ schools.opec_school_code)
   school_name_th  text,
   school_name_en  text,
-  website_url     text,
+  website_url     text    not null default '',
   is_verified     boolean not null default false,
-  source          text,                        -- ชั้นของการไล่หาที่ยืนยัน URL นี้
+  source          text    not null default 'Manual Registry', -- ชั้นของการไล่หาที่ยืนยัน URL นี้
                                                -- ค่าที่พบจริงตอนนี้คือ 'Verified Official Registry' ทั้ง 291 แถว
   notes           text,
   verified_at     timestamptz,
@@ -749,8 +746,15 @@ grant select on
 to anon, authenticated;
 
 -- สมาชิกที่ล็อกอิน: จัดการข้อมูลของตัวเองได้ (RLS บังคับว่าต้องเป็นแถวของตัวเองเท่านั้น)
+-- user_accounts แก้ได้แค่ display_name: policy own_account เช็กแค่ว่าเป็นแถวของตัวเอง ถ้าแก้ได้ทั้งแถว
+-- ผู้ใช้จะตั้ง role = 'admin' หรือปลด status ที่ถูกระงับของตัวเองได้ แถวของผู้ใช้ใหม่สร้างโดย
+-- handle_new_auth_user() ซึ่งเป็น security definer จึงไม่ต้องมีสิทธิ์ insert
+-- revoke ก่อน เพราะ grant สะสม ฐานที่เคยรันไฟล์เวอร์ชันก่อนยังมีสิทธิ์เดิมค้างอยู่
+revoke insert, update, delete on user_data.user_accounts from authenticated;
+grant select, update (display_name) on user_data.user_accounts to authenticated;
+
 grant select, insert, update, delete on
-  user_data.user_accounts, user_data.children_profiles,
+  user_data.children_profiles,
   user_data.favorites, user_data.comparison_sets,
   community.forum_likes,
   ai.conversations, ai.messages
@@ -1001,44 +1005,10 @@ create policy audit_insert_only on ops.audit_log for insert with check (true);
 -- =============================================================================
 -- 12. TRANSACTION BOUNDARY ตอน Publish (Architecture หัวข้อ 8.5)
 -- =============================================================================
--- ห่อการเปลี่ยน status + ชี้ current_published_version_id + อัปเดต read model
--- ไว้ใน function เดียว เพื่อให้เป็น transaction เดียวเสมอ ไม่ต้องหวังว่า caller จะห่อ BEGIN เอง
-create or replace function school_data.publish_version(
-  p_version_id uuid,
-  p_reviewer   uuid
-) returns void
-language plpgsql security definer set search_path = school_data, public as $$
-declare
-  v_school_id uuid;
-begin
-  select school_id into strict v_school_id
-    from school_data.school_versions where version_id = p_version_id;
-
-  update school_data.school_versions
-     set status = 'superseded'
-   where school_id = v_school_id and status = 'published';
-
-  update school_data.school_versions
-     set status = 'published', reviewed_by = p_reviewer, reviewed_at = now()
-   where version_id = p_version_id;
-
-  update school_data.schools s
-     set current_published_version_id = p_version_id,
-         pub_data_updated_at          = now(),
-         -- annual_thb เท่านั้น: โรงเรียนมีทั้งแบบ 2 และ 3 เทอม จึงคูณ semester_thb เป็นค่าต่อปีไม่ได้
-         pub_tuition_min_thb          = (select min(nullif(annual_thb, 0))
-                                           from school_data.version_fees where version_id = p_version_id),
-         pub_tuition_max_thb          = (select max(nullif(annual_thb, 0))
-                                           from school_data.version_fees where version_id = p_version_id),
-         pub_has_safeguarding_policy  = (select child_safeguarding_policy
-                                           from school_data.version_safety where version_id = p_version_id),
-         updated_at                   = now()
-   where s.school_id = v_school_id;
-
-  insert into ops.audit_log (actor_id, actor_type, action, entity_type, entity_id, after_snapshot)
-  values (p_reviewer, 'admin', 'school.publish', 'school_version', p_version_id,
-          jsonb_build_object('school_id', v_school_id));
-end $$;
+-- การ publish ทำใน approve_school_version() ของ microservices/opec/supabase_sync.py ซึ่งเปลี่ยน
+-- status + ชี้ current_published_version_id + อัปเดต read model ใน transaction เดียว
+-- ฟังก์ชัน publish_version() เดิมไม่มีโค้ดไหนเรียก และคิดค่าเทอมคนละสูตรกับตัวที่ใช้จริง จึงลบทิ้ง
+drop function if exists school_data.publish_version(uuid, uuid);
 
 
 -- =============================================================================
@@ -1372,6 +1342,13 @@ alter table school_data.schools
        check (pub_tuition_min_thb is null or pub_tuition_max_thb is null
               or pub_tuition_min_thb <= pub_tuition_max_thb);
 
+-- ฐานที่เพิ่มคอลัมน์ ISAT ด้วย alter table ก่อน v6.6 ได้คอลัมน์แบบ nullable (ฐานจริงตรวจ 31 ต.ค. 2569
+-- ไม่มีแถวที่เป็น null) ถ้าคำสั่งนี้ล้ม แปลว่ามีแถวที่ยังเป็น null ต้องเติมค่าก่อน
+alter table school_data.schools
+  alter column is_isat_member set not null,
+  alter column is_boarding    set not null,
+  alter column accreditations set not null;
+
 alter table school_data.school_versions
   drop constraint if exists versions_number_positive,
   add  constraint versions_number_positive check (version_number > 0),
@@ -1382,18 +1359,12 @@ alter table school_data.school_versions
 -- create table if not exists ไม่แก้ตารางที่มีอยู่แล้ว: ฐานข้อมูลที่สร้างก่อนหรือหลังการแก้ version_fees
 -- วันที่ 28 ก.ย. 2569 จึงมีคอลัมน์ไม่ครบคนละแบบ สองคำสั่งนี้ทำให้ทุกฐานตรงกับตารางด้านบน
 alter table school_data.version_fees
-  add column if not exists semester_thb numeric(12,2),
-  add column if not exists order_start  int,
-  add column if not exists order_end    int,
-  add column if not exists display_name text;
+  add column if not exists semester_thb numeric(12,2);
 
 alter table school_data.version_fees
   drop constraint if exists version_fees_has_amount,
   add  constraint version_fees_has_amount
        check (annual_thb is not null or semester_thb is not null or notes is not null),
-  drop constraint if exists version_fees_order_range,
-  add  constraint version_fees_order_range
-       check (order_start is null or order_end is null or order_start <= order_end),
   drop constraint if exists fees_amount_nonneg,
   add  constraint fees_amount_nonneg
        check ((annual_thb is null or annual_thb >= 0)

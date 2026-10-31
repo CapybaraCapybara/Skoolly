@@ -1,4 +1,4 @@
-                        # Skoolly — Database Design & Tooling Decision
+# Skoolly — Database Design & Tooling Decision
 
 เอกสารนี้อธิบายเหตุผลเบื้องหลัง [`db/schema.sql`](schema.sql) และการเลือกเครื่องมือแบบ free tier
 วิเคราะห์จาก **Use Case จริง** (`reference/use_case_specification_final_v6.md` — v6.6, 19 Use Case, Data Dictionary 25 ตาราง)
@@ -6,19 +6,20 @@
 
 ---
 
-## 0. สถานะปัจจุบันของโปรเจกต์ (สิ่งที่ตรวจพบจากโค้ดจริง)
+## 0. สถานะปัจจุบันของโปรเจกต์ (ตรวจจากโค้ดและฐานข้อมูลจริง 31 ต.ค. 2569)
 
 | สิ่งที่มีอยู่ | รายละเอียด | ผลต่อการออกแบบ |
 |---|---|---|
-| **มีฐานข้อมูลจริงแล้ว** (รัน migration 15 ก.ย. 2569) | Supabase Postgres — `schools` 290, `school_versions` 292, `official_website_registry` 291 แถว (เกินมา 1 แถวที่ยังจับคู่กับโรงเรียนไม่ได้ ตาม Use Case Spec หัวข้อ 7.22) · `microservices/db_service.py` ยังเขียน `results.json`/`scrape_log.json` คู่ขนานอยู่ | ส่วนที่ย้ายเข้า Postgres แล้วคือ pipeline OPEC/scraper ที่เหลือ (ฟอรัม/ผู้ใช้/AI) ตารางพร้อมแล้วแต่ยังไม่มีฟีเจอร์มาใช้ |
+| **มีฐานข้อมูลจริงแล้ว** (Supabase Postgres 17.6) | `schools` 290 (active ทั้งหมด), `school_versions` 766, `version_fees` 1,956, `version_extra_fees` 2,005, `version_safety` 476, `school_scrape_log` 1,544, `official_website_registry` 291, `user_accounts` 3 (admin 2) ส่วนตารางฟอรัม ผู้ใช้ และ AI ยังว่าง รายละเอียดอยู่ในหัวข้อ 8 | pipeline OPEC และ scraper เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`db_service.py`, `results.json`) ไม่ได้อยู่ในเส้นทางหลักอีก |
 | **ข้อมูล OPEC 290 โรงเรียน** | `data/international_schools_thailand_opec.json` — lat/lng ครบ 290/290, website 283/290, curriculums 256/290 (free-text ไทย), levels 285/290 | ต้องมีตาราง lookup + alias เพื่อ normalize ก่อน ไม่งั้นตัวกรองของ UC-01 ใช้ไม่ได้จริง |
-| **ผลลัพธ์ scraper** | `tuition_by_grade`, `hidden_costs`, `safety_and_security`, `confidence`, `confidence_reasoning` | เป็นตัวกำหนดหน้าตาตาราง `version_fees` / `version_extra_fees` / `version_safety` โดยตรง |
-| **Frontend React 19 + Vite** | `src/api/*.ts` เป็นชั้น service layer ที่ออกแบบมาให้สลับไป backend จริงได้อยู่แล้ว | ไม่ต้องรื้อ FE ตอนต่อ DB — เปลี่ยนแค่ body ของฟังก์ชันใน `src/api/` |
-| **หน้า Forum** | `src/pages/ForumPage.tsx`, type `Post`/`Comment` | ✅ ยืนยันแล้วว่าจะทำจริง → เพิ่ม UC-05 (ฝั่งผู้ใช้) และ UC-16 (ฝั่ง Admin) เข้าเอกสาร พร้อมตาราง `forum_*` เข้า schema |
+| **ผลลัพธ์ scraper** | `tuition_by_grade`, `hidden_costs` (มี `frequency` ของแต่ละรายการ), `safety_and_security`, `signature_programs`, `facilities`, `confidence`, `confidence_reasoning` | เป็นตัวกำหนดหน้าตาตาราง `version_fees` / `version_extra_fees` / `version_safety` โดยตรง ส่วน `signature_programs` กับ `facilities` อ่านจาก `data_snapshot` |
+| **Frontend React 19 + Vite** | หน้าเว็บอ่านข้อมูลผ่าน FastAPI `microservices/opec_service.py` (Vite proxy `/api` ไปพอร์ต 8004) ซึ่งต่อ Postgres ตรงด้วย `DATABASE_URL` ในฐานะ role `postgres` ส่วน `@supabase/supabase-js` ใช้แค่ระบบล็อกอิน | Data API (Auto-API) กับ RLS ยังไม่ได้ถูกใช้โดยหน้าเว็บ แต่ยังเปิดอยู่ จึงยังต้องดูแลสิทธิ์ให้ถูก (หัวข้อ 8.3) |
+| **หน้า Forum** | `src/pages/ForumPage.tsx` อ่านผ่าน `GET /api/public/forum/posts` ยังไม่มีการเขียนกระทู้ | ตาราง `forum_*` พร้อมแล้วแต่ยังไม่มีแถว |
 | **scraper เก็บ safety/safeguarding** | `EXTRACT_SCHEMA.safety_and_security` | ✅ ผนวกเข้าเอกสารแล้ว → แท็บใน UC-02, แถวเปรียบเทียบใน UC-03, ตาราง `version_safety` |
 
-**ขนาดข้อมูลจริง:** OPEC ~2.3 KB/โรง, ผลลัพธ์ scraper ~3.9 KB/โรง → รวม ~6.3 KB ต่อโรงต่อเวอร์ชัน
-290 โรง × เก็บ 24 เวอร์ชัน (สแครปเดือนละครั้ง 2 ปี) ≈ **44 MB** — ตัวเลขนี้สำคัญต่อการเลือกเครื่องมือในข้อ 2
+**ขนาดข้อมูลจริง:** ประมาณการเดิมคือ OPEC ~2.3 KB/โรง และผลลัพธ์ scraper ~3.9 KB/โรง รวม ~6.3 KB ต่อโรงต่อเวอร์ชัน
+290 โรง × 24 เวอร์ชัน (สแครปเดือนละครั้ง 2 ปี) ≈ **44 MB**
+ขนาดจริงวันที่ 31 ต.ค. 2569 ที่ 766 เวอร์ชัน: ทั้งฐาน 29 MB (รวมตารางระบบและ PostGIS) ส่วนตารางของแอปรวม 8.7 MB ยังอยู่ในกรอบที่ประมาณไว้
 
 ---
 
@@ -115,7 +116,7 @@ Database Webhooks + PostGIS + pgvector **ในที่เดียวและ
 | วาด ERD ประกอบเล่ม | **dbdiagram.io** (DBML) | เลือกตัวนี้เพราะรูปที่ได้อ่านง่ายกว่าตอนย่อลงหน้ากระดาษ ไฟล์ต้นทางอยู่ที่ `report/images/er-diagram.dbml` และ export เป็น `er-diagram.png` ใส่ในรายงาน ส่วนไฟล์ Mermaid ที่เคยทำไว้ยังอยู่ที่ `reference/er_diagram*.mmd` ใช้ดูแยกรายบริการได้ |
 | ทดสอบ RLS | **pgTAP** | Architecture 13.1 ระบุไว้แล้ว |
 | ฝั่ง Python (pipeline) | **`psycopg[binary]` v3** + `COPY` สำหรับ bulk insert | เร็วกว่า REST API มากตอน import 290 แถว — เพิ่มใน `requirements.txt` |
-| ฝั่ง Frontend | **`@supabase/supabase-js`** + **SWR / TanStack Query** | ตรงกับ Architecture หัวข้อ 9 |
+| ฝั่ง Frontend | **`@supabase/supabase-js`** (เฉพาะล็อกอิน) | ข้อมูลอื่นอ่านผ่าน FastAPI `/api` ด้วย `fetch` ธรรมดา ไม่ได้ใช้ SWR / TanStack Query ตามที่ Architecture หัวข้อ 9 วางไว้ |
 
 ---
 
@@ -154,9 +155,12 @@ ops         ── audit_log (append-only) │ failed_jobs
    แทนการแยกเป็นตาราง `*_aliases` ต่างหาก เพราะเป็นความสัมพันธ์ที่ไม่มี attribute อื่นเลย
 
 3. **คอลัมน์ `pub_*` บน `schools` เป็น read model** — projection จากเวอร์ชันที่ published อยู่
-   อัปเดตใน transaction เดียวกับ publish (ฟังก์ชัน `publish_version()`) ทำให้หน้าค้นหากรอง/เรียงด้วย
+   อัปเดตใน transaction เดียวกับ publish ทำให้หน้าค้นหากรอง/เรียงด้วย
    index ปกติได้ และ**ไม่ถือเป็น "search index แยกที่ต้อง sync"** ตามที่ UC-01 E4 ยืนยันไว้
    เพราะอัปเดตพร้อมกันแบบ atomic
+   ตัวที่ใช้งานจริงคือ `approve_school_version()` ใน `supabase_sync.py` ซึ่งคิด `pub_tuition_min/max_thb`
+   จาก `annual_thb` อย่างเดียว ฟังก์ชัน `school_data.publish_version()` ที่เคยออกแบบไว้ไม่มีโค้ดเรียก
+   จึงลบออกทั้งจาก `schema.sql` และจากฐานจริงแล้ว (`db/migrations/2026-10-31_live_alignment.sql`)
 
 4. **ค้นหาชื่อโรงเรียนใช้ `pg_trgm` ไม่ใช่ full-text search** — **Postgres ไม่มี dictionary
    ภาษาไทย จึงตัดคำไทยไม่ได้** `to_tsvector` ใช้กับ `name_th` ไม่ได้ผลจริง ขณะที่ `pg_trgm`
@@ -166,6 +170,8 @@ ops         ── audit_log (append-only) │ failed_jobs
 5. **Database role ต่อ Service** (ข้อ 10 ใน `schema.sql`) — เอกสารพูดถึง Golden Rule ไว้เยอะแต่ไม่เคย
    ระบุว่าจะ**บังคับ**ยังไง ตอนนี้บังคับด้วย `GRANT` จริง: `svc_ai` ไม่มีสิทธิ์แตะ schema `school_data`
    เลยแม้เขียน SQL ผิด — ใช้ defend คำว่า "Microservices" ได้จริง ไม่ใช่แค่แบ่งชื่อ schema
+   สถานะจริง: role `svc_*` ทั้ง 5 ตัวมีอยู่ในฐานแล้ว แต่ backend ทุกตัวยังต่อด้วย `DATABASE_URL` ของ role `postgres`
+   การแยกสิทธิ์นี้จึงยังไม่มีผลตอนรันจริง
 
 6. **`children_profiles` ไม่เปิด RLS ให้ Admin อ่าน** — เป็นข้อมูลอ่อนไหวสุดตาม PDPA
    UC-15 ต้องการแค่ "ลบ" ไม่ใช่ "อ่าน" จึงให้ `account-deletion-cron` ทำด้วยสิทธิ์ระบบแทน
@@ -189,12 +195,12 @@ ops         ── audit_log (append-only) │ failed_jobs
 | `.levels_offered[]` (ไทย) | `GRADE_LEVEL_MAP` แปลงเป็น code → `schools.levels_offered text[]` (ตรวจกับ lookup `grade_levels`) |
 | `.vision / mission / school_history / uniqueness` (vision 25, mission 21, school_history 22, uniqueness 15 จาก 290) | เก็บใน `data_snapshot` — เป็นข้อความอิสระชุดเดียวที่มีอยู่ตอนนี้ จึงเป็นจุดตั้งต้นที่ดีที่สุดถ้าวันหนึ่งเปิดใช้ RAG (Use Case Spec หัวข้อ 3.4.1) แต่ **ยังไม่เปิดใช้ในเฟสนี้** และปริมาณระดับ 15-25 จาก 290 โรงเรียนยังน้อยเกินกว่าจะทำให้ vector search มีความหมาย |
 | ผลลัพธ์ scraper ทั้งก้อน | `school_versions.data_snapshot` (JSONB) |
-| `.tuition_by_grade[]` | `version_fees` (numeric + `academic_year` แกะจาก `notes` เช่น `"Academic Year 2026/27"`) |
-| `.hidden_costs[]` | `version_extra_fees` (`frequency` แกะจาก `notes`: "once only" → `once`, "Billed termly" → `per_term`) |
+| `.tuition_by_grade[]` | `version_fees` (numeric + `academic_year` แกะจาก `notes` เช่น `"Academic Year 2026/27"`) `annual_thb` คือค่าเทอมรวมทั้งปี ส่วน `semester_thb` คือค่าต่อหนึ่งเทอมหรือภาคตามที่เว็บเขียน ไม่ได้คูณ ระบบไม่เอา `semester_thb` ไปคำนวณเป็นค่าต่อปี เพราะโรงเรียนมีทั้งแบบ 2 และ 3 เทอม ตอนส่งให้เครื่องคิดค่าเทอม `grade_years.py` จะแยกแถวที่ครอบหลายปี (เช่น "Year 7 - Year 9") เป็นปีละแถว และเหลือแถวเดียวต่อปีเมื่อหน้าเว็บมีหลายตัวเลือก (ครึ่งวัน/เต็มวัน) |
+| `.hidden_costs[]` | `version_extra_fees` (`frequency` มาจากช่อง `frequency` ที่ Gemini ตอบ: `once` / `per_year` / `per_semester` (ปีละ 2) / `per_term` (ปีละ 3) / `per_month` / `conditional` / `unknown` ถ้าได้ `unknown` จะเดาจากข้อความด้วย `guess_fee_frequency()` แถวที่บันทึกก่อนมีช่องนี้ยังเป็น `unknown` อยู่ 580 แถว) |
 | `.safety_and_security` | `version_safety` |
 | `.confidence`, `.confidence_reasoning`, `.page_scraped` | `school_versions` |
 | `scrape_log.json`, `.elapsed_sec`, `.status` | `school_scrape_log` |
-| `src/api/mock/forumPosts.ts` (`Post`/`Comment`) | `community.forum_posts` / `forum_comments` (`category` ตรงกับ enum เดิม 4 ค่า) |
+| ฟอรัม (`Post`/`Comment` ใน `src/api/forumApi.ts`) | `community.forum_posts` / `forum_comments` (`category` ตรงกับ enum เดิม 4 ค่า) ตอนนี้อ่านอย่างเดียวผ่าน `fetch_forum_posts()` ใน `public_queries.py` |
 
 ---
 
@@ -219,10 +225,13 @@ list เฉพาะ schema ที่มีอยู่จริงในฐา�
 
 **หลังรัน `schema.sql` แล้วไปตั้งที่ Data API → แท็บ Settings → Exposed schemas:** ค่า default มีแค่ `public`
 ต้องเพิ่ม `school_data`, `community`, `user_data`, `ai`, `ops` เข้าไป (Admin Dashboard ต้องใช้ทั้ง 5
-ตาม Architecture หัวข้อ 9) — ปลอดภัยได้เพราะทั้ง 25 ตารางเปิด RLS ครบและมี policy กำกับทุกตัวแล้ว
-โดยตารางที่ไม่ควรให้ใครอ่านผ่าน API เลย (`ai.school_embeddings`) จงใจเปิด RLS ไว้โดยไม่มี policy
-select และไม่ GRANT ให้ใคร ซึ่งเท่ากับปิดสนิท ส่วน Edge Function/Pipeline ใช้ service role ที่
-bypass RLS อยู่แล้ว
+ตาม Architecture หัวข้อ 9) โดยตารางที่ไม่ควรให้ใครอ่านผ่าน API เลย (`ai.school_embeddings`) จงใจเปิด RLS
+ไว้โดยไม่มี policy select และไม่ GRANT ให้ใคร ซึ่งเท่ากับปิดสนิท ส่วน Edge Function/Pipeline ใช้ service role
+ที่ bypass RLS อยู่แล้ว
+
+> ฐานจริงตั้งค่าไว้ตามนี้แล้ว (ตรวจ 31 ต.ค. 2569: exposed คือ `public`, `graphql_public`, `school_data`,
+> `user_data`, `community`, `ops`, `ai`) มี 3 ตารางที่ไม่เปิด RLS แต่เข้าถึงได้แค่อ่านหรือเข้าไม่ได้เลย (หัวข้อ 8.1)
+> สิทธิ์ของ `user_accounts` ที่เคยให้ผู้ใช้เลื่อนตัวเองเป็น admin ได้ ปิดแล้ว 31 ต.ค. 2569 (หัวข้อ 8.3)
 
 > **ไม่ต้องไปกดทีละตารางในช่อง "Exposed tables" ของ Dashboard** — ช่องนั้นคือ UI สำหรับสั่ง `GRANT`
 > ให้ role `anon`/`authenticated` ซึ่ง `schema.sql` หัวข้อ 10.1 ทำให้ครบแล้วในรูปแบบที่อยู่ใน
@@ -289,17 +298,20 @@ python db/import_opec.py               # เขียนจริง
 ค่าที่ map ไม่ได้จะตกเป็น `SCHOOL_SPECIFIC` ส่วนระดับชั้นที่ map ไม่ได้จะถูกรายงานออกมาตอนจบ
 ตาม Business Rule ของหัวข้อ 7.16 ใน Use Case Spec
 
-ถัดไป:
+ถัดไป (สถานะ ณ 31 ต.ค. 2569):
 
-1. `supabase init` + ย้าย `db/schema.sql` เป็น migration แรก เพื่อให้ CI/CD deploy ซ้ำได้
-3. แก้ `microservices/db_service.py` ให้เขียนลง Postgres แทนไฟล์ JSON —
-   **ลบกลไก Saga ด้วย `.bak` ออกได้เลย** เพราะ `BEGIN/COMMIT` จริงทำหน้าที่นี้แทนแบบปลอดภัยกว่า
-4. เพิ่ม `psycopg[binary]` ใน `requirements.txt`, เพิ่ม `@supabase/supabase-js` ใน `package.json`
-5. เปลี่ยน body ของ `src/api/schoolsApi.ts` / `opecApi.ts` / `forumApi.ts` จาก mock → Supabase client
-   (โครง FE ไม่ต้องแก้)
-6. เขียน pgTAP test ของ RLS อย่างน้อย 4 เคส: อ่าน `children_profiles` ข้ามบัญชี,
-   อ่าน `comparison_sets` ข้ามบัญชี, แก้ `audit_log`, และ select `forum_reports` ด้วยบัญชีที่ไม่ใช่ admin
-7. ค่อยเพิ่ม `hnsw` index ของ pgvector **หลังมีข้อมูลจริงแล้ว**
+1. `supabase init` + ย้าย `db/schema.sql` เป็น migration แรก เพื่อให้ CI/CD deploy ซ้ำได้ (ยังไม่ทำ)
+   เรื่องนี้สำคัญขึ้นแล้ว เพราะตอนนี้การแก้ `schema.sql` ไม่ได้ไปถึงฐานจริงเอง ต้องมีคนรันไฟล์ซ้ำหรือรัน migration
+   และที่ผ่านมาไม่มีใครรัน ฐานกับไฟล์จึงค่อย ๆ ต่างกัน (ดูหัวข้อ 8.2) ส่วนการแก้ที่ `create table if not exists`
+   ทำให้ไม่ได้ (เปลี่ยน nullable, ถอนสิทธิ์, ลบฟังก์ชัน) ต้องเขียนเป็นคำสั่ง `alter` / `revoke` / `drop` ไว้ในไฟล์ด้วย
+2. ✅ pipeline เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`db_service.py`, `orchestrator.py`, `batch_scrape_runner.py`, `run_all.py`) ไม่ได้อยู่ในเส้นทางหลัก
+   ลบออกได้ ยกเว้น `validator_service.validate_result()` ที่ `opec_service.py` เรียกใช้อยู่
+3. ✅ `psycopg[binary]` อยู่ใน `requirements.txt` และ `@supabase/supabase-js` อยู่ใน `package.json` แล้ว (ใช้กับระบบล็อกอิน)
+4. ✅ หน้าเว็บเลิกใช้ mock แล้ว แต่เลือกอ่านผ่าน FastAPI `/api` แทน Supabase client
+5. เขียน pgTAP test ของ RLS อย่างน้อย 5 เคส: อ่าน `children_profiles` ข้ามบัญชี,
+   อ่าน `comparison_sets` ข้ามบัญชี, แก้ `audit_log`, select `forum_reports` ด้วยบัญชีที่ไม่ใช่ admin,
+   และผู้ใช้ทั่วไปแก้ `role` ของตัวเองใน `user_accounts` ไม่ได้ (ปิดแล้ว 31 ต.ค. 2569 ดูหัวข้อ 8.3 test นี้กันไม่ให้ช่องนี้กลับมา)
+6. ค่อยเพิ่ม `hnsw` index ของ pgvector **หลังมีข้อมูลจริงแล้ว**
 
 ---
 
@@ -328,9 +340,79 @@ python db/import_opec.py               # เขียนจริง
 | คอลัมน์ ISAT + `official_website_registry` ไม่อยู่ใน `schema.sql` (schema drift) | ✅ **แก้แล้ว (v6.6)** — ย้ายมาประกาศใน `schema.sql` ทั้งหมด ไม่ต้องพึ่ง `ALTER TABLE` ตอนรันอีก |
 | `updated_at` ไม่มีอะไรอัปเดตให้ 8 ตาราง | ✅ **แก้แล้ว (v6.6)** — trigger `set_updated_at` |
 | `src/api/schoolsApi.ts` คอมเมนต์อ้าง `testz.py` ที่ไม่มีแล้ว | ✅ **แก้แล้ว** — ชี้ไป `microservices/scraper_service.py` |
-| FE ใช้ `id: number` แต่ schema เป็น `uuid` | ⏳ **ยังไม่แก้โดยตั้งใจ** — เป็นงานที่ต้องทำพร้อมกันตอนต่อ DB จริง (ขั้นที่ 5 ของหัวข้อ 5) แก้ตอนนี้จะทำให้ mock data ใช้งานไม่ได้โดยไม่ได้อะไร |
+| FE ใช้ `id: number` แต่ schema เป็น `uuid` | ⏳ **ยังไม่แก้** — หน้าเว็บใช้รหัส OPEC 10 หลักแปลงเป็นตัวเลขเป็น `id` (`parseNumericId` ใน `src/api/schoolsApi.ts`) ส่วน `school_id` ที่เป็น uuid ใช้เฉพาะฝั่ง backend |
 | `requirements.txt` ยังไม่มี driver | ✅ **แก้แล้ว** — `psycopg[binary]` อยู่ใน `requirements.txt` และมีโค้ดเรียกใช้จริงสามไฟล์ คือ `supabase_sync.py` `fetch_official_websites.py` และ `website_registry.py` |
-| `package.json` ยังไม่มี `@supabase/supabase-js` | ⏳ **ยังไม่แก้โดยตั้งใจ** — ฝั่งหน้าเว็บยังใช้ข้อมูลจำลอง อยู่ การเพิ่ม dependency ที่ยังไม่มีโค้ดเรียกใช้จะกลายเป็น dead dependency ให้เพิ่มตอนต่อฐานข้อมูลจริง |
+| `package.json` ยังไม่มี `@supabase/supabase-js` | ✅ **แก้แล้ว** — เพิ่มแล้วและใช้กับระบบล็อกอิน (`src/lib/supabase.ts`, `src/lib/auth.tsx`) ส่วนข้อมูลโรงเรียนอ่านผ่าน FastAPI |
+| ตารางและคอลัมน์ใน `schema.sql` เทียบกับฐานจริงระดับคอลัมน์ | ✅ **แก้แล้ว (31 ต.ค. 2569)** — ไฟล์ปรับตามฐานจริง และรัน `db/migrations/2026-10-31_live_alignment.sql` กับฐานจริงแล้ว (nullable 3 คอลัมน์, สิทธิ์ `user_accounts`, ลบ `publish_version()`) ดูหัวข้อ 8.2 |
+
+---
+
+## 8. ฐานข้อมูลจริงเทียบกับ `schema.sql` (ตรวจ 31 ต.ค. 2569)
+
+ตรวจด้วย connection แบบ read-only จาก `DATABASE_URL` อ่านเฉพาะโครงสร้าง สิทธิ์ และจำนวนแถว ไม่ได้อ่านข้อมูลผู้ใช้
+
+### 8.1 ภาพรวม
+
+| รายการ | ค่าในฐานจริง |
+|---|---|
+| Postgres | 17.6 |
+| Extension | `postgis`, `vector`, `pg_trgm`, `pg_cron`, `pg_net`, `pgcrypto`, `uuid-ossp`, `unaccent`, `pg_stat_statements`, `supabase_vault` |
+| ตาราง | 25 ตารางใน 5 schema ตรงกับไฟล์ (ไม่นับ `public.spatial_ref_sys` ของ PostGIS) |
+| งาน `pg_cron` | ยังไม่มีสักงาน |
+| ตารางที่ไม่เปิด RLS | `grade_levels`, `school_google_reviews`, `official_website_registry` (ไม่เปิดทั้งในไฟล์และในฐาน) สองตัวแรก grant ให้แค่ `select` จึงอ่านได้อย่างเดียว ตัวสุดท้ายไม่มี grant ให้ `anon`/`authenticated` จึงเข้าผ่าน API ไม่ได้ |
+| ตารางที่ไม่มีในฐาน | `public.profiles` (จาก `db/migrations/2026-10-02_auth_profiles.sql`) และ `school_data.grade_level_aliases` (จาก `db/add_grade_level_aliases.sql`) ทั้งสองไฟล์ยังไม่เคยรันกับฐานจริง |
+| trigger บน `auth.users` | `on_auth_user_created` เรียก `user_data.handle_new_auth_user()` ตาม `schema.sql` (ไม่ใช่ตัวใน migration profiles ซึ่งใช้ชื่อ trigger เดียวกัน ถ้ารัน migration นั้นจะทับตัวนี้ และผู้ใช้ใหม่จะไม่ได้แถวใน `user_accounts`) |
+
+จำนวนแถวและสถานะข้อมูล:
+
+| ตาราง | แถว | หมายเหตุ |
+|---|---|---|
+| `school_data.schools` | 290 | active ทั้งหมด มีเวอร์ชันที่ published ครบ 290 มีค่าเทอมบนการ์ด (`pub_tuition_min_thb`) 120 โรง |
+| `school_data.school_versions` | 766 | `opec_import`: published 15, superseded 275 · `scraper`: published 275, superseded 198, pending_review 2, rejected 1 |
+| `school_data.version_fees` | 1,956 | ไม่มี `annual_thb` 138 แถว ในนั้น 116 แถวมีแค่ `semester_thb` · มี `level_code` แค่ 15 แถว |
+| `school_data.version_extra_fees` | 2,005 | `frequency`: unknown 580, once 570, per_year 541, per_term 223, per_semester 67, per_month 24 |
+| `school_data.version_safety` | 476 | |
+| `school_data.school_scrape_log` | 1,544 | |
+| `school_data.official_website_registry` | 291 | |
+| `school_data.curriculums` / `grade_levels` | 17 / 5 | มีคอลัมน์ `aliases` ทั้งคู่ |
+| `user_data.user_accounts` | 3 | admin 2, parent 1 |
+| `ops.audit_log` | 2 | |
+| ตารางอื่นใน `community`, `user_data`, `ai`, `ops` | 0 | |
+
+### 8.2 จุดที่ไฟล์กับฐานจริงไม่ตรงกัน และสถานะการแก้
+
+`schema.sql` เขียนให้รันซ้ำกับฐานที่มีอยู่ได้ (หัวข้อ 19 ของไฟล์มี `alter table ... add column if not exists`
+ไว้ตามคอลัมน์ที่เพิ่มทีหลัง) ฐานจริงต่างจากไฟล์เพราะยังไม่ได้รันไฟล์ซ้ำหลังการแก้ช่วงปลายเดือนกันยายน
+31 ต.ค. 2569 ปรับไฟล์ให้ตรงกับที่ใช้จริงแล้ว ส่วนที่ต้องเปลี่ยนในฐานรวมไว้ใน `db/migrations/2026-10-31_live_alignment.sql`
+
+| จุด | เดิมในไฟล์ | ในฐานจริง | สถานะ |
+|---|---|---|---|
+| `version_fees.order_start`, `order_end`, `display_name` | มี | ไม่มี | ✅ ลบออกจาก `schema.sql` แล้ว `/api/public/fees` คำนวณสามค่านี้ตอนอ่านด้วย `microservices/opec/grade_years.py` (เรียงตามลำดับในหน้าเว็บโรงเรียนจาก `data_snapshot` แล้วแปลงชื่อชั้นเป็นสเกล 0-16) |
+| enum `fee_frequency` | มี `per_semester` | มีแล้ว | ✅ ตรงกัน |
+| `schools.is_isat_member`, `is_boarding`, `accreditations` | `not null` | nullable (มี default) | ✅ ไฟล์ถูกอยู่แล้วและเพิ่ม `alter column ... set not null` ในหัวข้อ 19 ฐานจริงเป็น `not null` แล้วหลังรัน migration |
+| `official_website_registry.website_url`, `source` | nullable | `not null` default `''` และ `'Manual Registry'` | ✅ แก้ไฟล์ให้ตรงกับฐานแล้ว |
+| ฟังก์ชัน `publish_version()` | สูตร `min(nullif(annual_thb, 0))` | สูตรเก่า `coalesce(annual_thb, semester_thb * 2)` | ✅ ไม่มีโค้ดเรียก ลบออกทั้งจากไฟล์และฐานจริงแล้ว เดิมใครที่มี anon key ก็เรียกผ่าน `/rest/v1/rpc/publish_version` ได้ เพราะฟังก์ชันไม่ได้จำกัดสิทธิ์ EXECUTE และรันด้วยสิทธิ์ `postgres` |
+
+### 8.3 สิทธิ์ที่ต้องแก้
+
+✅ แก้ใน `schema.sql` หัวข้อ 10.1 และรันกับฐานจริงแล้ว 31 ต.ค. 2569 (ตอนนี้ `authenticated` มีแค่ SELECT ทั้งตาราง และ UPDATE เฉพาะ `display_name`) ข้อความด้านล่างเก็บไว้เป็นที่มาของการแก้
+
+- `user_data.user_accounts`: role `authenticated` มีสิทธิ์ `insert, update, delete` ทุกคอลัมน์ และ policy `own_account`
+  เช็กแค่ `user_id = auth.uid()` schema `user_data` เปิดผ่าน Data API อยู่ ผู้ใช้ที่สมัครเองจึงแก้ `role` เป็น `admin`
+  (หรือแก้ `status` ปลดตัวเองจากการถูกระงับ) ได้ทันที แล้ว `user_data.is_admin()` จะคืน true ทำให้เขียนตาราง `school_data.*`
+  ผ่าน policy `*_admin_write` ได้ trigger `on_user_account_privilege_change` แค่บันทึกลง `ops.audit_log` (และบันทึกผู้กระทำเป็น `admin`) ไม่ได้ห้าม
+  แก้โดยจำกัดสิทธิ์ให้แก้ได้เฉพาะชื่อที่แสดง:
+
+  ```sql
+  revoke insert, update, delete on user_data.user_accounts from authenticated;
+  grant select, update (display_name) on user_data.user_accounts to authenticated;
+  ```
+
+  ถ้าวันหนึ่งเปิดให้ผู้ใช้ขอลบบัญชีเอง (UC-06) ต้องเพิ่ม `deletion_requested_at` ในรายการคอลัมน์ที่แก้ได้
+
+  แถวของผู้ใช้ใหม่ยังถูกสร้างได้ตามเดิม เพราะ `handle_new_auth_user()` เป็น `security definer`
+- `public.spatial_ref_sys` (ของ PostGIS, เจ้าของคือ `supabase_admin`): `anon` และ `authenticated` มีสิทธิ์เขียนทุกอย่าง และ RLS ปิดอยู่
+  เพราะ schema `public` ถูก expose ไว้ ตอนนี้หน้าเว็บไม่ได้ใช้ Data API ของ `public` เลย จึงเอา `public` ออกจาก Exposed schemas ได้
 
 ---
 
