@@ -127,6 +127,11 @@ create table if not exists school_data.schools (
   name_en                       text,
 
   status                        school_data.school_status not null default 'active',
+  -- ปิดโรงเรียน = 'archived' โดยแอดมิน (หน้ารายละเอียดโรงเรียน) ผู้ใช้ไม่เห็น เปิดคืนได้
+  archived_at                   timestamptz,
+  archived_reason               text,        -- ใส่ให้เองเฉพาะโรงเรียนที่หายจาก OPEC
+  -- การตรวจกับรายชื่อ OPEC บันทึกวันที่โรงเรียนหายจากรายชื่อ (null = OPEC ยังแสดงอยู่) ระบบไม่ปิดเอง
+  opec_missing_since            timestamptz,
   current_published_version_id  uuid,  -- FK เพิ่มท้ายไฟล์ (circular reference)
 
   -- แหล่งข้อมูล (UC-12: URL ต้องผ่าน Admin ยืนยัน ≥1 ครั้งก่อน scrape จริง)
@@ -162,6 +167,10 @@ create table if not exists school_data.schools (
   level_range                   text,                       -- ข้อความสรุปดิบจาก OPEC เช่น "อนุบาล - ประถมศึกษา"
   levels_offered                text[] not null default '{}',-- อาร์เรย์ระดับชั้น เช่น {'PRE_K', 'KINDERGARTEN', 'PRIMARY'}
   curriculums                   text[] not null default '{}',-- อาร์เรย์รหัสหลักสูตร เช่น {'BRITISH', 'IB'}
+  -- มาจาก OPEC (หรือเว็บโรงเรียนเมื่อ OPEC ไม่ระบุ) ยกเว้นแอดมินยืนยันเองในแท็บ "หลักสูตรที่ขัดกัน"
+  -- เมื่อยืนยันแล้ว การนำเข้า OPEC จะไม่เขียนทับ (null = ยังไม่มีใครยืนยัน)
+  curriculums_confirmed_at      timestamptz,
+  curriculums_confirmed_by      text,
   student_count                 int,
   teacher_count                 int,
 
@@ -1348,6 +1357,19 @@ alter table school_data.schools
   alter column is_isat_member set not null,
   alter column is_boarding    set not null,
   alter column accreditations set not null;
+
+-- เพิ่ม 31 ต.ค. 2569: การยืนยันหลักสูตรโดยแอดมิน (ดูคอลัมน์ในหัวข้อตาราง schools)
+alter table school_data.schools
+  add column if not exists curriculums_confirmed_at timestamptz,
+  add column if not exists curriculums_confirmed_by text;
+
+-- เพิ่ม 31 ต.ค. 2569: โรงเรียนที่ปิดแล้ว (ดูคอลัมน์ในหัวข้อตาราง schools)
+-- opec_missing_checked_at เพิ่มพร้อมกันแล้วเลิกใช้ 1 พ.ย. 2569 จึงลบทิ้ง
+alter table school_data.schools
+  add column if not exists opec_missing_since timestamptz,
+  add column if not exists archived_at timestamptz,
+  add column if not exists archived_reason text,
+  drop column if exists opec_missing_checked_at;
 
 alter table school_data.school_versions
   drop constraint if exists versions_number_positive,

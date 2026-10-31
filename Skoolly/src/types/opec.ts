@@ -39,6 +39,11 @@ export interface OpecSchoolRecord {
   manager_name?: string;
   government_support?: string; // "ไม่รับเงินอุดหนุน" | "รับเงินอุดหนุน"
   tuition_min_thb?: number | null; // published fee, empty until a fee version is approved
+  /** "archived" = closed by an admin: hidden from parents, can be reopened */
+  status?: "active" | "archived";
+  archived_at?: string | null;
+  /** When OPEC stopped listing the school; null while OPEC lists it */
+  opec_missing_since?: string | null;
   school_history?: string;
   vision?: string;
   mission?: string;
@@ -170,6 +175,8 @@ export interface SupabaseSchoolsFilterParams {
   level?: string;
   limit?: number;
   offset?: number;
+  /** Admin school list only: also return closed (archived) schools */
+  includeClosed?: boolean;
 }
 
 export interface WebsiteHealthState {
@@ -318,4 +325,30 @@ export interface ScrapeLogRecord {
   official_website_url?: string | null;
 }
 
+
+
+/** One school in the admin's curriculum review (GET /api/curriculums/review) */
+export interface CurriculumReviewItem {
+  school_code: string;
+  name_th: string | null;
+  name_en: string | null;
+  opec_codes: string[];
+  /** OPEC's own wording, one entry per registered curriculum */
+  opec_text: string[];
+  website_codes: string[];
+  website_text: string;
+  website_url: string;
+  current_codes: string[];
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+}
+
+export interface CurriculumReviewResponse {
+  /** OPEC and the school's website name different curriculums, nothing in common */
+  conflicts: CurriculumReviewItem[];
+  /** Schools an admin has decided; OPEC imports leave them as they are */
+  confirmed: CurriculumReviewItem[];
+  /** Curriculum code -> Thai label */
+  labels: Record<string, string>;
+}
 

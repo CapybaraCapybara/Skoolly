@@ -722,7 +722,8 @@ export function VersionApprovalModal({
               <div className="p-4 rounded-2xl bg-warm-cream/50 border border-warm-accent text-xs space-y-2">
                 <span className="font-bold text-warm-charcoal">การสรุปหลักสูตร:</span>
                 <p className="text-[#78716c] leading-relaxed">
-                  หากกดอนุมัติ ระบบจะปรับปรุงช่องหลักสูตรของโรงเรียนนี้เป็น <strong>[{newCurriculums.join(", ")}]</strong> เพื่อให้ผู้ปกครองสามารถค้นหาและกรองด้วยหลักสูตรใหม่ได้ทันที
+                  หลักสูตรที่ผู้ปกครองใช้กรองมาจากทะเบียน สช. (OPEC) การอนุมัติร่างนี้จึงไม่เปลี่ยนหลักสูตรของโรงเรียน
+                  ยกเว้นโรงเรียนที่ OPEC ไม่ได้ระบุหลักสูตรไว้ ระบบจะใช้หลักสูตรที่พบบนเว็บโรงเรียนด้านบนแทน
                 </p>
               </div>
             </div>

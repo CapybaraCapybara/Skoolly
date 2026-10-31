@@ -39,10 +39,12 @@ CURRICULUM_PATTERNS: list[tuple[str, str]] = [
     ("BRITISH", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
                                 r"|IGCSE|GCSE|AS\s*(&|and)?\s*A\s*Level|A[\s-]?Level|Cambridge|เคมบริดจ์|แคมบริ"
                                 r"|Oxford|Early\s*Years?\s*Foundation|EYFS|Edexcel|BTEC|Pearson|Key\s*Stage"
-                                r"|English\s*National\s*Curric|\bENC\b|Wellington|เวลลิงตัน|AICE|St\s*Andrews"),
+                                r"|English\s*National\s*Curric|\bENC\b|Wellington|เวลลิงตัน|AICE|St\s*Andrews"
+                                r"|ASDAN"),  # UK qualifications for ages 11-19, not early childhood
     ("AMERICAN", r"สหรัฐอเมริกา|สหรัฐอเมริก|อเมริกัน|อเมริกา|แคลิฟอร์เนีย|แมสซาชูเซตส์|มิสซิสซิปปี"
                                 r"|เวอร์จีเนีย|เพนซิลเวเนีย|Pennsylvania|นิวเจอร์ซีย์|New\s*Jersey|อะลาบามา"
-                                r"|American|California|\bCDE\b|Massachusetts|\bAERO\b|High\s*School\s*Diploma"
+                                # not "High School Diploma": British and Singapore schools register it too
+                                r"|American|California|\bCDE\b|Massachusetts|\bAERO\b"
                                 r"|Common\s*Core|\bCCSS\b|Advanced\s*Placement|\bAP\b|\bU\.?S\.?\b"
                                 r"|District\s*of\s*Columbia|Chicago|Accelerated\s*Christian|School\s*of\s*Tomorrow"
                                 r"|\bWASC\b|BASIS|North\s*American\s*Division|\bNAD\b|Carson|Calvert|High\s*Reach"
@@ -63,10 +65,11 @@ CURRICULUM_PATTERNS: list[tuple[str, str]] = [
     ("MONTESSORI", r"Montessori|มอนเตสซอรี|มอนเทสซอรี่|Hershey"),
     ("FINNISH", r"Finish|Finnish|FGES"),
     ("EARLY_CHILDHOOD", r"International\s*Preschool|International\s*Primary|\bIPC\b|\bIMYC\b"
-                                           r"|HighScope|Creative\s*Curriculum|Child-Centered|ASDAN|Early\s*child"
+                                           r"|HighScope|Creative\s*Curriculum|Child-Centered|Early\s*child"
                                            r"|Early\s*Years\s*Development|ปฐมวัย|A\s*Child\'s\s*World"
                                            r"|Kindergarten\s*Curriculum"),
-    ("THAI_MOE", r"วัฒนธรรมไทย|ประวัติศาสตร์ไทย|แกนกลางการศึกษาขั้นพื้นฐาน|ภาษาไทย"),
+    # Only the Thai national core curriculum; Thai language/culture subjects alone are MANDATORY_THAI_SUBJECTS
+    ("THAI_MOE", r"แกนกลางการศึกษาขั้นพื้นฐาน"),
     ("SCHOOL_SPECIFIC", r"หลักสูตรของทางโรงเรียน|หลักสูตรนานาชาติ|หลักสูตรอินเตอร์"
                                   r"|International\s*Curriculum|ประกาศนียบัตรนานาชาติ|ซีสเต็มส์"
                                   r"|ดาเนียล|อริสตา|มัธยมศึกษาตอนปลาย"),
@@ -298,6 +301,165 @@ def match_curriculums(raw: str) -> set[str]:
     return {code for code, pattern in COMPILED_PATTERNS if pattern.search(raw)}
 
 
+# Every international school must teach Thai language, culture and history, so an OPEC value
+# naming only these subjects says nothing about which curriculum the school follows
+MANDATORY_THAI_SUBJECTS = re.compile(r"ภาษาไทย|วัฒนธรรมไทย|ประวัติศาสตร์ไทย")
+CURRICULUM_CODES = {code for code, _ in CURRICULUM_PATTERNS}
+
+
+def opec_curriculum_codes(raw_values: Any, unmapped: Counter | None = None,
+                          auto_mapped: dict | None = None) -> list[str]:
+    """Codes for OPEC's free-text curriculum values; ['SCHOOL_SPECIFIC'] when OPEC names no curriculum."""
+    codes: set[str] = set()
+    for raw in raw_values or []:
+        raw = clean(raw)
+        if not raw:
+            continue
+        derived = match_curriculums(raw)
+        if derived:
+            codes |= derived
+            if auto_mapped is not None:
+                auto_mapped[raw] = sorted(derived)
+        elif not MANDATORY_THAI_SUBJECTS.search(raw):
+            if unmapped is not None:
+                unmapped[raw] += 1
+            codes.add("SCHOOL_SPECIFIC")
+    return sorted(codes or {"SCHOOL_SPECIFIC"})
+
+
+def website_curriculum_codes(snapshot: dict) -> list[str] | None:
+    """Codes for the curriculum a scraped version read off the school's website; None if it found none."""
+    raw = snapshot.get("curriculums") or snapshot.get("curriculum")
+    items = raw if isinstance(raw, list) else [raw] if isinstance(raw, str) else []
+    codes: set[str] = set()
+    for item in items:
+        text = str(item).strip()
+        matched = match_curriculums(text)
+        if matched:
+            codes |= matched
+        elif text.upper() in CURRICULUM_CODES:
+            codes.add(text.upper())
+    return sorted(codes) or None
+
+
+def names_a_curriculum(codes: list[str] | None) -> bool:
+    """False for nothing at all or only SCHOOL_SPECIFIC, which no filter can use."""
+    return any(code != "SCHOOL_SPECIFIC" for code in codes or [])
+
+
+def choose_curriculums(opec_raw_values: Any, website_codes: list[str] | None,
+                       unmapped: Counter | None = None, auto_mapped: dict | None = None) -> list[str]:
+    """The rule for a school no admin has decided: OPEC's registration, or the approved website
+    version's curriculum when OPEC names none."""
+    codes = opec_curriculum_codes(opec_raw_values, unmapped, auto_mapped)
+    if not names_a_curriculum(codes) and names_a_curriculum(website_codes):
+        return list(website_codes)
+    return codes
+
+
+def curriculums_conflict(opec_codes: list[str] | None, website_codes: list[str] | None) -> bool:
+    """OPEC and the website both name a curriculum but not one in common, e.g. American vs British.
+    Partial overlaps (British + IB vs IB) are not conflicts: OPEC's list stands."""
+    opec = set(opec_codes or []) - {"SCHOOL_SPECIFIC"}
+    web = set(website_codes or []) - {"SCHOOL_SPECIFIC"}
+    return bool(opec and web and not opec & web)
+
+
+_REVIEW_QUERY = """
+    SELECT s.opec_school_code, s.name_th, s.name_en, s.curriculums, s.official_website_url,
+           s.curriculums_confirmed_at, s.curriculums_confirmed_by,
+           v.scraped_page_url, v.data_snapshot->'curriculums' AS web_list,
+           v.data_snapshot->>'curriculum' AS web_text
+    FROM school_data.schools s
+    LEFT JOIN school_data.school_versions v
+      ON v.version_id = s.current_published_version_id AND v.source_type = 'scraper'
+"""
+
+
+def fetch_curriculum_review(opec_records: list[dict], dsn: str | None = None) -> dict[str, Any]:
+    """Schools whose OPEC registration and approved website version disagree, for an admin to
+    decide, and the schools an admin has already decided. `opec_records` is the local OPEC dataset."""
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+    opec_raw = {str(r.get("school_code") or "").strip(): r.get("curriculums") or [] for r in opec_records}
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        rows = conn.execute(_REVIEW_QUERY + " WHERE s.status <> 'archived' ORDER BY s.name_en NULLS LAST, s.name_th").fetchall()
+
+    conflicts, confirmed = [], []
+    for r in rows:
+        raw = opec_raw.get(r["opec_school_code"], [])
+        opec = opec_curriculum_codes(raw)
+        web = website_curriculum_codes({"curriculums": r["web_list"], "curriculum": r["web_text"]})
+        item = {
+            "school_code": r["opec_school_code"],
+            "name_th": r["name_th"],
+            "name_en": r["name_en"],
+            "opec_codes": opec,
+            "opec_text": [str(x) for x in raw if x],
+            "website_codes": web or [],
+            "website_text": r["web_text"] or ", ".join(str(x) for x in r["web_list"] or []),
+            # The homepage, not scraped_page_url: that is the fee page, and the curriculum came from
+            # whichever of the scraped pages mentioned it
+            "website_url": r["official_website_url"] or r["scraped_page_url"] or "",
+            "current_codes": list(r["curriculums"] or []),
+            "confirmed_at": r["curriculums_confirmed_at"].isoformat() if r["curriculums_confirmed_at"] else None,
+            "confirmed_by": r["curriculums_confirmed_by"],
+        }
+        if item["confirmed_at"]:
+            confirmed.append(item)
+        elif curriculums_conflict(opec, web):
+            conflicts.append(item)
+    return {"conflicts": conflicts, "confirmed": confirmed, "labels": CURRICULUM_LABELS}
+
+
+def confirm_school_curriculums(school_code: str, codes: list[str], confirmed_by: str | None = None,
+                               dsn: str | None = None) -> dict[str, Any]:
+    """An admin's decision: these curriculums, kept by every later OPEC import until cleared."""
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+    chosen = sorted({str(c).strip().upper() for c in codes or [] if str(c).strip()})
+    unknown = [c for c in chosen if c not in CURRICULUM_CODES]
+    if not chosen or unknown:
+        raise ValueError(f"เลือกหลักสูตรอย่างน้อยหนึ่งรายการจากรายการที่มี (ไม่รู้จัก: {', '.join(unknown)})"
+                         if unknown else "เลือกหลักสูตรอย่างน้อยหนึ่งรายการ")
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        row = conn.execute("""
+            UPDATE school_data.schools
+            SET curriculums = %s, curriculums_confirmed_at = NOW(), curriculums_confirmed_by = %s
+            WHERE opec_school_code = %s
+            RETURNING opec_school_code, curriculums
+        """, (chosen, clean(confirmed_by), school_code)).fetchone()
+        if not row:
+            raise ValueError(f"ไม่พบโรงเรียนรหัส {school_code}")
+        conn.commit()
+    return {"status": "confirmed", "school_code": row["opec_school_code"], "curriculums": row["curriculums"]}
+
+
+def clear_curriculums_confirmation(school_code: str, opec_raw_values: Any, dsn: str | None = None) -> dict[str, Any]:
+    """Undoes an admin's decision: the school goes back to the rule in choose_curriculums()."""
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        r = conn.execute(_REVIEW_QUERY + " WHERE s.opec_school_code = %s", (school_code,)).fetchone()
+        if not r:
+            raise ValueError(f"ไม่พบโรงเรียนรหัส {school_code}")
+        web = website_curriculum_codes({"curriculums": r["web_list"], "curriculum": r["web_text"]})
+        codes = choose_curriculums(opec_raw_values, web)
+        conn.execute("""
+            UPDATE school_data.schools
+            SET curriculums = %s, curriculums_confirmed_at = NULL, curriculums_confirmed_by = NULL
+            WHERE opec_school_code = %s
+        """, (codes, school_code))
+        conn.commit()
+    return {"status": "cleared", "school_code": school_code, "curriculums": codes}
+
+
 def slugify(name_en: str | None, name_th: str, opec_code: str) -> str:
     """ASCII slug from the English name or fallback to OPEC code."""
     source = (name_en or "").strip()
@@ -400,6 +562,16 @@ def execute_opec_import(
             cur.execute("SELECT slug FROM school_data.schools")
             used_slugs = {r["slug"] for r in cur.fetchall()}
 
+            # Curriculum each school's approved website version names, for schools OPEC says nothing about
+            cur.execute("""
+                SELECT s.opec_school_code, v.data_snapshot->'curriculums' AS curriculums,
+                       v.data_snapshot->>'curriculum' AS curriculum
+                FROM school_data.schools s
+                JOIN school_data.school_versions v ON v.version_id = s.current_published_version_id
+                WHERE v.source_type = 'scraper'
+            """)
+            website_codes = {r["opec_school_code"]: website_curriculum_codes(r) for r in cur.fetchall()}
+
             for idx, record in enumerate(records, 1):
                 opec_code = clean(record.get("school_code"))
                 name_th = clean(record.get("school_name_th"))
@@ -414,21 +586,10 @@ def execute_opec_import(
                 lat = to_float(record.get("latitude"))
                 lng = to_float(record.get("longitude"))
 
-                # 1. Derive curriculums (Normalized into 17 high-level groups, minimizing other)
-                codes = set()
-                for raw in record.get("curriculums") or []:
-                    raw = clean(raw)
-                    if not raw:
-                        continue
-                    derived = match_curriculums(raw)
-                    if derived:
-                        codes |= derived
-                        auto_mapped[raw] = sorted(derived)
-                    else:
-                        unmapped_curriculums[raw] += 1
-                        codes.add("SCHOOL_SPECIFIC")
-                if not codes:
-                    codes.add("SCHOOL_SPECIFIC")
+                # 1. Curriculums: OPEC's registration, or the approved website version when OPEC names
+                #    none. A school an admin has decided keeps its curriculums (ON CONFLICT below)
+                curriculums_list = choose_curriculums(record.get("curriculums"), website_codes.get(opec_code),
+                                                      unmapped_curriculums, auto_mapped)
 
                 # 2. Derive grade levels (standard Thai names matching modal badges)
                 level_codes = set()
@@ -442,7 +603,6 @@ def execute_opec_import(
                         continue
                     level_codes.add(code)
 
-                curriculums_list = sorted(list(codes))
                 levels_offered_list = sorted(list(level_codes))
 
                 # 3. Upsert school record (with curriculums, levels_offered, admins, and support info)
@@ -491,7 +651,8 @@ def execute_opec_import(
                         logo_url = EXCLUDED.logo_url,
                         level_range = EXCLUDED.level_range,
                         levels_offered = EXCLUDED.levels_offered,
-                        curriculums = EXCLUDED.curriculums,
+                        curriculums = CASE WHEN school_data.schools.curriculums_confirmed_at IS NOT NULL
+                                           THEN school_data.schools.curriculums ELSE EXCLUDED.curriculums END,
                         student_count = EXCLUDED.student_count,
                         teacher_count = EXCLUDED.teacher_count,
                         licensee_name = EXCLUDED.licensee_name,
@@ -622,6 +783,7 @@ def fetch_supabase_schools(
     level: str | None = None,
     limit: int = 1000,
     offset: int = 0,
+    include_closed: bool = False,
     dsn: str | None = None,
 ) -> dict[str, Any]:
     """Queries school records directly from Supabase database with filters and KPIs."""
@@ -629,8 +791,8 @@ def fetch_supabase_schools(
     if not target_dsn:
         raise ValueError("DATABASE_URL is not set")
 
-    # โรงเรียนที่ถูกนำออก (archived) ไม่แสดงในรายการ — ข้อมูลยังอยู่ในฐานข้อมูล
-    where_clauses = ["status <> 'archived'"]
+    # โรงเรียนที่ปิดแล้ว (archived) ไม่แสดงในรายการ ข้อมูลยังอยู่ในฐาน ยกเว้นหน้าแอดมินขอ include_closed
+    where_clauses = [] if include_closed else ["status <> 'archived'"]
     params: list[Any] = []
 
     if search and search.strip():
@@ -650,18 +812,19 @@ def fetch_supabase_schools(
         where_clauses.append("%s = ANY(levels_offered)")
         params.append(level.strip())
 
-    where_str = " AND ".join(where_clauses)
+    where_str = " AND ".join(where_clauses) or "TRUE"
 
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
-            # Overall KPIs
+            # Overall KPIs (open schools only)
             cur.execute("""
-                SELECT 
+                SELECT
                     count(*) as total_schools,
                     count(distinct province) as total_provinces,
                     coalesce(sum(student_count), 0) as total_students,
                     count(case when official_website_url is not null and official_website_url != '' then 1 end) as with_website
                 FROM school_data.schools
+                WHERE status <> 'archived'
             """)
             kpis = cur.fetchone() or {
                 "total_schools": 0,
@@ -695,6 +858,8 @@ def fetch_supabase_schools(
                     {c('name_th')},
                     {c('name_en')},
                     {c('status')},
+                    {c('archived_at')},
+                    {c('opec_missing_since')},
                     {c('official_website_url')},
                     {c('website_source')},
                     {c('opec_profile_url')},
@@ -756,8 +921,9 @@ def fetch_supabase_schools(
                     item["pub_tuition_max_thb"] = float(item["pub_tuition_max_thb"])
                 if item.get("rating_avg") is not None:
                     item["rating_avg"] = float(item["rating_avg"])
-                if item.get("pub_data_updated_at"):
-                    item["pub_data_updated_at"] = item["pub_data_updated_at"].isoformat()
+                for when in ("pub_data_updated_at", "archived_at", "opec_missing_since"):
+                    if item.get(when):
+                        item[when] = item[when].isoformat()
                 if item.get("updated_at"):
                     item["updated_at"] = item["updated_at"].isoformat()
                 if item.get("created_at"):
@@ -1005,7 +1171,7 @@ def delete_supabase_school(school_id: str, dsn: str | None = None) -> dict[str, 
             cur.execute(
                 """
                 UPDATE school_data.schools
-                   SET status = 'archived', updated_at = now()
+                   SET status = 'archived', archived_at = now(), updated_at = now()
                  WHERE school_id = %s AND status <> 'archived'
                 RETURNING school_id, name_th
                 """,
@@ -1017,6 +1183,68 @@ def delete_supabase_school(school_id: str, dsn: str | None = None) -> dict[str, 
             conn.commit()
 
     return {"status": "deleted", "school_id": str(row["school_id"]), "name_th": row["name_th"]}
+
+
+def mark_opec_presence(opec_codes: list[str], dsn: str | None = None) -> dict[str, Any]:
+    """After an OPEC check: dates the schools OPEC has stopped listing (opec_missing_since) and clears
+    the date for schools it lists again. Hides nothing; an admin closes a school from its detail page."""
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+    codes = sorted({str(c).strip() for c in opec_codes if str(c).strip()})
+
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        listed = conn.execute("SELECT count(*) AS n FROM school_data.schools WHERE status <> 'archived'").fetchone()["n"]
+        # A short list is a bad answer from OPEC, not a wave of closures (fetch_opec_schools checks the same)
+        if len(codes) < 0.8 * listed:
+            raise ValueError(f"รายชื่อจาก OPEC มี {len(codes)} แห่ง น้อยกว่าในฐาน ({listed}) ผิดปกติ จึงไม่บันทึกว่าโรงเรียนไหนหายไป")
+        changed = conn.execute("""
+            UPDATE school_data.schools
+            SET opec_missing_since = CASE WHEN opec_school_code = ANY(%(codes)s) THEN NULL ELSE NOW() END
+            WHERE (opec_school_code = ANY(%(codes)s) AND opec_missing_since IS NOT NULL)
+               OR (opec_school_code <> ALL(%(codes)s) AND opec_missing_since IS NULL)
+            RETURNING opec_school_code, opec_missing_since IS NOT NULL AS missing
+        """, {"codes": codes}).fetchall()
+        still_shown = conn.execute("""SELECT count(*) AS n FROM school_data.schools
+                                      WHERE status <> 'archived' AND opec_missing_since IS NOT NULL""").fetchone()["n"]
+        conn.commit()
+    return {"newly_missing": [r["opec_school_code"] for r in changed if r["missing"]],
+            "listed_again": [r["opec_school_code"] for r in changed if not r["missing"]],
+            "missing_still_shown": still_shown}
+
+
+def _set_closure(school_code: str, sql: str, not_found: str, dsn: str | None) -> dict[str, Any]:
+    target_dsn = dsn or get_current_dsn()
+    if not target_dsn:
+        raise ValueError("DATABASE_URL is not set")
+    with db_connect(target_dsn, row_factory=dict_row) as conn:
+        row = conn.execute(sql, (school_code,)).fetchone()
+        if not row:
+            raise ValueError(not_found)
+        conn.commit()
+    return {"school_code": school_code, "status": row["status"]}
+
+
+def close_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
+    """An admin closes a school: parents no longer see it; its data stays and reopen_school() undoes it.
+    The reason is recorded only when OPEC has dropped the school."""
+    return _set_closure(school_code, """
+        UPDATE school_data.schools
+        SET status = 'archived', archived_at = NOW(), updated_at = NOW(),
+            archived_reason = CASE WHEN opec_missing_since IS NOT NULL THEN 'ไม่อยู่ในรายชื่อ OPEC แล้ว' END
+        WHERE opec_school_code = %s AND status <> 'archived'
+        RETURNING status::text AS status
+    """, f"ไม่พบโรงเรียนรหัส {school_code} หรือปิดไปแล้ว", dsn)
+
+
+def reopen_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
+    """Undoes close_school()."""
+    return _set_closure(school_code, """
+        UPDATE school_data.schools
+        SET status = 'active', archived_at = NULL, archived_reason = NULL, updated_at = NOW()
+        WHERE opec_school_code = %s AND status = 'archived'
+        RETURNING status::text AS status
+    """, f"ไม่พบโรงเรียนรหัส {school_code} ที่ปิดอยู่", dsn)
 
 
 def _same_point(lat_a: Any, lng_a: Any, lat_b: Any, lng_b: Any) -> bool:
@@ -1499,14 +1727,19 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
 
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
+            # FOR UPDATE: a second approve/reject of the same draft waits here, then sees the new status
             cur.execute("""
-                SELECT version_id, school_id, status, version_number, data_snapshot
-                FROM school_data.school_versions 
+                SELECT version_id, school_id, status::text AS status, version_number, data_snapshot
+                FROM school_data.school_versions
                 WHERE version_id = %s
+                FOR UPDATE
             """, (version_id,))
             ver = cur.fetchone()
             if not ver:
                 raise ValueError("ไม่พบเวอร์ชันที่ต้องการอนุมัติ")
+            # A page left open can still list a draft that was approved or rejected since
+            if ver["status"] != "pending_review":
+                raise ValueError(f"ร่างนี้ไม่ได้รออนุมัติแล้ว (สถานะตอนนี้: {ver['status']}) กดรีเฟรชเพื่อดูรายการล่าสุด")
 
             school_id = ver["school_id"]
 
@@ -1553,25 +1786,11 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                 except Exception:
                     snapshot = {}
 
-            # Normalize raw AI curriculums to valid database canonical codes using match_curriculums
-            raw_curr = snapshot.get("curriculums") or snapshot.get("curriculum")
-            normalized_curr_set: set[str] = set()
-
-            if isinstance(raw_curr, list):
-                for item in raw_curr:
-                    matched = match_curriculums(str(item))
-                    if matched:
-                        normalized_curr_set.update(matched)
-                    elif str(item).strip().upper() in {c[0] for c in CURRICULUM_PATTERNS}:
-                        normalized_curr_set.add(str(item).strip().upper())
-            elif isinstance(raw_curr, str) and raw_curr.strip():
-                matched = match_curriculums(raw_curr)
-                if matched:
-                    normalized_curr_set.update(matched)
-                elif raw_curr.strip().upper() in {c[0] for c in CURRICULUM_PATTERNS}:
-                    normalized_curr_set.add(raw_curr.strip().upper())
-
-            new_curriculums = sorted(list(normalized_curr_set)) if normalized_curr_set else None
+            # Curriculums come from OPEC (execute_opec_import). The website's only fills in a school
+            # still holding nothing but SCHOOL_SPECIFIC, i.e. one whose OPEC record names no curriculum
+            website_curriculums = website_curriculum_codes(snapshot)
+            if not names_a_curriculum(website_curriculums):
+                website_curriculums = None
 
             # Project to main schools table
             cur.execute("""
@@ -1580,11 +1799,14 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                     pub_tuition_min_thb = %s,
                     pub_tuition_max_thb = %s,
                     pub_has_safeguarding_policy = %s,
-                    curriculums = COALESCE(%s, curriculums),
+                    curriculums = CASE WHEN %s::text[] IS NOT NULL AND curriculums <@ ARRAY['SCHOOL_SPECIFIC']::text[]
+                                            AND curriculums_confirmed_at IS NULL
+                                       THEN %s::text[] ELSE curriculums END,
                     pub_data_updated_at = NOW(),
                     updated_at = NOW()
                 WHERE school_id = %s
-            """, (version_id, min_tuition, max_tuition, has_safeguarding, new_curriculums, school_id))
+            """, (version_id, min_tuition, max_tuition, has_safeguarding,
+                  website_curriculums, website_curriculums, school_id))
 
             # Log approval in school_data.school_scrape_log
             cur.execute("""
@@ -1614,13 +1836,17 @@ def reject_school_version(version_id: str, reason: str | None = None, dsn: str |
 
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
+            # Only a draft: rejecting the version that is live would leave the site showing a "rejected" version
             cur.execute("""
                 UPDATE school_data.school_versions
                 SET status = 'rejected',
                     rejection_reason = %s,
                     reviewed_at = NOW()
-                WHERE version_id = %s
+                WHERE version_id = %s AND status = 'pending_review'
+                RETURNING version_id
             """, (reason or "ไม่ผ่านเกณฑ์การตรวจสอบของแอดมิน", version_id))
+            if not cur.fetchone():
+                raise ValueError("ไม่พบร่างนี้ หรือร่างนี้ไม่ได้รออนุมัติแล้ว กดรีเฟรชเพื่อดูรายการล่าสุด")
             conn.commit()
 
     return {

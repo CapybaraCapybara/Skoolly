@@ -20,11 +20,14 @@ import type { OpecSchoolRecord } from "@/types/opec";
 
 interface OpecSchoolsTableProps {
   schools: OpecSchoolRecord[];
+  /** Closed by an admin; shown only when the status filter asks for them */
+  closedSchools?: OpecSchoolRecord[];
   onSelectSchool: (school: OpecSchoolRecord) => void;
   onRefresh: () => void;
   onScrapeSchool?: (school: OpecSchoolRecord) => void;
 }
 
+type StatusFilter = "open" | "closed";
 type StatFilter = "all" | "has_website" | "missing_en" | "missing_gps" | "provinces" | "missing_website";
 export type SortOption =
   | "code_asc"
@@ -40,11 +43,14 @@ export type SortOption =
 
 export function OpecSchoolsTable({
   schools,
+  closedSchools = [],
   onSelectSchool,
   onRefresh,
   onScrapeSchool,
 }: OpecSchoolsTableProps) {
   const [activeStatFilter, setActiveStatFilter] = useState<StatFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  const baseSchools = statusFilter === "closed" ? closedSchools : schools;
   const [search, setSearch] = useState("");
   // Keep typing responsive: re-filter the full dataset off the keystroke's render.
   const deferredSearch = useDeferredValue(search);
@@ -89,7 +95,7 @@ export function OpecSchoolsTable({
 
   // Filter, Search, and Sort logic
   const filteredSchools = useMemo(() => {
-    const list = schools.filter((s) => {
+    const list = baseSchools.filter((s) => {
       // 1. Stat Card Filter
       if (activeStatFilter === "has_website" && (!s.website || !s.website.trim())) return false;
       if (activeStatFilter === "missing_website" && s.website && s.website.trim()) return false;
@@ -152,12 +158,12 @@ export function OpecSchoolsTable({
           return 0;
       }
     });
-  }, [schools, activeStatFilter, selectedProvince, deferredSearch, sortBy]);
+  }, [baseSchools, activeStatFilter, selectedProvince, deferredSearch, sortBy]);
 
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeStatFilter, selectedProvince, deferredSearch, pageSize]);
+  }, [activeStatFilter, statusFilter, selectedProvince, deferredSearch, pageSize]);
 
   // Pagination slice
   const totalPages = Math.max(1, Math.ceil(filteredSchools.length / pageSize));
@@ -379,6 +385,19 @@ export function OpecSchoolsTable({
             </select>
           </div>
 
+          {/* Status: open schools by default; closed ones only on request */}
+          <div className="w-36">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              aria-label="สถานะโรงเรียน"
+              className="w-full px-3 py-2.5 rounded-xl border border-[#dcd1bf] bg-white text-xs text-warm-charcoal focus:outline-none focus:ring-2 focus:ring-warm-bronze/30 focus:border-warm-bronze"
+            >
+              <option value="open">เปิดอยู่ ({schools.length})</option>
+              <option value="closed">ปิดแล้ว ({closedSchools.length})</option>
+            </select>
+          </div>
+
           {/* Sort By Dropdown */}
           <div className="w-48 relative">
             <select
@@ -404,7 +423,7 @@ export function OpecSchoolsTable({
 
         <div className="flex items-center gap-3">
           <span className="text-xs text-[#78716c] font-medium">
-            แสดง <strong>{filteredSchools.length}</strong> จาก {schools.length} แห่ง
+            แสดง <strong>{filteredSchools.length}</strong> จาก {baseSchools.length} แห่ง
           </span>
 
           <button
@@ -493,6 +512,17 @@ export function OpecSchoolsTable({
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-warm-charcoal group-hover:text-warm-bronze transition-colors">
                           {s.school_name_th}
+                          {s.status === "archived" ? (
+                            <span className="ml-2 rounded-full bg-rose-50 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                              ปิดแล้ว
+                            </span>
+                          ) : (
+                            s.opec_missing_since && (
+                              <span className="ml-2 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                ไม่อยู่ใน OPEC แล้ว
+                              </span>
+                            )
+                          )}
                         </div>
                         <div className="text-xs text-[#78716c] truncate max-w-md">
                           {hasEnName ? (

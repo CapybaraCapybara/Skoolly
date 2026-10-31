@@ -51,15 +51,31 @@ def make_multipart(fields):
     content_type = f"multipart/form-data; boundary={boundary}"
     return content_type, body
 
-def search_international_schools():
-    """Every international school (SchoolType 7) from OPEC's search API, in one request."""
-    fields = {"SchoolCodeName": "", "Course": "", "Tags": "", "ProvinceCode": "",
+# The 77 province codes (TIS 1099). Since late 2026 OPEC's search rejects a request without a
+# province ("ข้อมูลคำขอไม่ถูกต้อง"), so the whole country takes one request per province.
+PROVINCE_CODES = [c for c in range(10, 97) if c not in (28, 29, 59, 68, 69, 78, 79, 87, 88, 89)]
+
+
+def _search_province(province_code):
+    fields = {"SchoolCodeName": "", "Course": "", "Tags": "", "ProvinceCode": str(province_code),
               "AmphurCode": "", "TumbolCode": "", "SchoolTypeGroup": "1"}
     content_type, body = make_multipart(fields)
-    r = session.post("https://school.opec.go.th/api/GetSchoolSearch", data=body,
-                     headers={"Content-Type": content_type}, timeout=30, verify=False)
+    for attempt in range(3):
+        r = session.post("https://school.opec.go.th/api/GetSchoolSearch", data=body,
+                         headers={"Content-Type": content_type}, timeout=30, verify=False)
+        if r.status_code < 500:
+            break
+        time.sleep(2 * (attempt + 1))
+    # A province that failed must stop the run: its schools would otherwise look closed
     r.raise_for_status()
-    return [s for s in r.json() if str(s.get("schoolType1")) == "7"]
+    return r.json()
+
+
+def search_international_schools():
+    """Every international school (SchoolType 7) from OPEC's search API, one request per province."""
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        per_province = list(executor.map(_search_province, PROVINCE_CODES))
+    return [s for schools in per_province for s in schools if str(s.get("schoolType1")) == "7"]
 
 def fetch_opec_coordinates():
     """

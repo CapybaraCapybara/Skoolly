@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
+import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { schoolInitials } from "@/lib/schoolInitials";
 
 function formatDisplayDate(dateStr?: string | null): string {
@@ -50,6 +51,8 @@ interface OpecSchoolDetailModalProps {
   onEditWebsite: (school: OpecSchoolRecord) => void;
   onResolveSchoolWebsite?: (schoolCode: string) => void;
   onScrapeTuition?: (school: OpecSchoolRecord) => void;
+  /** Closes (hides from parents) or reopens a school; the parent shows the result and reloads */
+  onSetClosed?: (school: OpecSchoolRecord, closed: boolean) => Promise<void>;
 }
 
 export function OpecSchoolDetailModal({
@@ -58,21 +61,25 @@ export function OpecSchoolDetailModal({
   onEditWebsite,
   onResolveSchoolWebsite,
   onScrapeTuition,
+  onSetClosed,
 }: OpecSchoolDetailModalProps) {
   const [showJson, setShowJson] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
   const [copiedWeb, setCopiedWeb] = useState(false);
+  const [confirmClosing, setConfirmClosing] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Close on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      // Escape on the close-school dialog closes only that dialog
+      if (e.key === "Escape" && !confirmClosing) {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [onClose, confirmClosing]);
 
   if (!school) return null;
 
@@ -751,6 +758,14 @@ export function OpecSchoolDetailModal({
           </div>
         </div>
 
+        {(school.status === "archived" || school.opec_missing_since) && (
+          <div className="px-4 py-2.5 border-t border-rose-200 bg-rose-50 text-xs font-semibold text-rose-800 shrink-0">
+            {school.status === "archived"
+              ? `ปิดโรงเรียนแล้ว${school.archived_at ? ` เมื่อ ${formatDisplayDate(school.archived_at)}` : ""} ผู้ใช้ไม่เห็นโรงเรียนนี้`
+              : `ไม่อยู่ในรายชื่อ OPEC แล้ว ตั้งแต่ ${formatDisplayDate(school.opec_missing_since)} โรงเรียนอาจปิดไปแล้ว`}
+          </div>
+        )}
+
         {/* =========================================================================
             3. FOOTER ACTION BAR
            ========================================================================= */}
@@ -771,7 +786,17 @@ export function OpecSchoolDetailModal({
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {onSetClosed && (
+              <button
+                type="button"
+                onClick={() => setConfirmClosing(true)}
+                className="px-4 py-2 bg-white hover:bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition-colors"
+              >
+                {school.status === "archived" ? "เปิดโรงเรียนคืน" : "ปิดโรงเรียน"}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onClose}
@@ -815,6 +840,34 @@ export function OpecSchoolDetailModal({
           </div>
         </div>
       </div>
+
+      {onSetClosed && (
+        <ConfirmActionModal
+          isOpen={confirmClosing}
+          onClose={() => setConfirmClosing(false)}
+          onConfirm={async () => {
+            setIsClosing(true);
+            try {
+              await onSetClosed(school, school.status !== "archived");
+              setConfirmClosing(false);
+            } catch {
+              // the parent page shows the error as a toast; keep the dialog open to retry
+            } finally {
+              setIsClosing(false);
+            }
+          }}
+          title={school.status === "archived" ? "เปิดโรงเรียนนี้คืน?" : "ปิดโรงเรียนนี้?"}
+          description={
+            school.status === "archived"
+              ? `${school.school_name_th} จะกลับมาแสดงให้ผู้ใช้เห็นอีกครั้ง`
+              : `${school.school_name_th} จะไม่แสดงให้ผู้ใช้เห็นอีก ข้อมูลยังเก็บไว้ และเปิดคืนได้จากตัวกรอง "ปิดแล้ว" ในรายชื่อโรงเรียน`
+          }
+          confirmText={school.status === "archived" ? "เปิดคืน" : "ปิดโรงเรียน"}
+          variant={school.status === "archived" ? "primary" : "danger"}
+          iconType={school.status === "archived" ? "help" : "warning"}
+          isLoading={isClosing}
+        />
+      )}
     </div>
   );
 }

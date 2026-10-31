@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Eye,
   XCircle,
+  SearchCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo, HeaderShell, NAV_PILL_CLASS } from "@/components/layout/HeaderShell";
@@ -39,6 +40,10 @@ import {
   approveVersion,
   rejectVersion,
   scrapeSchoolTuition,
+  getCurriculumReview,
+  closeSchool,
+  reopenSchool,
+  checkOpecPresence,
   type SupabaseStatusResponse,
 } from "@/api/opecApi";
 import { OpecDashboard } from "@/components/admin/OpecDashboard";
@@ -52,18 +57,21 @@ import { OpecUrlVerificationModal } from "@/components/admin/OpecUrlVerification
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
 import { ScraperLogsDashboard } from "@/components/admin/ScraperLogsDashboard";
+import { CurriculumReview } from "@/components/admin/CurriculumReview";
 
 interface SupabaseAdminPageProps {
   onBack: () => void;
 }
 
-type AdminTab = "dashboard" | "schools" | "approvals" | "pipeline" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
+type AdminTab = "dashboard" | "schools" | "review" | "pipeline" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
 
 export function SupabaseAdminPage({
   onBack,
 }: SupabaseAdminPageProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [schools, setSchools] = useState<OpecSchoolRecord[]>([]);
+  // Closed by an admin: kept out of every count, listed only under the school list's status filter
+  const [closedSchools, setClosedSchools] = useState<OpecSchoolRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<ScraperProgressState | null>(null);
   const [actionLoadingCode, setActionLoadingCode] = useState<string | null>(null);
@@ -86,6 +94,10 @@ export function SupabaseAdminPage({
 
   // Version Review & Approvals State
   const [pendingVersions, setPendingVersions] = useState<PendingVersionRecord[]>([]);
+  // Schools whose OPEC and website curriculums disagree; null until the first count arrives
+  const [curriculumConflicts, setCurriculumConflicts] = useState<number | null>(null);
+  // The review inbox: fee drafts, curriculum conflicts, and schools OPEC no longer lists
+  const [reviewSection, setReviewSection] = useState<"fees" | "curriculums" | "opec">("fees");
   const [isPendingLoading, setIsPendingLoading] = useState(false);
   const [reviewingVersion, setReviewingVersion] = useState<PendingVersionRecord | null>(null);
   const [isVersionActionLoading, setIsVersionActionLoading] = useState(false);
@@ -125,7 +137,7 @@ export function SupabaseAdminPage({
   // Fetch schools from Supabase
   const loadSchoolsData = useCallback(async () => {
     try {
-      const res = await getSupabaseSchools({ limit: 1000 });
+      const res = await getSupabaseSchools({ limit: 1000, includeClosed: true });
       // Map Supabase rows to OpecSchoolRecord format
       const mapped: OpecSchoolRecord[] = (res.schools as any[]).map((s, idx) => ({
         no: idx + 1,
@@ -169,8 +181,12 @@ export function SupabaseAdminPage({
         isat_school_name: s.isat_school_name || "",
         fetched_at: s.fetched_at || s.created_at || "",
         last_updated: s.last_updated || s.updated_at || s.created_at || "",
+        status: s.status === "archived" ? "archived" : "active",
+        archived_at: s.archived_at ?? null,
+        opec_missing_since: s.opec_missing_since ?? null,
       }));
-      setSchools(mapped);
+      setSchools(mapped.filter((s) => s.status !== "archived"));
+      setClosedSchools(mapped.filter((s) => s.status === "archived"));
     } catch (err) {
       console.error("[SupabaseAdminPage] Failed to load schools:", err);
     } finally {
@@ -244,6 +260,9 @@ export function SupabaseAdminPage({
     isMountedRef.current = true;
     loadSchoolsData();
     loadPendingVersions();
+    getCurriculumReview()
+      .then((r) => isMountedRef.current && setCurriculumConflicts(r.conflicts.length))
+      .catch(() => {}); // only the menu badge; the tab itself shows the error
     pollProgress();
     return () => {
       isMountedRef.current = false;
@@ -373,6 +392,7 @@ export function SupabaseAdminPage({
       const res = await clearSupabaseData();
       if (res.status === "success" || res.status === "cleared") {
         setSchools([]);
+        setClosedSchools([]);
         setProgress(null);
         showToast(res.message || "ลบล้างข้อมูลใน Supabase Database ทั้งหมดเรียบร้อยแล้ว");
         await loadSchoolsData();
@@ -461,6 +481,24 @@ export function SupabaseAdminPage({
       pollProgress();
     } catch (err: any) {
       showToast(`เติมชื่อภาษาอังกฤษไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Only dates the schools OPEC dropped; unlike step 1 it imports nothing
+  const handleCheckOpec = async () => {
+    setActionLoading(true);
+    try {
+      const res = await checkOpecPresence();
+      showToast(
+        res.missing_still_shown
+          ? `มีโรงเรียนที่ไม่อยู่ในรายชื่อ OPEC แล้ว ${res.missing_still_shown} แห่ง ดูได้ที่รายชื่อโรงเรียน`
+          : "ทุกโรงเรียนยังอยู่ในรายชื่อ OPEC"
+      );
+      await loadSchoolsData();
+    } catch (err: any) {
+      showToast(`ตรวจไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
     } finally {
       setActionLoading(false);
     }
@@ -573,6 +611,15 @@ export function SupabaseAdminPage({
 
   const isRunning = Boolean(progress?.is_running);
 
+  // Open schools OPEC has stopped listing: shown to parents until an admin closes them
+  const opecMissing = schools.filter((s) => s.opec_missing_since);
+  const reviewTotal = pendingVersions.length + (curriculumConflicts ?? 0) + opecMissing.length;
+  const reviewSections = [
+    { key: "fees" as const, label: "ค่าเทอมจากเว็บ", count: pendingVersions.length },
+    { key: "curriculums" as const, label: "หลักสูตรที่ขัดกัน", count: curriculumConflicts ?? 0 },
+    { key: "opec" as const, label: "หายจากรายชื่อ OPEC", count: opecMissing.length },
+  ];
+
   const navSections: {
     label: string;
     items: { tab: AdminTab; label: string; icon: typeof LayoutDashboard; badge?: number; highlight?: boolean; onSelect?: () => void }[];
@@ -583,12 +630,18 @@ export function SupabaseAdminPage({
         { tab: "dashboard", label: "ภาพรวม", icon: LayoutDashboard },
         { tab: "schools", label: "รายชื่อโรงเรียน", icon: School, badge: schools.length },
         {
-          tab: "approvals",
-          label: "รออนุมัติค่าเทอม",
+          tab: "review",
+          label: "รอตรวจ",
           icon: Stamp,
-          badge: pendingVersions.length,
-          highlight: pendingVersions.length > 0,
-          onSelect: loadPendingVersions,
+          badge: reviewTotal,
+          highlight: reviewTotal > 0,
+          onSelect: () => {
+            loadPendingVersions();
+            // open the first section that has something waiting
+            setReviewSection(
+              pendingVersions.length ? "fees" : curriculumConflicts ? "curriculums" : opecMissing.length ? "opec" : "fees"
+            );
+          },
         },
       ],
     },
@@ -857,6 +910,16 @@ export function SupabaseAdminPage({
                     <Wand2 className="size-4 text-warm-bronze" />
                     Auto-Enrich
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleCheckOpec}
+                    disabled={pipelineBusy}
+                    className={cn(pillBtn, "px-3.5")}
+                    title="เทียบรายชื่อโรงเรียนกับ OPEC ตอนนี้ แล้วติดป้ายโรงเรียนที่ OPEC ไม่แสดงแล้ว (ไม่แก้ข้อมูลอื่น)"
+                  >
+                    <SearchCheck className="size-4 text-warm-bronze" />
+                    ตรวจกับรายชื่อ OPEC
+                  </button>
                 </div>
               </section>
 
@@ -889,13 +952,84 @@ export function SupabaseAdminPage({
               {activeTab === "schools" && (
                 <OpecSchoolsTable
                   schools={schools}
+                  closedSchools={closedSchools}
                   onSelectSchool={(s) => setSelectedSchool(s)}
                   onRefresh={loadSchoolsData}
                   onScrapeSchool={handleScrapeSchool}
                 />
               )}
 
-              {activeTab === "approvals" && (
+              {activeTab === "review" && (
+                <div className="flex flex-wrap gap-2">
+                  {reviewSections.map((sec) => (
+                    <button
+                      key={sec.key}
+                      type="button"
+                      onClick={() => setReviewSection(sec.key)}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-colors cursor-pointer",
+                        reviewSection === sec.key
+                          ? "bg-warm-charcoal border-warm-charcoal text-white"
+                          : "bg-warm-cream border-warm-accent text-warm-charcoal hover:border-warm-bronze"
+                      )}
+                    >
+                      {sec.label}
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[11px] tabular-nums",
+                          sec.count > 0 ? "bg-warm-bronze text-white" : "bg-warm-card text-warm-charcoal/60"
+                        )}
+                      >
+                        {sec.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === "review" && reviewSection === "opec" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-warm-charcoal/70">
+                    โรงเรียนที่ สช. (OPEC) ไม่แสดงในรายชื่อแล้ว แต่ผู้ใช้ยังเห็นอยู่ ตรวจแล้วกดปิดจากหน้ารายละเอียด
+                    รายการนี้อัปเดตเมื่อกด "ตรวจกับรายชื่อ OPEC" หรือ "ดึงข้อมูล OPEC" ในหน้า Data Pipeline
+                  </p>
+                  {opecMissing.length === 0 ? (
+                    <div className="bg-warm-cream border border-warm-accent rounded-2xl p-6 text-center text-sm text-warm-charcoal/60">
+                      ไม่มีโรงเรียนที่หายจากรายชื่อ OPEC
+                    </div>
+                  ) : (
+                    opecMissing.map((s) => (
+                      <button
+                        key={s.school_code}
+                        type="button"
+                        onClick={() => setSelectedSchool(s)}
+                        className="w-full text-left bg-warm-cream border border-warm-accent hover:border-warm-bronze rounded-2xl p-4 flex flex-wrap items-center gap-3 cursor-pointer transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-warm-charcoal">{s.school_name_th}</p>
+                          <p className="text-xs text-warm-charcoal/60">
+                            {s.school_name_en} · {s.school_code} · {s.province}
+                          </p>
+                        </div>
+                        <span className="text-xs text-rose-700">
+                          ไม่อยู่ในรายชื่อตั้งแต่{" "}
+                          {new Date(s.opec_missing_since as string).toLocaleDateString("th-TH", {
+                            timeZone: "Asia/Bangkok",
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <span className="rounded-full border border-warm-accent px-3 py-1.5 text-xs font-semibold text-warm-charcoal">
+                          ดูและปิดโรงเรียน
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === "review" && reviewSection === "fees" && (
                 <div className="space-y-6">
                   {/* Toolbar */}
                   <div className="flex items-center justify-between gap-4">
@@ -1103,6 +1237,11 @@ export function SupabaseAdminPage({
                 </div>
               )}
 
+              {activeTab === "review" && reviewSection === "curriculums" && (
+                <CurriculumReview onShowToast={showToast} onCountChange={setCurriculumConflicts} />
+              )}
+
+
               {activeTab === "ai-logs" && (
                 <ScraperLogsDashboard
                   pendingVersions={pendingVersions}
@@ -1119,7 +1258,7 @@ export function SupabaseAdminPage({
 
               {activeTab !== "dashboard" &&
                 activeTab !== "schools" &&
-                activeTab !== "approvals" &&
+                activeTab !== "review" &&
                 activeTab !== "pipeline" &&
                 activeTab !== "verify" &&
                 activeTab !== "ai-logs" && (
@@ -1147,6 +1286,17 @@ export function SupabaseAdminPage({
         }}
         onResolveSchoolWebsite={handleResolveSingleWebsite}
         onScrapeTuition={handleScrapeSchool}
+        onSetClosed={async (s, closed) => {
+          try {
+            await (closed ? closeSchool(s.school_code) : reopenSchool(s.school_code));
+          } catch (err: any) {
+            showToast(`บันทึกไม่สำเร็จ: ${err.message || "เกิดข้อผิดพลาด"}`);
+            throw err; // keeps the confirm dialog open
+          }
+          showToast(`${closed ? "ปิดโรงเรียนแล้ว" : "เปิดโรงเรียนคืนแล้ว"}: ${s.school_name_th || s.school_name_en}`);
+          setSelectedSchool(null);
+          loadSchoolsData();
+        }}
       />
 
       <VersionApprovalModal

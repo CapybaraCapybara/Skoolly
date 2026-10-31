@@ -7,6 +7,7 @@ import type {
   WebsiteHealthState,
   PendingVersionRecord,
   ScrapeLogRecord,
+  CurriculumReviewResponse,
 } from "@/types/opec";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
@@ -159,6 +160,7 @@ export async function getSupabaseSchools(params?: SupabaseSchoolsFilterParams): 
   if (params?.level && params.level !== "all") query.set("level", params.level);
   if (params?.limit) query.set("limit", String(params.limit));
   if (params?.offset) query.set("offset", String(params.offset));
+  if (params?.includeClosed) query.set("include_closed", "true");
 
   const qs = query.toString();
   const url = `${API_BASE}/api/supabase/schools${qs ? `?${qs}` : ""}`;
@@ -330,3 +332,64 @@ export async function triggerBatchScrape(maxSchools?: number): Promise<{ status:
   }
   return await res.json();
 }
+
+export async function getCurriculumReview(): Promise<CurriculumReviewResponse> {
+  const res = await fetch(`${API_BASE}/api/curriculums/review?t=${Date.now()}`, { cache: "no-store" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "ไม่สามารถดึงรายการหลักสูตรที่ต้องตรวจได้");
+  }
+  return await res.json();
+}
+
+// The backend also stores who confirmed; it will come from the signed-in admin once the admin page has a login
+export async function confirmSchoolCurriculums(
+  schoolCode: string,
+  curriculums: string[]
+): Promise<{ status: string; curriculums: string[] }> {
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/curriculums`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ curriculums }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "บันทึกหลักสูตรไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+export async function clearSchoolCurriculums(schoolCode: string): Promise<{ status: string; curriculums: string[] }> {
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/curriculums`, { method: "DELETE" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "ยกเลิกการยืนยันไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+/** Compares the schools with OPEC's current list without importing anything (about 10 seconds) */
+export async function checkOpecPresence(): Promise<{
+  newly_missing: string[];
+  listed_again: string[];
+  missing_still_shown: number;
+}> {
+  const res = await fetch(`${API_BASE}/api/schools/check-opec`, { method: "POST" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "ตรวจกับรายชื่อ OPEC ไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+async function postSchoolClosure(schoolCode: string, action: "close" | "reopen") {
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/${action}`, { method: "POST" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "บันทึกไม่สำเร็จ");
+  }
+  return (await res.json()) as { school_code: string; status: "active" | "archived" };
+}
+
+export const closeSchool = (schoolCode: string) => postSchoolClosure(schoolCode, "close");
+export const reopenSchool = (schoolCode: string) => postSchoolClosure(schoolCode, "reopen");

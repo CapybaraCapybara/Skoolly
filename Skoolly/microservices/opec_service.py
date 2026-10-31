@@ -23,7 +23,7 @@ if OPEC_DIR not in sys.path:
     sys.path.insert(0, OPEC_DIR)
 
 from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
-from fetch_opec import fetch_opec_schools  # type: ignore
+from fetch_opec import fetch_opec_schools, search_international_schools  # type: ignore
 from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
 from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
 from enrich_school_gps import enrich_all_school_gps, is_coords_in_province  # type: ignore
@@ -48,6 +48,12 @@ from supabase_sync import (  # type: ignore
     fetch_scrape_logs,
     log_school_scrape,
     db_connect,
+    fetch_curriculum_review,
+    confirm_school_curriculums,
+    clear_curriculums_confirmation,
+    mark_opec_presence,
+    close_school,
+    reopen_school,
 )
 from website_registry import (  # type: ignore
     get_full_registry_status,
@@ -199,6 +205,12 @@ def step_fetch_opec(progress, import_to_supabase=True):
         progress("ข้ามการนำเข้า Supabase", 100, 100, "ยังไม่ได้ตั้งค่า DATABASE_URL จึงบันทึกเฉพาะไฟล์ในเครื่อง")
         return
     execute_opec_import(records=records, publish_initial=True, progress_callback=progress)
+    # Only a fresh OPEC list says which schools OPEC dropped; step_import's file on disk may be old
+    presence = mark_opec_presence([r.get("school_code") for r in records])
+    if presence["missing_still_shown"]:
+        progress("ดึงข้อมูลจาก OPEC เสร็จแล้ว", 100, 100,
+                 f"มีโรงเรียนที่ไม่อยู่ในรายชื่อ OPEC แล้ว {presence['missing_still_shown']} แห่ง "
+                 "ดูได้ที่รายชื่อโรงเรียน ตัวกรอง \"ไม่อยู่ในรายชื่อ OPEC แล้ว\"")
 
 
 def step_import(progress):
@@ -569,6 +581,7 @@ def get_supabase_schools_endpoint(
     level: Optional[str] = None,
     limit: int = 1000,
     offset: int = 0,
+    include_closed: bool = False,   # admin school list only; the public site never sets it
 ):
     try:
         return fetch_supabase_schools(
@@ -578,6 +591,7 @@ def get_supabase_schools_endpoint(
             level=level,
             limit=limit,
             offset=offset,
+            include_closed=include_closed,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -780,6 +794,73 @@ def clear_school_gps(school_code: str):
     save_schools(schools)
     sync_single_school_to_supabase(school)
     return {k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source", "gps_locked")}
+
+@app.get("/api/curriculums/review")
+def get_curriculum_review():
+    """Schools whose OPEC curriculum and website curriculum disagree, and those an admin has decided."""
+    try:
+        return fetch_curriculum_review(get_current_schools())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ConfirmCurriculumsPayload(BaseModel):
+    curriculums: List[str]
+    confirmed_by: Optional[str] = ""
+
+
+@app.put("/api/school/{school_code}/curriculums")
+def confirm_curriculums(school_code: str, payload: ConfirmCurriculumsPayload):
+    """An admin's choice of curriculums; later OPEC imports keep it."""
+    _require_idle()   # a running import would write over the choice
+    try:
+        return confirm_school_curriculums(school_code, payload.curriculums, payload.confirmed_by)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/school/{school_code}/curriculums")
+def clear_curriculums(school_code: str):
+    """Drops an admin's choice; the school follows OPEC (or its website when OPEC names none) again."""
+    _require_idle()
+    school = _find_school(get_current_schools(), school_code) or {}
+    try:
+        return clear_curriculums_confirmation(school_code, school.get("curriculums"))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/schools/check-opec")
+def post_check_opec_presence():
+    """Compares our schools with OPEC's current list and dates the ones OPEC dropped. Unlike the full
+    OPEC fetch it imports nothing, so curriculums, pins and other fields stay as they are."""
+    _require_idle()
+    try:
+        opec = search_international_schools()
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"ติดต่อ OPEC ไม่สำเร็จ: {e}")
+    try:
+        return mark_opec_presence([s.get("schoolCode") for s in opec])
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@app.post("/api/school/{school_code}/close")
+def post_close_school(school_code: str):
+    """Hides a closed school from parents; the data stays and can be reopened."""
+    try:
+        return close_school(school_code)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/school/{school_code}/reopen")
+def post_reopen_school(school_code: str):
+    try:
+        return reopen_school(school_code)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 
 @app.post("/api/school/{school_code}/resolve")
 def resolve_one_school(school_code: str):
