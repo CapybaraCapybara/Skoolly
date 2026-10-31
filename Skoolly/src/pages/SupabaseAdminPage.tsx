@@ -20,8 +20,8 @@ import {
   ExternalLink,
   RefreshCw,
   Eye,
-  XCircle,
   SearchCheck,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo, HeaderShell, NAV_PILL_CLASS } from "@/components/layout/HeaderShell";
@@ -58,6 +58,7 @@ import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
 import { ScraperLogsDashboard } from "@/components/admin/ScraperLogsDashboard";
 import { CurriculumReview } from "@/components/admin/CurriculumReview";
+import { review, placeInitials } from "@/components/admin/reviewStyles";
 
 interface SupabaseAdminPageProps {
   onBack: () => void;
@@ -988,43 +989,81 @@ export function SupabaseAdminPage({
               )}
 
               {activeTab === "review" && reviewSection === "opec" && (
-                <div className="space-y-3">
-                  <p className="text-sm text-warm-charcoal/70">
-                    โรงเรียนที่ สช. (OPEC) ไม่แสดงในรายชื่อแล้ว แต่ผู้ใช้ยังเห็นอยู่ ตรวจแล้วกดปิดจากหน้ารายละเอียด
-                    รายการนี้อัปเดตเมื่อกด "ตรวจกับรายชื่อ OPEC" หรือ "ดึงข้อมูล OPEC" ในหน้า Data Pipeline
-                  </p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-warm-charcoal/70">OPEC ไม่มีโรงเรียนเหล่านี้ในรายชื่อแล้ว แต่ผู้ใช้ยังเห็นอยู่</p>
+                    <button type="button" onClick={handleCheckOpec} disabled={pipelineBusy} className={review.toolbarBtn}>
+                      <SearchCheck className="w-3.5 h-3.5" />
+                      <span>ตรวจกับรายชื่อ OPEC</span>
+                    </button>
+                  </div>
+
                   {opecMissing.length === 0 ? (
-                    <div className="bg-warm-cream border border-warm-accent rounded-2xl p-6 text-center text-sm text-warm-charcoal/60">
-                      ไม่มีโรงเรียนที่หายจากรายชื่อ OPEC
+                    <div className={review.empty}>
+                      <div className={review.emptyIcon}>
+                        <CheckCircle2 className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-sm font-bold text-warm-charcoal">ไม่มีโรงเรียนที่หายจากรายชื่อ OPEC</h3>
                     </div>
                   ) : (
-                    opecMissing.map((s) => (
-                      <button
-                        key={s.school_code}
-                        type="button"
-                        onClick={() => setSelectedSchool(s)}
-                        className="w-full text-left bg-warm-cream border border-warm-accent hover:border-warm-bronze rounded-2xl p-4 flex flex-wrap items-center gap-3 cursor-pointer transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-warm-charcoal">{s.school_name_th}</p>
-                          <p className="text-xs text-warm-charcoal/60">
-                            {s.school_name_en} · {s.school_code} · {s.province}
-                          </p>
+                    <div className="grid grid-cols-1 gap-4">
+                      {opecMissing.map((s) => (
+                        <div key={s.school_code} className={cn(review.card, review.row)}>
+                          <div className="flex items-start gap-4">
+                            <div className={review.monogram}>{placeInitials(s.province)}</div>
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={review.chipAmber}>หายจากรายชื่อ OPEC</span>
+                                <span className={cn(review.meta, "font-mono")}>{s.school_code}</span>
+                                {s.province && (
+                                  <span className={review.meta}>
+                                    {s.province} {s.district ? `(${s.district})` : ""}
+                                  </span>
+                                )}
+                              </div>
+                              <h3 className={review.title}>{s.school_name_th}</h3>
+                              {s.school_name_en && <p className="text-xs text-[#78716c] font-medium">{s.school_name_en}</p>}
+                              <div className={review.details}>
+                                <div>
+                                  <span className={review.label}>หายตั้งแต่: </span>
+                                  <strong className="text-rose-700 font-bold">
+                                    {new Date(s.opec_missing_since as string).toLocaleDateString("th-TH", {
+                                      timeZone: "Asia/Bangkok",
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                  </strong>
+                                </div>
+                                <span className="text-warm-accent">•</span>
+                                <div>
+                                  <span className={review.label}>นักเรียน: </span>
+                                  <strong>{s.student_count ?? 0} คน</strong>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={review.actions}>
+                            {s.website && (
+                              <a
+                                href={s.website}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={review.linkIcon}
+                                title="เปิดเว็บโรงเรียน"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                            <button type="button" onClick={() => setSelectedSchool(s)} className={review.btnNavy}>
+                              <Eye className="w-4 h-4 text-warm-bronze" />
+                              <span>ตรวจข้อมูลและปิดโรงเรียน</span>
+                            </button>
+                          </div>
                         </div>
-                        <span className="text-xs text-rose-700">
-                          ไม่อยู่ในรายชื่อตั้งแต่{" "}
-                          {new Date(s.opec_missing_since as string).toLocaleDateString("th-TH", {
-                            timeZone: "Asia/Bangkok",
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <span className="rounded-full border border-warm-accent px-3 py-1.5 text-xs font-semibold text-warm-charcoal">
-                          ดูและปิดโรงเรียน
-                        </span>
-                      </button>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -1050,12 +1089,7 @@ export function SupabaseAdminPage({
                           <span>อนุมัติทั้งหมด ({pendingVersions.length})</span>
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={loadPendingVersions}
-                        disabled={isPendingLoading}
-                        className="px-3.5 py-2 rounded-full bg-warm-cream border border-warm-accent hover:border-warm-bronze text-warm-charcoal text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                      >
+                      <button type="button" onClick={loadPendingVersions} disabled={isPendingLoading} className={review.toolbarBtn}>
                         <RefreshCw className={`w-3.5 h-3.5 ${isPendingLoading ? "animate-spin" : ""}`} />
                         <span>รีเฟรช</span>
                       </button>
@@ -1069,17 +1103,13 @@ export function SupabaseAdminPage({
                       <p className="text-xs text-[#78716c]">กำลังโหลด…</p>
                     </div>
                   ) : pendingVersions.length === 0 ? (
-                    <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs space-y-4">
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
+                    <div className={review.empty}>
+                      <div className={review.emptyIcon}>
                         <CheckCircle2 className="w-8 h-8" />
                       </div>
                       <div className="max-w-md mx-auto space-y-1">
-                        <h3 className="text-sm font-bold text-warm-charcoal">
-                          ไม่มีรายการรออนุมัติ
-                        </h3>
-                        <p className="text-xs text-[#78716c] leading-relaxed">
-                          กด Scrape ในหน้ารายชื่อโรงเรียนเพื่อดึงค่าเทอมใหม่
-                        </p>
+                        <h3 className="text-sm font-bold text-warm-charcoal">ไม่มีรายการรออนุมัติ</h3>
+                        <p className="text-xs text-[#78716c] leading-relaxed">กด Scrape ในหน้ารายชื่อโรงเรียนเพื่อดึงค่าเทอมใหม่</p>
                       </div>
                       <button
                         type="button"
@@ -1101,46 +1131,37 @@ export function SupabaseAdminPage({
                         const maxTuition = annualAmounts.length > 0 ? Math.max(...annualAmounts) : null;
 
                         return (
-                          <div
-                            key={v.version_id}
-                            className="bg-warm-cream border border-warm-accent hover:border-amber-400/60 rounded-[2rem] p-5 sm:p-6 shadow-xs transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-5"
-                          >
+                          <div key={v.version_id} className={cn(review.card, review.row)}>
                             <div className="flex items-start gap-4">
-                              <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent flex items-center justify-center shrink-0 text-warm-bronze font-bold text-sm">
-                                {v.province ? v.province.substring(0, 2) : "รร"}
-                              </div>
+                              <div className={review.monogram}>{placeInitials(v.province)}</div>
                               <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[11px] font-bold uppercase">
-                                    ฉบับร่าง v{v.version_number}
-                                  </span>
-                                  <span className="text-xs font-mono text-[#78716c]">
-                                    {v.opec_school_code}
-                                  </span>
+                                  <span className={cn(review.chipAmber, "uppercase")}>ฉบับร่าง v{v.version_number}</span>
+                                  <span className={cn(review.meta, "font-mono")}>{v.opec_school_code}</span>
                                   {v.province && (
-                                    <span className="text-xs text-[#78716c]">
+                                    <span className={review.meta}>
                                       {v.province} {v.district ? `(${v.district})` : ""}
                                     </span>
                                   )}
                                   {confScore !== null && (
-                                    <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
-                                      confScore >= 80
-                                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                        : "bg-amber-100 text-amber-800 border border-amber-200"
-                                    }`}>
+                                    <span
+                                      className={
+                                        confScore >= 80
+                                          ? review.chipGreen
+                                          : "px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200"
+                                      }
+                                    >
                                       ความมั่นใจ {confScore}%
                                     </span>
                                   )}
                                 </div>
 
-                                <h3 className="text-base font-bold text-warm-charcoal">{v.name_th}</h3>
-                                {v.name_en && (
-                                  <p className="text-xs text-[#78716c] font-medium">{v.name_en}</p>
-                                )}
+                                <h3 className={review.title}>{v.name_th}</h3>
+                                {v.name_en && <p className="text-xs text-[#78716c] font-medium">{v.name_en}</p>}
 
-                                <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#57534e]">
+                                <div className={review.details}>
                                   <div>
-                                    <span className="text-[#a8a29e]">ค่าเทอม: </span>
+                                    <span className={review.label}>ค่าเทอม: </span>
                                     <strong className="text-emerald-800 font-bold">
                                       {minTuition && maxTuition
                                         ? `฿${minTuition.toLocaleString()} - ฿${maxTuition.toLocaleString()} / ปี`
@@ -1151,12 +1172,12 @@ export function SupabaseAdminPage({
                                   </div>
                                   <span className="text-warm-accent">•</span>
                                   <div>
-                                    <span className="text-[#a8a29e]">ระดับชั้น: </span>
+                                    <span className={review.label}>ระดับชั้น: </span>
                                     <strong>{v.fees?.length || 0} ระดับ</strong>
                                   </div>
                                   <span className="text-warm-accent">•</span>
                                   <div>
-                                    <span className="text-[#a8a29e]">ค่าใช้จ่ายอื่น: </span>
+                                    <span className={review.label}>ค่าใช้จ่ายอื่น: </span>
                                     <strong>{v.extra_fees?.length || 0} รายการ</strong>
                                   </div>
                                   {v.safety?.child_safeguarding_policy && (
@@ -1169,23 +1190,19 @@ export function SupabaseAdminPage({
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 shrink-0 self-end lg:self-center">
+                            <div className={review.actions}>
                               {v.scraped_page_url && (
                                 <a
                                   href={v.scraped_page_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="p-2.5 rounded-xl bg-warm-cream hover:bg-warm-accent text-[#78716c] hover:text-warm-charcoal transition-all border border-warm-accent"
+                                  className={review.linkIcon}
                                   title="เปิดดูหน้าเว็บต้นทาง"
                                 >
                                   <ExternalLink className="w-4 h-4" />
                                 </a>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => setReviewingVersion(v)}
-                                className="px-4 py-2.5 rounded-full bg-warm-charcoal hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                              >
+                              <button type="button" onClick={() => setReviewingVersion(v)} className={review.btnNavy}>
                                 <Eye className="w-4 h-4 text-warm-bronze" />
                                 <span>ตรวจข้อมูล (Diff)</span>
                               </button>
@@ -1193,7 +1210,7 @@ export function SupabaseAdminPage({
                                 type="button"
                                 onClick={() => handleApproveVersion(v.version_id)}
                                 disabled={isVersionActionLoading}
-                                className="px-3.5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                                className={review.btnGreen}
                                 title="อนุมัติและเผยแพร่ข้อมูลลงฐานข้อมูลทันที"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1206,7 +1223,7 @@ export function SupabaseAdminPage({
                                   if (reason !== null) handleRejectVersion(v.version_id, reason);
                                 }}
                                 disabled={isVersionActionLoading}
-                                className="px-3 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                className={review.btnRose}
                                 title="ปฏิเสธแบบร่างนี้"
                               >
                                 <XCircle className="w-3.5 h-3.5" />

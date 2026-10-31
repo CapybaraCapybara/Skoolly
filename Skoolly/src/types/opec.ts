@@ -332,6 +332,8 @@ export interface CurriculumReviewItem {
   school_code: string;
   name_th: string | null;
   name_en: string | null;
+  province: string | null;
+  district: string | null;
   opec_codes: string[];
   /** OPEC's own wording, one entry per registered curriculum */
   opec_text: string[];

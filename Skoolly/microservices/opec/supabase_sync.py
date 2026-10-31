@@ -366,7 +366,7 @@ def curriculums_conflict(opec_codes: list[str] | None, website_codes: list[str] 
 
 
 _REVIEW_QUERY = """
-    SELECT s.opec_school_code, s.name_th, s.name_en, s.curriculums, s.official_website_url,
+    SELECT s.opec_school_code, s.name_th, s.name_en, s.province, s.district, s.curriculums, s.official_website_url,
            s.curriculums_confirmed_at, s.curriculums_confirmed_by,
            v.scraped_page_url, v.data_snapshot->'curriculums' AS web_list,
            v.data_snapshot->>'curriculum' AS web_text
@@ -396,6 +396,8 @@ def fetch_curriculum_review(opec_records: list[dict], dsn: str | None = None) ->
             "school_code": r["opec_school_code"],
             "name_th": r["name_th"],
             "name_en": r["name_en"],
+            "province": r["province"],
+            "district": r["district"],
             "opec_codes": opec,
             "opec_text": [str(x) for x in raw if x],
             "website_codes": web or [],

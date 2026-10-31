@@ -1,25 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import type { CurriculumReviewItem, CurriculumReviewResponse } from "@/types/opec";
 import { clearSchoolCurriculums, confirmSchoolCurriculums, getCurriculumReview } from "@/api/opecApi";
+import { cn } from "@/lib/utils";
+import { placeInitials, review } from "@/components/admin/reviewStyles";
 
 interface CurriculumReviewProps {
   onShowToast: (msg: string) => void;
   /** Number of schools still waiting for a decision, for the menu badge */
   onCountChange: (count: number) => void;
-}
-
-function Chips({ codes, labels }: { codes: string[]; labels: Record<string, string> }) {
-  if (!codes.length) return <span className="text-xs text-warm-charcoal/40">ไม่มีข้อมูล</span>;
-  return (
-    <div className="flex flex-wrap gap-1">
-      {codes.map((c) => (
-        <span key={c} className="px-2 py-0.5 rounded-full bg-warm-bg border border-warm-accent text-[11px] text-warm-charcoal">
-          {labels[c] ?? c}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 export function CurriculumReview({ onShowToast, onCountChange }: CurriculumReviewProps) {
@@ -71,188 +60,219 @@ export function CurriculumReview({ onShowToast, onCountChange }: CurriculumRevie
     }
   };
 
-  if (error) {
-    return (
-      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-8 text-center text-sm text-rose-700">
-        {error}
-        <button type="button" onClick={load} className="ml-3 underline cursor-pointer">ลองใหม่</button>
-      </div>
-    );
-  }
-  if (!data) {
-    return (
-      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 flex justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-warm-bronze" />
-      </div>
-    );
-  }
+  const labels = data?.labels ?? {};
+  // Short names keep the line readable: "สหราชอาณาจักร (British)" -> "British"
+  const short = (c: string) => (c === "IB" ? "IB" : labels[c]?.match(/\(([^)]+)\)/)?.[1] ?? labels[c] ?? c);
+  const names = (codes: string[]) => (codes.length ? codes.map(short).join(", ") : "ไม่ระบุ");
 
-  const labels = data.labels;
-  const allCodes = Object.keys(labels);
+  // Square, chips row, name and the details line, laid out like the fee-draft cards
+  const header = (item: CurriculumReviewItem, chip: React.ReactNode, details: React.ReactNode) => (
+    <div className="flex items-start gap-4">
+      <div className={review.monogram}>{placeInitials(item.province)}</div>
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {chip}
+          <span className={cn(review.meta, "font-mono")}>{item.school_code}</span>
+          {item.province && (
+            <span className={review.meta}>
+              {item.province} {item.district ? `(${item.district})` : ""}
+            </span>
+          )}
+        </div>
+        <h3 className={review.title}>{item.name_th || item.name_en}</h3>
+        {item.name_th && item.name_en && <p className="text-xs text-[#78716c] font-medium">{item.name_en}</p>}
+        <div className={review.details}>{details}</div>
+      </div>
+    </div>
+  );
+
+  const websiteLink = (item: CurriculumReviewItem) =>
+    item.website_url && (
+      <a href={item.website_url} target="_blank" rel="noreferrer" className={review.linkIcon} title="เปิดเว็บโรงเรียน">
+        <ExternalLink className="w-4 h-4" />
+      </a>
+    );
 
   return (
-    <div className="space-y-5">
-      <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-6 shadow-xs space-y-4">
-        <p className="text-sm text-warm-charcoal/70 leading-relaxed">
-          หลักสูตรที่ผู้ปกครองใช้กรองมาจากทะเบียน สช. (OPEC) รายการนี้คือโรงเรียนที่ OPEC กับเว็บโรงเรียนระบุหลักสูตรคนละแบบ
-          ตรวจจากเว็บหรือเอกสารของโรงเรียนแล้วเลือกค่าที่ถูกต้อง การดึงข้อมูล OPEC รอบต่อไปจะไม่เขียนทับค่าที่ยืนยันแล้ว
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-warm-charcoal/70">
+          OPEC กับเว็บโรงเรียนบอกหลักสูตรไม่ตรงกัน เลือกว่าจะใช้แบบไหน
+          {data && data.conflicts.length > 0 && (
+            <span className="font-semibold text-warm-charcoal"> · {data.conflicts.length} รายการ</span>
+          )}
         </p>
-        <div className="flex">
-          <button
-            type="button"
-            onClick={load}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-warm-accent px-3 py-1.5 text-xs text-warm-charcoal hover:border-warm-bronze cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> รีเฟรช
-          </button>
-        </div>
+        <button type="button" onClick={load} className={review.toolbarBtn}>
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>รีเฟรช</span>
+        </button>
       </div>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-bold text-warm-charcoal">รอตรวจ ({data.conflicts.length})</h3>
-        {data.conflicts.length === 0 && (
-          <div className="bg-warm-cream border border-warm-accent rounded-2xl p-6 text-center text-sm text-warm-charcoal/60">
-            ไม่มีโรงเรียนที่ข้อมูลขัดกัน
-          </div>
-        )}
-        {data.conflicts.map((item) => {
-          const busy = busyCode === item.school_code;
-          const editing = editingCode === item.school_code;
-          return (
-            <article key={item.school_code} className="bg-warm-cream border border-warm-accent rounded-2xl p-5 space-y-4">
-              <div>
-                <h4 className="text-sm font-bold text-warm-charcoal">{item.name_th || item.name_en}</h4>
-                <p className="text-xs text-warm-charcoal/60">
-                  {item.name_en} · {item.school_code}
-                </p>
+      {error ? (
+        <div className={cn(review.empty, "text-sm text-rose-700")}>{error}</div>
+      ) : !data ? (
+        <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-16 text-center shadow-xs">
+          <Loader2 className="w-8 h-8 text-amber-600 animate-spin mx-auto mb-3" />
+          <p className="text-xs text-[#78716c]">กำลังโหลด…</p>
+        </div>
+      ) : (
+        <>
+          {data.conflicts.length === 0 ? (
+            <div className={review.empty}>
+              <div className={review.emptyIcon}>
+                <CheckCircle2 className="w-8 h-8" />
               </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-warm-charcoal/70">ตาม OPEC</p>
-                  <Chips codes={item.opec_codes} labels={labels} />
-                  <p className="text-[11px] text-warm-charcoal/50 leading-relaxed">{item.opec_text.join(" · ")}</p>
-                </div>
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-warm-charcoal/70">ตามเว็บโรงเรียน</p>
-                  <Chips codes={item.website_codes} labels={labels} />
-                  <p className="text-[11px] text-warm-charcoal/50">{item.website_text}</p>
-                  {item.website_url && (
-                    <a
-                      href={item.website_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-warm-bronze hover:underline"
-                    >
-                      เปิดเว็บโรงเรียน <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-warm-charcoal/70">ที่แสดงอยู่ตอนนี้</p>
-                  <Chips codes={item.current_codes} labels={labels} />
-                </div>
-              </div>
-
-              {editing && (
-                <div className="flex flex-wrap gap-2 border-t border-warm-accent pt-3">
-                  {allCodes.map((c) => (
-                    <label key={c} className="inline-flex items-center gap-1.5 text-xs text-warm-charcoal cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={picked.includes(c)}
-                        onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c] : p.filter((x) => x !== c)))}
-                      />
-                      {labels[c]}
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {editing ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={busy || picked.length === 0}
-                      onClick={() => confirm(item, picked)}
-                      className="rounded-full bg-warm-charcoal px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50 cursor-pointer"
-                    >
-                      บันทึกที่เลือก
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingCode(null)}
-                      className="rounded-full border border-warm-accent px-4 py-1.5 text-xs text-warm-charcoal cursor-pointer"
-                    >
-                      ยกเลิก
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => confirm(item, item.opec_codes)}
-                      className="rounded-full bg-warm-charcoal px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50 cursor-pointer"
-                    >
-                      ใช้ตาม OPEC
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => confirm(item, item.website_codes)}
-                      className="rounded-full bg-warm-charcoal px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-50 cursor-pointer"
-                    >
-                      ใช้ตามเว็บโรงเรียน
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => {
-                        setEditingCode(item.school_code);
-                        setPicked(item.current_codes.filter((c) => c !== "SCHOOL_SPECIFIC"));
-                      }}
-                      className="rounded-full border border-warm-accent px-4 py-1.5 text-xs text-warm-charcoal disabled:opacity-50 cursor-pointer"
-                    >
-                      เลือกเอง
-                    </button>
-                  </>
-                )}
-                {busy && <Loader2 className="w-4 h-4 animate-spin text-warm-bronze self-center" />}
-              </div>
-            </article>
-          );
-        })}
-      </section>
-
-      {data.confirmed.length > 0 && (
-        <section className="space-y-3">
-          <h3 className="text-sm font-bold text-warm-charcoal">ยืนยันแล้ว ({data.confirmed.length})</h3>
-          {data.confirmed.map((item) => (
-            <div
-              key={item.school_code}
-              className="bg-warm-cream border border-warm-accent rounded-2xl p-4 flex flex-wrap items-center gap-3"
-            >
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="text-sm font-semibold text-warm-charcoal">{item.name_th || item.name_en}</p>
-                <Chips codes={item.current_codes} labels={labels} />
-                <p className="text-[11px] text-warm-charcoal/50">
-                  ยืนยันเมื่อ{" "}
-                  {item.confirmed_at ? new Date(item.confirmed_at).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) : ""}
-                  {item.confirmed_by && ` โดย ${item.confirmed_by}`}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={busyCode === item.school_code}
-                onClick={() => clear(item)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-warm-accent px-3 py-1.5 text-xs text-warm-charcoal hover:border-warm-bronze disabled:opacity-50 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> ยกเลิกการยืนยัน
-              </button>
+              <h3 className="text-sm font-bold text-warm-charcoal">ไม่มีโรงเรียนที่หลักสูตรขัดกัน</h3>
             </div>
-          ))}
-        </section>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {data.conflicts.map((item) => {
+                const busy = busyCode === item.school_code;
+                const editing = editingCode === item.school_code;
+                return (
+                  <div key={item.school_code} className={cn(review.card, "space-y-4")}>
+                    <div className={review.row}>
+                      {header(
+                        item,
+                        <span className={review.chipAmber}>หลักสูตรไม่ตรงกัน</span>,
+                        <>
+                          <div title={item.opec_text.length ? `OPEC เขียนว่า ${item.opec_text.join(" · ")}` : undefined}>
+                            <span className={review.label}>ตาม OPEC: </span>
+                            <strong>{names(item.opec_codes)}</strong>
+                          </div>
+                          <span className="text-warm-accent">•</span>
+                          <div>
+                            <span className={review.label}>ตามเว็บ: </span>
+                            <strong className="text-emerald-800 font-bold">{names(item.website_codes)}</strong>
+                          </div>
+                          <span className="text-warm-accent">•</span>
+                          <div>
+                            <span className={review.label}>แสดงอยู่: </span>
+                            <strong>{names(item.current_codes)}</strong>
+                          </div>
+                        </>
+                      )}
+
+                      <div className={review.actions}>
+                        {busy && <Loader2 className="w-4 h-4 animate-spin text-warm-bronze" />}
+                        {websiteLink(item)}
+                        {editing ? (
+                          <>
+                            <button type="button" onClick={() => setEditingCode(null)} className={review.btnOutline}>
+                              ยกเลิก
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy || picked.length === 0}
+                              onClick={() => confirm(item, picked)}
+                              className={review.btnGreen}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>บันทึกที่เลือก</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => confirm(item, item.opec_codes)}
+                              className={review.btnNavy}
+                            >
+                              ใช้ตาม OPEC
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => confirm(item, item.website_codes)}
+                              className={review.btnNavy}
+                            >
+                              ใช้ตามเว็บโรงเรียน
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => {
+                                setEditingCode(item.school_code);
+                                setPicked(item.current_codes.filter((c) => c !== "SCHOOL_SPECIFIC"));
+                              }}
+                              className={review.btnOutline}
+                            >
+                              เลือกเอง
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {editing && (
+                      <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-warm-accent pt-4">
+                        {Object.keys(labels).map((c) => (
+                          <label key={c} className="inline-flex items-center gap-1.5 text-xs text-warm-charcoal cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={picked.includes(c)}
+                              onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c] : p.filter((x) => x !== c)))}
+                            />
+                            {labels[c]}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {data.confirmed.length > 0 && (
+            <section className="space-y-4">
+              <h3 className="text-sm font-bold text-warm-charcoal">ยืนยันแล้ว ({data.confirmed.length})</h3>
+              <div className="grid grid-cols-1 gap-4">
+                {data.confirmed.map((item) => (
+                  <div key={item.school_code} className={cn(review.card, review.row)}>
+                    {header(
+                      item,
+                      <span className={review.chipGreen}>ยืนยันแล้ว</span>,
+                      <>
+                        <div>
+                          <span className={review.label}>หลักสูตร: </span>
+                          <strong className="text-emerald-800 font-bold">{names(item.current_codes)}</strong>
+                        </div>
+                        <span className="text-warm-accent">•</span>
+                        <div>
+                          <span className={review.label}>ยืนยันเมื่อ: </span>
+                          <strong>
+                            {item.confirmed_at
+                              ? new Date(item.confirmed_at).toLocaleDateString("th-TH", {
+                                  timeZone: "Asia/Bangkok",
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : "-"}
+                          </strong>
+                        </div>
+                      </>
+                    )}
+                    <div className={review.actions}>
+                      {websiteLink(item)}
+                      <button
+                        type="button"
+                        disabled={busyCode === item.school_code}
+                        onClick={() => clear(item)}
+                        className={review.btnOutline}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>ยกเลิกการยืนยัน</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );
