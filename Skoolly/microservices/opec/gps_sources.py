@@ -68,6 +68,89 @@ def candidate(lat, lon, source, kind, label):
             "source": source, "kind": kind, "label": label}
 
 
+# ─── registered area (OpenStreetMap boundaries via Nominatim, ODbL) ──────────
+
+ADMIN_CACHE = os.path.join(CACHE_DIR, "gps_admin_areas.json")
+_ADMIN_PREFIX = re.compile(r"^(จังหวัด|อำเภอ|เขต|ตำบล|แขวง|อ\.|ต\.)\s*")
+_admin_lock = threading.Lock()
+_admin = None
+_admin_last = [0.0]
+_failed = threading.local()
+
+
+def take_failed():
+    """True when an ArcGIS or Nominatim lookup on this thread gave up since the last call; resets it."""
+    failed = getattr(_failed, "on", False)
+    _failed.on = False
+    return failed
+
+
+def admin_area(lat, lon):
+    """
+    The OSM address (khet/amphoe, khwaeng/tambon) of a point: Nominatim reverse, at most one request
+    a second, cached for good. Only for coordinates we may store — the cache key IS the coordinate,
+    so never pass an ArcGIS point. {} when Nominatim cannot be reached (not cached, asked again later).
+    """
+    global _admin
+    key = f"{lat:.4f},{lon:.4f}"
+    with _admin_lock:
+        if _admin is None:
+            try:
+                _admin = json.load(io.open(ADMIN_CACHE, encoding="utf-8"))
+            except Exception:
+                _admin = {}
+        if key in _admin:
+            return _admin[key]
+        time.sleep(max(0.0, 1.1 - (time.time() - _admin_last[0])))
+        try:
+            r = requests.get("https://nominatim.openstreetmap.org/reverse", timeout=25,
+                             params={"lat": lat, "lon": lon, "format": "jsonv2", "zoom": 16, "accept-language": "th"},
+                             headers={"User-Agent": "SkoollyGPS/1.0 (student project)"})
+            r.raise_for_status()
+            addr = r.json().get("address") or {}
+        except Exception:
+            _failed.on = True
+            return {}
+        finally:
+            _admin_last[0] = time.time()
+        _admin[key] = {k: v for k, v in addr.items()
+                       if k not in ("road", "house_number", "postcode", "country", "country_code")}
+        try:
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            io.open(ADMIN_CACHE + ".tmp", "w", encoding="utf-8").write(json.dumps(_admin, ensure_ascii=False))
+            os.replace(ADMIN_CACHE + ".tmp", ADMIN_CACHE)
+        except Exception:
+            pass
+        return _admin[key]
+
+
+def admin_match(addr, school):
+    """
+    (amphoe_ok, tambon_ok) against the school's registered district/subdistrict: True or False when the
+    address names that level, None when it does not (an อบต. or a bare town name instead), so the caller
+    keeps its old box check. A name that only extends the other ("บางนา" registered, OSM "บางนาใต้" after
+    the khwaeng was split; "คลองตัน" / "คลองตันเหนือ") is None too: neither in nor out.
+    """
+    if not addr:
+        return None, None
+    norm = lambda v: _ADMIN_PREFIX.sub("", str(v or "").strip()).replace(" ", "")
+    vals = [str(v) for v in addr.values()]
+    amphoe = {norm(v) for v in vals if v.startswith(("อำเภอ", "เขต"))}
+    if "กรุงเทพ" in str(school.get("province") or "") and addr.get("suburb"):
+        amphoe.add(norm(addr["suburb"]))   # a Bangkok khet, sometimes without "เขต"
+    tambon = {norm(v) for v in vals if v.startswith(("ตำบล", "แขวง"))}
+
+    def ok(names, want):
+        want = norm(want)
+        if not names or not want:
+            return None
+        if want in names:
+            return True
+        return None if any(n.startswith(want) or want.startswith(n) for n in names) else False
+
+    return ok(amphoe, school.get("district")), ok(tambon, school.get("subdistrict"))
+
+
 # ─── name matching ───────────────────────────────────────────────────────────
 
 # Vocabulary nearly every school name shares. None of it can make two names match.
@@ -376,6 +459,7 @@ def website_pins(url, max_pages=4, budget_s=15):
     Map pins the school publishes on its own site: the homepage, then contact/location/about
     pages until a pin the school wrote itself turns up, then any maps.app.goo.gl short link.
     Returns [(lat, lon, "place"|"camera", "school"|"google")]; the caller decides which to trust.
+    None when the homepage itself did not load.
     """
     if not url or not str(url).startswith("http"):
         return []
@@ -398,7 +482,7 @@ def website_pins(url, max_pages=4, budget_s=15):
     try:
         final_url, html = fetch(url)
     except Exception:
-        return []
+        return None   # the homepage did not load: unknown, not "no pins"
 
     if not have_school_pin():
         for link in _CONTACT_LINK.findall(html):
@@ -861,4 +945,5 @@ def arcgis_records(query, max_locations=6):
             return out
         time.sleep(1.5 * (attempt + 1))
     print(f"[GPS/ArcGIS] gave up after retries: {query[:60]}")
+    _failed.on = True
     return []   # not memoised, so the next run asks again

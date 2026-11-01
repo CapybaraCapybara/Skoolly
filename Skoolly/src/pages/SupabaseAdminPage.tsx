@@ -495,7 +495,7 @@ export function SupabaseAdminPage({
       showToast(
         res.missing_still_shown
           ? `มีโรงเรียนที่ไม่อยู่ในรายชื่อ OPEC แล้ว ${res.missing_still_shown} แห่ง ดูได้ที่รายชื่อโรงเรียน`
-          : "ทุกโรงเรียนยังอยู่ในรายชื่อ OPEC"
+          : "ตรวจแล้ว โรงเรียนที่เปิดอยู่ทุกแห่งยังมีชื่อใน OPEC"
       );
       await loadSchoolsData();
     } catch (err: any) {

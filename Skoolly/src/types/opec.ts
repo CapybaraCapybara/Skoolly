@@ -17,7 +17,7 @@ export interface OpecSchoolRecord {
   longitude?: string | number;
   gps_source?: string;
   gps_precision?: string; // "Exact" | "Approximate" | "None"
-  // Written by the GPS button (enrich_school_gps.py, method "consensus-v2"), or "manual"
+  // Written by the GPS button (enrich_school_gps.py, method "consensus-v3"), or "manual"
   // for a pin an admin placed by hand (PUT /api/school/{code}/gps), which nothing overwrites
   gps_method?: string;
   gps_locked?: boolean;

@@ -40,7 +40,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import gps_sources as src
 from data_manager import load_schools, save_schools
 
-GPS_METHOD = "consensus-v2"
+GPS_METHOD = "consensus-v3"
 
 AGREE_M = 350          # two pins this close are the same campus
 AGREE_CAMERA_M = 450   # a Google embed camera centre sits up to ~300 m from its marker
@@ -254,6 +254,7 @@ def overture_candidates(school, website_url, near, radius_m):
 
 def collect_candidates(school, website_url):
     """All candidate pins for one school, plus its registered-area centres."""
+    src.take_failed()   # start this school's count of ArcGIS/Nominatim lookups that gave up
     en = (school.get("school_name_en") or "").strip()
     th = (school.get("school_name_th") or "").strip()
     prov = clean_thai_addr(school.get("province"))
@@ -318,20 +319,29 @@ def collect_candidates(school, website_url):
         if any(c["source"] == "arcgis_address" for c in cands):
             break
 
+    site_failed = False
     try:
-        for lat, lon, kind, origin in pins_future.result(timeout=45):
+        site_pins = pins_future.result(timeout=45)
+        site_failed = site_pins is None
+        for lat, lon, kind, origin in site_pins or []:
             if origin == "google" and LICENCE_MODE == "open":
                 continue
             c = src.candidate(lat, lon, "website", "campus", website_url)
             c["pin"], c["origin"] = kind, origin
             cands.append(c)
     except Exception:
-        pass
+        site_failed = True
     finally:
         pin_pool.shutdown(wait=False)
+    # The school's site did not load, though an earlier run found a pin on it (Kinderville): without it
+    # the fallback lands on a sister campus 7 km away, so this school is not fully checked this run.
+    site_failed = site_failed and any(e.get("source") == "website" for e in school.get("gps_evidence") or [])
 
     # Guards: right province, not absurdly far from the registered tambon, and an
     # OPEC/address pin that IS the tambon/amphoe centre is an area, not a campus.
+    def at_centre(c):
+        return c["source"] in ("opec", "arcgis_address", "overture") and any(_dist(a, c) < CENTROID_M for a in areas_ref)
+
     kept = []
     for c in cands:
         if not is_coords_in_province(c["lat"], c["lon"], prov):
@@ -340,13 +350,25 @@ def collect_candidates(school, website_url):
             c["anchor_m"] = round(_dist(anchor, c))
             if c["anchor_m"] > loose:
                 continue
-        if c["source"] in ("opec", "arcgis_address", "overture") and any(_dist(a, c) < CENTROID_M for a in areas_ref):
-            areas.append(dict(c, kind="area", rank=2, label=f"{SOURCE_NAME[c['source']]} = จุดกลางตำบล/อำเภอ"))
-            continue
+        # An Overture page another source puts on the same campus is a school that happens to sit
+        # near the area centre (Kornkaew on Soi Ari 3, Wells On Nut), not a page pinned at the centre.
+        if at_centre(c):
+            if not (c["source"] == "overture" and any(
+                    o["source"] != "overture" and not at_centre(o) and _agree(o, c) for o in cands)):
+                areas.append(dict(c, kind="area", rank=2, label=f"{SOURCE_NAME[c['source']]} = จุดกลางตำบล/อำเภอ"))
+                continue
+            c["at_centre"] = True   # it may vote, but the map takes another member of its group (Wells On Nut: OPEC)
+        # Which khet/amphoe and khwaeng/tambon the point is in (OSM boundaries). Storable points only (the
+        # lookup is cached by coordinate), and only those that can matter: OPEC, inside the old box, or
+        # within the radius a lone pin is trusted in (Asia Singapore, Khon Kaen: 3.5 km out of its tambon box).
+        if _storable(c) and (c["source"] == "opec" or _in_registered_area(c, anchor, tight)
+                             or (c.get("anchor_m") is not None and c["anchor_m"] <= tight)):
+            c["amphoe_ok"], c["tambon_ok"] = src.admin_match(src.admin_area(c["lat"], c["lon"]), school)
         kept.append(c)
     areas = [a for a in areas
              if is_coords_in_province(a["lat"], a["lon"], prov) and (not anchor or _dist(anchor, a) <= loose)]
-    return {"anchor": anchor, "cands": kept, "areas": areas}
+    # ArcGIS, Nominatim or the school's own site did not answer: its result is checked again next run
+    return {"anchor": anchor, "cands": kept, "areas": areas, "incomplete": src.take_failed() or site_failed}
 
 
 def find_shared_pins(collected, schools_by_code):
@@ -379,26 +401,40 @@ def find_shared_pins(collected, schools_by_code):
         "opec": repeated(pins["opec"], lambda x, y: True),
     }
 
+    # Owner of a repeated OPEC pin: the one record, among every OPEC pin within 60 m of it, whose
+    # registered khet/amphoe holds it (Wells On Nut vs Wells Watthana). Per cluster, not per key:
+    # the two Udon records sit 8 m apart under different keys and must both stay shared.
+    repeated_opec = set(shared["opec"])
+    owner = {}
+    for c, code, _ in pins["opec"]:
+        if _pin_key(c) in repeated_opec:
+            near = {code_b for b, code_b, _ in pins["opec"] if _dist(c, b) <= 60 and b.get("amphoe_ok")}
+            if len(near) == 1:
+                owner[_pin_key(c)] = near.pop()
+
     # Merge with what earlier runs saw, so a single-school re-check still knows them.
     try:
         old = json.load(io.open(SHARED_PINS_CACHE, encoding="utf-8"))
-        for k in shared:
+        for k in ("website", "opec"):
             shared[k] = sorted(set(shared[k]) | set(old.get(k, [])))
+        owner = {**old.get("opec_owner", {}), **owner}
     except Exception:
         pass
+    shared["opec_owner"] = owner
     try:
         os.makedirs(src.CACHE_DIR, exist_ok=True)
         io.open(SHARED_PINS_CACHE, "w", encoding="utf-8").write(json.dumps(shared))
     except Exception:
         pass
-    return {k: set(v) for k, v in shared.items()}
+    return {k: (v if k == "opec_owner" else set(v)) for k, v in shared.items()}
 
 
 def _load_shared_pins():
     try:
-        return {k: set(v) for k, v in json.load(io.open(SHARED_PINS_CACHE, encoding="utf-8")).items()}
+        return {k: (v if k == "opec_owner" else set(v))
+                for k, v in json.load(io.open(SHARED_PINS_CACHE, encoding="utf-8")).items()}
     except Exception:
-        return {"website": set(), "opec": set()}
+        return {"website": set(), "opec": set(), "opec_owner": {}}
 
 
 # ─── decision ────────────────────────────────────────────────────────────────
@@ -437,6 +473,8 @@ def _map_rank(c):
     """Which member of an agreeing group goes on the map: the most precise one."""
     if c["source"] == "osm" and str(c.get("osm_id", "")).startswith(("w", "r")):
         return 0   # centre of the campus outline
+    if c.get("at_centre"):
+        return 5   # within 150 m of the area centre: placed there for want of better, maybe
     return {"arcgis_poi": 1, "osm": 2, "overture": 2, "dopa": 3, "opec": 4, "arcgis_address": 6}.get(
         c["source"], 3 if c.get("pin") == "place" else 5)
 
@@ -455,6 +493,8 @@ def _in_registered_area(c, anchor, tight):
     Nong Chok ~19), which a single radius cannot. Falls back to the radius when ArcGIS
     gave no extent.
     """
+    if c.get("amphoe_ok") is False:
+        return False   # OSM puts it in another khet/amphoe; the box below may only ever say no more often
     if not anchor:
         return False
     ext = anchor.get("extent")
@@ -464,13 +504,35 @@ def _in_registered_area(c, anchor, tight):
     return c.get("anchor_m") is not None and c["anchor_m"] <= tight
 
 
+def _group_in_area(members, anchor, tight):
+    """
+    A group of agreeing pins lies in the registered area. Once a storable member has an OSM answer, only
+    those members vote: ArcGIS members are never looked up, and their box answer would let a sister
+    campus 4-9 km away count as ours (Wells Watthana for On Nut, RIS main campus for Early Years).
+    """
+    voters = [c for c in members if FAMILY[c["source"]] != "address" and not c.get("shared")]
+    if any(c.get("amphoe_ok") is not None for c in voters):
+        voters = [c for c in voters if c.get("amphoe_ok") is not None]
+    return any(_in_registered_area(c, anchor, tight) for c in voters)
+
+
+def _strength(c):
+    """How surely a lone candidate IS this school (lower is surer), for the Approximate fallback."""
+    if _identified(c):
+        return 0
+    if (c["source"] == "opec" and not c.get("shared")) or c["source"] == "website" or "domain" in (c.get("keys") or []):
+        return 1   # its own OPEC registration, a pin on its own website, the Overture page carrying its website
+    return 3 if c.get("shared") else 2   # a match on descriptive words only / an OPEC pin two records share
+
+
 def _evidence(cands, chosen):
     return [{"source": c["source"],
              **({"lat": c["lat"], "lon": c["lon"]} if _storable(c) else {}),
              "distance_m": round(_dist(c, chosen)), "label": str(c.get("label", ""))[:90],
              # the inputs decide() used, so a rule change can be re-checked offline
              **{k: c[k] for k in ("pin", "origin", "score", "osm_id", "anchor_m", "shared", "copy", "keys",
-                                   "confidence", "overture_id", "category") if c.get(k) is not None}}
+                                   "confidence", "overture_id", "category", "amphoe_ok", "tambon_ok", "at_centre")
+                if c.get(k) is not None}}
             for c in cands]
 
 
@@ -500,7 +562,8 @@ def decide(school, info, shared, multi_campus_brands=frozenset()):
     for c in info["cands"]:
         if c["source"] == "website" and _pin_key(c) in shared.get("website", set()):
             continue   # a template map, not this school's
-        if c["source"] == "opec" and _pin_key(c) in shared.get("opec", set()):
+        if (c["source"] == "opec" and _pin_key(c) in shared.get("opec", set())
+                and shared.get("opec_owner", {}).get(_pin_key(c)) != str(school.get("school_code") or "").strip()):
             c = dict(c, shared=True)
         cands.append(c)
 
@@ -522,7 +585,7 @@ def decide(school, info, shared, multi_campus_brands=frozenset()):
         # name, so website + map can agree on the WRONG campus. OPEC is registered per
         # campus: require it in the group, or require the group to sit in our tambon.
         own_opec = any(c["source"] == "opec" and not c.get("shared") for c in members)
-        confirmed = confirmed and (own_opec or any(_in_registered_area(c, anchor, tight) for c in members))
+        confirmed = confirmed and (own_opec or _group_in_area(members, anchor, tight))
         if LICENCE_MODE == "open":
             # ArcGIS POI + ArcGIS house number is one provider agreeing with itself, and a
             # point nobody may store cannot be published: need two distinct providers and
@@ -534,10 +597,14 @@ def decide(school, info, shared, multi_campus_brands=frozenset()):
         # A confirmed group inside the registered area beats one outside it: OPEC sometimes
         # pins a campus at its parent school, and the parent's own map entries then agree
         # with that pin (Beaconhouse Yamsaard, Phatthanakan 78, was pinned in Lat Phrao).
-        in_area = any(_in_registered_area(c, anchor, tight) for c in members
-                      if FAMILY[c["source"]] != "address" and not c.get("shared"))
-        # On a tie, prefer the group holding the school's own OPEC registration.
-        key = (confirmed, in_area, len(strong), own_opec, len(fams), -(seed.get("anchor_m") or 0))
+        in_area = _group_in_area(members, anchor, tight)
+        tambons = [c.get("tambon_ok") for c in members if not c.get("shared")]
+        # Known to lie in another khwaeng/tambon. An unknown answer (Nominatim gave a เทศบาล, not a
+        # ตำบล) is not "out": D-PREP's main campus would otherwise lose to its secondary site.
+        tambon_out = False in tambons and True not in tambons
+        # On a tie, prefer the group holding the school's own OPEC registration, then one not known to
+        # be in another khwaeng/tambon (Bangkok Prep: Rim Khlong, not Sukhumvit 53), then the nearer one.
+        key = (confirmed, in_area, len(strong), own_opec, not tambon_out, len(fams), -(seed.get("anchor_m") or 0))
         if best is None or key > best[0]:
             best = (key, members, fams)
     if best and best[0][0]:
@@ -586,16 +653,21 @@ def decide(school, info, shared, multi_campus_brands=frozenset()):
 
     # Nothing confirms a building-level pin. Show the most credible point, say why.
     fallback_order = {"map": 0, "overture": 0, "gov": 0, "opec": 1, "website": 2, "address": 3}
-    pool = sorted(cands, key=lambda c: (not _storable(c), not _in_registered_area(c, anchor, tight),
-                                        fallback_order[FAMILY[c["source"]]],
+    pool = sorted(cands, key=lambda c: (not _storable(c), not _in_registered_area(c, anchor, tight), _strength(c),
+                                        c.get("tambon_ok") is False, fallback_order[FAMILY[c["source"]]],
                                         c.get("shared", False), c.get("anchor_m") or 0))
+    # A sister campus or a "Bangkok" placeholder page in another khet/amphoe is not an approximation of
+    # this school (SISB Nonthaburi got Phra Nakhon), and neither is an OPEC pin there (Thai Sikh's sits in
+    # Samut Prakan): a wrong pin misleads the distance sort, no pin does not.
+    pool = [c for c in pool if c.get("amphoe_ok") is not False and (
+            c["source"] == "opec" or not anchor or c.get("amphoe_ok")
+            or _in_registered_area(c, anchor, tight) or (c.get("anchor_m") or 0) <= tight)]
     if LICENCE_MODE == "open":
         # ArcGIS may vote, but its points (POI, house number, area centre) are not ours
         # to keep — not even as an Approximate fallback.
         pool = [c for c in pool if _storable(c)]
         if not pool:
-            return _no_point("ยังไม่มีพิกัดจากแหล่งที่อนุญาตให้เก็บ (มีแต่ ArcGIS ซึ่งใช้ตรวจได้แต่เก็บไม่ได้) "
-                             "— รอแอดมินปักหมุด", cands, anchor=anchor)
+            return _no_point("ยังไม่พบพิกัดที่เก็บได้ในเขต/อำเภอที่จดทะเบียน — จะหาใหม่ทุกครั้งที่กดปักหมุด GPS", cands, anchor=anchor)
     if pool:
         c = pool[0]
         name = SOURCE_NAME[c["source"]]
@@ -655,13 +727,30 @@ def _mark_unverified(school):
     if school.get("gps_locked"):
         return
     has_point = bool(school.get("latitude") and school.get("longitude"))
+    anchor = school.get("gps_anchor")
     school.update({
         "gps_precision": "Approximate" if has_point else "None",
         "gps_confidence": "low",
         "gps_source": "พิกัดเดิม ตรวจยืนยันจากแหล่งใดไม่ได้ (พิกัดประมาณการ)" if has_point else "",
         "gps_confirmed_by": [], "gps_evidence": [],
+        # an anchor saved by an older run may still carry ArcGIS coordinates
+        "gps_anchor": ({k: anchor[k] for k in ("level", "label") if k in anchor}
+                       if LICENCE_MODE == "open" and isinstance(anchor, dict) else anchor),
         "gps_method": GPS_METHOD, "gps_verified": False,
     })
+
+
+def _keeps_old_pin(school, result):
+    """
+    A run that finds nothing we may store does not erase the pin an earlier run stored (Asia Singapore:
+    Overture dropped the domain it matched on), unless OSM puts that pin in another khet/amphoe, i.e.
+    it is wrong rather than unconfirmed (SISB Nonthaburi, Middleton). Every unlocked pin in the data
+    file came from a storable source, so it may be looked up.
+    """
+    if result["precision"] != "None" or not (school.get("latitude") and school.get("longitude")):
+        return False
+    amphoe_ok, _ = src.admin_match(src.admin_area(float(school["latitude"]), float(school["longitude"])), school)
+    return amphoe_ok is not False
 
 
 def _own_opec_backs(school):
@@ -751,9 +840,11 @@ def enrich_single_school_gps(school):
         return school, {}   # pinned by hand: nothing to re-check
     _backfill_opec_coordinates([school])
     info = collect_candidates(school, _website_for(school, _registry()))
+    if info["incomplete"] and school.get("latitude"):
+        return school, {}   # ArcGIS, Nominatim or its own site did not answer: change nothing rather than decide half-blind
     result = decide(school, info, _load_shared_pins(), _multi_campus_brands(load_schools() or [school]))
     before = {k: school.get(k) for k in ("latitude", "longitude", "gps_source", "gps_precision")}
-    if result:
+    if result and not _keeps_old_pin(school, result):
         _apply(school, result)
         others = [o for o in (load_schools() or [])
                   if str(o.get("school_code")) != str(school.get("school_code"))]
@@ -811,12 +902,24 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
 
     shared = find_shared_pins(collected, by_code)
     multi = _multi_campus_brands(schools)
-    exact = approx = none = 0
+    exact = approx = none = retry = 0
     for i, s in enumerate(targets, 1):
         code = str(s.get("school_code")).strip()
         info = collected.get(code)
+        if info and info["incomplete"] and s.get("latitude"):
+            # Keep the old pin and its method: the next run, not this half-blind one, decides it.
+            retry += 1
+            approx += s.get("gps_precision") != "Exact"
+            exact += s.get("gps_precision") == "Exact"
+            update_progress(f"ตัดสินพิกัด ({i}/{total})", i, total,
+                            f"[GPS: {i}/{total}] {s.get('school_name_th')}: ArcGIS/OpenStreetMap/เว็บโรงเรียนไม่ตอบ คงหมุดเดิมไว้")
+            continue
         result = decide(s, info, shared, multi) if info else None
-        if result:
+        if result and _keeps_old_pin(s, result):
+            _mark_unverified(s)
+            approx += 1
+            msg = f"[GPS: {i}/{total}] {s.get('school_name_th')}: ไม่พบหลักฐานใหม่ คงหมุดเดิมเป็น Approximate"
+        elif result:
             _apply(s, result)
             exact += result["precision"] == "Exact"
             approx += result["precision"] == "Approximate"
@@ -846,6 +949,7 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
         f"ตรวจพิกัด GPS เสร็จแล้ว ({total} แห่ง)\n"
         f"  - Exact (มีหลักฐานยืนยันว่าเป็นตัวโรงเรียน): {exact} แห่ง\n"
         f"  - Approximate (ยังไม่มีหลักฐานพอ ดูเหตุผลใน gps_source): {approx} แห่ง\n"
-        f"  - None (ไม่มีพิกัดที่เก็บได้ รอแอดมินปักหมุด): {none} แห่ง\n"
-        f"  - หลักฐานจากทุกแหล่งเก็บไว้ในฟิลด์ gps_evidence"))
+        f"  - None (ยังไม่พบพิกัดที่เก็บได้ จะหาใหม่รอบหน้า): {none} แห่ง\n"
+        + (f"  - ArcGIS/OpenStreetMap/เว็บโรงเรียนไม่ตอบ {retry} แห่ง คงหมุดเดิมไว้ กดปุ่มนี้อีกครั้งเพื่อตรวจซ้ำ\n" if retry else "")
+        + "  - หลักฐานจากทุกแหล่งเก็บไว้ในฟิลด์ gps_evidence"))
     return schools
