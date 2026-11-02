@@ -61,6 +61,7 @@ from website_registry import (  # type: ignore
     bulk_sync_from_reference_txt,
     run_bulk_health_check,
     get_health_state,
+    save_link_health,
 )
 from enrich_from_isat import run_isat_enrichment  # type: ignore
 from public_queries import fetch_published_fees, fetch_forum_posts, fetch_school_sources  # type: ignore
@@ -234,6 +235,7 @@ def step_websites(progress):
     records = resolve_all_official_websites(progress)
     set_current_schools(records)
     _sync(progress, "เว็บไซต์", update_supabase_school_websites, records)
+    _sync(progress, "ผลตรวจลิงก์", save_link_health, records)   # the step opened every link: the health check
 
 
 def step_gps(progress):

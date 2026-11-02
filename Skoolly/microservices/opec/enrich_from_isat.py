@@ -239,6 +239,8 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
         opec["accreditations"] = isat.get("accreditations") or []
         if isat.get("logo_url") and not opec.get("school_logo_url"):
             opec["school_logo_url"] = isat["logo_url"]
+        # the website the school gave ISAT itself; the website step checks it opens before using it
+        opec["isat_website"] = (isat.get("website") or "").strip()
 
         matched_results.append({
             "school_code": opec.get("school_code"),
@@ -259,6 +261,7 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
             s["isat_school_name"] = None
             s["is_boarding"] = False
             s["accreditations"] = []
+            s["isat_website"] = ""
 
     log(f"จับคู่โรงเรียน ISAT กับ สช. สำเร็จ: {matched_count} / {len(isat_schools)} โรงเรียน", 60, 100)
     for u in unmatched:

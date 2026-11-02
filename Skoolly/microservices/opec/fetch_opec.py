@@ -238,7 +238,7 @@ def merge_with_previous(fresh, old):
     OPEC's own fields take the fresh value, except one this run could not read (None).
     What the later steps added is kept:
       - school_name_en: OPEC's name wins unless it is empty or garbled (enrich_school_names_en)
-      - website: a verified or hand-edited URL outranks OPEC's; a guessed one stays until OPEC has one
+      - website: what the website step or an admin decided outranks OPEC's own value (kept in opec_website)
       - GPS: the checked result stays while its inputs (OPEC pin, address) are unchanged
       - ISAT fields and anything else OPEC does not supply
     """
@@ -252,7 +252,7 @@ def merge_with_previous(fresh, old):
 
     old_web = str(old.get("website") or "").strip()
     old_src = str(old.get("website_source") or "")
-    if old_web and (old_src.startswith("Verified") or old_src == "Manual Edit" or not fresh.get("website")):
+    if old_web and (old_src not in ("OPEC Profile", "Not Checked") or not fresh.get("website")):
         merged["website"], merged["website_source"] = old_web, old_src
 
     if all(str(old.get(k) or "") == str(fresh.get(k) or "") for k in GPS_INPUTS):

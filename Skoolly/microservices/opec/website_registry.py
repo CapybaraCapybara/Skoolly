@@ -12,22 +12,9 @@ import threading
 import time
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
-import urllib3
 from data_manager import load_schools, save_schools
 from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
-from fetch_official_websites import reset_verified_registry
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-health_session = requests.Session()
-health_adapter = requests.adapters.HTTPAdapter(pool_connections=50, pool_maxsize=50, max_retries=1)
-health_session.mount("https://", health_adapter)
-health_session.mount("http://", health_adapter)
-health_session.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-})
+from fetch_official_websites import reset_verified_registry, check_link
 
 health_lock = threading.Lock()
 health_state: Dict[str, Any] = {
@@ -164,13 +151,10 @@ def get_full_registry_status() -> Dict[str, Any]:
         db_reg = db_registry_map.get(code, {})
         txt_e = txt_entries.get(code, {})
 
-        # Priority of URLs:
-        # 1) Official permanent registry (if verified)
-        # 2) Live database official_website_url
-        # 3) Local JSON website
-        # 4) Reference text
-        current_url = db_reg.get("website_url") or db_s.get("official_website_url") or s.get("website") or txt_e.get("url") or ""
-        source = db_reg.get("source") or db_s.get("website_source") or s.get("website_source") or ("Verified Official Registry" if txt_e.get("url") else "Not Checked")
+        # Priority of URLs: what the site uses now (the website step's decision, health-checked on
+        # the same run), then the registry, the local JSON and the reference text
+        current_url = db_s.get("official_website_url") or db_reg.get("website_url") or s.get("website") or txt_e.get("url") or ""
+        source = db_s.get("website_source") or db_reg.get("source") or s.get("website_source") or ("Verified Official Registry" if txt_e.get("url") else "Not Checked")
         
         # Determine verified status from permanent registry first
         is_verified = bool(db_reg.get("is_verified")) or "Verified" in source or (bool(txt_e.get("url")) and txt_e.get("url") == current_url)
@@ -405,40 +389,54 @@ def get_health_state() -> Dict[str, Any]:
     """Returns the current state of the health check background task."""
     return dict(health_state)
 
-def check_single_url_health(url: str, timeout: int = 7) -> tuple[int, bool, str]:
+# check_link state -> (is_broken, reason shown in the admin link check)
+HEALTH = {
+    "ok": (False, "OK"),
+    "blocked": (False, "Protected (Bot Shield)"),
+    "chain": (False, "Incomplete Certificate Chain (browsers open it)"),
+    "busy": (True, "Timeout / Server Error"),
+    "cert": (True, "SSL Certificate Error"),
+    "dead": (True, "Dead Link"),
+}
+
+
+def check_single_url_health(url: str) -> tuple[int, bool, str]:
     """
-    Checks if a single school URL is alive, dead, or failing.
+    Opens a school URL like a visitor would (GET, certificate checked; HEAD misreported pages that load).
     Returns: (http_status, is_broken, reason)
     """
     if not url or not url.strip():
         return (0, False, "No URL")
-    clean_url = url.strip()
-    if not clean_url.startswith("http"):
-        clean_url = f"https://{clean_url}"
-    try:
-        resp = health_session.head(clean_url, timeout=timeout, allow_redirects=True, verify=False)
-        if resp.status_code in (405, 403, 401, 501):
-            resp = health_session.get(clean_url, timeout=timeout, allow_redirects=True, stream=True, verify=False)
-        
-        status = resp.status_code
-        if 200 <= status < 400:
-            return (status, False, "OK")
-        elif status in (401, 403):
-            return (status, False, "Protected (Bot Shield)")
-        elif status == 404:
-            return (status, True, "404 Not Found")
-        elif status >= 500:
-            return (status, True, f"Server Error ({status})")
-        else:
-            return (status, True, f"HTTP {status}")
-    except requests.exceptions.SSLError:
-        return (0, True, "SSL Certificate Error")
-    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout):
-        return (0, True, "Connection Timeout")
-    except requests.exceptions.ConnectionError:
-        return (0, True, "DNS / Connection Failed")
-    except Exception as e:
-        return (0, True, str(e)[:50])
+    page = check_link(url)
+    return (page.get("code") or 0, *HEALTH[page["state"]])
+
+
+def save_link_health(schools, progress=None) -> int:
+    """Stores what the website step saw when it opened each school's link (website_check) in the registry."""
+    rows = [(s["school_code"], s.get("website_http_status") or 0, *HEALTH[s["website_check"]])
+            for s in schools if s.get("website_check") in HEALTH]
+    dsn = get_current_dsn()
+    if not rows or not dsn or not psycopg:
+        return 0
+    return _write_health(dsn, rows)
+
+
+def _write_health(dsn, rows) -> int:
+    with db_connect(dsn) as conn:
+        with conn.cursor() as cur:
+            changed = 0
+            for code, status_code, is_broken, reason in rows:
+                cur.execute("""
+                    UPDATE school_data.official_website_registry
+                    SET http_status = %(status)s,
+                        is_broken = %(broken)s,
+                        error_reason = %(reason)s,
+                        last_checked_at = NOW()
+                    WHERE school_code = %(code)s
+                """, {"status": status_code, "broken": is_broken, "reason": reason, "code": code})
+                changed += cur.rowcount
+        conn.commit()
+    return changed
 
 def run_bulk_health_check() -> Dict[str, Any]:
     """
@@ -506,19 +504,7 @@ def _bulk_health_check() -> Dict[str, Any]:
                     health_state["healthy_count"] += 1
                 health_state["message"] = f"ตรวจแล้ว {len(results)}/{total} แห่ง (พบปัญหา: {health_state['broken_count']} แห่ง)"
 
-        # Batch update Supabase
-        with db_connect(dsn) as conn:
-            with conn.cursor() as cur:
-                for code, status_code, is_broken, reason in results:
-                    cur.execute("""
-                        UPDATE school_data.official_website_registry
-                        SET http_status = %(status)s,
-                            is_broken = %(broken)s,
-                            error_reason = %(reason)s,
-                            last_checked_at = NOW()
-                        WHERE school_code = %(code)s
-                    """, {"status": status_code, "broken": is_broken, "reason": reason, "code": code})
-                conn.commit()
+        _write_health(dsn, results)
 
         health_state["message"] = f"ตรวจเสร็จสมบูรณ์ {total} แห่ง! ปกติ {health_state['healthy_count']} แห่ง, มีปัญหา {health_state['broken_count']} แห่ง"
         health_state["last_run_at"] = time.strftime("%Y-%m-%d %H:%M:%S")

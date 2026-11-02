@@ -20,7 +20,8 @@ OPEC, ISAT, เว็บไซต์โรงเรียน, ArcGIS และ O
     --continue   ทำต่อจากผลรอบก่อนในโฟลเดอร์ preview แทนการเริ่มจากข้อมูลจริง
 
 ผลแต่ละรอบอยู่ใน .tmp-pipeline-preview/report-<ขั้น>.md และข้อมูลหลังรันอยู่ใน .tmp-pipeline-preview/data/
-ทะเบียนเว็บไซต์มาจาก reference/schoolAndURL.txt (ไม่อ่านตารางใน Supabase) ผลที่ขึ้นกับเว็บไซต์จึงอาจต่างจากของจริงได้
+ขั้นค้นหา Website ต้องอ่านลิงก์ที่ใช้อยู่จาก Supabase จึงหยุดที่ขั้นนี้ใน preview (all และ auto หยุดตรงนี้ด้วย)
+ถ้าจะดูผลขั้นนี้แบบไม่เขียนอะไร ใช้ dry run ที่อ่านฐานอย่างเดียวแทน
 """
 
 import argparse
@@ -35,7 +36,7 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parent.parent          # Skoolly/
 WORK = APP_DIR / ".tmp-pipeline-preview"
 DATASET = Path("data") / "international_schools_thailand_opec.json"
-REFERENCE_FILES = ("schoolAndURL.txt", "dopa_gis02_schools.json")
+REFERENCE_FILES = ("dopa_gis02_schools.json",)
 
 # Fields that change on every run and say nothing about the data itself
 VOLATILE = {"no", "fetched_at", "last_updated"}

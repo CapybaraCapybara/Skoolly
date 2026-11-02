@@ -1,44 +1,39 @@
 """
 fetch_official_websites.py
-โมดูลสำหรับปุ่มที่ 4: ค้นหา & ตรวจสอบ Official Website ทางการของโรงเรียนนานาชาติ
+ขั้น "ค้นหา Website": ระบบตัดสินเว็บไซต์ทางการของแต่ละโรงเรียนเอง ไม่อ่านรายชื่อที่คนพิมพ์ไว้ (schoolAndURL.txt)
 
-ลำดับความน่าเชื่อถือ (สูง -> ต่ำ) ทุกชั้นต้องผ่านการตรวจสอบก่อนเขียนทับข้อมูลเดิม:
+ลำดับ (สูง -> ต่ำ):
 
-1. Verified Registry (reference/schoolAndURL.txt)
-   ทะเบียนที่ตรวจสอบด้วยมือแล้ว จับคู่ด้วย school_code ก่อน ถ้าไม่เจอจึงจับคู่ด้วยชื่อ
-   ที่ normalize แล้ว (รองรับกรณี สช. เปลี่ยนรหัสโรงเรียน)
+0. ลิงก์ที่คนแก้ไว้เอง (ทะเบียนที่ verified_by = 'Admin' หรือ website_source = 'Manual Edit') ระบบไม่แตะ
+   รวมถึงแถวที่แอดมินบันทึกว่าโรงเรียนไม่มีเว็บ
 
-2. OPEC Profile (ฟิลด์ opec_website เท่านั้น)
-   ปัจจุบัน API ของ สช. ยังไม่ส่ง website มาเลยสักแห่ง แต่ถ้าวันหนึ่งส่งมา ค่านั้นจะถูก
-   เก็บแยกไว้ใน opec_website โดย fetch_opec.py และ "ห้าม" โมดูลนี้เขียนทับ
-   เหตุผลที่ต้องแยกฟิลด์: เดิมโมดูลนี้อ่าน s["website"] ที่ตัวเองเขียนไว้รอบก่อน แล้วติดป้าย
-   ว่า "OPEC Profile" ทำให้ผลเดาจากรอบก่อนกลายเป็นข้อมูลทางการถาวรและแก้ไม่ได้อีกเลย
+1. ลิงก์ที่โรงเรียนแจ้งเอง: ISAT (isat_website จากขั้นซิงค์ ISAT) แล้วจึง สช. (opec_website)
+   ใช้ได้เมื่อเปิดหน้าได้จริงเท่านั้น ลิงก์ ISAT ที่เป็นโดเมนเก่าหรือเสียรูป ("https://", "sv.info@sisbschool")
+   ถูกตัดตรงนี้ ถ้าเป็นเว็บเดียวกับลิงก์ที่ใช้อยู่ จะคงลิงก์เดิมไว้ เพราะลิงก์เดิมมักเป็นหน้าวิทยาเขต
+   ส่วน ISAT มักให้หน้าแรกของเครือ และตัวดึงค่าเทอมเริ่มอ่านจากหน้านี้
 
-3. Brand Domain (อนุมานจากทะเบียน)
-   วิทยาเขตใหม่ที่ยังไม่อยู่ในทะเบียน จะเดาโดเมนจากโรงเรียนในเครือเดียวกันที่อยู่ในทะเบียนแล้ว
-   ไม่ hardcode URL รายโรงเรียนอีกต่อไป (ของเดิม hardcode ไว้ ~20 URL ซึ่งซ้ำกับทะเบียน)
+2. ลิงก์ที่ใช้อยู่ (school_data.schools) ที่ยังเปิดได้: คงไว้ ถ้า Overture ลงเว็บเดียวกันไว้จะติดป้าย Overture
+   ถ้าไม่มีแหล่งไหนยืนยันจะติดป้าย Previous Link
 
-4. Algorithmic Probe + Relevance Check
-   สร้างโดเมนผู้สมัครจากชื่อโรงเรียน แล้วต้องผ่านทั้ง DNS, HTTP, ตัวกรอง parked domain
-   และ "ตรวจเนื้อหาหน้าเว็บว่าเป็นของโรงเรียนนั้นจริง" ก่อนจึงยอมรับ
-   ชั้นนี้คือต้นเหตุของ false positive เดิม เช่น ipc.com / kids.org / crescent.com
-   ซึ่งเป็นโดเมนของธุรกิจอื่นที่บังเอิญชื่อพ้องกัน
+3. ลิงก์เดิมว่างหรือเสีย และไม่มีลิงก์ที่โรงเรียนแจ้งที่เปิดได้: หาเองจาก Overture และโดเมนที่สร้างจากชื่อ
+   รับเมื่อสองแหล่งชี้เว็บเดียวกันและเปิดได้อย่างน้อยหนึ่ง หรือ Overture แหล่งเดียวที่ผ่านการตรวจหน้าเว็บแบบเข้ม
+   โดเมนที่สร้างจากชื่อแหล่งเดียวไม่รับ เพราะได้เว็บของสถาบันไทยหรือโรงเรียนต่างประเทศที่ชื่อพ้องกัน
+   (rajapark.ac.th, spgs.org)
 
-ถ้าไม่มีชั้นไหนผ่านเลย จะ "คงค่าเดิมไว้" ไม่ล้างเป็นค่าว่าง
+ไม่มีชั้นไหนได้ผล จะคงค่าเดิมไว้ ไม่ล้างเป็นค่าว่าง
+ทุกลิงก์ที่ตัดสินแล้วถูกเปิดตรวจในรอบเดียวกัน (check_link) ผลอยู่ใน website_check ของแต่ละโรงเรียน
+และ step_websites บันทึกลงทะเบียนเว็บไซต์ให้หน้าตรวจลิงก์ของแอดมินแสดง
 """
 
-import os
 import re
 import time
 import socket
 import threading
+from urllib.parse import urlsplit
 import requests
-import urllib3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from data_manager import load_schools, save_schools
-
-# Disable SSL warnings
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import gps_sources as src
 
 # High-Performance HTTP Session
 session = requests.Session()
@@ -51,24 +46,6 @@ session.headers.update({
     "Accept-Language": "en-US,en;q=0.9,th;q=0.8"
 })
 
-def _find_reference_file():
-    """
-    reference/schoolAndURL.txt sits at the repo root, not next to this module.
-    The old code looked only inside microservices/opec/, so the registry silently
-    loaded 0 entries and every school fell through to domain guessing.
-    Walk up the tree so it resolves regardless of the service's working directory.
-    """
-    d = os.path.dirname(os.path.abspath(__file__))
-    for _ in range(5):
-        for candidate in (os.path.join(d, "reference", "schoolAndURL.txt"),
-                          os.path.join(d, "schoolAndURL.txt")):
-            if os.path.exists(candidate):
-                return candidate
-        d = os.path.dirname(d)
-    return ""
-
-REFERENCE_FILE = _find_reference_file()
-
 DISQUALIFIED_DOMAINS = {
     'perfectdomain.com', 'expireddomains.com', 'hugedomains.com', 'dan.com',
     'sedo.com', 'godaddy.com', 'namecheap.com', 'domainmarketplace',
@@ -77,6 +54,7 @@ DISQUALIFIED_DOMAINS = {
     'forsale.godaddy.com', 'domainnameshop.com', 'namefind.com', 'atom.com',
     'domainmanage.com', 'facebook.com', 'instagram.com', 'youtube.com', 'twitter.com', 'tiktok.com',
     'linkedin.com', 'pantip.com', 'bing.com',
+    'linktr.ee', 'lin.ee', 'line.me', 'tinyurl.com', 'bit.ly', 'goo.gl',
     'schoolandcollegelistings.com', 'yellowpages.co.th', 'wongnai.com',
     'international-schools-database.com', 'bangkokpost.com', 'thailandee.com',
     'internationalschoolsinbangkok.com', 'edarabia.com',
@@ -92,8 +70,6 @@ PARKED_PAGE_PATTERNS = [
     'error 404', '404 not found', 'page not found', 'bealbright.ac.th'
 ]
 
-FOREIGN_DISQUALIFIED_TLDS = ['.co.uk', '.ac.uk', '.edu.au', '.gov.au', '.edu.sg', '.gov.sg', '.co.nz']
-
 # Words carrying no identity — nearly every school shares them, so they must never
 # be what makes a domain or a page look like the right school.
 GENERIC_WORDS = {
@@ -103,17 +79,17 @@ GENERIC_WORDS = {
     'thailand', 'thai', 'bangkok', 'education', 'learning', 'centre', 'center', 'student',
 }
 
-# A genuine school homepage says so somewhere in its first screenful.
-SCHOOL_PAGE_HINTS = (
-    'school', 'kindergarten', 'academy', 'campus', 'admission', 'curriculum', 'pupil',
-    'student', 'nursery', 'preschool', 'igcse', 'early years',
-    'โรงเรียน', 'นานาชาติ', 'อนุบาล', 'หลักสูตร', 'รับสมัคร', 'นักเรียน',
-)
+SELF_REPORTED = (("isat_website", "ISAT"), ("opec_website", "OPEC Profile"))
+ALIVE = ("ok", "blocked", "chain", "busy", "cert")   # the site is there even when a script cannot read it
+SHARED_HOSTS = ("wixsite.com", "wordpress.com", "blogspot.com", "weebly.com")
+INTL_WORDS = ("international", "นานาชาติ", "อินเตอร์")
+LINK_TIMEOUT = (5, 15)
+OVERTURE_RADIUS_M = 1500
+OVERTURE_MIN_CONFIDENCE = 0.3   # same floor the GPS step uses
 
 dns_cache = {}
-reference_registry = {}     # school_code -> url
-registry_by_name = {}       # normalized english name -> url
-brand_domains = {}          # distinctive brand token -> domain
+current_links = {}          # school_code -> the link school_data.schools holds now
+admin_links = {}            # school_code -> link someone set by hand ("" = the school has no website)
 _registry_lock = threading.Lock()
 _registry_state = {"loaded": False}
 
@@ -124,111 +100,56 @@ def _normalize_name(name):
     return " ".join(w for w in cleaned.split() if w and w not in GENERIC_WORDS)
 
 
-def _domain_of(url):
-    return re.sub(r'^(https?://)?(www\.)?', '', (url or '').lower()).split('/')[0].split(':')[0]
+def _name_words(name_en):
+    return [w for w in _normalize_name(name_en).split() if len(w) >= 3]
 
 
 def reset_verified_registry():
-    """Forgets the loaded registry, so the next lookup reads it again (after an admin edits it)."""
+    """Forgets the loaded links, so the next lookup reads them again (after an admin edits one)."""
     with _registry_lock:
         _registry_state["loaded"] = False
 
 
 def load_verified_registry(force=False):
     """
-    Loads the hand-verified school_code -> official URL mapping, and derives two
-    extra indexes from it:
-      - registry_by_name: fallback match when OPEC reissues a school_code
-      - brand_domains:    lets a new campus inherit its group's domain, replacing
-                          the ~20 hardcoded per-school URLs the old version carried
-
-    Read on first use, not at import (so starting the service never waits on the
-    database), then kept; `force` or reset_verified_registry() makes the next call
-    read it again.
+    school_code -> the link the site uses now, read from Supabase on first use and then kept;
+    also fills admin_links. `force` or reset_verified_registry() makes the next call read again.
     """
     with _registry_lock:
-        if _registry_state["loaded"] and not force:
-            return reference_registry
-        reference_registry.clear()
-        registry_by_name.clear()
-        brand_domains.clear()
-        _read_registry()
-        _registry_state["loaded"] = True
-        return reference_registry
+        if not _registry_state["loaded"] or force:
+            current_links.clear()
+            admin_links.clear()
+            _read_registry()
+            _registry_state["loaded"] = True
+        return current_links
 
 
 def _read_registry():
-    brand_hits = {}
+    """
+    The links school_data.schools holds and the ones an admin set by hand. Raises when the database
+    cannot be read: deciding without the current links would swap good campus pages for guesses.
+    """
+    from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
+    dsn = get_current_dsn()
+    if not (dsn and psycopg):
+        raise RuntimeError("ต่อ Supabase ไม่ได้ จึงไม่รู้ลิงก์ที่ใช้อยู่ ขั้นค้นหา Website หยุดไว้ก่อน")
+    with db_connect(dsn, row_factory=dict_row, connect_timeout=10) as conn:
+        schools = conn.execute(
+            "SELECT opec_school_code, official_website_url, website_source FROM school_data.schools").fetchall()
+        fixed = conn.execute("""
+            SELECT school_code, website_url FROM school_data.official_website_registry
+            WHERE verified_by = 'Admin' AND is_verified""").fetchall()
+    for r in schools:
+        code = str(r["opec_school_code"]).strip()
+        url = (r["official_website_url"] or "").strip().rstrip('/')
+        if url:
+            current_links[code] = url
+            if r["website_source"] == "Manual Edit":
+                admin_links[code] = url
+    for r in fixed:
+        admin_links[str(r["school_code"]).strip()] = (r["website_url"] or "").strip().rstrip('/')
+    print(f"[Websites] {len(current_links)} links in use, {len(admin_links)} set by hand")
 
-    # 1. Primary Source: Supabase official_website_registry table
-    loaded_from_db = False
-    try:
-        from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
-        dsn = get_current_dsn()
-        if dsn and psycopg:
-            with db_connect(dsn, row_factory=dict_row, connect_timeout=10) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT school_code, school_name_th, school_name_en, website_url 
-                        FROM school_data.official_website_registry 
-                        WHERE is_verified = TRUE AND website_url != ''
-                    """)
-                    rows = cur.fetchall()
-                    if rows:
-                        for r in rows:
-                            code = str(r["school_code"]).strip()
-                            url = str(r["website_url"]).strip().rstrip('/')
-                            if code and url:
-                                reference_registry[code] = url
-                                name_en = str(r["school_name_en"] or "").strip()
-                                key = _normalize_name(name_en)
-                                if key:
-                                    registry_by_name.setdefault(key, url)
-                                    head = key.split()[0]
-                                    if len(head) >= 4:
-                                        brand_hits.setdefault(head, set()).add(_domain_of(url))
-                        loaded_from_db = True
-                        print(f"[Registry] Loaded {len(reference_registry)} verified schools directly from Supabase official_website_registry!")
-    except Exception as e:
-        print(f"[Registry] Note: Could not load from Supabase ({e}), falling back to file...")
-
-    # 2. Fallback Source: reference/schoolAndURL.txt
-    if not loaded_from_db and REFERENCE_FILE:
-        try:
-            with open(REFERENCE_FILE, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    m = re.search(r'\[\d+\s*-\s*(\d+)\]', line)
-                    if not m:
-                        continue
-                    code = m.group(1).strip()
-                    url_m = re.search(r'https?://[^\s\)]+', line)
-                    url = url_m.group(0).strip().rstrip('/') if url_m else ""
-                    reference_registry[code] = url
-                    if not url:
-                        continue
-
-                    # English name is the text between "]" and the "(" holding the Thai name.
-                    name_m = re.search(r'\]\s*(.*?)\s*\(', line)
-                    key = _normalize_name(name_m.group(1) if name_m else "")
-                    if key:
-                        registry_by_name.setdefault(key, url)
-                        head = key.split()[0]
-                        if len(head) >= 4:
-                            brand_hits.setdefault(head, set()).add(_domain_of(url))
-        except Exception as e:
-            print(f"[Registry] Warning loading {REFERENCE_FILE}: {e}")
-
-    # Keep only tokens pointing at exactly one domain.
-    for token, domains in brand_hits.items():
-        if len(domains) == 1:
-            brand_domains[token] = next(iter(domains))
-
-    print(f"[Registry] loaded {len(reference_registry)} verified schools "
-          f"({sum(1 for v in reference_registry.values() if v)} with a URL), "
-          f"{len(brand_domains)} brand domains")
 
 def check_dns(host):
     """Fast DNS pre-check to eliminate non-existent domains in <5ms"""
@@ -243,142 +164,115 @@ def check_dns(host):
         dns_cache[host] = False
         return False
 
-def _distinctive_tokens(name_en, name_th=""):
-    """Name tokens that actually identify this school, longest first."""
-    tokens = [t for t in _normalize_name(name_en).split() if len(t) >= 3]
-    tokens.sort(key=len, reverse=True)
-    th = re.sub(r'(โรงเรียน|นานาชาติ|อนุบาล|ประถม|สาธิต)', ' ', name_th or '')
-    tokens += [t for t in th.split() if len(t) >= 4]
-    return tokens
 
-
-def _page_text(response, limit=32768):
-    """First chunk of the response with tags stripped, lowercased."""
-    try:
-        raw = b""
-        for chunk in response.iter_content(8192):
-            raw += chunk
-            if len(raw) >= limit:
-                break
-    except Exception:
-        return ""
-    html = raw.decode('utf-8', errors='ignore')
+def _html_text(html):
+    """Page text with scripts, styles and tags stripped, lowercased."""
     html = re.sub(r'(?is)<(script|style)[^>]*>.*?</\1>', ' ', html)
-    return re.sub(r'<[^>]+>', ' ', html).lower()
+    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', html)).lower()
 
 
-def _looks_like_a_school(text):
-    return any(hint in text for hint in SCHOOL_PAGE_HINTS)
+def _site(url):
+    """Which site a link belongs to: its registrable domain, or the owner's part on a shared host."""
+    parts = urlsplit(url if "://" in url else "https://" + url)
+    host = parts.netloc.lower().split("@")[-1].split(":")[0]
+    host = host[4:] if host.startswith("www.") else host
+    if host == "sites.google.com":   # sites.google.com/<school domain>/... is that school's Workspace site
+        seg = next((s for s in parts.path.split("/") if s), "")
+        return src.registrable_domain(seg) if "." in seg else host
+    if host.endswith(SHARED_HOSTS):
+        return host
+    return src.registrable_domain(host)
 
 
-def _page_belongs_to_school(text, domain, name_en, name_th):
+def _well_formed(url):
+    host = urlsplit(url if "://" in url else "https://" + url).netloc
+    return "." in host and "@" not in host and not host.endswith("-")
+
+
+def check_link(url, name_en=""):
     """
-    Guards the guessing tier. A candidate domain built from the school's name will
-    happily resolve to an unrelated business that shares the name — ipc.com,
-    kids.org and crescent.com were all accepted as "official" this way.
-    So an algorithmic hit must look like a school AND mention the school.
+    Opens a link the way a visitor's browser would (GET, certificate checked) and says what came back:
+      ok       the page loaded; carries final (where redirects ended), title and text
+      blocked  a bot shield answered (403, 429, Cloudflare 52x): the site is there, a script cannot read it
+      busy     timed out or another 5xx: the site is there but having a bad moment
+      chain    the server sends an incomplete certificate chain: browsers open it, a script cannot read it
+      cert     the certificate does not match the address, so browsers warn visitors before opening it
+      dead     no such host, connection refused, another 4xx, or a parked / "not found" page
     """
-    if not _looks_like_a_school(text):
-        return False
-    tokens = _distinctive_tokens(name_en, name_th)
-    if not tokens:
-        return False
-    flat_domain = re.sub(r'[^a-z0-9]', '', domain)
-    for t in tokens:
-        if t in text:
-            return True
-        # Thai tokens reduce to "" here, and "" is a substring of everything —
-        # that would make this guard pass unconditionally.
-        ascii_t = re.sub(r'[^a-z0-9]', '', t)
-        if ascii_t and ascii_t in flat_domain:
-            return True
-    return False
-
-
-def verify_live_url(url, name_en="", name_th="", require_relevance=False):
-    """
-    Verifies that a candidate URL is a live, authentic school website:
-    - Fast DNS pre-filtering
-    - HTTP status with strict timeout
-    - Filters parked pages, domain brokers and 404 redirects
-    - When require_relevance is set (guessed domains, never verified ones), the page
-      itself must look like this school's site
-
-    Returns (is_live, canonical_url).
-    """
-    if not url or not isinstance(url, str):
-        return False, None
     u = url.strip()
     if not u.startswith("http"):
         u = "https://" + u
-
-    if 'sites.google.com' in u or 'gism.ac.th' in u:
-        return True, u
-
-    raw_host = re.sub(r'^(https?://)?', '', u).split('/')[0].split(':')[0].lower()
-
-    # 1. Blacklist check
-    if any(b in raw_host for b in DISQUALIFIED_DOMAINS):
-        return False, None
-    for ftld in FOREIGN_DISQUALIFIED_TLDS:
-        if raw_host.endswith(ftld):
-            return False, None
-
-    if not check_dns(raw_host):
-        return False, None
-
-    # 2. Live HTTP verification
     try:
-        r = session.get(u, timeout=(2.0, 3.5), verify=False, stream=True, allow_redirects=True)
-        if r.status_code not in (200, 201, 202, 301, 302, 403, 406):
-            return False, None
+        r = session.get(u, timeout=LINK_TIMEOUT, allow_redirects=True)
+    except requests.exceptions.SSLError as e:
+        # an incomplete chain is the server's slip that browsers repair themselves; a wrong name they warn about
+        return {"state": "chain" if "local issuer" in str(e) else "cert", "code": 0}
+    except requests.exceptions.Timeout:
+        return {"state": "busy", "code": 0}
+    except requests.RequestException as e:
+        why = str(e)
+        if "Timeout" in why:
+            return {"state": "busy", "code": 0}
+        if any(k in why for k in ("NameResolution", "getaddrinfo", "Failed to resolve", "refused")):
+            return {"state": "dead", "code": 0}
+        # the server hung up on a script (RemoteDisconnected): big schools' firewalls do this, the site is there
+        return {"state": "blocked", "code": 0}
+    code, final = r.status_code, r.url
+    if code in (403, 429) or code >= 520:
+        return {"state": "blocked", "code": code, "final": final}
+    if code >= 400:
+        return {"state": "busy" if code >= 500 else "dead", "code": code, "final": final}
+    if (r.encoding or "").lower() in ("", "iso-8859-1"):   # requests' guess for pages that do not say; Thai pages mostly UTF-8
+        r.encoding = r.apparent_encoding
+    html = r.text[:400000]
+    m = re.search(r'(?is)<title[^>]*>(.*?)</title>', html)
+    title = re.sub(r'\s+', ' ', m.group(1)).strip().lower() if m else ""
+    text = _html_text(html)[:30000]
+    host = urlsplit(final).netloc.lower()
+    # "coming soon" on a page whose title names the school is a real page announcing something
+    parked = (any(p in text[:3000] for p in PARKED_PAGE_PATTERNS)
+              and not any(w in title for w in _name_words(name_en)))
+    if parked or any(b in host for b in DISQUALIFIED_DOMAINS):
+        return {"state": "dead", "code": code, "final": final, "title": title}
+    return {"state": "ok", "code": code, "final": final, "title": title, "text": text}
 
-        final_url = r.url
-        dom = _domain_of(final_url)
 
-        for ftld in FOREIGN_DISQUALIFIED_TLDS:
-            if dom.endswith(ftld):
-                return False, None
-        if any(b in dom for b in DISQUALIFIED_DOMAINS):
-            return False, None
-        if any(marker in final_url.lower() for marker in ('404.html', 'error-404', 'notfound')):
-            return False, None
+def _names_this_school(page, name_en, name_th):
+    """
+    Strict page check for a link only map data points at: the page uses the school's own name (two
+    distinctive words when it has two), calls itself international and is about Thailand. A name-built
+    domain passing this is still not enough on its own (rajapark.ac.th passes for Rajapark International).
+    """
+    text = f'{page.get("title", "")} {page.get("text", "")}'
+    words = _name_words(name_en)
+    hits = [w for w in words if re.search(rf"\b{re.escape(w)}\b", text)]
+    thai = re.sub(r'(โรงเรียน|นานาชาติ|อนุบาล|ประถม|สาธิต)', ' ', name_th or '')
+    hits += [t for t in thai.split() if len(t) >= 4 and t in text]
+    return (len(hits) >= (2 if len(words) >= 2 else 1)
+            and any(w in text for w in INTL_WORDS)
+            and bool(re.search(r'[฀-๿]|thailand|bangkok', text)))
 
-        text = _page_text(r)
-        if any(pattern in text for pattern in PARKED_PAGE_PATTERNS):
-            return False, None
 
-        clean_dom = re.sub(r'\.(ac\.th|co\.th|com|org|asia|net|academy)$', '', dom)
-        if len(clean_dom) <= 2:
-            return False, None
-
-        if require_relevance and not _page_belongs_to_school(text, dom, name_en, name_th):
-            return False, None
-
-        # Keep a deep link the caller supplied; otherwise report where we landed.
-        if '#' in u or '/' in u.replace('https://', '').replace('http://', ''):
-            return True, u
-        return True, final_url
-    except Exception:
-        # A .ac.th domain is registrar-gated to Thai academic institutions, so an
-        # unreachable one built from the school's own name is still worth keeping —
-        # but only when we are not in strict mode.
-        if (not require_relevance and raw_host.endswith('.ac.th')
-                and check_dns(raw_host) and 'bealbright' not in raw_host):
-            return True, u
-
-    return False, None
+def _overture_sites(s):
+    """Websites Overture lists for the place that is this school (name, phone or Facebook near its pin)."""
+    try:
+        near = (float(s["latitude"]), float(s["longitude"]))
+    except (KeyError, TypeError, ValueError):
+        pin = src.opec_point(s)
+        near = (pin["lat"], pin["lon"]) if pin else None
+    if not near:
+        return []
+    phones = [p for p in (s.get("telephone"), s.get("mobile")) if p]
+    sites = []
+    for _, _, row in src.overture_matches(s.get("school_name_en") or "", s.get("school_name_th") or "", "",
+                                          phones, s.get("facebook"), near, OVERTURE_RADIUS_M)[:6]:
+        if row["confidence"] >= OVERTURE_MIN_CONFIDENCE:
+            sites += [d for d in row["domains"] if d and not any(b in d for b in DISQUALIFIED_DOMAINS)]
+    return list(dict.fromkeys(sites))
 
 
 def generate_algorithmic_candidates(s):
-    """
-    Builds candidate domains from the school's own name.
-
-    The old version also carried ~20 hardcoded URLs (St Andrews, SISB, Regents,
-    Wells, Brighton, HEI, Ruamrudee, Garden). Those duplicated reference/schoolAndURL.txt
-    and went stale independently of it, so they are gone: the registry is now the single
-    source of truth and campus groups are handled by the brand tier instead.
-    """
+    """Builds candidate domains from the school's own name."""
     if isinstance(s, dict):
         name_en = s.get("school_name_en", "").strip()
     else:
@@ -410,75 +304,101 @@ def generate_algorithmic_candidates(s):
     return list(dict.fromkeys(candidates))
 
 
-def brand_domain_candidates(s):
+def _find_by_agreement(s, unreadable):
     """
-    A campus missing from the registry usually belongs to a group already in it.
-    Derives the group's domain from the registry rather than from a hardcoded table.
+    For a school with no usable link: Overture's listing and name-built domains each vote for a site.
+    Takes a site two sources agree on when at least one of them opens (two stale copies of an old domain,
+    like wells-school.com, open for neither), else Overture alone when its page passes _names_this_school.
+    `unreadable` are the school's own reported links that exist but a script cannot read; they still vote.
+    Returns (url, source, page) or None.
+    """
+    name_en, name_th = s.get("school_name_en") or "", s.get("school_name_th") or ""
+    votes = {}   # site -> {source: (url, page)}
 
-    Matches on the leading token of both names only — the brand. Matching anywhere in
-    the name made every shared place name look like a shared brand.
-    """
-    tokens = _normalize_name(s.get("school_name_en", "")).split()
-    if not tokens or len(tokens[0]) < 4:
-        return []
-    domain = brand_domains.get(tokens[0])
-    return [f"https://{domain}"] if domain else []
+    def vote(source, url, page):
+        if page["state"] in ALIVE:
+            votes.setdefault(_site(page.get("final") or url), {}).setdefault(source, (url, page))
+
+    for label, url, page in unreadable:
+        vote(label, url, page)
+    for dom in _overture_sites(s):
+        vote("Overture", "https://" + dom, check_link(dom, name_en))
+    for url in generate_algorithmic_candidates(s):
+        if check_dns(urlsplit(url).netloc):
+            vote("Domain Guess", url, check_link(url, name_en))
+
+    for by in votes.values():
+        readable = [(u, p) for u, p in by.values() if p["state"] == "ok"]
+        if len(by) >= 2 and readable:
+            url, page = readable[0]
+            return url.rstrip('/'), " + ".join(sorted(by)), page
+    for by in votes.values():
+        url, page = by.get("Overture", ("", {"state": ""}))
+        if page["state"] == "ok" and _names_this_school(page, name_en, name_th):
+            return url, "Overture", page
+    return None
 
 
 def dynamic_search_official_website(s):
     """
-    Resolves one school's official website. Returns (url, source).
-    An empty url means "no confident answer" — the caller keeps the existing value
-    rather than erasing it.
+    Decides one school's website in the order the module docstring gives. Returns (url, source, page):
+    page is what check_link saw at url ({} when there is no url). An empty url means no answer and no
+    link on record either.
     """
     code = str(s.get("school_code", "")).strip()
     name_en = s.get("school_name_en", "") or ""
-    name_th = s.get("school_name_th", "") or ""
     load_verified_registry()
 
-    # === Tier 1: verified registry, by code then by name ===
-    if code in reference_registry and reference_registry[code]:
-        return reference_registry[code], "Verified Official Registry"
+    if code in admin_links:
+        url = admin_links[code]
+        return url, "Admin Verified", (check_link(url, name_en) if url else {})
 
-    by_name = registry_by_name.get(_normalize_name(name_en))
-    if by_name:
-        return by_name, "Verified Official Registry (Name Match)"
+    old = current_links.get(code) or str(s.get("website") or "").strip().rstrip('/')
+    old_page = check_link(old, name_en) if old else {"state": ""}
+    reported, unreadable = [], []
+    for field, label in SELF_REPORTED:
+        url = str(s.get(field) or "").strip().rstrip('/')
+        if url and _well_formed(url):
+            page = check_link(url, name_en)
+            (reported if page["state"] == "ok" else unreadable).append((label, url, page))
 
-    # === Tier 2: genuine OPEC value — read only, never overwritten ===
-    # Deliberately NOT s["website"]: that field holds this module's own previous
-    # answer, and reading it back was promoting old guesses to "OPEC Profile".
-    opec_w = str(s.get("opec_website") or "").strip()
-    if opec_w:
-        is_live, canonical = verify_live_url(opec_w, name_en, name_th)
-        if is_live and canonical:
-            return canonical.rstrip('/'), "OPEC Profile"
-        if opec_w.startswith("http"):
-            return opec_w.rstrip('/'), "OPEC Profile"
+    if old_page["state"] in ALIVE:
+        old_site = _site(old_page.get("final") or old)
+        for label, url, page in reported + unreadable:   # only labels a link already in use: unread but alive will do
+            if page["state"] in ALIVE and _site(page.get("final") or url) == old_site:
+                return old, label, old_page
+        if old_site in _overture_sites(s):
+            return old, "Overture", old_page
+        return old, "Previous Link", old_page
+    if reported:
+        label, url, page = reported[0]
+        return url, label, page
+    found = _find_by_agreement(s, unreadable)
+    if found:
+        return found
+    return (old, "Previous Link", old_page) if old else ("", "Not Found", {})
 
-    # === Tier 3: sibling campus domain inferred from the registry ===
-    for candidate in brand_domain_candidates(s):
-        is_live, canonical = verify_live_url(candidate, name_en, name_th, require_relevance=True)
-        if is_live and canonical:
-            return canonical.rstrip('/'), "Brand Domain Match"
 
-    # === Tier 4: name-derived candidates, relevance-checked ===
-    for candidate in generate_algorithmic_candidates(s):
-        is_live, canonical = verify_live_url(candidate, name_en, name_th, require_relevance=True)
-        if is_live and canonical:
-            return canonical.rstrip('/'), "Live Domain Match & Verification"
-
-    return "", "Not Found"
+def _record(s, url, source, page):
+    """Writes one decision onto the school's record. Never erases a link, except where an admin said none."""
+    if source == "Admin Verified" and not url:
+        s["website"], s["website_source"] = "", source
+    elif url and (url != s.get("website") or source != s.get("website_source")):
+        s["website"] = url
+        s["website_source"] = source
+        s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    s["website_check"] = page.get("state", "")
+    s["website_http_status"] = page.get("code")
+    s["website_checked_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def resolve_all_official_websites(update_progress, on_save_callback=None):
     """
-    High-Speed Resolver for Task 3 (Button 3: Fetch Official Websites):
-    - Reads existing schools from data/ folder.
-    - Resolves each school's website through the tiers above, registry first.
-    - Emits a log line per school, in dataset order.
-    - Periodically saves every 25 schools and notifies progress.
+    Decides every school's website through the order above, opening each link once on the way
+    (that is the health check), logs one line per school in dataset order and saves to data/.
     """
-    load_verified_registry(force=True)   # URLs an admin verified since the last run
+    load_verified_registry(force=True)   # links an admin fixed since the last run
+    src.load_overture_index()            # load once here, not from 30 threads at the first school
     schools = load_schools()
     if not schools:
         update_progress("ไม่พบข้อมูลโรงเรียน", 100, 100, "กรุณากดดึงข้อมูลจาก OPEC (ปุ่ม 1) ก่อน!")
@@ -487,73 +407,36 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
     total = len(schools)
     update_progress("เริ่มต้นค้นหาและตรวจสอบ Official Website...", 0, total, f"มีโรงเรียนในระบบทั้งหมด {total} แห่ง")
 
-    resolved_count = 0
-    completed_count = 0
-    registry_source_count = 0
-    opec_source_count = 0
-    live_match_count = 0
-    no_website_count = 0
-
-    # Ensure clean sequential processing across thread pool
     results_map = {}
     with ThreadPoolExecutor(max_workers=30) as executor:
         future_to_school = {executor.submit(dynamic_search_official_website, s): s for s in schools}
         for future in as_completed(future_to_school):
             s = future_to_school[future]
-            code = s.get("school_code", "")
             try:
-                url, source = future.result()
-            except Exception:
-                url, source = "", "Not Found"
-            results_map[code] = (url, source)
+                results_map[s.get("school_code", "")] = future.result()
+            except Exception as e:
+                print(f"[Websites] {s.get('school_code')}: {e}")
+                results_map[s.get("school_code", "")] = ("", "Not Found", {})
 
-    # Process and stream progress in orderly index
+    by_source, by_state = {}, {}
     for idx, s in enumerate(schools, 1):
         code = s.get("school_code", "")
         th_name = s.get("school_name_th", "")
         en_name = s.get("school_name_en", "")
         display_name = f"{th_name} ({en_name})" if en_name else th_name
 
-        url, source = results_map.get(code, ("", "Not Found"))
-        completed_count += 1
+        url, source, page = results_map.get(code, ("", "Not Found", {}))
+        _record(s, url, source, page)
+        url = s.get("website") or ""
+        state = s["website_check"] or "ไม่มีลิงก์"
+        by_source[source] = by_source.get(source, 0) + 1
+        by_state[state] = by_state.get(state, 0) + 1
 
-        # No confident answer keeps whatever is already on record. The old code
-        # assigned unconditionally, so one failed lookup erased a good URL.
-        if url:
-            s["website"] = url
-            s["website_source"] = source
-            s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        else:
-            kept = str(s.get("website") or "").strip()
-            if kept:
-                url, source = kept, s.get("website_source") or "Kept (unverified)"
+        verdict = f"{url} (แหล่ง: {source}, เปิดตรวจ: {state})" if url else "ไม่พบเว็บไซต์ทางการ"
+        update_progress(f"ตรวจสอบเว็บไซต์ ({idx}/{total})", idx, total,
+                        f"[{idx}/{total}] [รหัส: {code}] {display_name} -> {verdict}")
 
-        if url:
-            resolved_count += 1
-            if "Registry" in source:
-                registry_source_count += 1
-            elif "OPEC" in source:
-                opec_source_count += 1
-            else:
-                live_match_count += 1
-
-            log_msg = f"[{completed_count}/{total}] [รหัส: {code}] {display_name} -> {url} (แหล่งข้อมูล: {source})"
-            update_progress(
-                f"ตรวจสอบเว็บไซต์ ({completed_count}/{total})",
-                completed_count, total,
-                log_msg
-            )
-        else:
-            no_website_count += 1
-            log_msg = f"[{completed_count}/{total}] [รหัส: {code}] {display_name} -> ไม่มีเว็บไซต์ทางการประจำโรงเรียน"
-            update_progress(
-                f"ตรวจสอบเว็บไซต์ ({completed_count}/{total})",
-                completed_count, total,
-                log_msg
-            )
-
-
-        if completed_count % 25 == 0:
+        if idx % 25 == 0:
             save_schools(schools)
             if on_save_callback:
                 on_save_callback(schools)
@@ -563,31 +446,24 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
     if on_save_callback:
         on_save_callback(schools)
 
-    pct = round(resolved_count / total * 100, 1) if total > 0 else 0
+    with_url = sum(1 for s in schools if s.get("website"))
     summary_log = (
-        f"ตรวจสอบ Official Website ครบทั้ง {total} แห่งแล้ว\n"
-        f"  - พบเว็บไซต์ทางการ: {resolved_count}/{total} แห่ง ({pct}%)\n"
-        f"  - ทะเบียนทางการที่ผ่านการตรวจยืนยัน: {registry_source_count} แห่ง | OPEC: {opec_source_count} แห่ง | Live Domain: {live_match_count} แห่ง\n"
-        f"  - ไม่มีเว็บไซต์ทางการ: {no_website_count} แห่ง\n"
-        f"  - บันทึกลง data/international_schools_thailand_opec.json และ .csv แล้ว"
+        f"ตรวจสอบ Official Website ครบทั้ง {total} แห่งแล้ว มีเว็บ {with_url} แห่ง\n"
+        "  - ที่มา: " + ", ".join(f"{k} {v}" for k, v in sorted(by_source.items(), key=lambda kv: -kv[1])) + "\n"
+        "  - ผลเปิดตรวจ: " + ", ".join(f"{k} {v}" for k, v in sorted(by_state.items(), key=lambda kv: -kv[1])) + "\n"
+        "  - บันทึกลง data/international_schools_thailand_opec.json และ .csv แล้ว"
     )
-    update_progress(
-        "ค้นหา Official Website เสร็จแล้ว",
-        total, total,
-        summary_log
-    )
+    update_progress("ค้นหา Official Website เสร็จแล้ว", total, total, summary_log)
     return schools
 
+
 def resolve_single_school_by_code(school_code):
-    """Resolves official website for a single school by its OPEC code and saves to data/"""
+    """Decides one school's website by its OPEC code and saves to data/"""
+    load_verified_registry(force=True)
     schools = load_schools()
     for s in schools:
         if s["school_code"] == school_code:
-            url, source = dynamic_search_official_website(s)
-            if url:
-                s["website"] = url
-                s["website_source"] = source
-                s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-                save_schools(schools)
+            _record(s, *dynamic_search_official_website(s))
+            save_schools(schools)
             return s
     return None
