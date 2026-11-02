@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import type { School, SchoolDetail } from "@/types";
 import { getSchoolDetail } from "@/api/schoolsApi";
-import { getSchoolSources, type SchoolSafetyDetail, type SchoolSources } from "@/api/sourcesApi";
+import {
+  DATA_SOURCE_PARTS,
+  formatThaiDate,
+  getSchoolSources,
+  type SchoolSafetyDetail,
+  type SchoolSources,
+} from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
 import {
@@ -62,15 +68,6 @@ function formatLastUpdated(val?: string | number): string {
     }
   }
   return str;
-}
-
-/** "13 ก.ย. 2569" in Bangkok time; OPEC fetch times are stored as Bangkok local time without a zone */
-function formatThaiDate(value?: string | null): string | null {
-  if (!value) return null;
-  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(value) ? `${value.replace(" ", "T")}+07:00` : value;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Bangkok" });
 }
 
 const hostOf = (url?: string | null) => {
@@ -147,7 +144,17 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
 
   const names = schoolNames(school);
 
-  const opecDate = formatThaiDate(sources?.opec.fetched_at) ?? formatThaiDate(sources?.opec.imported_at);
+  // Where each part came from; before the pipeline fills data_sources, OPEC's fetch date still shows
+  const sourceParts = sources
+    ? DATA_SOURCE_PARTS.flatMap(({ key, label, when }) => {
+        const part =
+          sources.data_sources?.[key] ??
+          (key === "opec"
+            ? { source: "ระบบ สช.", url: sources.opec.url, at: sources.opec.fetched_at ?? sources.opec.imported_at }
+            : null);
+        return part ? [{ key, label, when, source: part.source, url: part.url, date: formatThaiDate(part.at) }] : [];
+      })
+    : [];
   const website = sources?.website ?? null;
   const websiteHost = hostOf(website?.page_url);
   const websiteDate = formatThaiDate(website?.collected_at);
@@ -483,12 +490,21 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
                   <h3 className="font-semibold text-navy-900 mb-3 text-sm">ที่มาของข้อมูล</h3>
                   <div className="space-y-3 text-xs">
-                    <div>
-                      <div className="font-semibold text-navy-900">ข้อมูลทั่วไป</div>
-                      <div className="mt-0.5 text-slate-500">
-                        ระบบ สช.{opecDate ? ` · ดึงข้อมูลเมื่อ ${opecDate}` : ""}
+                    {sourceParts.map((p, i) => (
+                      <div key={p.key} className={i ? "border-t border-slate-50 pt-3" : undefined}>
+                        <div className="font-semibold text-navy-900">{p.label}</div>
+                        <div className="mt-0.5 text-slate-500">
+                          {p.url ? (
+                            <a href={p.url} target="_blank" rel="noreferrer" className="text-teal-700 hover:underline">
+                              {p.source} ↗
+                            </a>
+                          ) : (
+                            p.source
+                          )}
+                          {p.date && <> · {p.when} {p.date}</>}
+                        </div>
                       </div>
-                    </div>
+                    ))}
                     <div className="border-t border-slate-50 pt-3">
                       <div className="font-semibold text-navy-900">ค่าเทอมและความปลอดภัย</div>
                       {website ? (

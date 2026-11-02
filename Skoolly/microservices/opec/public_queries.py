@@ -129,6 +129,7 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
     """Where one school's published data came from and when, plus its published safety details.
 
     - opec: when the OPEC record was fetched (kept in the first import snapshot)
+    - data_sources: source, link and time for each part of the record (OPEC, ISAT, website, location)
     - website: set only when the published version was scraped from the school's site and approved
     - safety: from the published version only; versions still awaiting review are not shown
     - signature_programs / facilities: from the published scraped version; None when that version
@@ -139,7 +140,8 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
     with db_connect(target_dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT s.school_id, s.current_published_version_id,
+                SELECT s.school_id, s.current_published_version_id, s.opec_profile_url,
+                       to_jsonb(s) -> 'data_sources' AS data_sources,   -- null, not an error, before the column exists
                        v.source_type::text AS source_type, v.scraped_page_url, v.submitted_at, v.reviewed_at,
                        v.data_snapshot->'signature_programs' AS signature_programs,
                        v.data_snapshot->'facilities' AS facilities,
@@ -190,8 +192,11 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
             # Local time string from the OPEC fetch, e.g. "2026-09-13 17:48:31"
             "fetched_at": row["opec_fetched_at"],
             "imported_at": _iso(row["opec_imported_at"]),
+            "url": row["opec_profile_url"],   # the school's page on school.opec.go.th
         },
         "website": website,
+        # where each part of the school's record came from (data_manager.data_sources)
+        "data_sources": row["data_sources"] or {},
         "safety": dict(safety, highlights=list(safety["highlights"] or [])) if safety else None,
         "signature_programs": signature_programs,
         "facilities": facilities,

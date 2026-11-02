@@ -183,6 +183,10 @@ create table if not exists school_data.schools (
   accreditations                text[]  not null default '{}',
   isat_school_name              text,
 
+  -- ที่มาของข้อมูลแต่ละส่วน (opec / isat / website / location): {"source", "url", "at"}
+  -- pipeline เขียนทุกครั้งที่บันทึก (data_manager.data_sources) หน้าแอดมินและหน้าโรงเรียนแสดงให้กดไปดูต้นทางได้
+  data_sources                  jsonb not null default '{}'::jsonb,
+
   -- ผู้บริหาร & ข้อมูลรับเงินอุดหนุน (สช. OPEC)
   licensee_name                 text,                       -- ผู้รับใบอนุญาต
   director_name                 text,                       -- ผู้อำนวยการ
@@ -1370,6 +1374,10 @@ alter table school_data.schools
   add column if not exists archived_at timestamptz,
   add column if not exists archived_reason text,
   drop column if exists opec_missing_checked_at;
+
+-- เพิ่ม 2 พ.ย. 2569: ที่มาของข้อมูลแต่ละส่วน (ดูคอลัมน์ในหัวข้อตาราง schools)
+alter table school_data.schools
+  add column if not exists data_sources jsonb not null default '{}'::jsonb;
 
 alter table school_data.school_versions
   drop constraint if exists versions_number_positive,

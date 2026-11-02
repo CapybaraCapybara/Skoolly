@@ -902,6 +902,7 @@ def fetch_supabase_schools(
                     {c('year_established')},
                     {c('accreditations')},
                     {c('isat_school_name')},
+                    {c('data_sources')},
                     {c('created_at')},
                     {c('updated_at')}
                 FROM school_data.schools
@@ -1457,6 +1458,36 @@ def update_supabase_school_websites(schools: list[dict] | None = None, update_pr
         return len(updates)
     except Exception as e:
         return _sync_failed("เว็บไซต์", e, update_progress_cb)
+
+
+def update_supabase_school_sources(schools: list[dict] | None = None, update_progress_cb: Optional[Callable] = None) -> int:
+    """Writes each school's data_sources (data_manager.data_sources: where each part came from and when).
+    The website part describes the link the database holds, which the local file can lag behind.
+    Returns how many rows changed."""
+    from data_manager import data_sources
+    target_dsn = get_current_dsn()
+    if not target_dsn or not psycopg:
+        return 0
+    by_code = _by_code(schools)
+    try:
+        with db_connect(target_dsn, row_factory=dict_row) as conn:
+            rows = conn.execute("""SELECT opec_school_code, official_website_url, website_source, data_sources
+                                   FROM school_data.schools""").fetchall()
+            changed = []
+            for r in rows:
+                s = by_code.get(r["opec_school_code"])
+                if s is None:
+                    continue
+                want = data_sources({**s, "website": r["official_website_url"], "website_source": r["website_source"]})
+                if want != r["data_sources"]:
+                    changed.append((json.dumps(want, ensure_ascii=False), r["opec_school_code"]))
+            with conn.cursor() as cur:
+                cur.executemany("UPDATE school_data.schools SET data_sources = %s::jsonb WHERE opec_school_code = %s",
+                                changed)
+            conn.commit()
+        return len(changed)
+    except Exception as e:
+        return _sync_failed("แหล่งที่มาของข้อมูล", e, update_progress_cb)
 
 
 def sync_single_school_to_supabase(school: dict) -> bool:

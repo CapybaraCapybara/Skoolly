@@ -1,4 +1,5 @@
 import re
+import time
 import urllib.parse
 from difflib import SequenceMatcher
 from typing import Dict, Any, List, Optional, Tuple
@@ -205,6 +206,7 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
 
     log("กำลังดึงข้อมูลโรงเรียนสมาชิกจากสมาคม ISAT (isat.or.th)...", 10, 100)
     isat_schools = fetch_isat_schools()
+    fetched_at = time.strftime("%Y-%m-%d %H:%M:%S")
     log(f"ดึงข้อมูลสมาคม ISAT สำเร็จ: พบทั้งหมด {len(isat_schools)} โรงเรียน", 30, 100)
 
     opec_schools = load_schools()
@@ -241,6 +243,7 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
             opec["school_logo_url"] = isat["logo_url"]
         # the website the school gave ISAT itself; the website step checks it opens before using it
         opec["isat_website"] = (isat.get("website") or "").strip()
+        opec["isat_fetched_at"] = fetched_at
 
         matched_results.append({
             "school_code": opec.get("school_code"),
@@ -262,6 +265,7 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
             s["is_boarding"] = False
             s["accreditations"] = []
             s["isat_website"] = ""
+            s["isat_fetched_at"] = ""
 
     log(f"จับคู่โรงเรียน ISAT กับ สช. สำเร็จ: {matched_count} / {len(isat_schools)} โรงเรียน", 60, 100)
     for u in unmatched:

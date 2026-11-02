@@ -180,6 +180,7 @@ export function SupabaseAdminPage({
         year_established: s.year_established || undefined,
         accreditations: s.accreditations || [],
         isat_school_name: s.isat_school_name || "",
+        data_sources: s.data_sources || {},
         fetched_at: s.fetched_at || s.created_at || "",
         last_updated: s.last_updated || s.updated_at || s.created_at || "",
         status: s.status === "archived" ? "archived" : "active",

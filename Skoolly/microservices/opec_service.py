@@ -40,6 +40,7 @@ from supabase_sync import (  # type: ignore
     delete_supabase_school,
     update_supabase_school_gps,
     update_supabase_school_websites,
+    update_supabase_school_sources,
     sync_single_school_to_supabase,
     fetch_pending_versions,
     approve_school_version,
@@ -206,6 +207,7 @@ def step_fetch_opec(progress, import_to_supabase=True):
         progress("ข้ามการนำเข้า Supabase", 100, 100, "ยังไม่ได้ตั้งค่า DATABASE_URL จึงบันทึกเฉพาะไฟล์ในเครื่อง")
         return
     execute_opec_import(records=records, publish_initial=True, progress_callback=progress)
+    _sync(progress, "แหล่งที่มาของข้อมูล", update_supabase_school_sources, records)
     # Only a fresh OPEC list says which schools OPEC dropped; step_import's file on disk may be old
     presence = mark_opec_presence([r.get("school_code") for r in records])
     if presence["missing_still_shown"]:
@@ -228,7 +230,9 @@ def step_names_en(progress):
 
 def step_isat(progress):
     run_isat_enrichment(apply_to_db=True, progress_callback=progress)
-    set_current_schools(load_schools())
+    records = load_schools()
+    set_current_schools(records)
+    _sync(progress, "แหล่งที่มาของข้อมูล", update_supabase_school_sources, records)
 
 
 def step_websites(progress):
@@ -236,12 +240,14 @@ def step_websites(progress):
     set_current_schools(records)
     _sync(progress, "เว็บไซต์", update_supabase_school_websites, records)
     _sync(progress, "ผลตรวจลิงก์", save_link_health, records)   # the step opened every link: the health check
+    _sync(progress, "แหล่งที่มาของข้อมูล", update_supabase_school_sources, records)
 
 
 def step_gps(progress):
     records = enrich_all_school_gps(progress)
     set_current_schools(records)
     _sync(progress, "พิกัด GPS", update_supabase_school_gps, records)
+    _sync(progress, "แหล่งที่มาของข้อมูล", update_supabase_school_sources, records)
 
 
 FETCH = ("ดึงข้อมูล OPEC", step_fetch_opec)

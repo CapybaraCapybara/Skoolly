@@ -1,3 +1,5 @@
+import type { DataSources } from "@/api/sourcesApi";
+
 export interface OpecSchoolRecord {
   no?: number;
   school_code: string;
@@ -29,6 +31,7 @@ export interface OpecSchoolRecord {
   opec_latitude?: string; // raw OPEC pin, never overwritten
   opec_longitude?: string;
   opec_profile_url?: string;
+  data_sources?: DataSources; // where each part of the record came from and when
   levels_offered?: string[];
   level_range?: string;
   student_count?: number;

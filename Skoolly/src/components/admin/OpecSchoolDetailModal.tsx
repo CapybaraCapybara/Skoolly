@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
+import { DATA_SOURCE_PARTS, formatThaiDate } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { schoolInitials } from "@/lib/schoolInitials";
@@ -728,6 +729,47 @@ export function OpecSchoolDetailModal({
                 </div>
               </div>
             )}
+
+            {/* -------------------------------------------------------------
+                CARD 7: ที่มาของข้อมูลแต่ละส่วน (เหมือนกล่องในหน้าโรงเรียนฝั่งผู้ใช้)
+               ------------------------------------------------------------- */}
+            <div className="lg:col-span-2 bg-white border border-warm-accent rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+              <div className="flex items-center gap-2 pb-2.5 border-b border-warm-accent/80 text-warm-bronze font-bold text-xs uppercase tracking-wide">
+                <FileJson className="w-4 h-4 text-warm-bronze" />
+                <span>ที่มาของข้อมูล</span>
+              </div>
+              <div className="space-y-2.5 text-xs">
+                {DATA_SOURCE_PARTS.map(({ key, label, when }) => {
+                  const part = school.data_sources?.[key];
+                  const date = formatThaiDate(part?.at);
+                  return (
+                    <div key={key} className="flex items-start justify-between gap-2">
+                      <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">{label}:</span>
+                      {part ? (
+                        <span className="text-right text-warm-charcoal font-medium">
+                          {part.url ? (
+                            <a
+                              href={part.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-semibold text-warm-bronze hover:underline inline-flex items-center gap-1"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>{part.source}</span>
+                            </a>
+                          ) : (
+                            part.source
+                          )}
+                          {date && <span className="text-[#78716c]">{` · ${when} ${date}`}</span>}
+                        </span>
+                      ) : (
+                        <span className="text-[#a8a29e] italic">ยังไม่มีแหล่งที่มา</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Raw JSON Debug (Admin toggle) */}

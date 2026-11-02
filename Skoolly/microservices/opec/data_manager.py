@@ -139,6 +139,59 @@ CSV_FALLBACK_HEADER = [
 ]
 
 
+OSM_TYPES = {"n": "node", "w": "way", "r": "relation"}
+# website_source label -> who says this is the school's site
+WEBSITE_SOURCE_NAMES = {
+    "ISAT": "สมาคม ISAT", "OPEC Profile": "ระบบ สช.", "Overture": "Overture Maps", "Domain Guess": "ชื่อโดเมนของโรงเรียน",
+    "Admin Verified": "ผู้ดูแลระบบ", "Manual Edit": "ผู้ดูแลระบบ", "Previous Link": "ลิงก์เดิมในระบบ",
+    "Verified Official Registry": "ทะเบียนเว็บไซต์ที่ตรวจแล้ว",
+}
+# gps_confirmed_by names we may show; ArcGIS only helps confirm and is never a source of the pin
+PIN_SOURCE_NAMES = {"OPEC": "ระบบ สช.", "OpenStreetMap": "OpenStreetMap", "Overture Maps": "Overture Maps",
+                    "กรมการปกครอง": "ข้อมูลเปิดกรมการปกครอง", "เว็บไซต์โรงเรียน": "เว็บไซต์โรงเรียน"}
+
+
+def _thai_list(names):
+    """"ก", "ก และ ข", "ก, ข และ ค" """
+    names = list(dict.fromkeys(names))
+    return " และ ".join(filter(None, [", ".join(names[:-1]), names[-1]])) if names else ""
+
+
+def data_sources(s):
+    """
+    Where each part of a school's record came from and when, for the admin and public pages:
+    {"opec" | "isat" | "website" | "location": {"source": name, "url": page to check it, "at": "YYYY-MM-DD HH:MM:SS"}}.
+    Built from fields the pipeline steps keep; a part nothing stands behind is left out, "url"/"at" may be None.
+    ISAT has no link (its site lists every school on one search page); website and location carry no time
+    yet (decided 2 Nov 2026).
+    """
+    out = {}
+    if s.get("opec_profile_url") or s.get("fetched_at"):
+        out["opec"] = {"source": "ระบบ สช.", "url": s.get("opec_profile_url") or None, "at": s.get("fetched_at") or None}
+    if s.get("is_isat_member"):
+        out["isat"] = {"source": "สมาคม ISAT", "url": None, "at": s.get("isat_fetched_at") or None}
+    label = s.get("website_source") or ""
+    if s.get("website") and label not in ("", "Not Checked", "Not Found"):
+        parts = label.split(" + ")
+        url = s.get("opec_profile_url") if "OPEC Profile" in parts else None
+        out["website"] = {"source": _thai_list(WEBSITE_SOURCE_NAMES.get(p, p) for p in parts), "url": url or None,
+                          "at": None}
+    names = [PIN_SOURCE_NAMES[n] for n in s.get("gps_confirmed_by") or [] if n in PIN_SOURCE_NAMES]
+    if names and s.get("latitude") and s.get("longitude"):
+        evidence = s.get("gps_evidence") or []
+        osm = min((e for e in evidence if e.get("source") == "osm" and e.get("osm_id")),
+                  key=lambda e: e.get("distance_m") or 0, default=None)
+        site = next((e.get("label") for e in evidence if e.get("source") == "website"), None)
+        if osm and "OpenStreetMap" in names and osm["osm_id"][:1] in OSM_TYPES:
+            url = f"https://www.openstreetmap.org/{OSM_TYPES[osm['osm_id'][0]]}/{osm['osm_id'][1:]}"
+        elif site and "เว็บไซต์โรงเรียน" in names:
+            url = site
+        else:
+            url = s.get("opec_profile_url") if "ระบบ สช." in names else None
+        out["location"] = {"source": _thai_list(names), "url": url or None, "at": None}
+    return out
+
+
 def save_schools(data):
     """
     Atomically writes international schools data into both JSON and CSV files in data/.
@@ -147,6 +200,8 @@ def save_schools(data):
     """
     os.makedirs(DATA_DIR, exist_ok=True)
     data = apply_manual_pins(data or [])
+    for s in data:
+        s["data_sources"] = data_sources(s)
 
     _atomic_write(
         DATA_FILE,
