@@ -84,6 +84,9 @@ ALIVE = ("ok", "blocked", "chain", "busy", "cert")   # the site is there even wh
 SHARED_HOSTS = ("wixsite.com", "wordpress.com", "blogspot.com", "weebly.com")
 INTL_WORDS = ("international", "นานาชาติ", "อินเตอร์")
 LINK_TIMEOUT = (5, 15)
+# Cloudflare error pages for a site it cannot serve (DNS or origin set up wrong, e.g. 1034 "Edge IP
+# Restricted"): every visitor gets them. 1010/1012/1015/1020 are blocks aimed at the visitor and stay "blocked".
+CLOUDFLARE_SITE_ERRORS = {1000, 1001, 1002, 1003, 1004, 1014, 1016, 1018, 1019, 1033, 1034, 1035}
 OVERTURE_RADIUS_M = 1500
 OVERTURE_MIN_CONFIDENCE = 0.3   # same floor the GPS step uses
 
@@ -219,6 +222,9 @@ def check_link(url, name_en=""):
         return {"state": "blocked", "code": 0}
     code, final = r.status_code, r.url
     if code in (403, 429) or code >= 520:
+        m = re.search(r'errorCode:\s*(\d{4})|cf-error-code">\s*(\d{4})', r.text[:100000])
+        if m and int(m.group(1) or m.group(2)) in CLOUDFLARE_SITE_ERRORS:
+            return {"state": "dead", "code": code, "final": final}
         return {"state": "blocked", "code": code, "final": final}
     if code >= 400:
         return {"state": "busy" if code >= 500 else "dead", "code": code, "final": final}
