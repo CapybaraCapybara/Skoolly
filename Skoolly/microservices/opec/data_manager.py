@@ -148,7 +148,8 @@ WEBSITE_SOURCE_NAMES = {
 }
 # gps_confirmed_by names we may show; ArcGIS only helps confirm and is never a source of the pin
 PIN_SOURCE_NAMES = {"OPEC": "ระบบ สช.", "OpenStreetMap": "OpenStreetMap", "Overture Maps": "Overture Maps",
-                    "กรมการปกครอง": "ข้อมูลเปิดกรมการปกครอง", "เว็บไซต์โรงเรียน": "เว็บไซต์โรงเรียน"}
+                    "กรมการปกครอง": "ข้อมูลเปิดกรมการปกครอง", "เว็บไซต์โรงเรียน": "เว็บไซต์โรงเรียน",
+                    "แอดมิน": "ผู้ดูแลระบบ"}   # a pin placed by hand (apply_manual_pins)
 
 
 def _thai_list(names):

@@ -39,7 +39,7 @@ DATASET = Path("data") / "international_schools_thailand_opec.json"
 REFERENCE_FILES = ("dopa_gis02_schools.json",)
 
 # Fields that change on every run and say nothing about the data itself
-VOLATILE = {"no", "fetched_at", "last_updated"}
+VOLATILE = {"no", "fetched_at", "last_updated", "isat_fetched_at", "website_checked_at", "data_sources"}
 # Large lists/objects: count the changes, don't print them
 BULKY = {"gps_evidence", "gps_anchor", "gps_confirmed_by", "school_history", "vision", "mission"}
 

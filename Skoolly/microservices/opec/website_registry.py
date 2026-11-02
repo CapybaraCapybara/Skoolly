@@ -397,28 +397,37 @@ HEALTH = {
     "busy": (True, "Timeout / Server Error"),
     "cert": (True, "SSL Certificate Error"),
     "dead": (True, "Dead Link"),
+    "": (False, "No URL"),   # the website step left this school without a link
 }
 
 
-def check_single_url_health(url: str) -> tuple[int, bool, str]:
+def check_single_url_health(url: str, name_en: str = "") -> tuple[int, bool, str]:
     """
-    Opens a school URL like a visitor would (GET, certificate checked; HEAD misreported pages that load).
+    Opens a school URL like a visitor would (GET, certificate checked; HEAD misreported pages that load),
+    the same way the website step does: with the school's name, a "coming soon" page that names it is fine.
     Returns: (http_status, is_broken, reason)
     """
     if not url or not url.strip():
         return (0, False, "No URL")
-    page = check_link(url)
+    page = check_link(url, name_en)
     return (page.get("code") or 0, *HEALTH[page["state"]])
 
 
 def save_link_health(schools, progress=None) -> int:
-    """Stores what the website step saw when it opened each school's link (website_check) in the registry."""
+    """Stores what the website step saw when it opened each school's link (website_check) in the registry.
+    An empty check on a school that still has a link means its lookup failed: its old result stays."""
     rows = [(s["school_code"], s.get("website_http_status") or 0, *HEALTH[s["website_check"]])
-            for s in schools if s.get("website_check") in HEALTH]
+            for s in schools if s.get("website_check") in HEALTH and (s["website_check"] or not s.get("website"))]
     dsn = get_current_dsn()
     if not rows or not dsn or not psycopg:
         return 0
-    return _write_health(dsn, rows)
+    try:
+        return _write_health(dsn, rows)
+    except Exception as e:   # like the other sync steps: report it, don't stop the steps after this one
+        print("[Health Check] Error saving link checks:", e)
+        if progress:
+            progress("เกิดข้อผิดพลาดในการบันทึกผลตรวจลิงก์", 100, 100, f"Supabase error: {e}")
+        return 0
 
 
 def _write_health(dsn, rows) -> int:
@@ -463,9 +472,12 @@ def _bulk_health_check() -> Dict[str, Any]:
         with db_connect(dsn, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT school_code, website_url 
-                    FROM school_data.official_website_registry 
-                    WHERE website_url IS NOT NULL AND website_url != ''
+                    SELECT r.school_code, s.name_en,
+                           -- the link the site shows, which the website step may have replaced
+                           COALESCE(NULLIF(s.official_website_url, ''), r.website_url) AS website_url
+                    FROM school_data.official_website_registry r
+                    LEFT JOIN school_data.schools s ON s.opec_school_code = r.school_code
+                    WHERE COALESCE(NULLIF(s.official_website_url, ''), r.website_url, '') != ''
                 """)
                 targets = cur.fetchall()
     except Exception as e:
@@ -487,7 +499,7 @@ def _bulk_health_check() -> Dict[str, Any]:
     def worker(item):
         code = item["school_code"]
         url = item["website_url"]
-        status_code, is_broken, reason = check_single_url_health(url)
+        status_code, is_broken, reason = check_single_url_health(url, item.get("name_en") or "")
         return code, status_code, is_broken, reason
 
     try:

@@ -111,9 +111,8 @@ export function VersionApprovalModal({
     version.current_curriculums ||
     [];
   const newCurriculums: string[] = version.scraped_curriculums || [];
-  const addedCurriculums = newCurriculums.filter(
-    (c) => !prevCurriculums.some((pc) => pc.toLowerCase().trim() === c.toLowerCase().trim())
-  );
+  // Worked out by the API from curriculum codes: "A-Level" is not new for a school already BRITISH
+  const addedCurriculums: string[] = version.added_curriculums ?? [];
 
   // Map fees for before vs after comparison
   const gradeFeeMap = new Map<

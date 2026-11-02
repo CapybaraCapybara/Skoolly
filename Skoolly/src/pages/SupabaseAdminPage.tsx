@@ -296,7 +296,11 @@ export function SupabaseAdminPage({
     let successCount = 0;
     try {
       showToast("กำลังดำเนินการอนุมัติทั้งหมด...");
-      for (const version of pendingVersions) {
+      // Oldest first: each approval replaces the published version, so a school's newest draft has to go last.
+      // The list comes newest first; approving it in that order published the oldest draft (44 schools on 30 Oct).
+      const submitted = (v: PendingVersionRecord) => Date.parse(v.submitted_at ?? "") || 0;
+      const oldestFirst = [...pendingVersions].sort((a, b) => submitted(a) - submitted(b));
+      for (const version of oldestFirst) {
         await approveVersion(version.version_id);
         successCount++;
       }

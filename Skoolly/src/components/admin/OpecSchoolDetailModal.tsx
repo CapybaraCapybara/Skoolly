@@ -763,7 +763,9 @@ export function OpecSchoolDetailModal({
                           {date && <span className="text-[#78716c]">{` · ${when} ${date}`}</span>}
                         </span>
                       ) : (
-                        <span className="text-[#a8a29e] italic">ยังไม่มีแหล่งที่มา</span>
+                        <span className="text-[#a8a29e] italic">
+                          {key === "website" && !school.website ? "ไม่มีเว็บไซต์ทางการ" : "ยังไม่มีแหล่งที่มา"}
+                        </span>
                       )}
                     </div>
                   );

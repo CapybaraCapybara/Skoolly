@@ -193,7 +193,7 @@
 [193 - 1134700001] Ubon Adventist International Mission School (นานาชาติแอ๊ดเวนตีสมิชชั่นอุบล) - https://www.uaims.ac.th
 [194 - 1134700002] Begins international School (นานาชาติบีกิน) - https://www.begins.ac.th
 [195 - 1140700001] Khon Kaen International School (นานาชาติขอนแก่น) - https://kkisinterschool.wixsite.com/mysite
-[196 - 1140700002] Ratchut International School (นานาชาติรัตน์ฉัตร) - https://www.ratchutschool.com
+[196 - 1140700002] Ratchut International School (นานาชาติรัตน์ฉัตร) - https://ratchut.ac.th
 [197 - 1140700003] Asia Singapore International School (นานาชาติเอเชียสิงคโปร์) - https://asis.ac.th
 [198 - 1140700004] AMERICAN PRIME INTERNATIONAL SCHOOL (นานาชาติอเมริกันไพรม) - https://apis-kk.com
 [199 - 1141700001] Udon Thani International School (นานาชาติอุดรธานี) - https://www.udoninternationalschool.com

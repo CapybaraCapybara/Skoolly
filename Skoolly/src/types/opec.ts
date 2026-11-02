@@ -297,6 +297,7 @@ export interface PendingVersionRecord {
   previous_fees?: VersionFeeItem[];
   previous_safety?: VersionSafetyData | null;
   previous_curriculums?: string[];
+  added_curriculums?: string[]; // scraped names whose curriculum code the school did not have before
   previous_facilities?: string[];
   previous_general_info?: {
     about?: string;

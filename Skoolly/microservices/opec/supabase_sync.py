@@ -945,7 +945,8 @@ def fetch_supabase_schools(
                 expand_vocab(item)
                 item["student_count"] = item.get("student_count") or 0
                 item["teacher_count"] = item.get("teacher_count") or 0
-                item["fetched_at"] = item.get("created_at") or ""
+                # the last OPEC fetch, same as "ที่มาของข้อมูล"; created_at is only when the row was first imported
+                item["fetched_at"] = ((item.get("data_sources") or {}).get("opec") or {}).get("at") or item.get("created_at") or ""
                 item["last_updated"] = item.get("updated_at") or item.get("created_at") or ""
                 serialized_rows.append(item)
 
@@ -1416,7 +1417,7 @@ def update_supabase_school_websites(schools: list[dict] | None = None, update_pr
         web = str(s.get("website") or s.get("official_website_url") or "").strip()
         src = str(s.get("website_source") or "Official Scraper").strip()
         fb = str(s.get("facebook") or s.get("facebook_url") or "").strip()
-        if web:
+        if web or src == "No Official Website":   # the website step's label for a school with no link (fetch_official_websites.NO_WEBSITE)
             code_to_web[code] = (web, src, fb)
 
     try:
@@ -1445,7 +1446,7 @@ def update_supabase_school_websites(schools: list[dict] | None = None, update_pr
                         cur.execute(
                             """
                             UPDATE school_data.schools
-                            SET official_website_url = %(web)s,
+                            SET official_website_url = NULLIF(%(web)s, ''),
                                 website_source = COALESCE(NULLIF(%(src)s, ''), website_source),
                                 social_links = case when NULLIF(%(fb)s, '') is null then social_links
                                                    else social_links || jsonb_build_object('facebook', %(fb)s) end,
@@ -1742,6 +1743,12 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                     v["previous_facilities"] = []
                     v["previous_general_info"] = {}
                     v["previous_submitted_at"] = None
+
+                # A scraped name is new only when it names a curriculum the school did not have. Compared as text,
+                # "A-Level" and "IGCSE" looked new next to the code BRITISH they belong to.
+                prev_codes = set(website_curriculum_codes({"curriculums": v["previous_curriculums"]}) or [])
+                v["added_curriculums"] = [c for c in v.get("scraped_curriculums") or []
+                                          if not set(website_curriculum_codes({"curriculums": [c]}) or []) <= prev_codes]
 
             return versions
 

@@ -80,6 +80,7 @@ GENERIC_WORDS = {
 }
 
 SELF_REPORTED = (("isat_website", "ISAT"), ("opec_website", "OPEC Profile"))
+NO_WEBSITE = "No Official Website"   # website_source of every school left without a link
 ALIVE = ("ok", "blocked", "chain", "busy", "cert")   # the site is there even when a script cannot read it
 SHARED_HOSTS = ("wixsite.com", "wordpress.com", "blogspot.com", "weebly.com")
 INTL_WORDS = ("international", "นานาชาติ", "อินเตอร์")
@@ -147,7 +148,7 @@ def _read_registry():
         url = (r["official_website_url"] or "").strip().rstrip('/')
         if url:
             current_links[code] = url
-            if r["website_source"] == "Manual Edit":
+            if r["website_source"] in ("Manual Edit", "Admin Verified"):   # the label a run gives a hand-set link
                 admin_links[code] = url
     for r in fixed:
         admin_links[str(r["school_code"]).strip()] = (r["website_url"] or "").strip().rstrip('/')
@@ -187,6 +188,12 @@ def _site(url):
     return src.registrable_domain(host)
 
 
+def _disqualified(host):
+    """A broker, social or directory site, matched as a whole domain: dan.com must not catch jordan.com."""
+    host = host.lower().split("@")[-1].split(":")[0]
+    return any(host == b or host.endswith("." + b) if "." in b else b in host for b in DISQUALIFIED_DOMAINS)
+
+
 def _well_formed(url):
     host = urlsplit(url if "://" in url else "https://" + url).netloc
     return "." in host and "@" not in host and not host.endswith("-")
@@ -196,15 +203,18 @@ def check_link(url, name_en=""):
     """
     Opens a link the way a visitor's browser would (GET, certificate checked) and says what came back:
       ok       the page loaded; carries final (where redirects ended), title and text
-      blocked  a bot shield answered (403, 429, Cloudflare 52x): the site is there, a script cannot read it
-      busy     timed out or another 5xx: the site is there but having a bad moment
+      blocked  a bot shield answered (403, 429, Cloudflare 520): the site is there, a script cannot read it
+      busy     timed out or another 5xx (Cloudflare 521-524: the school's server is down): a bad moment
       chain    the server sends an incomplete certificate chain: browsers open it, a script cannot read it
-      cert     the certificate does not match the address, so browsers warn visitors before opening it
-      dead     no such host, connection refused, another 4xx, or a parked / "not found" page
+      cert     the certificate is wrong for the address (name, expiry), so browsers warn visitors
+      dead     malformed, no such host, connection refused, another 4xx, a parked / "not found" page,
+               or it lands on a broker, social or directory site
     """
     u = url.strip()
     if not u.startswith("http"):
         u = "https://" + u
+    if not _well_formed(u):
+        return {"state": "dead", "code": 0}
     try:
         r = session.get(u, timeout=LINK_TIMEOUT, allow_redirects=True)
     except requests.exceptions.SSLError as e:
@@ -221,10 +231,13 @@ def check_link(url, name_en=""):
         # the server hung up on a script (RemoteDisconnected): big schools' firewalls do this, the site is there
         return {"state": "blocked", "code": 0}
     code, final = r.status_code, r.url
-    if code in (403, 429) or code >= 520:
+    if _disqualified(urlsplit(final).netloc):   # before the status: a social page answering 429 is still not the school
+        return {"state": "dead", "code": code, "final": final}
+    if code in (403, 429) or code >= 500:
         m = re.search(r'errorCode:\s*(\d{4})|cf-error-code">\s*(\d{4})', r.text[:100000])
         if m and int(m.group(1) or m.group(2)) in CLOUDFLARE_SITE_ERRORS:
             return {"state": "dead", "code": code, "final": final}
+    if code in (403, 429, 520):
         return {"state": "blocked", "code": code, "final": final}
     if code >= 400:
         return {"state": "busy" if code >= 500 else "dead", "code": code, "final": final}
@@ -234,11 +247,10 @@ def check_link(url, name_en=""):
     m = re.search(r'(?is)<title[^>]*>(.*?)</title>', html)
     title = re.sub(r'\s+', ' ', m.group(1)).strip().lower() if m else ""
     text = _html_text(html)[:30000]
-    host = urlsplit(final).netloc.lower()
     # "coming soon" on a page whose title names the school is a real page announcing something
     parked = (any(p in text[:3000] for p in PARKED_PAGE_PATTERNS)
               and not any(w in title for w in _name_words(name_en)))
-    if parked or any(b in host for b in DISQUALIFIED_DOMAINS):
+    if parked:
         return {"state": "dead", "code": code, "final": final, "title": title}
     return {"state": "ok", "code": code, "final": final, "title": title, "text": text}
 
@@ -273,14 +285,14 @@ def _overture_sites(s):
     for _, _, row in src.overture_matches(s.get("school_name_en") or "", s.get("school_name_th") or "", "",
                                           phones, s.get("facebook"), near, OVERTURE_RADIUS_M)[:6]:
         if row["confidence"] >= OVERTURE_MIN_CONFIDENCE:
-            sites += [d for d in row["domains"] if d and not any(b in d for b in DISQUALIFIED_DOMAINS)]
+            sites += [d for d in row["domains"] if d and not _disqualified(d)]
     return list(dict.fromkeys(sites))
 
 
 def generate_algorithmic_candidates(s):
     """Builds candidate domains from the school's own name."""
     if isinstance(s, dict):
-        name_en = s.get("school_name_en", "").strip()
+        name_en = (s.get("school_name_en") or "").strip()
     else:
         name_en = str(s).strip()
 
@@ -386,10 +398,13 @@ def dynamic_search_official_website(s):
 
 
 def _record(s, url, source, page):
-    """Writes one decision onto the school's record. Never erases a link, except where an admin said none."""
+    """Writes one decision onto the school's record. Never erases a link, except where an admin said none.
+    A school left without a link is labelled NO_WEBSITE, whether nothing was found or an admin said so."""
     if source == "Admin Verified" and not url:
-        s["website"], s["website_source"] = "", source
-    elif url and (url != s.get("website") or source != s.get("website_source")):
+        s["website"] = ""
+    if not url and not s.get("website"):
+        source = NO_WEBSITE
+    if (url or source == NO_WEBSITE) and (url != (s.get("website") or "") or source != s.get("website_source")):
         s["website"] = url
         s["website_source"] = source
         s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -435,6 +450,7 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
         _record(s, url, source, page)
         url = s.get("website") or ""
         state = s["website_check"] or "ไม่มีลิงก์"
+        source = s.get("website_source") or source   # what was stored, e.g. NO_WEBSITE
         by_source[source] = by_source.get(source, 0) + 1
         by_state[state] = by_state.get(state, 0) + 1
 

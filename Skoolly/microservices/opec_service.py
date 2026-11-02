@@ -721,25 +721,13 @@ class UpdateSchoolPayload(BaseModel):
 @app.put("/api/school/{school_code}")
 def update_school(school_code: str, payload: UpdateSchoolPayload):
     _require_idle()
-    schools = get_current_schools()
-    found = False
-    new_website = payload.website or payload.official_website or ""
-    matched_school = None
-    for s in schools:
-        if s.get("school_code") == school_code:
-            s["website"] = new_website
-            s["website_source"] = payload.website_source or "Manual Edit"
-            s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            matched_school = s
-            found = True
-            break
-    if found:
-        set_current_schools(schools)
-        save_schools(schools)
-        if matched_school:
-            sync_single_school_to_supabase(matched_school)
-        return {"status": "updated"}
-    raise HTTPException(status_code=404, detail="School not found")
+    if not any(s.get("school_code") == school_code for s in get_current_schools()):
+        raise HTTPException(status_code=404, detail="School not found")
+    # A link typed by an admin is an admin decision: recorded in the registry like the verify button, so every
+    # later website run keeps it (a 'Manual Edit' label alone was protected for one run only)
+    verify_or_update_school_url(school_code, payload.website or payload.official_website or "", True)
+    set_current_schools(load_schools())
+    return {"status": "updated"}
 
 class ManualGpsPayload(BaseModel):
     latitude: float
@@ -883,7 +871,10 @@ def resolve_one_school(school_code: str):
                 break
         set_current_schools(schools)
         save_schools(schools)
-        sync_single_school_to_supabase(updated)
+        # what step_websites writes, for this one school: link (incl. an admin's "no website"), check, sources
+        update_supabase_school_websites([updated])
+        save_link_health([updated])
+        update_supabase_school_sources([updated])
         return updated
     raise HTTPException(status_code=404, detail="School not found or website unresolved")
 

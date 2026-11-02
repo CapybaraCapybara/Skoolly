@@ -252,8 +252,15 @@ def merge_with_previous(fresh, old):
 
     old_web = str(old.get("website") or "").strip()
     old_src = str(old.get("website_source") or "")
-    if old_web and (old_src not in ("OPEC Profile", "Not Checked") or not fresh.get("website")):
+    # Only OPEC's own raw value is OPEC's to refresh. A link the website step kept because OPEC names the same
+    # site (labelled "OPEC Profile") is often a campus page and differs from that raw value.
+    is_opec_raw = (old_src in ("OPEC Profile", "Not Checked")
+                   and old_web.rstrip("/") == str(old.get("opec_website") or "").strip().rstrip("/"))
+    fresh_web = str(fresh.get("website") or "").strip()
+    if old_web and (not is_opec_raw or not fresh_web or fresh_web.rstrip("/") == old_web.rstrip("/")):
         merged["website"], merged["website_source"] = old_web, old_src
+    elif not old_web and not fresh_web and old_src:
+        merged["website_source"] = old_src   # "No Official Website" stays rather than going back to "Not Checked"
 
     if all(str(old.get(k) or "") == str(fresh.get(k) or "") for k in GPS_INPUTS):
         for k in GPS_RESULT + GPS_CHECK:
