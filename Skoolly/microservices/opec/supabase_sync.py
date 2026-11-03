@@ -629,17 +629,17 @@ def execute_opec_import(
                     INSERT INTO school_data.schools (
                         opec_school_code, slug, name_th, name_en,
                         official_website_url, website_source, opec_profile_url,
-                        official_phone, official_mobile, official_email,
+                        official_phone, official_mobile,
                         social_links,
                         province, district, subdistrict, address,
                         geom, gps_precision, gps_source,
                         logo_url, level_range, levels_offered, curriculums,
                         student_count, teacher_count,
-                        licensee_name, director_name, manager_name, government_support
+                        licensee_name, director_name, manager_name
                     ) VALUES (
                         %(opec_code)s, %(slug)s, %(name_th)s, %(name_en)s,
                         %(website)s, %(website_source)s, %(profile_url)s,
-                        %(phone)s, %(mobile)s, %(email)s,
+                        %(phone)s, %(mobile)s,
                         %(social_links)s::jsonb,
                         %(province)s, %(district)s, %(subdistrict)s, %(address)s,
                         CASE WHEN %(lng)s::double precision IS NULL OR %(lat)s::double precision IS NULL THEN NULL
@@ -647,7 +647,7 @@ def execute_opec_import(
                         %(gps_precision)s, %(gps_source)s,
                         %(logo)s, %(level_range)s, %(levels_offered)s, %(curriculums)s,
                         %(students)s, %(teachers)s,
-                        %(licensee_name)s, %(director_name)s, %(manager_name)s, %(government_support)s
+                        %(licensee_name)s, %(director_name)s, %(manager_name)s
                     )
                     ON CONFLICT (opec_school_code) DO UPDATE SET
                         name_th = EXCLUDED.name_th,
@@ -657,7 +657,6 @@ def execute_opec_import(
                         opec_profile_url = EXCLUDED.opec_profile_url,
                         official_phone = EXCLUDED.official_phone,
                         official_mobile = EXCLUDED.official_mobile,
-                        official_email = EXCLUDED.official_email,
                         social_links = EXCLUDED.social_links,
                         province = EXCLUDED.province,
                         district = EXCLUDED.district,
@@ -676,7 +675,6 @@ def execute_opec_import(
                         licensee_name = EXCLUDED.licensee_name,
                         director_name = EXCLUDED.director_name,
                         manager_name = EXCLUDED.manager_name,
-                        government_support = EXCLUDED.government_support,
                         updated_at = NOW()
                     RETURNING school_id, (xmax = 0) AS is_insert
                     """,
@@ -690,7 +688,6 @@ def execute_opec_import(
                         "profile_url": clean(record.get("opec_profile_url")),
                         "phone": clean(record.get("telephone")),
                         "mobile": clean(record.get("mobile")),
-                        "email": clean(record.get("email")),
                         "social_links": social_links_json(
                             clean(record.get("facebook")),
                             clean(record.get("line_id")),
@@ -714,7 +711,6 @@ def execute_opec_import(
                         "licensee_name": clean(record.get("licensee_name")),
                         "director_name": clean(record.get("director_name")),
                         "manager_name": clean(record.get("manager_name")),
-                        "government_support": clean(record.get("government_support")),
                     },
                 )
                 row = cur.fetchone()
@@ -883,7 +879,6 @@ def fetch_supabase_schools(
                     {c('opec_profile_url')},
                     {c('official_phone')},
                     {c('official_mobile')},
-                    {c('official_email')},
                     {c('social_links')},
                     {c('facebook_url')},
                     {c('line_id')},
@@ -906,7 +901,6 @@ def fetch_supabase_schools(
                     {c('licensee_name')},
                     {c('director_name')},
                     {c('manager_name')},
-                    {c('government_support')},
                     {c('pub_tuition_min_thb')},
                     {c('pub_tuition_max_thb')},
                     {c('pub_has_safeguarding_policy')},
@@ -955,7 +949,6 @@ def fetch_supabase_schools(
                 item["website"] = item.get("official_website_url") or ""
                 item["telephone"] = item.get("official_phone") or ""
                 item["mobile"] = item.get("official_mobile") or ""
-                item["email"] = item.get("official_email") or ""
                 expand_social_links(item)
                 item["school_logo_url"] = item.get("logo_url") or ""
                 expand_vocab(item)
@@ -1030,7 +1023,7 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
                 INSERT INTO school_data.schools (
                     opec_school_code, slug, name_th, name_en,
                     official_website_url, website_source,
-                    official_phone, official_mobile, official_email,
+                    official_phone, official_mobile,
                     social_links,
                     province, district, subdistrict, address,
                     geom, gps_precision, gps_source,
@@ -1039,7 +1032,7 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
                 ) VALUES (
                     %(opec_code)s, %(slug)s, %(name_th)s, %(name_en)s,
                     %(website)s, %(website_source)s,
-                    %(phone)s, %(mobile)s, %(email)s,
+                    %(phone)s, %(mobile)s,
                     %(social_links)s::jsonb,
                     %(province)s, %(district)s, %(subdistrict)s, %(address)s,
                     CASE WHEN %(lng)s::double precision IS NULL OR %(lat)s::double precision IS NULL THEN NULL
@@ -1059,7 +1052,6 @@ def insert_supabase_school(data: dict[str, Any], dsn: str | None = None) -> dict
                     "website_source": clean(data.get("website_source")) or "Admin Input",
                     "phone": clean(data.get("official_phone")),
                     "mobile": clean(data.get("official_mobile")),
-                    "email": clean(data.get("official_email")),
                     "social_links": social_links_json(
                         clean(data.get("facebook_url")),
                         clean(data.get("line_id")),
@@ -1115,7 +1107,6 @@ def update_supabase_school(school_id: str, data: dict[str, Any], dsn: str | None
                     website_source = COALESCE(%(website_source)s, website_source),
                     official_phone = COALESCE(%(phone)s, official_phone),
                     official_mobile = COALESCE(%(mobile)s, official_mobile),
-                    official_email = COALESCE(%(email)s, official_email),
                     social_links = social_links || %(social_links)s::jsonb,
                     province = COALESCE(%(province)s, province),
                     district = COALESCE(%(district)s, district),
@@ -1143,7 +1134,6 @@ def update_supabase_school(school_id: str, data: dict[str, Any], dsn: str | None
                     "website_source": clean(data.get("website_source")),
                     "phone": clean(data.get("official_phone")),
                     "mobile": clean(data.get("official_mobile")),
-                    "email": clean(data.get("official_email")),
                     "social_links": social_links_json(
                         clean(data.get("facebook_url")),
                         clean(data.get("line_id")),

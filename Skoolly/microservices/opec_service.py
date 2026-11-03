@@ -622,7 +622,6 @@ class CreateSupabaseSchoolPayload(BaseModel):
     official_website_url: Optional[str] = None
     official_phone: Optional[str] = None
     official_mobile: Optional[str] = None
-    official_email: Optional[str] = None
     facebook_url: Optional[str] = None
     line_id: Optional[str] = None
     instagram_url: Optional[str] = None

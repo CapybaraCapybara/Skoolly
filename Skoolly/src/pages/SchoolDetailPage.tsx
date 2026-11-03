@@ -560,16 +560,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">อีเมล:</span>
-                    {detail.officialEmail ? (
-                      <a href={`mailto:${detail.officialEmail}`} className="text-teal-700 font-semibold hover:underline truncate max-w-[65%]">
-                        {detail.officialEmail}
-                      </a>
-                    ) : (
-                      <span className="text-slate-400">ไม่มีข้อมูล</span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
                     <span className="text-slate-500">เว็บไซต์:</span>
                     {detail.website ? (
                       <a

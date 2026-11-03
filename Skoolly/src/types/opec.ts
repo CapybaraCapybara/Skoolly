@@ -14,7 +14,6 @@ export interface OpecSchoolRecord {
   facebook?: string;
   telephone?: string;
   mobile?: string;
-  email?: string;
   latitude?: string | number;
   longitude?: string | number;
   gps_source?: string;
@@ -40,7 +39,6 @@ export interface OpecSchoolRecord {
   licensee_name?: string;
   director_name?: string;
   manager_name?: string;
-  government_support?: string; // "ไม่รับเงินอุดหนุน" | "รับเงินอุดหนุน"
   tuition_min_thb?: number | null; // published fee, empty until a fee version is approved
   /** "archived" = closed by an admin: hidden from parents, can be reopened */
   status?: "active" | "archived";
@@ -126,7 +124,6 @@ export interface SupabaseSchoolRecord {
   website_source?: string | null;
   official_phone?: string | null;
   official_mobile?: string | null;
-  official_email?: string | null;
   facebook_url?: string | null;
   line_id?: string | null;
   instagram_url?: string | null;

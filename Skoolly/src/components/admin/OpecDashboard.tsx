@@ -10,7 +10,6 @@ import {
   Shapes,
   Search,
   BookOpen,
-  DollarSign,
   Satellite,
   ChevronRight,
   ShieldCheck,
@@ -214,23 +213,6 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
           ratio: tch > 0 ? `~${(stu / tch).toFixed(1)} : 1` : "—",
         };
       });
-  }, [schools]);
-
-  // Government subsidy distribution
-  const subsidyStats = useMemo(() => {
-    let noSubsidy = 0;
-    let hasSubsidy = 0;
-    schools.forEach((s) => {
-      if (s.government_support === "รับเงินอุดหนุน") hasSubsidy++;
-      else noSubsidy++;
-    });
-    const total = schools.length || 1;
-    return {
-      noSubsidy,
-      noPct: Math.round((noSubsidy / total) * 100),
-      hasSubsidy,
-      hasPct: Math.round((hasSubsidy / total) * 100),
-    };
   }, [schools]);
 
   const coverage = useMemo(
@@ -846,62 +828,8 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         </div>
       </div>
 
-      {/* Row 3: Government Support and ISAT & Boarding on the left, Accreditations spanning both on the right */}
+      {/* Row 3: ISAT & Boarding on the left, Accreditations on the right */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Government Support */}
-        <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs">
-          <div className="flex items-center gap-2.5 mb-4">
-            <DollarSign className="w-5 h-5 text-[#456ca6]" />
-            <h3 className="font-bold text-warm-charcoal text-sm md:text-base">
-              เงินอุดหนุนจากรัฐ
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3.5">
-            <div
-              onClick={() =>
-                onOpenDrillDown(
-                  "ไม่รับเงินอุดหนุน",
-                  "",
-                  schools.filter((s) => s.government_support !== "รับเงินอุดหนุน")
-                )
-              }
-              className="p-4.5 rounded-2xl bg-white/70 border border-warm-accent hover:border-[#456ca6] cursor-pointer hover:shadow-xs transition-all"
-            >
-              <div className="text-2xl lg:text-3xl font-bold text-[#456ca6]">
-                {subsidyStats.noSubsidy}
-              </div>
-              <div className="text-xs font-bold text-warm-charcoal mt-1.5">
-                ไม่รับเงินอุดหนุน
-              </div>
-              <div className="text-xs text-[#78716c] mt-0.5 font-medium">
-                {subsidyStats.noPct}% ของโรงเรียนทั้งหมด
-              </div>
-            </div>
-
-            <div
-              onClick={() =>
-                onOpenDrillDown(
-                  "รับเงินอุดหนุน",
-                  "",
-                  schools.filter((s) => s.government_support === "รับเงินอุดหนุน")
-                )
-              }
-              className="p-4.5 rounded-2xl bg-white/70 border border-warm-accent hover:border-warm-bronze cursor-pointer hover:shadow-xs transition-all"
-            >
-              <div className="text-2xl lg:text-3xl font-bold text-warm-bronze">
-                {subsidyStats.hasSubsidy}
-              </div>
-              <div className="text-xs font-bold text-warm-charcoal mt-1.5">
-                รับเงินอุดหนุน
-              </div>
-              <div className="text-xs text-[#78716c] mt-0.5 font-medium">
-                {subsidyStats.hasPct}% ของโรงเรียนทั้งหมด
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* ISAT Membership & Boarding Schools Highlight */}
         <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs flex flex-col justify-between">
           <div>
@@ -974,7 +902,7 @@ export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) 
         </div>
 
         {/* Global Accreditations Breakdown */}
-        <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs flex flex-col lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        <div className="p-6 rounded-[2rem] bg-warm-cream border border-warm-accent shadow-xs flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <Award className="w-5 h-5 text-teal-700" />

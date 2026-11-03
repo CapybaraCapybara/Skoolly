@@ -92,7 +92,6 @@ export interface SchoolDetail {
   isBoarding?: boolean | null;
   isIsatMember?: boolean | null;
   officialPhone?: string | null;
-  officialEmail?: string | null;
   facebookUrl?: string | null;
   address?: string | null;
   district?: string | null;

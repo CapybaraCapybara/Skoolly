@@ -20,7 +20,6 @@ erDiagram
     text website_url 
     boolean is_verified 
     text source 
-    text notes 
     timestamp_with_time_zone verified_at 
     text verified_by 
     timestamp_with_time_zone created_at 
@@ -59,7 +58,6 @@ erDiagram
     uuid version_id PK
     uuid school_id FK
     integer version_number 
-    uuid parent_version_id FK
     version_status status 
     source_type source_type 
     jsonb data_snapshot 
@@ -89,7 +87,6 @@ erDiagram
     text opec_profile_url 
     text official_phone 
     text official_mobile 
-    text official_email 
     text province 
     text district 
     text subdistrict 
@@ -115,7 +112,6 @@ erDiagram
     text licensee_name 
     text director_name 
     text manager_name 
-    text government_support 
     boolean is_isat_member 
     boolean is_boarding 
     integer year_established 
@@ -185,7 +181,6 @@ erDiagram
   school_data__schools ||--|| school_data__school_google_reviews : "school_id"
   school_data__schools ||--o{ school_data__school_scrape_log : "school_id"
   school_data__school_versions ||--o{ school_data__school_scrape_log : "version_id"
-  school_data__school_versions ||--o{ school_data__school_versions : "parent_version_id"
   school_data__schools ||--o{ school_data__school_versions : "school_id"
   school_data__school_versions ||--o{ school_data__schools : "current_published_version_id"
   school_data__school_versions ||--o{ school_data__version_extra_fees : "version_id"

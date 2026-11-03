@@ -52,7 +52,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `website_url` | URL เว็บไซต์ทางการที่บันทึกไว้ | `text` | NOT NULL, DEFAULT '' | — |
 | `is_verified` | ผ่านการยืนยันจากผู้ดูแลระบบแล้วหรือยัง | `boolean` | NOT NULL, DEFAULT false | — |
 | `source` | ที่มาของ URL นี้ จากทะเบียนที่ยืนยันแล้ว จากการค้นหา หรือผู้ดูแลกรอกเอง | `text` | NOT NULL, DEFAULT 'Manual Registry' | — |
-| `notes` | บันทึกเพิ่มเติมของผู้ยืนยัน | `text` | — | — |
 | `verified_at` | เวลาที่ยืนยัน | `timestamp with time zone` | — | — |
 | `verified_by` | ผู้ยืนยันหรือที่มาของการยืนยัน | `text` | DEFAULT 'Admin' | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
@@ -112,7 +111,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `version_id` | รหัสเวอร์ชันของข้อมูลโรงเรียน | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `school_id` | โรงเรียนที่เวอร์ชันนี้เป็นของ | `uuid` | FK, UNIQUE รวม (school_id, version_number), NOT NULL | school_data.schools · ON DELETE CASCADE |
 | `version_number` | ลำดับเวอร์ชันของโรงเรียนนั้น เริ่มที่ 1 และไม่ซ้ำกันภายในโรงเรียนเดียว | `integer` | UNIQUE รวม (school_id, version_number), NOT NULL, CHECK versions_number_positive | — |
-| `parent_version_id` | เวอร์ชันที่ใช้เป็นฐานตอนสร้างเวอร์ชันนี้ ใช้ตรวจว่ามีคนแก้แทรกกลางคันหรือไม่ | `uuid` | FK | school_data.school_versions |
 | `status` | สถานะเวอร์ชัน รอตรวจ ปฏิเสธ เผยแพร่ หรือถูกแทนที่แล้ว | `school_data.version_status` | NOT NULL, DEFAULT 'pending_review' | — |
 | `source_type` | ที่มาของเวอร์ชัน มาจากผู้ดูแลแก้เอง จาก Scraper หรือจากการนำเข้าชุดใหญ่ | `school_data.source_type` | NOT NULL | — |
 | `data_snapshot` | ข้อมูลทั้งก้อนของเวอร์ชันนี้เก็บเป็น JSON เพื่อย้อนดูและกู้คืนได้ | `jsonb` | NOT NULL | — |
@@ -149,7 +147,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `opec_profile_url` | URL หน้าข้อมูลโรงเรียนบนเว็บ สช. | `text` | — | — |
 | `official_phone` | หมายเลขโทรศัพท์ติดต่อ | `text` | — | — |
 | `official_mobile` | หมายเลขโทรศัพท์มือถือ | `text` | — | — |
-| `official_email` | อีเมลติดต่อของโรงเรียน | `text` | — | — |
 | `province` | จังหวัดที่ตั้ง ใช้เป็นตัวกรองหลักในหน้าค้นหา | `text` | NOT NULL | — |
 | `district` | อำเภอหรือเขต | `text` | — | — |
 | `subdistrict` | ตำบลหรือแขวง | `text` | — | — |
@@ -175,7 +172,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `licensee_name` | ชื่อผู้รับใบอนุญาตจัดตั้งโรงเรียนตามทะเบียน สช. | `text` | — | — |
 | `director_name` | ชื่อผู้อำนวยการโรงเรียนตามทะเบียน สช. | `text` | — | — |
 | `manager_name` | ชื่อผู้จัดการโรงเรียนตามทะเบียน สช. | `text` | — | — |
-| `government_support` | สถานะการรับเงินอุดหนุนจากรัฐตามข้อมูล สช. | `text` | — | — |
 | `is_isat_member` | เป็นสมาชิกสมาคมโรงเรียนนานาชาติแห่งประเทศไทย (ISAT) หรือไม่ | `boolean` | DEFAULT false | — |
 | `is_boarding` | มีหอพักประจำหรือไม่ | `boolean` | DEFAULT false | — |
 | `year_established` | ปีที่ก่อตั้งโรงเรียน | `integer` | — | — |

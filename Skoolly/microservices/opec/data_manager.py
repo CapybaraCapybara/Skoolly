@@ -134,7 +134,7 @@ def _atomic_write(path, write_fn, encoding, newline=None):
 CSV_FALLBACK_HEADER = [
     "no", "school_code", "school_name_th", "school_name_en", "province", "district",
     "subdistrict", "address", "website", "website_source", "facebook", "telephone",
-    "mobile", "email", "latitude", "longitude", "gps_source", "gps_precision",
+    "mobile", "latitude", "longitude", "gps_source", "gps_precision",
     "opec_profile_url", "fetched_at", "last_updated",
 ]
 

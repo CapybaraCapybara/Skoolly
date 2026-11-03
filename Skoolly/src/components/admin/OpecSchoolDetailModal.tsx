@@ -187,16 +187,6 @@ export function OpecSchoolDetailModal({
                   </span>
                 )}
 
-                <span
-                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
-                    school.government_support && school.government_support.includes("รับ") && !school.government_support.includes("ไม่")
-                      ? "bg-amber-50 text-amber-800 border-amber-200"
-                      : "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
-                  }`}
-                >
-                  {school.government_support || "ไม่รับเงินอุดหนุน"}
-                </span>
-
                 {school.is_isat_member && (
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#456ca6]/10 text-[#456ca6] border border-[#456ca6]/30">
                     สมาชิก ISAT
@@ -342,16 +332,6 @@ export function OpecSchoolDetailModal({
                     </div>
                   </div>
                 )}
-
-                {/* Government Support */}
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-[#78716c] font-medium min-w-[130px] shrink-0">
-                    การรับเงินอุดหนุน:
-                  </span>
-                  <span className="font-semibold text-warm-charcoal text-right">
-                    {school.government_support || "ไม่รับเงินอุดหนุน"}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -604,8 +584,8 @@ export function OpecSchoolDetailModal({
               </div>
 
               <div className="space-y-3.5 text-xs">
-                {/* 3 Contact Columns Top */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-white/70 border border-warm-accent/60">
+                {/* Contact columns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-white/70 border border-warm-accent/60">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[#78716c] font-medium">เบอร์โทรศัพท์:</span>
                     <span className="font-bold text-warm-charcoal text-sm">{school.telephone || "—"}</span>
@@ -613,10 +593,6 @@ export function OpecSchoolDetailModal({
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[#78716c] font-medium">เบอร์มือถือ:</span>
                     <span className="font-semibold text-warm-charcoal">{school.mobile || "—"}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[#78716c] font-medium">อีเมลติดต่อ:</span>
-                    <span className="font-semibold text-warm-charcoal truncate">{school.email || "—"}</span>
                   </div>
                 </div>
 

@@ -146,7 +146,6 @@ create table if not exists school_data.schools (
   -- ติดต่อ (มีจริงใน dataset แต่ fill rate ต่ำ จึง nullable ทั้งหมด)
   official_phone                text,
   official_mobile               text,
-  official_email                text,
 
   -- โซเชียล: รวมเป็น jsonb ก้อนเดียวแทน 4 คอลัมน์แยก เพราะ fill rate ต่ำมาก
   -- ไม่เคยถูกใช้กรอง/เรียง และชุดแพลตฟอร์มเปลี่ยนได้ตลอด — คีย์ที่ใช้จริง:
@@ -191,7 +190,6 @@ create table if not exists school_data.schools (
   licensee_name                 text,                       -- ผู้รับใบอนุญาต
   director_name                 text,                       -- ผู้อำนวยการ
   manager_name                  text,                       -- ผู้จัดการ
-  government_support            text,                       -- เช่น "ไม่รับเงินอุดหนุน" / "รับเงินอุดหนุน"
 
   -- ── Read model: projection จากเวอร์ชันที่ published อยู่ ─────────────────────
   -- อัปเดตใน transaction เดียวกับตอน publish (Architecture หัวข้อ 8.5)
@@ -237,7 +235,6 @@ create table if not exists school_data.school_versions (
   version_id           uuid primary key default gen_random_uuid(),
   school_id            uuid not null references school_data.schools(school_id) on delete cascade,
   version_number       int  not null,
-  parent_version_id    uuid references school_data.school_versions(version_id),
 
   status               school_data.version_status not null default 'pending_review',
   source_type          school_data.source_type    not null,
@@ -354,7 +351,6 @@ create table if not exists school_data.official_website_registry (
   is_verified     boolean not null default false,
   source          text    not null default 'Manual Registry', -- ชั้นของการไล่หาที่ยืนยัน URL นี้
                                                -- ค่าที่พบจริงตอนนี้คือ 'Verified Official Registry' ทั้ง 291 แถว
-  notes           text,
   verified_at     timestamptz,
   verified_by     text,
   http_status     int,                         -- ผลตรวจล่าสุดว่า URL ยังเข้าได้ไหม
@@ -1473,8 +1469,6 @@ alter table community.data_correction_reports
 -- =============================================================================
 -- Postgres สร้าง index ให้เฉพาะ PK/UNIQUE ไม่ได้สร้างให้คอลัมน์ FK อัตโนมัติ
 -- ถ้าไม่มี การลบแถวแม่จะต้อง seq scan ตารางลูกทั้งตารางเพื่อตรวจ FK
-create index if not exists versions_parent_idx
-  on school_data.school_versions (parent_version_id) where parent_version_id is not null;
 create index if not exists scrape_log_version_idx
   on school_data.school_scrape_log (version_id) where version_id is not null;
 create index if not exists schools_current_version_idx

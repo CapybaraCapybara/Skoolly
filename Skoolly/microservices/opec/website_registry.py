@@ -133,7 +133,7 @@ def get_full_registry_status() -> Dict[str, Any]:
                         db_schools_map[row["opec_school_code"]] = row
                     
                     # 2. Permanent Official Website Registry
-                    cur.execute("SELECT school_code, school_name_th, school_name_en, website_url, is_verified, source, notes, verified_at, verified_by, http_status, last_checked_at, is_broken, error_reason FROM school_data.official_website_registry")
+                    cur.execute("SELECT school_code, school_name_th, school_name_en, website_url, is_verified, source, verified_at, verified_by, http_status, last_checked_at, is_broken, error_reason FROM school_data.official_website_registry")
                     for row in cur.fetchall():
                         db_registry_map[row["school_code"]] = row
         except Exception as e:

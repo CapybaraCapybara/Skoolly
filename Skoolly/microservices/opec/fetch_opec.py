@@ -169,10 +169,6 @@ def build_pure_opec_record(s):
     pdc_id = str(s.get("schoolPdcId") or s.get("SchoolPdcId") or "").strip()
     school_logo_url = f"https://pedb.opec.go.th/web/SchoolPdc.htm?mode=showPicture&t=1&id={pdc_id}" if pdc_id else ""
 
-    # Subsidy
-    no_support = str(s.get("noSupport", "")).strip()
-    gov_support = "รับเงินอุดหนุน" if no_support == "0" else "ไม่รับเงินอุดหนุน"
-
     raw_lat = str(s.get("latitude") or "").strip()
     raw_lon = str(s.get("longitude") or "").strip()
     if raw_lat and raw_lon and raw_lat not in ["0", "0.0", ""] and raw_lon not in ["0", "0.0", ""]:
@@ -204,7 +200,6 @@ def build_pure_opec_record(s):
         "facebook": facebook,
         "telephone": s.get("tel", "").strip(),
         "mobile": s.get("mobile", "").strip(),
-        "email": s.get("email", "").strip(),
         "latitude": raw_lat,
         "longitude": raw_lon,
         # The raw OPEC pin, kept apart from latitude/longitude so that a better
@@ -226,7 +221,6 @@ def build_pure_opec_record(s):
         "licensee_name": s.get("licenseeName", "").strip(),
         "director_name": s.get("directorName", "").strip(),
         "manager_name": s.get("managerName", "").strip(),
-        "government_support": gov_support,
         "school_history": s.get("schoolHistory", "").strip(),
         "vision": s.get("sVision", "").strip(),
         "mission": s.get("sMission", "").strip(),

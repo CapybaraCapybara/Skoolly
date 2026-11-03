@@ -292,7 +292,6 @@ export function mapSupabaseToDomainDetail(
     isBoarding: record.is_boarding ?? false,
     isIsatMember: record.is_isat_member ?? false,
     officialPhone: record.official_phone || record.official_mobile || null,
-    officialEmail: record.official_email || null,
     facebookUrl: record.facebook_url || null,
     address: record.address || null,
     district: record.district || null,

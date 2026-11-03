@@ -5,7 +5,6 @@ erDiagram
     school_data__schools ||--|| school_data__school_google_reviews : "school_id"
     school_data__schools ||--o{ school_data__school_scrape_log : "school_id"
     school_data__school_versions ||--o{ school_data__school_scrape_log : "version_id"
-    school_data__school_versions ||--o{ school_data__school_versions : "parent_version_id"
     school_data__schools ||--o{ school_data__school_versions : "school_id"
     school_data__school_versions ||--o{ school_data__schools : "current_published_version_id"
     school_data__school_versions ||--o{ school_data__version_extra_fees : "version_id"
