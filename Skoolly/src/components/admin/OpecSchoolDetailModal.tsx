@@ -17,8 +17,10 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertTriangle,
+  History,
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/opec";
+import { SchoolChangeHistory } from "@/components/admin/SchoolChangeHistory";
 import { DATA_SOURCE_PARTS, formatThaiDate } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
@@ -65,6 +67,7 @@ export function OpecSchoolDetailModal({
   onSetClosed,
 }: OpecSchoolDetailModalProps) {
   const [showJson, setShowJson] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
   const [copiedWeb, setCopiedWeb] = useState(false);
   const [confirmClosing, setConfirmClosing] = useState(false);
@@ -772,6 +775,22 @@ export function OpecSchoolDetailModal({
                 })}
               </div>
             </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-xs font-bold text-[#78716c] hover:text-warm-charcoal flex items-center gap-1.5 py-1 transition-colors"
+            >
+              <History className="w-4 h-4 text-warm-bronze" />
+              <span>{showHistory ? "ซ่อนประวัติการแก้ไข" : "ดูประวัติการแก้ไข"}</span>
+            </button>
+            {showHistory && (
+              <div className="mt-2">
+                <SchoolChangeHistory schoolCode={school.school_code} />
+              </div>
+            )}
           </div>
 
           {/* Raw JSON Debug (Admin toggle) */}

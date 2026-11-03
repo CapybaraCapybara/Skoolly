@@ -39,7 +39,7 @@
 [39 - 1110700043] KOBATO INTERNATIONAL KINDERGARTEN (อนุบาลนานาชาติโคบาโตะ) - https://kobato-bkk.com
 [40 - 1110700044] Modern International School, Bangkok (นานาชาติโมเดิร์น กรุงเทพฯ) - https://www.misb.ac.th
 [41 - 1110700045] TRINITY INTERNATIONAL SCHOOL (นานาชาติทรีนีตี้) - https://trinity.ac.th
-[42 - 1110700046] KIDDYKARE INTERNATIONAL KINDERGARTEN (อนุบาลนานาชาติเยาวรักษ์ (คิดดี้แคร์)) - 
+[42 - 1110700046] Kids Kingdom Sukhumvit 26 International Kindergarten School (อนุบาลนานาชาติคิดส์ คิงดอม สุขุมวิท 26) - https://kidskingdom.ac.th
 [43 - 1110700047] MELODIES INTERNATIONAL KINDERGATEN (อนุบาลนานาชาติเมโลดี้ส) - https://melodieskinder.com/en
 [44 - 1110700050] BSB BRITISH INTERNATIONAL PRIMARY SCHOOL (นานาชาติ บี เอส บี บริติช ไพรแมรี่) - https://bsbangkok.ac
 [45 - 1110700052] Bangkok Christian International School (นานาชาติคริสเตียนกรุงเทพ) - https://www.bcis.ac.th
@@ -289,3 +289,4 @@
 [289 - 1190700002] BLOOMSBURY INTERNATIONAL SCHOOL HATYAI (นานาชาติบลูมส์เบอรี่-หาดใหญ่) - https://bloomsbury.ac.th
 [290 - 1190700003] SOUTHERN INTERNATIONAL SCHOOL HATYAI (นานาชาติเซาท์เทิร์น หาดใหญ่) - https://www.southerninter.ac.th
 [291 - 1190700004] Wonder Valley International School (นานาชาติวันเดอร์แวลี่ย์) - https://wondervalley.ac.th
+[292 - 1110700150] Dadi International Kindergarten Ekamai - Ramindra (อนุบาลนานาชาติต้าตี้ เอกมัย รามอินทรา) - https://dadi.ac.th

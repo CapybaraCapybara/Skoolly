@@ -1289,6 +1289,48 @@ drop trigger if exists bump_row_version on school_data.schools;
 create trigger bump_row_version before update on school_data.schools
   for each row execute function school_data.bump_school_version();
 
+-- เพิ่ม 3 พ.ย. 2569: ประวัติการแก้ไขข้อมูลโรงเรียน ทุกการเปลี่ยนแปลงลง ops.audit_log (entity_type 'school')
+-- ไม่ว่าจากขั้นไหนของ pipeline หรือแอดมิน; actor_type เป็น 'system' เพราะ trigger แยกไม่ได้ว่าใครแก้
+create or replace function school_data.log_school_change() returns trigger
+language plpgsql
+set search_path = public, extensions, pg_temp
+as $$
+declare
+  skip constant text[] := array['updated_at', 'row_version', 'data_sources', 'created_at'];
+  o jsonb;
+  n jsonb := to_jsonb(new) || jsonb_build_object('geom', case when new.geom is null then null
+               else round(st_y(new.geom::geometry)::numeric, 6) || ',' || round(st_x(new.geom::geometry)::numeric, 6) end);
+  before_v jsonb := '{}'::jsonb;
+  after_v jsonb := '{}'::jsonb;
+  k text;
+begin
+  if tg_op = 'INSERT' then
+    insert into ops.audit_log (actor_type, action, entity_type, entity_id, after_snapshot)
+    values ('system', 'school.create', 'school', new.school_id,
+            jsonb_build_object('opec_school_code', new.opec_school_code, 'name_th', new.name_th));
+    return null;
+  end if;
+
+  -- พิกัดเก็บเป็น "lat,lng" แทนค่า PostGIS ที่อ่านไม่ออก
+  o := to_jsonb(old) || jsonb_build_object('geom', case when old.geom is null then null
+         else round(st_y(old.geom::geometry)::numeric, 6) || ',' || round(st_x(old.geom::geometry)::numeric, 6) end);
+  for k in select key from jsonb_each(n) loop
+    if k <> all (skip) and (o -> k) is distinct from (n -> k) then
+      before_v := before_v || jsonb_build_object(k, o -> k);
+      after_v := after_v || jsonb_build_object(k, n -> k);
+    end if;
+  end loop;
+  if after_v <> '{}'::jsonb then
+    insert into ops.audit_log (actor_type, action, entity_type, entity_id, before_snapshot, after_snapshot)
+    values ('system', 'school.update', 'school', new.school_id, before_v, after_v);
+  end if;
+  return null;
+end $$;
+
+drop trigger if exists log_school_change on school_data.schools;
+create trigger log_school_change after insert or update on school_data.schools
+  for each row execute function school_data.log_school_change();
+
 do $$
 declare
   t text;

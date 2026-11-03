@@ -84,6 +84,26 @@ export async function resolveSchoolWebsite(schoolCode: string): Promise<OpecScho
   return null;
 }
 
+export interface SchoolChange {
+  changed_at: string;
+  action: "school.create" | "school.update";
+  school_code: string;
+  name_th: string;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+}
+
+/** One school's changes, or the latest changes across every school without a code */
+export async function getSchoolHistory(schoolCode?: string): Promise<SchoolChange[]> {
+  const path = schoolCode ? `/api/school/${schoolCode}/history` : "/api/schools/history";
+  const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "อ่านประวัติการแก้ไขไม่สำเร็จ");
+  }
+  return (await res.json()).history;
+}
+
 export async function enrichSchoolData(schoolCode: string): Promise<{ school: OpecSchoolRecord; changes: string[] } | null> {
   const res = await fetch(`${API_BASE}/api/school/${schoolCode}/enrich`, {
     method: "POST",

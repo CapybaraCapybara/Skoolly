@@ -57,6 +57,7 @@ import { OpecUrlVerificationModal } from "@/components/admin/OpecUrlVerification
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
 import { ScraperLogsDashboard } from "@/components/admin/ScraperLogsDashboard";
+import { SchoolChangeHistory } from "@/components/admin/SchoolChangeHistory";
 import { CurriculumReview } from "@/components/admin/CurriculumReview";
 import { review, placeInitials } from "@/components/admin/reviewStyles";
 
@@ -1278,12 +1279,20 @@ export function SupabaseAdminPage({
                 />
               )}
 
+              {activeTab === "audit-log" && (
+                <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-4 sm:p-6 shadow-xs">
+                  <p className="text-xs text-[#78716c] mb-3">การแก้ไขข้อมูลโรงเรียนล่าสุด ทั้งจากระบบและจากแอดมิน</p>
+                  <SchoolChangeHistory />
+                </div>
+              )}
+
               {activeTab !== "dashboard" &&
                 activeTab !== "schools" &&
                 activeTab !== "review" &&
                 activeTab !== "pipeline" &&
                 activeTab !== "verify" &&
-                activeTab !== "ai-logs" && (
+                activeTab !== "ai-logs" &&
+                activeTab !== "audit-log" && (
                 <div className="bg-warm-cream border border-warm-accent rounded-[2rem] p-12 text-center shadow-xs">
                   <div className="w-12 h-12 rounded-2xl bg-warm-cream border border-warm-accent text-warm-bronze flex items-center justify-center mx-auto mb-3">
                     <CheckCircle2 className="w-6 h-6" />

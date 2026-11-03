@@ -36,7 +36,8 @@ DATA_FILE = BASE_DIR / "data" / "international_schools_thailand_opec.json"
 
 # Comprehensive Normalized Curriculum Categories (Eliminates "OTHER" fallback)
 CURRICULUM_PATTERNS: list[tuple[str, str]] = [
-    ("BRITISH", r"สหราชอาณาจักร|ประเทศอังกฤษ|อังกฤษ|เวลส์|England|Wales|\bUK\b|British"
+    # not "ภาษาอังกฤษ" (English as a subject) nor "British Columbia" (a Canadian province)
+    ("BRITISH", r"สหราชอาณาจักร|ประเทศอังกฤษ|(?<!ภาษา)อังกฤษ|เวลส์|England|Wales|\bUK\b|British(?!\s*Columbia)"
                                 r"|IGCSE|GCSE|AS\s*(&|and)?\s*A\s*Level|A[\s-]?Level|Cambridge|เคมบริดจ์|แคมบริ"
                                 r"|Oxford|Early\s*Years?\s*Foundation|EYFS|Edexcel|BTEC|Pearson|Key\s*Stage"
                                 r"|English\s*National\s*Curric|\bENC\b|Wellington|เวลลิงตัน|AICE|St\s*Andrews"
@@ -347,19 +348,35 @@ def names_a_curriculum(codes: list[str] | None) -> bool:
     return any(code != "SCHOOL_SPECIFIC" for code in codes or [])
 
 
-def choose_curriculums(opec_raw_values: Any, website_codes: list[str] | None,
+# A named IB programme. The IBO authorises each one, so either source naming it is enough; OPEC's bare
+# "IB" in "สหราชอาณาจักร หลักสูตร IB" is a form template that preschools fill in too.
+IB_PROGRAMME = re.compile(r"International\s*Baccalaureate|IB\s*-?\s*(DP|CP|PYP|MYP|Diploma|Continuum|Career)|\bIBDP\b|\bIBCP\b"
+                          r"|\bPYP\b|\bMYP\b|Diploma\s*Programme", re.IGNORECASE)
+
+
+def choose_curriculums(opec_raw_values: Any, website_snapshot: dict | None,
                        unmapped: Counter | None = None, auto_mapped: dict | None = None) -> list[str]:
-    """The rule for a school no admin has decided: OPEC's registration, or the approved website
-    version's curriculum when OPEC names none."""
-    codes = opec_curriculum_codes(opec_raw_values, unmapped, auto_mapped)
-    if not names_a_curriculum(codes) and names_a_curriculum(website_codes):
-        return list(website_codes)
-    return codes
+    """The rule for a school no admin has decided. Both sources go wrong in their own way: OPEC's
+    registration can be years old, and the scraper reads language or maths programmes as curricula
+    ("French Programme", "Singapore Mathematics"). So when both name a curriculum, show the ones they
+    agree on, plus IB when either names an IB programme. When they share none (curriculums_conflict),
+    OPEC's registration stands until an admin decides. One source naming nothing: the other one's."""
+    opec = set(opec_curriculum_codes(opec_raw_values, unmapped, auto_mapped)) - {"SCHOOL_SPECIFIC"}
+    web = set(website_curriculum_codes(website_snapshot or {}) or []) - {"SCHOOL_SPECIFIC"}
+    both = opec & web
+    if both:
+        snap = website_snapshot or {}
+        web_raw = snap.get("curriculums") or snap.get("curriculum") or []
+        texts = [*(opec_raw_values or []), *(web_raw if isinstance(web_raw, list) else [web_raw])]
+        if any(IB_PROGRAMME.search(str(t)) for t in texts):
+            both.add("IB")
+        return sorted(both)
+    return sorted(opec or web or {"SCHOOL_SPECIFIC"})
 
 
 def curriculums_conflict(opec_codes: list[str] | None, website_codes: list[str] | None) -> bool:
     """OPEC and the website both name a curriculum but not one in common, e.g. American vs British.
-    Partial overlaps (British + IB vs IB) are not conflicts: OPEC's list stands."""
+    Partial overlaps (British + IB vs IB) are not conflicts: choose_curriculums keeps what they share."""
     opec = set(opec_codes or []) - {"SCHOOL_SPECIFIC"}
     web = set(website_codes or []) - {"SCHOOL_SPECIFIC"}
     return bool(opec and web and not opec & web)
@@ -451,8 +468,7 @@ def clear_curriculums_confirmation(school_code: str, opec_raw_values: Any, dsn: 
         r = conn.execute(_REVIEW_QUERY + " WHERE s.opec_school_code = %s", (school_code,)).fetchone()
         if not r:
             raise ValueError(f"ไม่พบโรงเรียนรหัส {school_code}")
-        web = website_curriculum_codes({"curriculums": r["web_list"], "curriculum": r["web_text"]})
-        codes = choose_curriculums(opec_raw_values, web)
+        codes = choose_curriculums(opec_raw_values, {"curriculums": r["web_list"], "curriculum": r["web_text"]})
         conn.execute("""
             UPDATE school_data.schools
             SET curriculums = %s, curriculums_confirmed_at = NULL, curriculums_confirmed_by = NULL
@@ -564,7 +580,7 @@ def execute_opec_import(
             cur.execute("SELECT slug FROM school_data.schools")
             used_slugs = {r["slug"] for r in cur.fetchall()}
 
-            # Curriculum each school's approved website version names, for schools OPEC says nothing about
+            # Curriculum each school's approved website version names; choose_curriculums weighs it against OPEC's
             cur.execute("""
                 SELECT s.opec_school_code, v.data_snapshot->'curriculums' AS curriculums,
                        v.data_snapshot->>'curriculum' AS curriculum
@@ -572,7 +588,7 @@ def execute_opec_import(
                 JOIN school_data.school_versions v ON v.version_id = s.current_published_version_id
                 WHERE v.source_type = 'scraper'
             """)
-            website_codes = {r["opec_school_code"]: website_curriculum_codes(r) for r in cur.fetchall()}
+            website_snapshots = {r["opec_school_code"]: r for r in cur.fetchall()}
 
             for idx, record in enumerate(records, 1):
                 opec_code = clean(record.get("school_code"))
@@ -590,7 +606,7 @@ def execute_opec_import(
 
                 # 1. Curriculums: OPEC's registration, or the approved website version when OPEC names
                 #    none. A school an admin has decided keeps its curriculums (ON CONFLICT below)
-                curriculums_list = choose_curriculums(record.get("curriculums"), website_codes.get(opec_code),
+                curriculums_list = choose_curriculums(record.get("curriculums"), website_snapshots.get(opec_code),
                                                       unmapped_curriculums, auto_mapped)
 
                 # 2. Derive grade levels (standard Thai names matching modal badges)
@@ -1249,6 +1265,24 @@ def reopen_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
         WHERE opec_school_code = %s AND status = 'archived'
         RETURNING status::text AS status
     """, f"ไม่พบโรงเรียนรหัส {school_code} ที่ปิดอยู่", dsn)
+
+
+def fetch_school_history(school_code: str | None = None, limit: int = 200, dsn: str | None = None) -> list[dict[str, Any]]:
+    """What changed on one school's row (every school's when school_code is None), newest first: the trigger
+    log_school_change (db/schema.sql) writes each change to ops.audit_log with the old and new value of
+    every field that changed."""
+    with db_connect(dsn, row_factory=dict_row) as conn:
+        rows = conn.execute("""
+            SELECT l.created_at, l.action, l.before_snapshot, l.after_snapshot, s.opec_school_code, s.name_th
+            FROM ops.audit_log l
+            JOIN school_data.schools s ON s.school_id = l.entity_id
+            WHERE l.entity_type = 'school' AND (%(code)s::text IS NULL OR s.opec_school_code = %(code)s)
+            ORDER BY l.created_at DESC, l.log_id DESC
+            LIMIT %(limit)s
+        """, {"code": school_code, "limit": limit}).fetchall()
+    return [{"changed_at": r["created_at"].isoformat(), "action": r["action"], "school_code": r["opec_school_code"],
+             "name_th": r["name_th"], "before": r["before_snapshot"] or {}, "after": r["after_snapshot"] or {}}
+            for r in rows]
 
 
 def _same_point(lat_a: Any, lng_a: Any, lat_b: Any, lng_b: Any) -> bool:

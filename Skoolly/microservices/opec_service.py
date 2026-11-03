@@ -55,6 +55,7 @@ from supabase_sync import (  # type: ignore
     mark_opec_presence,
     close_school,
     reopen_school,
+    fetch_school_history,
 )
 from website_registry import (  # type: ignore
     get_full_registry_status,
@@ -856,6 +857,24 @@ def post_reopen_school(school_code: str):
         return reopen_school(school_code)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.get("/api/school/{school_code}/history")
+def get_school_history(school_code: str):
+    """Every change to the school's data, newest first (admin page)."""
+    try:
+        return {"history": fetch_school_history(school_code)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"อ่านประวัติการแก้ไขไม่สำเร็จ: {e}")
+
+
+@app.get("/api/schools/history")
+def get_all_schools_history(limit: int = 300):
+    """The latest changes across every school (admin page, tab ประวัติการแก้ไข)."""
+    try:
+        return {"history": fetch_school_history(None, limit=min(max(limit, 1), 1000))}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"อ่านประวัติการแก้ไขไม่สำเร็จ: {e}")
 
 
 @app.post("/api/school/{school_code}/resolve")

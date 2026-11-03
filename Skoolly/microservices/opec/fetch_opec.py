@@ -13,18 +13,39 @@ fetch_opec.py
 """
 
 import re
+import threading
 import time
 import requests
 import urllib3
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib3.util.retry import Retry
 from data_manager import load_schools, save_schools
 from enrich_school_names_en import is_garbled_name
 
 # Disable SSL warnings for OPEC site
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+
+class _PacedAdapter(requests.adapters.HTTPAdapter):
+    """OPEC answers 429 "Too many requests" past 240 requests a minute (its RateLimit-Policy header),
+    so requests are spaced to stay under that; a 429 that still happens is waited out and retried."""
+    _lock = threading.Lock()
+    _next = 0.0
+
+    def send(self, request, **kwargs):
+        with _PacedAdapter._lock:
+            now = time.monotonic()
+            wait = max(0.0, _PacedAdapter._next - now)
+            _PacedAdapter._next = max(now, _PacedAdapter._next) + 60 / 230
+        time.sleep(wait)
+        return super().send(request, **kwargs)
+
+
 session = requests.Session()
-adapter = requests.adapters.HTTPAdapter(pool_connections=70, pool_maxsize=70, max_retries=2)
+adapter = _PacedAdapter(pool_connections=70, pool_maxsize=70,
+                        max_retries=Retry(total=6, connect=2, read=False, status=4, status_forcelist=(429,),
+                                          allowed_methods=None, backoff_factor=5,
+                                          respect_retry_after_header=True, raise_on_status=False))
 session.mount("https://", adapter)
 session.mount("http://", adapter)
 
@@ -222,13 +243,21 @@ def build_pure_opec_record(s):
         "last_updated": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
-# What the GPS button decided depends on these. While they are unchanged, its result stands;
-# when one changes, the school goes back in the GPS button's queue.
-GPS_INPUTS = ("opec_latitude", "opec_longitude", "province", "district", "subdistrict", "address")
+# What the GPS button decided depends on these and the address's house number (_house_number). While
+# they are unchanged, its result stands; when one changes, the school goes back in the GPS button's queue.
+GPS_INPUTS = ("opec_latitude", "opec_longitude", "province", "district", "subdistrict")
 GPS_RESULT = ("latitude", "longitude", "gps_source", "gps_precision")
 GPS_CHECK = ("gps_confidence", "gps_confirmed_by", "gps_evidence", "gps_anchor", "gps_method", "gps_verified")
 # Defaults for a new school whose count or curriculum request failed (the dataset's convention)
 UNKNOWN_DEFAULTS = {"student_count": 0, "teacher_count": 0, "curriculums": []}
+
+
+def _house_number(address):
+    """"59/34 ซอยสุขุมวิท 26 ..." -> "59/34". OPEC rewrites the rest of an address ("ซอย สุขุมวิท 26 ถนน
+    สุขุมวิท") without the school moving; the whole text when it does not start with a number."""
+    text = re.sub(r"\s+", " ", str(address or "")).strip()
+    m = re.match(r"[\d/-]+", text)
+    return m.group(0) if m else text
 
 
 def merge_with_previous(fresh, old):
@@ -239,7 +268,7 @@ def merge_with_previous(fresh, old):
     What the later steps added is kept:
       - school_name_en: OPEC's name wins unless it is empty or garbled (enrich_school_names_en)
       - website: what the website step or an admin decided outranks OPEC's own value (kept in opec_website)
-      - GPS: the checked result stays while its inputs (OPEC pin, address) are unchanged
+      - GPS: the checked result stays while its inputs (OPEC pin, area, house number) are unchanged
       - ISAT fields and anything else OPEC does not supply
     """
     if not old:
@@ -262,7 +291,8 @@ def merge_with_previous(fresh, old):
     elif not old_web and not fresh_web and old_src:
         merged["website_source"] = old_src   # "No Official Website" stays rather than going back to "Not Checked"
 
-    if all(str(old.get(k) or "") == str(fresh.get(k) or "") for k in GPS_INPUTS):
+    if (all(str(old.get(k) or "") == str(fresh.get(k) or "") for k in GPS_INPUTS)
+            and _house_number(old.get("address")) == _house_number(fresh.get("address"))):
         for k in GPS_RESULT + GPS_CHECK:
             if k in old:
                 merged[k] = old[k]
@@ -373,7 +403,8 @@ def fetch_opec_schools(update_progress, on_save_callback=None):
     records = []
     kept_old = 0
 
-    with ThreadPoolExecutor(max_workers=25) as executor:
+    # The adapter sets the pace (about 4 requests a second); a few workers only overlap OPEC's reply time
+    with ThreadPoolExecutor(max_workers=6) as executor:
         future_to_school = {executor.submit(fetch_deep_detail, s): s for s in intl_schools}
         for completed_count, future in enumerate(as_completed(future_to_school), 1):
             res_school = future.result()
