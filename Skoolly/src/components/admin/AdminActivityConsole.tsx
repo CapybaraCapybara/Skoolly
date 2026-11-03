@@ -15,9 +15,9 @@ import {
   Search,
   ArrowDownCircle,
 } from "lucide-react";
-import type { ScraperProgressState } from "@/types/opec";
+import type { ScraperProgressState } from "@/types/admin";
 
-interface OpecActivityConsoleProps {
+interface AdminActivityConsoleProps {
   state: ScraperProgressState | null;
   onClearLogs: () => void;
 }
@@ -34,7 +34,7 @@ interface ParsedLogLine {
   raw: string;
 }
 
-export function OpecActivityConsole({ state, onClearLogs }: OpecActivityConsoleProps) {
+export function AdminActivityConsole({ state, onClearLogs }: AdminActivityConsoleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [copied, setCopied] = useState(false);

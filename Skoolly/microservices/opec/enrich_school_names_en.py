@@ -424,19 +424,6 @@ def needs_en_name(name):
     return not name or is_garbled_name(name) or bool(THAI_CHARS.search(name))
 
 
-def enrich_single_school_name_en(school):
-    """Enriches English name for a single school record"""
-    if not needs_en_name(school.get("school_name_en")):
-        return school, {}
-
-    resolved_en = dynamic_resolve_school_en_name(school)
-    if resolved_en and resolved_en != school.get("school_name_en"):
-        changes = {"school_name_en": resolved_en}
-        school.update(changes)
-        return school, changes
-
-    return school, {}
-
 def enrich_all_school_names_en(update_progress, on_save_callback=None):
     """
     Main Runner for Button: เติมชื่อภาษาอังกฤษ (EN)

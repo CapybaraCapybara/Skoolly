@@ -16,9 +16,9 @@ import {
   ArrowUpDown,
   Sparkles,
 } from "lucide-react";
-import type { OpecSchoolRecord } from "@/types/opec";
+import type { OpecSchoolRecord } from "@/types/admin";
 
-interface OpecSchoolsTableProps {
+interface AdminSchoolsTableProps {
   schools: OpecSchoolRecord[];
   /** Closed by an admin; shown only when the status filter asks for them */
   closedSchools?: OpecSchoolRecord[];
@@ -41,13 +41,13 @@ export type SortOption =
   | "completion_asc"
   | "completion_desc";
 
-export function OpecSchoolsTable({
+export function AdminSchoolsTable({
   schools,
   closedSchools = [],
   onSelectSchool,
   onRefresh,
   onScrapeSchool,
-}: OpecSchoolsTableProps) {
+}: AdminSchoolsTableProps) {
   const [activeStatFilter, setActiveStatFilter] = useState<StatFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
   const baseSchools = statusFilter === "closed" ? closedSchools : schools;

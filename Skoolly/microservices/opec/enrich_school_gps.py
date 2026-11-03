@@ -429,14 +429,6 @@ def find_shared_pins(collected, schools_by_code):
     return {k: (v if k == "opec_owner" else set(v)) for k, v in shared.items()}
 
 
-def _load_shared_pins():
-    try:
-        return {k: (v if k == "opec_owner" else set(v))
-                for k, v in json.load(io.open(SHARED_PINS_CACHE, encoding="utf-8")).items()}
-    except Exception:
-        return {"website": set(), "opec": set(), "opec_owner": {}}
-
-
 # ─── decision ────────────────────────────────────────────────────────────────
 
 def _agree(a, b):
@@ -833,27 +825,6 @@ def _registry():
 
 
 # ─── entry points ────────────────────────────────────────────────────────────
-
-def enrich_single_school_gps(school):
-    """Re-checks one school. Returns (school, changes)."""
-    if school.get("gps_locked"):
-        return school, {}   # pinned by hand: nothing to re-check
-    _backfill_opec_coordinates([school])
-    info = collect_candidates(school, _website_for(school, _registry()))
-    if info["incomplete"] and school.get("latitude"):
-        return school, {}   # ArcGIS, Nominatim or its own site did not answer: change nothing rather than decide half-blind
-    result = decide(school, info, _load_shared_pins(), _multi_campus_brands(load_schools() or [school]))
-    before = {k: school.get(k) for k in ("latitude", "longitude", "gps_source", "gps_precision")}
-    if result and not _keeps_old_pin(school, result):
-        _apply(school, result)
-        others = [o for o in (load_schools() or [])
-                  if str(o.get("school_code")) != str(school.get("school_code"))]
-        resolve_shared_points(others + [school], only={str(school.get("school_code"))})
-    else:
-        _mark_unverified(school)
-    changes = {k: school.get(k) for k in before if school.get(k) != before[k]}
-    return school, changes
-
 
 def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
     """

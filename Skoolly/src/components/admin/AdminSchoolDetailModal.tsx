@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   History,
 } from "lucide-react";
-import type { OpecSchoolRecord } from "@/types/opec";
+import type { OpecSchoolRecord } from "@/types/admin";
 import { SchoolChangeHistory } from "@/components/admin/SchoolChangeHistory";
 import { DATA_SOURCE_PARTS, formatThaiDate } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
@@ -48,7 +48,7 @@ function formatDisplayDate(dateStr?: string | null): string {
   }
 }
 
-interface OpecSchoolDetailModalProps {
+interface AdminSchoolDetailModalProps {
   school: OpecSchoolRecord | null;
   onClose: () => void;
   onEditWebsite: (school: OpecSchoolRecord) => void;
@@ -58,14 +58,14 @@ interface OpecSchoolDetailModalProps {
   onSetClosed?: (school: OpecSchoolRecord, closed: boolean) => Promise<void>;
 }
 
-export function OpecSchoolDetailModal({
+export function AdminSchoolDetailModal({
   school,
   onClose,
   onEditWebsite,
   onResolveSchoolWebsite,
   onScrapeTuition,
   onSetClosed,
-}: OpecSchoolDetailModalProps) {
+}: AdminSchoolDetailModalProps) {
   const [showJson, setShowJson] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);

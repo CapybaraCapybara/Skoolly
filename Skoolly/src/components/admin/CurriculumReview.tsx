@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Loader2, RefreshCw, RotateCcw } from "lucide-react";
-import type { CurriculumReviewItem, CurriculumReviewResponse } from "@/types/opec";
-import { clearSchoolCurriculums, confirmSchoolCurriculums, getCurriculumReview } from "@/api/opecApi";
+import type { CurriculumReviewItem, CurriculumReviewResponse } from "@/types/admin";
+import { clearSchoolCurriculums, confirmSchoolCurriculums, getCurriculumReview } from "@/api/adminApi";
 import { cn } from "@/lib/utils";
 import { placeInitials, review } from "@/components/admin/reviewStyles";
 

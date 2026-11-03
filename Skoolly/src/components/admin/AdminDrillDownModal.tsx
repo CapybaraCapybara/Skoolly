@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { X, Search, Globe, MapPin, Eye } from "lucide-react";
-import type { OpecSchoolRecord } from "@/types/opec";
+import type { OpecSchoolRecord } from "@/types/admin";
 
-interface OpecDrillDownModalProps {
+interface AdminDrillDownModalProps {
   isOpen: boolean;
   title: string;
   subtitle?: string;
@@ -11,14 +11,14 @@ interface OpecDrillDownModalProps {
   onSelectSchool: (school: OpecSchoolRecord) => void;
 }
 
-export function OpecDrillDownModal({
+export function AdminDrillDownModal({
   isOpen,
   title,
   subtitle,
   schools,
   onClose,
   onSelectSchool,
-}: OpecDrillDownModalProps) {
+}: AdminDrillDownModalProps) {
   const [search, setSearch] = useState("");
 
   // Close on Escape key press

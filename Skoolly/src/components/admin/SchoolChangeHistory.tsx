@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSchoolHistory, type SchoolChange } from "@/api/opecApi";
+import { getSchoolHistory, type SchoolChange } from "@/api/adminApi";
 
 // Column names in school_data.schools; one not listed shows as the column name
 const FIELD_LABELS: Record<string, string> = {

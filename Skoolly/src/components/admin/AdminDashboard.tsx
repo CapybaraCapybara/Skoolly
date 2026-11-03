@@ -17,7 +17,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import type { OpecSchoolRecord, ProvinceStat, TopSchool } from "@/types/opec";
+import type { OpecSchoolRecord, ProvinceStat, TopSchool } from "@/types/admin";
 
 // What counts as "filled" for each field in the completeness panel
 const COVERAGE_FIELDS: { label: string; icon: LucideIcon; has: (s: OpecSchoolRecord) => boolean }[] = [
@@ -27,12 +27,12 @@ const COVERAGE_FIELDS: { label: string; icon: LucideIcon; has: (s: OpecSchoolRec
   { label: "ระดับชั้นที่เปิดสอน", icon: GraduationCap, has: (s) => (s.levels_offered?.length ?? 0) > 0 || Boolean(s.level_range) },
 ];
 
-interface OpecDashboardProps {
+interface AdminDashboardProps {
   schools: OpecSchoolRecord[];
   onOpenDrillDown: (title: string, subtitle: string, list: OpecSchoolRecord[]) => void;
 }
 
-export function OpecDashboard({ schools, onOpenDrillDown }: OpecDashboardProps) {
+export function AdminDashboard({ schools, onOpenDrillDown }: AdminDashboardProps) {
   const [provinceSearch, setProvinceSearch] = useState("");
   const [curriculumSearch, setCurriculumSearch] = useState("");
 

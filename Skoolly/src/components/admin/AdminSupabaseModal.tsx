@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Database, X, RefreshCw, ExternalLink, Wand2, Loader2, AlertTriangle } from "lucide-react";
-import type { SupabaseStatusResponse } from "@/api/opecApi";
-import { initSupabaseSchema } from "@/api/opecApi";
+import type { SupabaseStatusResponse } from "@/api/adminApi";
+import { initSupabaseSchema } from "@/api/adminApi";
 import { cn } from "@/lib/utils";
 
-interface OpecSupabaseModalProps {
+interface AdminSupabaseModalProps {
   isOpen: boolean;
   status: SupabaseStatusResponse | null;
   onClose: () => void;
@@ -20,7 +20,7 @@ function InfoRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function OpecSupabaseModal({ isOpen, status, onClose, onRefreshStatus }: OpecSupabaseModalProps) {
+export function AdminSupabaseModal({ isOpen, status, onClose, onRefreshStatus }: AdminSupabaseModalProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [initializingSchema, setInitializingSchema] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);

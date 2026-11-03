@@ -1,10 +1,9 @@
-import json
 import os
 import sys
 import time
 import uuid
 import threading
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -27,7 +26,6 @@ from fetch_opec import fetch_opec_schools, search_international_schools  # type:
 from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
 from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
 from enrich_school_gps import enrich_all_school_gps, is_coords_in_province  # type: ignore
-from enrich_school_data import enrich_single_school_data  # type: ignore
 from supabase_sync import (  # type: ignore
     test_database_connection,
     initialize_schema_on_supabase,
@@ -35,9 +33,6 @@ from supabase_sync import (  # type: ignore
     get_current_dsn,
     fetch_supabase_schools,
     clear_supabase_data,
-    insert_supabase_school,
-    update_supabase_school,
-    delete_supabase_school,
     update_supabase_school_gps,
     update_supabase_school_websites,
     update_supabase_school_sources,
@@ -85,8 +80,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Scraper Service (scraper_service.py). Not started by start-dev.bat: run it on its own when
-# scraping tuition. A scrape can wait out several Gemini rate-limit back-offs, hence the timeout.
+# Scraper Service (scraper_service.py, started by start-dev.bat on port 8001). A scrape can
+# wait out several Gemini rate-limit back-offs, hence the timeout.
 SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://127.0.0.1:8001/scrape")
 SCRAPE_TIMEOUT_S = 600  # scraper may retry Playwright once with doubled timeouts
 
@@ -612,50 +607,6 @@ def post_clear_supabase_data():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-class CreateSupabaseSchoolPayload(BaseModel):
-    name_th: str
-    name_en: Optional[str] = None
-    province: Optional[str] = "กรุงเทพมหานคร"
-    district: Optional[str] = None
-    subdistrict: Optional[str] = None
-    address: Optional[str] = None
-    official_website_url: Optional[str] = None
-    official_phone: Optional[str] = None
-    official_mobile: Optional[str] = None
-    facebook_url: Optional[str] = None
-    line_id: Optional[str] = None
-    instagram_url: Optional[str] = None
-    youtube_url: Optional[str] = None
-    curriculums: Optional[List[str]] = []
-    levels_offered: Optional[List[str]] = []
-    level_range: Optional[str] = None
-    student_count: Optional[int] = None
-    teacher_count: Optional[int] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    gps_precision: Optional[str] = "Approximate"
-
-@app.post("/api/supabase/schools")
-def post_create_supabase_school(payload: CreateSupabaseSchoolPayload):
-    try:
-        return insert_supabase_school(payload.model_dump())
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.put("/api/supabase/schools/{school_id}")
-def put_update_supabase_school(school_id: str, payload: Dict[str, Any]):
-    try:
-        return update_supabase_school(school_id, payload)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/api/supabase/schools/{school_id}")
-def delete_supabase_school_endpoint(school_id: str):
-    try:
-        return delete_supabase_school(school_id)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
 @app.get("/api/supabase/pending-versions")
 def get_pending_versions_endpoint():
     try:
@@ -895,28 +846,6 @@ def resolve_one_school(school_code: str):
         update_supabase_school_sources([updated])
         return updated
     raise HTTPException(status_code=404, detail="School not found or website unresolved")
-
-@app.post("/api/school/{school_code}/enrich")
-def enrich_one_school(school_code: str):
-    _require_idle()
-    schools = get_current_schools()
-    target = None
-    target_idx = -1
-    for idx, s in enumerate(schools):
-        if s.get("school_code") == school_code:
-            target = s
-            target_idx = idx
-            break
-    if target:
-        enriched_s, changes = enrich_single_school_data(target)
-        enriched_s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        schools[target_idx] = enriched_s
-        set_current_schools(schools)
-        save_schools(schools)
-        sync_single_school_to_supabase(enriched_s)
-        # the admin page lists the changed field names
-        return {"school": enriched_s, "changes": sorted(changes)}
-    raise HTTPException(status_code=404, detail="School not found")
 
 @app.post("/api/enrich/isat")
 def enrich_isat():

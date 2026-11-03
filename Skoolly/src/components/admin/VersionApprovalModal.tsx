@@ -23,7 +23,7 @@ import {
   Info,
   Building2,
 } from "lucide-react";
-import type { PendingVersionRecord } from "@/types/opec";
+import type { PendingVersionRecord } from "@/types/admin";
 import { programCategoryLabel } from "@/lib/highlights";
 
 interface VersionApprovalModalProps {

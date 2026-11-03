@@ -12,8 +12,8 @@ import {
   Play,
   Loader2,
 } from "lucide-react";
-import type { ScrapeLogRecord, PendingVersionRecord, ScraperProgressState } from "@/types/opec";
-import { getScrapeLogs, triggerBatchScrape } from "@/api/opecApi";
+import type { ScrapeLogRecord, PendingVersionRecord, ScraperProgressState } from "@/types/admin";
+import { getScrapeLogs, triggerBatchScrape } from "@/api/adminApi";
 
 interface ScraperLogsDashboardProps {
   pendingVersions?: PendingVersionRecord[];

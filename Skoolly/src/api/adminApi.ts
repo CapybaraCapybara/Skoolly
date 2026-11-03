@@ -1,14 +1,12 @@
 import type {
   OpecSchoolRecord,
   ScraperProgressState,
-  SupabaseSchoolsResponse,
-  SupabaseSchoolsFilterParams,
   WebsiteRegistryResponse,
   WebsiteHealthState,
   PendingVersionRecord,
   ScrapeLogRecord,
   CurriculumReviewResponse,
-} from "@/types/opec";
+} from "@/types/admin";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
 
@@ -104,17 +102,6 @@ export async function getSchoolHistory(schoolCode?: string): Promise<SchoolChang
   return (await res.json()).history;
 }
 
-export async function enrichSchoolData(schoolCode: string): Promise<{ school: OpecSchoolRecord; changes: string[] } | null> {
-  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/enrich`, {
-    method: "POST",
-  });
-  await throwIfBusy(res);
-  if (res.ok) {
-    return await res.json();
-  }
-  return null;
-}
-
 export interface SupabaseStatusResponse {
   configured: boolean;
   connected: boolean;
@@ -132,7 +119,7 @@ export async function getSupabaseStatus(): Promise<SupabaseStatusResponse> {
       return await res.json();
     }
   } catch (err) {
-    console.debug("[opecApi] getSupabaseStatus failed:", err);
+    console.debug("[adminApi] getSupabaseStatus failed:", err);
   }
   return {
     configured: false,
@@ -168,26 +155,6 @@ export async function syncOpecToSupabase(options?: {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "ไม่สามารถเริ่มนำเข้าข้อมูลได้" }));
     throw new Error(err.detail || "เริ่มนำเข้าข้อมูลไม่สำเร็จ");
-  }
-  return await res.json();
-}
-
-export async function getSupabaseSchools(params?: SupabaseSchoolsFilterParams): Promise<SupabaseSchoolsResponse> {
-  const query = new URLSearchParams();
-  if (params?.search) query.set("search", params.search);
-  if (params?.province && params.province !== "all") query.set("province", params.province);
-  if (params?.curriculum && params.curriculum !== "all") query.set("curriculum", params.curriculum);
-  if (params?.level && params.level !== "all") query.set("level", params.level);
-  if (params?.limit) query.set("limit", String(params.limit));
-  if (params?.offset) query.set("offset", String(params.offset));
-  if (params?.includeClosed) query.set("include_closed", "true");
-
-  const qs = query.toString();
-  const url = `${API_BASE}/api/supabase/schools${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "ไม่สามารถดึงข้อมูลจาก Supabase ได้" }));
-    throw new Error(err.detail || "เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Supabase");
   }
   return await res.json();
 }

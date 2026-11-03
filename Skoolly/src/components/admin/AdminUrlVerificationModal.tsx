@@ -17,16 +17,16 @@ import {
   School,
   ArrowRight,
 } from "lucide-react";
-import type { WebsiteRegistryItem, WebsiteRegistryResponse, WebsiteHealthState } from "@/types/opec";
+import type { WebsiteRegistryItem, WebsiteRegistryResponse, WebsiteHealthState } from "@/types/admin";
 import {
   getWebsiteRegistry,
   verifySchoolWebsite,
   syncWebsiteRegistryFromText,
   triggerWebsiteHealthCheck,
   getWebsiteHealthCheckStatus,
-} from "@/api/opecApi";
+} from "@/api/adminApi";
 
-interface OpecUrlVerificationModalProps {
+interface AdminUrlVerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDataChanged?: () => void;
@@ -34,11 +34,11 @@ interface OpecUrlVerificationModalProps {
 
 type FilterTab = "all" | "verified" | "broken" | "pending" | "missing";
 
-export function OpecUrlVerificationModal({
+export function AdminUrlVerificationModal({
   isOpen,
   onClose,
   onDataChanged,
-}: OpecUrlVerificationModalProps) {
+}: AdminUrlVerificationModalProps) {
   const [data, setData] = useState<WebsiteRegistryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");

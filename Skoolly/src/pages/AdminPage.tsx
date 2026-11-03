@@ -25,16 +25,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo, HeaderShell, NAV_PILL_CLASS } from "@/components/layout/HeaderShell";
-import type { OpecSchoolRecord, ScraperProgressState, PendingVersionRecord } from "@/types/opec";
+import type { OpecSchoolRecord, ScraperProgressState, PendingVersionRecord } from "@/types/admin";
+import { getSupabaseSchools } from "@/api/schoolsApi";
 import {
-  getSupabaseSchools,
   clearSupabaseData,
   syncOpecToSupabase,
   getScraperProgress,
   postAction,
   updateSchoolWebsite,
   resolveSchoolWebsite,
-  enrichSchoolData,
   getSupabaseStatus,
   getPendingVersions,
   approveVersion,
@@ -45,15 +44,15 @@ import {
   reopenSchool,
   checkOpecPresence,
   type SupabaseStatusResponse,
-} from "@/api/opecApi";
-import { OpecDashboard } from "@/components/admin/OpecDashboard";
-import { OpecSchoolsTable } from "@/components/admin/OpecSchoolsTable";
-import { OpecActivityConsole } from "@/components/admin/OpecActivityConsole";
-import { OpecSchoolDetailModal } from "@/components/admin/OpecSchoolDetailModal";
-import { OpecEditWebsiteModal } from "@/components/admin/OpecEditWebsiteModal";
-import { OpecDrillDownModal } from "@/components/admin/OpecDrillDownModal";
-import { OpecSupabaseModal } from "@/components/admin/OpecSupabaseModal";
-import { OpecUrlVerificationModal } from "@/components/admin/OpecUrlVerificationModal";
+} from "@/api/adminApi";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { AdminSchoolsTable } from "@/components/admin/AdminSchoolsTable";
+import { AdminActivityConsole } from "@/components/admin/AdminActivityConsole";
+import { AdminSchoolDetailModal } from "@/components/admin/AdminSchoolDetailModal";
+import { AdminEditWebsiteModal } from "@/components/admin/AdminEditWebsiteModal";
+import { AdminDrillDownModal } from "@/components/admin/AdminDrillDownModal";
+import { AdminSupabaseModal } from "@/components/admin/AdminSupabaseModal";
+import { AdminUrlVerificationModal } from "@/components/admin/AdminUrlVerificationModal";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
 import { ScraperLogsDashboard } from "@/components/admin/ScraperLogsDashboard";
@@ -61,22 +60,21 @@ import { SchoolChangeHistory } from "@/components/admin/SchoolChangeHistory";
 import { CurriculumReview } from "@/components/admin/CurriculumReview";
 import { review, placeInitials } from "@/components/admin/reviewStyles";
 
-interface SupabaseAdminPageProps {
+interface AdminPageProps {
   onBack: () => void;
 }
 
 type AdminTab = "dashboard" | "schools" | "review" | "pipeline" | "verify" | "reviews" | "tickets" | "ai-logs" | "audit-log" | "users";
 
-export function SupabaseAdminPage({
+export function AdminPage({
   onBack,
-}: SupabaseAdminPageProps) {
+}: AdminPageProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [schools, setSchools] = useState<OpecSchoolRecord[]>([]);
   // Closed by an admin: kept out of every count, listed only under the school list's status filter
   const [closedSchools, setClosedSchools] = useState<OpecSchoolRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<ScraperProgressState | null>(null);
-  const [actionLoadingCode, setActionLoadingCode] = useState<string | null>(null);
   const scrapingSchoolCodeRef = useRef<string | null>(null);
 
   // Modals state
@@ -189,7 +187,7 @@ export function SupabaseAdminPage({
       setSchools(mapped.filter((s) => s.status !== "archived"));
       setClosedSchools(mapped.filter((s) => s.status === "archived"));
     } catch (err) {
-      console.error("[SupabaseAdminPage] Failed to load schools:", err);
+      console.error("[AdminPage] Failed to load schools:", err);
     } finally {
       setLoading(false);
     }
@@ -445,7 +443,6 @@ export function SupabaseAdminPage({
   };
 
   const handleResolveSingleWebsite = async (code: string) => {
-    setActionLoadingCode(code);
     try {
       showToast(`กำลังค้นหาเว็บไซต์ของโรงเรียน ${code}`);
       const updated = await resolveSchoolWebsite(code);
@@ -457,24 +454,6 @@ export function SupabaseAdminPage({
       }
     } catch (err: any) {
       showToast(`เกิดข้อผิดพลาด: ${err.message}`);
-    } finally {
-      setActionLoadingCode(null);
-    }
-  };
-
-  const handleEnrichSingleSchool = async (code: string) => {
-    setActionLoadingCode(code);
-    try {
-      showToast(`กำลังเติมข้อมูลโรงเรียน ${code}`);
-      const res = await enrichSchoolData(code);
-      if (res) {
-        showToast(`เติมข้อมูลสำเร็จ: ${res.changes.length > 0 ? res.changes.join(", ") : "ข้อมูลครบอยู่แล้ว"}`);
-        await loadSchoolsData();
-      }
-    } catch (err: any) {
-      showToast(`เกิดข้อผิดพลาด: ${err.message}`);
-    } finally {
-      setActionLoadingCode(null);
     }
   };
 
@@ -929,7 +908,7 @@ export function SupabaseAdminPage({
               </section>
 
               {/* Real-time Activity Console */}
-              <OpecActivityConsole state={progress} onClearLogs={handleClearLogs} />
+              <AdminActivityConsole state={progress} onClearLogs={handleClearLogs} />
               {/* The console hides itself until something has run */}
               {!isRunning && !progress?.task && !progress?.logs?.length && (
                 <p className="rounded-[2rem] border border-dashed border-warm-accent px-6 py-8 text-center text-sm text-warm-charcoal/60">
@@ -948,14 +927,14 @@ export function SupabaseAdminPage({
           ) : (
             <>
               {activeTab === "dashboard" && (
-                <OpecDashboard
+                <AdminDashboard
                   schools={schools}
                   onOpenDrillDown={openDrillDown}
                 />
               )}
 
               {activeTab === "schools" && (
-                <OpecSchoolsTable
+                <AdminSchoolsTable
                   schools={schools}
                   closedSchools={closedSchools}
                   onSelectSchool={(s) => setSelectedSchool(s)}
@@ -1306,7 +1285,7 @@ export function SupabaseAdminPage({
       </div>
 
       {/* Modals */}
-      <OpecSchoolDetailModal
+      <AdminSchoolDetailModal
         school={selectedSchool}
         onClose={() => setSelectedSchool(null)}
         onEditWebsite={(s) => {
@@ -1338,13 +1317,13 @@ export function SupabaseAdminPage({
         isActionLoading={isVersionActionLoading}
       />
 
-      <OpecEditWebsiteModal
+      <AdminEditWebsiteModal
         school={editingWebsiteSchool}
         onClose={() => setEditingWebsiteSchool(null)}
         onSave={handleSaveWebsite}
       />
 
-      <OpecDrillDownModal
+      <AdminDrillDownModal
         isOpen={drillDown.isOpen}
         title={drillDown.title}
         subtitle={drillDown.subtitle}
@@ -1385,7 +1364,7 @@ export function SupabaseAdminPage({
       />
 
       {/* Supabase Database Status & Management Modal */}
-      <OpecSupabaseModal
+      <AdminSupabaseModal
         isOpen={isSupabaseModalOpen}
         status={supabaseStatus}
         onClose={() => setIsSupabaseModalOpen(false)}
@@ -1393,7 +1372,7 @@ export function SupabaseAdminPage({
       />
 
       {/* Official URL Verification & Registry Modal */}
-      <OpecUrlVerificationModal
+      <AdminUrlVerificationModal
         isOpen={isUrlVerificationModalOpen}
         onClose={() => setIsUrlVerificationModalOpen(false)}
         onDataChanged={loadSchoolsData}

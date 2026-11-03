@@ -14,10 +14,37 @@
  *    scraped enrichments overlay without mutating source database records directly.
  */
 
-import type { School, SchoolCoords, SchoolDetail, SchoolFee, SchoolReview } from "@/types";
-import type { SupabaseSchoolRecord } from "@/types/opec";
-import { getSupabaseSchools } from "@/api/opecApi";
+import type {
+  School,
+  SchoolCoords,
+  SchoolDetail,
+  SchoolFee,
+  SchoolReview,
+  SupabaseSchoolRecord,
+  SupabaseSchoolsFilterParams,
+  SupabaseSchoolsResponse,
+} from "@/types";
 import { schoolInitials } from "@/lib/schoolInitials";
+
+export async function getSupabaseSchools(params?: SupabaseSchoolsFilterParams): Promise<SupabaseSchoolsResponse> {
+  const query = new URLSearchParams();
+  if (params?.search) query.set("search", params.search);
+  if (params?.province && params.province !== "all") query.set("province", params.province);
+  if (params?.curriculum && params.curriculum !== "all") query.set("curriculum", params.curriculum);
+  if (params?.level && params.level !== "all") query.set("level", params.level);
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+  if (params?.includeClosed) query.set("include_closed", "true");
+
+  const qs = query.toString();
+  const url = `/api/supabase/schools${qs ? `?${qs}` : ""}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "ไม่สามารถดึงข้อมูลจาก Supabase ได้" }));
+    throw new Error(err.detail || "เกิดข้อผิดพลาดในการโหลดข้อมูลจาก Supabase");
+  }
+  return await res.json();
+}
 
 type MergedData = {
   schools: School[];
@@ -48,11 +75,11 @@ function normalizeCurriculum(curriculums?: string[]): string {
   if (/french|ฝรั่งเศส|lyc[eé]e/i.test(joined)) return "French";
   if (/singapore|สิงคโปร์/i.test(joined)) return "Singapore";
   if (/bilingual|สองภาษา|english\s*\/\s*thai/i.test(joined)) return "Bilingual";
-  return curriculumLabel(curriculums[0]);
+  return curriculumEnglishName(curriculums[0]);
 }
 
 // OPEC values look like "อินเดีย (Indian)"; show the English name like the other chips
-function curriculumLabel(raw?: string): string {
+function curriculumEnglishName(raw?: string): string {
   const text = raw?.trim();
   if (!text) return "International";
   const english = text.match(/\(([^)]*[A-Za-z][^)]*)\)/)?.[1]?.trim();

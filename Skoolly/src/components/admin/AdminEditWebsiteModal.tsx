@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { X, Globe, Save, Loader2 } from "lucide-react";
-import type { OpecSchoolRecord } from "@/types/opec";
+import type { OpecSchoolRecord } from "@/types/admin";
 
-interface OpecEditWebsiteModalProps {
+interface AdminEditWebsiteModalProps {
   school: OpecSchoolRecord | null;
   onClose: () => void;
   onSave: (schoolCode: string, newWebsite: string) => Promise<boolean>;
 }
 
-export function OpecEditWebsiteModal({ school, onClose, onSave }: OpecEditWebsiteModalProps) {
+export function AdminEditWebsiteModal({ school, onClose, onSave }: AdminEditWebsiteModalProps) {
   const [website, setWebsite] = useState(school?.website || "");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

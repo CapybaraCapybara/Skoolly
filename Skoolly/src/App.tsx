@@ -14,7 +14,7 @@ import { getSchools } from "@/api/schoolsApi";
 import type { School, View } from "@/types";
 
 const AdminPage = lazy(() =>
-  import("@/pages/SupabaseAdminPage").then((m) => ({ default: m.SupabaseAdminPage }))
+  import("@/pages/AdminPage").then((m) => ({ default: m.AdminPage }))
 );
 
 function parseHashView(): View {

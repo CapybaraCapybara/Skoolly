@@ -9,6 +9,7 @@ import {
   type SchoolSources,
 } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
+import { StarRating } from "@/components/schools/SchoolCard";
 import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
 import {
   ACCREDITATION_KIND_LABELS,
@@ -17,20 +18,6 @@ import {
   programCategoryLabel,
 } from "@/lib/highlights";
 import { Check, ExternalLink } from "lucide-react";
-
-// ─── StarRating ─────────────────────────────────────────────────────────────
-function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
-  const sz = size === "lg" ? "w-5 h-5" : "w-3.5 h-3.5";
-  return (
-    <span className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <svg key={s} className={sz} viewBox="0 0 20 20" fill={s <= Math.round(rating) ? "#f59e0b" : "#d1d5db"}>
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </span>
-  );
-}
 
 // ─── Tab list ────────────────────────────────────────────────────────────────
 const TABS = ["Overview", "Fees", "Gallery", "Reviews", "Forum"];
@@ -243,7 +230,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               {school.reviewCount > 0 && school.rating > 0 && (
                 <>
                   <div className="flex items-center gap-1.5">
-                    <StarRating rating={school.rating} size="lg" />
+                    <StarRating rating={school.rating} size="lg" showValue={false} />
                     <span className="text-white font-semibold">{school.rating}</span>
                     <span className="text-slate-400">({school.reviewCount} รีวิว)</span>
                   </div>
@@ -736,7 +723,7 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                         <span className="text-xs text-slate-400">{r.time}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <StarRating rating={r.rating} />
+                        <StarRating rating={r.rating} showValue={false} />
                         <span className="text-xs text-slate-500">ลูกเรียนชั้น {r.childYear}</span>
                       </div>
                     </div>
