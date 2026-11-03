@@ -578,7 +578,7 @@ export function HomePage({
       {/* ── MAP ───────────────────────────────────────────────────────────── */}
       <section className="py-12 border-t border-warm-accent/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <NearbySchools schools={schools} onOpenSchool={onSchoolClick} />
+          <NearbySchools schools={filteredSchools} onOpenSchool={onSchoolClick} />
         </div>
       </section>
 

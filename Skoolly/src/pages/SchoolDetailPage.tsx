@@ -518,6 +518,14 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
               <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
                 <h3 className="font-semibold text-navy-900 mb-2 text-sm">ที่ตั้ง</h3>
                 <div className="text-sm text-slate-600 leading-relaxed">{detail.address || school.location}</div>
+                {/* shortcut: iframe แบบไม่มี key (output=embed) ไม่ใช่ API ทางการ, ถ้าใช้จริงให้เปลี่ยนเป็น Maps Embed API ที่มี key */}
+                <iframe
+                  title={`แผนที่ ${school.name}`}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(`${school.name} ${detail.address || school.location}`)}&output=embed`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="mt-3 w-full h-56 rounded-lg border border-slate-200"
+                />
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${school.name} ${detail.address || school.location}`)}`}
                   target="_blank"
