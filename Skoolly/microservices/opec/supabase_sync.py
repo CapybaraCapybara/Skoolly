@@ -1753,13 +1753,17 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
             return versions
 
 
-def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn: str | None = None) -> dict[str, Any]:
+def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn: str | None = None,
+                           republish: bool = False) -> dict[str, Any]:
     """
     Approves a pending version and publishes it (UC-A04 Step 4).
     1. Updates target version status to 'published'
     2. Supersedes any previous published version
     3. Projects published tuition min/max and safeguarding policy to school_data.schools
     4. Records approval in school_data.school_scrape_log
+    republish=True publishes again a version that was approved before and has since been superseded (the
+    approve-all button published older drafts over newer ones until 2 Nov 2026). Its data date stays the day
+    it was collected, not today.
     """
     target_dsn = dsn or get_current_dsn()
     if not target_dsn:
@@ -1769,7 +1773,7 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
         with conn.cursor() as cur:
             # FOR UPDATE: a second approve/reject of the same draft waits here, then sees the new status
             cur.execute("""
-                SELECT version_id, school_id, status::text AS status, version_number, data_snapshot
+                SELECT version_id, school_id, status::text AS status, version_number, data_snapshot, submitted_at
                 FROM school_data.school_versions
                 WHERE version_id = %s
                 FOR UPDATE
@@ -1777,8 +1781,10 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
             ver = cur.fetchone()
             if not ver:
                 raise ValueError("ไม่พบเวอร์ชันที่ต้องการอนุมัติ")
+            if republish and ver["status"] != "superseded":
+                raise ValueError(f"เผยแพร่ซ้ำได้เฉพาะฉบับที่เคยอนุมัติแล้วถูกแทน (สถานะตอนนี้: {ver['status']})")
             # A page left open can still list a draft that was approved or rejected since
-            if ver["status"] != "pending_review":
+            if not republish and ver["status"] != "pending_review":
                 raise ValueError(f"ร่างนี้ไม่ได้รออนุมัติแล้ว (สถานะตอนนี้: {ver['status']}) กดรีเฟรชเพื่อดูรายการล่าสุด")
 
             school_id = ver["school_id"]
@@ -1842,18 +1848,20 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                     curriculums = CASE WHEN %s::text[] IS NOT NULL AND curriculums <@ ARRAY['SCHOOL_SPECIFIC']::text[]
                                             AND curriculums_confirmed_at IS NULL
                                        THEN %s::text[] ELSE curriculums END,
-                    pub_data_updated_at = NOW(),
+                    pub_data_updated_at = COALESCE(%s, NOW()),
                     updated_at = NOW()
                 WHERE school_id = %s
             """, (version_id, min_tuition, max_tuition, has_safeguarding,
-                  website_curriculums, website_curriculums, school_id))
+                  website_curriculums, website_curriculums,
+                  ver["submitted_at"] if republish else None, school_id))
 
             # Log approval in school_data.school_scrape_log
             cur.execute("""
                 INSERT INTO school_data.school_scrape_log
                     (school_id, version_id, run_id, phase, status, ai_reasoning, created_at)
-                VALUES (%s, %s, gen_random_uuid(), 'extract', 'ok'::school_data.scrape_status, 'Admin approved and published draft to live database', NOW())
-            """, (school_id, version_id))
+                VALUES (%s, %s, gen_random_uuid(), 'extract', 'ok'::school_data.scrape_status, %s, NOW())
+            """, (school_id, version_id, "Admin re-published an earlier approved version" if republish
+                  else "Admin approved and published draft to live database"))
 
             conn.commit()
 
