@@ -374,7 +374,7 @@ def fetch_deep_detail(school):
     return merged
 
 
-def fetch_opec_schools(update_progress, on_save_callback=None):
+def fetch_opec_schools(update_progress):
     """
     Main Runner for Button 1 (ดึงข้อมูล OPEC):
     1. Searches OPEC API for international schools (SchoolType 7).
@@ -419,8 +419,6 @@ def fetch_opec_schools(update_progress, on_save_callback=None):
     for i, r in enumerate(final_sorted, 1):
         r["no"] = i
     save_schools(final_sorted)
-    if on_save_callback:
-        on_save_callback(final_sorted)
 
     codes = {str(r.get("school_code")) for r in final_sorted}
     added = len(codes - set(previous))

@@ -268,7 +268,7 @@ create table if not exists school_data.version_fees (
   grade_label         text not null,          -- ข้อความดิบจากเว็บ เช่น "Year 7 - Year 9"
   level_code          text,                   -- รหัสระดับชั้น เช่น 'PRIMARY', 'KINDERGARTEN' (nullable)
   -- ลำดับชั้นและชื่อเทียบเคียงไม่เก็บในตาราง: /api/public/fees คำนวณตอนอ่านจาก grade_label
-  -- ด้วย microservices/opec/grade_years.py
+  -- ด้วย microservices/pipeline/grade_years.py
 
   annual_thb          numeric(12,2),
   semester_thb        numeric(12,2),          -- ค่าเทอมต่อภาค (scraper, หน้าอนุมัติ, /api/public/fees ใช้)
@@ -1014,7 +1014,7 @@ create policy audit_insert_only on ops.audit_log for insert with check (true);
 -- =============================================================================
 -- 12. TRANSACTION BOUNDARY ตอน Publish (Architecture หัวข้อ 8.5)
 -- =============================================================================
--- การ publish ทำใน approve_school_version() ของ microservices/opec/supabase_sync.py ซึ่งเปลี่ยน
+-- การ publish ทำใน approve_school_version() ของ microservices/pipeline/supabase_sync.py ซึ่งเปลี่ยน
 -- status + ชี้ current_published_version_id + อัปเดต read model ใน transaction เดียว
 -- ฟังก์ชัน publish_version() เดิมไม่มีโค้ดไหนเรียก และคิดค่าเทอมคนละสูตรกับตัวที่ใช้จริง จึงลบทิ้ง
 drop function if exists school_data.publish_version(uuid, uuid);

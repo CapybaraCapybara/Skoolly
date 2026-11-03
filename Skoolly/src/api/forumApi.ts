@@ -4,7 +4,7 @@
  * Backend service layer for Forum data.
  *
  * Reads approved posts and comments from community.forum_* via
- * GET /api/public/forum/posts (opec_service).
+ * GET /api/public/forum/posts (school_service).
  *
  * Note: Like / comment mutations are handled as local state in ForumPage
  * until an auth system is in place. Once auth exists, add mutation functions

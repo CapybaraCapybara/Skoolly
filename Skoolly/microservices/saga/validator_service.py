@@ -10,7 +10,7 @@ class ValidationRequest(BaseModel):
 
 def validate_result(data: Dict[str, Any]) -> tuple[list[str], list[str]]:
     """Business rules for one scrape result. Returns (errors, warnings); any error rejects it.
-    opec_service.py imports this too, so drafts saved without the Saga pass the same rules."""
+    school_service.py imports this too, so drafts saved without the Saga pass the same rules."""
     errors = []
     warnings = []
 

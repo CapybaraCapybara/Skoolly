@@ -280,16 +280,12 @@ def initialize_schema_on_supabase(dsn: str | None = None) -> dict[str, Any]:
     if not psycopg:
         raise RuntimeError("psycopg is not installed")
 
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
     if not SCHEMA_FILE.exists():
         raise FileNotFoundError(f"Schema file not found at {SCHEMA_FILE}")
 
     sql_content = SCHEMA_FILE.read_text(encoding="utf-8")
 
-    with db_connect(target_dsn, connect_timeout=15) as conn:
+    with db_connect(dsn, connect_timeout=15) as conn:
         conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(sql_content)
@@ -396,12 +392,9 @@ _REVIEW_QUERY = """
 def fetch_curriculum_review(opec_records: list[dict], dsn: str | None = None) -> dict[str, Any]:
     """Schools whose OPEC registration and approved website version disagree, for an admin to
     decide, and the schools an admin has already decided. `opec_records` is the local OPEC dataset."""
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
     opec_raw = {str(r.get("school_code") or "").strip(): r.get("curriculums") or [] for r in opec_records}
 
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         rows = conn.execute(_REVIEW_QUERY + " WHERE s.status <> 'archived' ORDER BY s.name_en NULLS LAST, s.name_th").fetchall()
 
     conflicts, confirmed = [], []
@@ -436,16 +429,13 @@ def fetch_curriculum_review(opec_records: list[dict], dsn: str | None = None) ->
 def confirm_school_curriculums(school_code: str, codes: list[str], confirmed_by: str | None = None,
                                dsn: str | None = None) -> dict[str, Any]:
     """An admin's decision: these curriculums, kept by every later OPEC import until cleared."""
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
     chosen = sorted({str(c).strip().upper() for c in codes or [] if str(c).strip()})
     unknown = [c for c in chosen if c not in CURRICULUM_CODES]
     if not chosen or unknown:
         raise ValueError(f"เลือกหลักสูตรอย่างน้อยหนึ่งรายการจากรายการที่มี (ไม่รู้จัก: {', '.join(unknown)})"
                          if unknown else "เลือกหลักสูตรอย่างน้อยหนึ่งรายการ")
 
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         row = conn.execute("""
             UPDATE school_data.schools
             SET curriculums = %s, curriculums_confirmed_at = NOW(), curriculums_confirmed_by = %s
@@ -460,11 +450,7 @@ def confirm_school_curriculums(school_code: str, codes: list[str], confirmed_by:
 
 def clear_curriculums_confirmation(school_code: str, opec_raw_values: Any, dsn: str | None = None) -> dict[str, Any]:
     """Undoes an admin's decision: the school goes back to the rule in choose_curriculums()."""
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         r = conn.execute(_REVIEW_QUERY + " WHERE s.opec_school_code = %s", (school_code,)).fetchone()
         if not r:
             raise ValueError(f"ไม่พบโรงเรียนรหัส {school_code}")
@@ -478,7 +464,7 @@ def clear_curriculums_confirmation(school_code: str, opec_raw_values: Any, dsn: 
     return {"status": "cleared", "school_code": school_code, "curriculums": codes}
 
 
-def slugify(name_en: str | None, name_th: str, opec_code: str) -> str:
+def slugify(name_en: str | None, opec_code: str) -> str:
     """ASCII slug from the English name or fallback to OPEC code."""
     source = (name_en or "").strip()
     ascii_form = unicodedata.normalize("NFKD", source).encode("ascii", "ignore").decode()
@@ -598,7 +584,7 @@ def execute_opec_import(
 
                 name_en = clean(record.get("school_name_en"))
                 # Only used when the row is new: ON CONFLICT leaves an existing slug alone
-                slug = free_slug(slugify(name_en, name_th, opec_code), opec_code, used_slugs)
+                slug = free_slug(slugify(name_en, opec_code), opec_code, used_slugs)
                 used_slugs.add(slug)
 
                 lat = to_float(record.get("latitude"))
@@ -801,10 +787,6 @@ def fetch_supabase_schools(
     dsn: str | None = None,
 ) -> dict[str, Any]:
     """Queries school records directly from Supabase database with filters and KPIs."""
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
     # โรงเรียนที่ปิดแล้ว (archived) ไม่แสดงในรายการ ข้อมูลยังอยู่ในฐาน ยกเว้นหน้าแอดมินขอ include_closed
     where_clauses = [] if include_closed else ["status <> 'archived'"]
     params: list[Any] = []
@@ -828,7 +810,7 @@ def fetch_supabase_schools(
 
     where_str = " AND ".join(where_clauses) or "TRUE"
 
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             # Overall KPIs (open schools only)
             cur.execute("""
@@ -973,11 +955,7 @@ def clear_supabase_data(dsn: str | None = None) -> dict[str, Any]:
     ฟังก์ชันนี้ลบจริงและ cascade ไปทุกตารางลูก ใช้เฉพาะตอนต้องการ re-import
     ชุดข้อมูล OPEC ใหม่ทั้งหมด ห้ามเรียกจากหน้าใช้งานปกติ
     """
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
-    with db_connect(target_dsn, autocommit=True) as conn:
+    with db_connect(dsn, autocommit=True) as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM school_data.schools")
             before_count = cur.fetchone()[0]
@@ -995,12 +973,9 @@ def clear_supabase_data(dsn: str | None = None) -> dict[str, Any]:
 def mark_opec_presence(opec_codes: list[str], dsn: str | None = None) -> dict[str, Any]:
     """After an OPEC check: dates the schools OPEC has stopped listing (opec_missing_since) and clears
     the date for schools it lists again. Hides nothing; an admin closes a school from its detail page."""
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
     codes = sorted({str(c).strip() for c in opec_codes if str(c).strip()})
 
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         listed = conn.execute("SELECT count(*) AS n FROM school_data.schools WHERE status <> 'archived'").fetchone()["n"]
         # A short list is a bad answer from OPEC, not a wave of closures (fetch_opec_schools checks the same)
         if len(codes) < 0.8 * listed:
@@ -1021,10 +996,7 @@ def mark_opec_presence(opec_codes: list[str], dsn: str | None = None) -> dict[st
 
 
 def _set_closure(school_code: str, sql: str, not_found: str, dsn: str | None) -> dict[str, Any]:
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         row = conn.execute(sql, (school_code,)).fetchone()
         if not row:
             raise ValueError(not_found)
@@ -1135,7 +1107,7 @@ def update_supabase_school_names_en(schools: list[dict] | None = None, update_pr
                     target_en = ""
             if target_en and target_en != curr_en:
                 taken.discard(r["slug"])
-                slug = free_slug(slugify(target_en, r["name_th"] or "", code), code, taken)
+                slug = free_slug(slugify(target_en, code), code, taken)
                 taken.add(slug)
                 updates.append({"en": target_en, "slug": slug, "code": code})
 
@@ -1324,7 +1296,6 @@ def sync_single_school_to_supabase(school: dict) -> bool:
         with db_connect(target_dsn) as conn:
             with conn.cursor() as cur:
                 name_en = clean(school.get("school_name_en") or school.get("name_en"))
-                name_th = clean(school.get("school_name_th") or school.get("name_th"))
                 cur.execute("SELECT name_en FROM school_data.schools WHERE opec_school_code = %s", (code,))
                 row = cur.fetchone()
                 if not row:
@@ -1332,7 +1303,7 @@ def sync_single_school_to_supabase(school: dict) -> bool:
                 # A new English name gets a new slug, one no other school holds
                 slug_val = None
                 if name_en and name_en != (row[0] or ""):
-                    base = slugify(name_en, name_th or "", code)
+                    base = slugify(name_en, code)
                     cur.execute("SELECT slug FROM school_data.schools WHERE slug LIKE %s AND opec_school_code <> %s",
                                 (base + "%", code))
                     slug_val = free_slug(base, code, {r[0] for r in cur.fetchall()})
@@ -1379,17 +1350,56 @@ def sync_single_school_to_supabase(school: dict) -> bool:
         return False
 
 
+def _snapshot(value: Any) -> Any:
+    """A version's data_snapshot as a dict; older rows hold it as a JSON string."""
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except Exception:
+            return {}
+    return value or {}
+
+
+def _version_fees(cur, version_id: Any) -> list[dict[str, Any]]:
+    cur.execute("""
+        SELECT fee_id, grade_label, level_code, annual_thb, semester_thb, currency, notes
+        FROM school_data.version_fees
+        WHERE version_id = %s
+        ORDER BY grade_label ASC
+    """, (version_id,))
+    return [
+        {
+            "fee_id": str(f["fee_id"]),
+            "grade_label": f["grade_label"],
+            "level_code": f.get("level_code"),
+            "annual_thb": float(f["annual_thb"]) if f.get("annual_thb") is not None else None,
+            "semester_thb": float(f["semester_thb"]) if f.get("semester_thb") is not None else None,
+            "currency": f.get("currency") or "THB",
+            "notes": f.get("notes"),
+        }
+        for f in cur.fetchall()
+    ]
+
+
+def _version_safety(cur, version_id: Any) -> dict[str, Any] | None:
+    cur.execute("""
+        SELECT security_guards, cctv_monitoring, nurse_medical_clinic,
+               child_safeguarding_policy, air_quality_pm25_protocol, visitor_access_control,
+               highlights, policy_summary, policy_url
+        FROM school_data.version_safety
+        WHERE version_id = %s
+    """, (version_id,))
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+
 def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
     """
     Fetches all school versions that are pending admin review (UC-A04 Diff View).
     Includes related school info, version fees, extra fees, safety policies,
     curriculums, general info, facilities, and previous published version data.
     """
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT 
@@ -1440,38 +1450,15 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                     v["current_pub_data_updated_at"] = v["current_pub_data_updated_at"].isoformat()
 
                 # Extract parsed fields from data_snapshot
-                snapshot = v.get("data_snapshot") or {}
-                if isinstance(snapshot, str):
-                    try:
-                        snapshot = json.loads(snapshot)
-                    except Exception:
-                        snapshot = {}
+                snapshot = _snapshot(v.get("data_snapshot"))
                 v["scraped_curriculums"] = snapshot.get("curriculums") or ([snapshot.get("curriculum")] if snapshot.get("curriculum") else [])
                 v["scraped_general_info"] = snapshot.get("general_info") or {}
                 v["scraped_facilities"] = snapshot.get("facilities") or []
                 v["scraped_signature_programs"] = snapshot.get("signature_programs") or []
 
-                # 1. Fetch version fees
-                cur.execute("""
-                    SELECT fee_id, grade_label, level_code, annual_thb, semester_thb, currency, notes
-                    FROM school_data.version_fees
-                    WHERE version_id = %s
-                    ORDER BY grade_label ASC
-                """, (vid,))
-                v["fees"] = [
-                    {
-                        "fee_id": str(f["fee_id"]),
-                        "grade_label": f["grade_label"],
-                        "level_code": f.get("level_code"),
-                        "annual_thb": float(f["annual_thb"]) if f.get("annual_thb") is not None else None,
-                        "semester_thb": float(f["semester_thb"]) if f.get("semester_thb") is not None else None,
-                        "currency": f.get("currency") or "THB",
-                        "notes": f.get("notes"),
-                    }
-                    for f in cur.fetchall()
-                ]
+                v["fees"] = _version_fees(cur, vid)
 
-                # 2. Fetch version extra fees (hidden costs)
+                # Extra fees (hidden costs)
                 cur.execute("""
                     SELECT extra_fee_id, name, amount_thb, frequency, notes
                     FROM school_data.version_extra_fees
@@ -1489,49 +1476,13 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                     for ef in cur.fetchall()
                 ]
 
-                # 3. Fetch version safety
-                cur.execute("""
-                    SELECT security_guards, cctv_monitoring, nurse_medical_clinic, 
-                           child_safeguarding_policy, air_quality_pm25_protocol, visitor_access_control,
-                           highlights, policy_summary, policy_url
-                    FROM school_data.version_safety
-                    WHERE version_id = %s
-                """, (vid,))
-                safety_row = cur.fetchone()
-                v["safety"] = dict(safety_row) if safety_row else None
+                v["safety"] = _version_safety(cur, vid)
 
-                # 4. Fetch previous version fees, safety, and snapshot for side-by-side comparison (ก่อน vs หลัง)
+                # The live version's fees, safety and snapshot, for the side-by-side comparison (ก่อน vs หลัง)
                 prev_vid = v.get("current_published_version_id")
                 if prev_vid:
-                    cur.execute("""
-                        SELECT fee_id, grade_label, level_code, annual_thb, semester_thb, currency, notes
-                        FROM school_data.version_fees
-                        WHERE version_id = %s
-                        ORDER BY grade_label ASC
-                    """, (prev_vid,))
-                    v["previous_fees"] = [
-                        {
-                            "fee_id": str(f["fee_id"]),
-                            "grade_label": f["grade_label"],
-                            "level_code": f.get("level_code"),
-                            "annual_thb": float(f["annual_thb"]) if f.get("annual_thb") is not None else None,
-                            "semester_thb": float(f["semester_thb"]) if f.get("semester_thb") is not None else None,
-                            "currency": f.get("currency") or "THB",
-                            "notes": f.get("notes"),
-                        }
-                        for f in cur.fetchall()
-                    ]
-
-                    # Fetch previous safety
-                    cur.execute("""
-                        SELECT security_guards, cctv_monitoring, nurse_medical_clinic, 
-                               child_safeguarding_policy, air_quality_pm25_protocol, visitor_access_control,
-                               highlights, policy_summary, policy_url
-                        FROM school_data.version_safety
-                        WHERE version_id = %s
-                    """, (prev_vid,))
-                    prev_saf = cur.fetchone()
-                    v["previous_safety"] = dict(prev_saf) if prev_saf else None
+                    v["previous_fees"] = _version_fees(cur, prev_vid)
+                    v["previous_safety"] = _version_safety(cur, prev_vid)
 
                     # Fetch previous snapshot (curriculums, facilities, general_info, submission date)
                     cur.execute("""
@@ -1541,12 +1492,7 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
                     """, (prev_vid,))
                     prev_ver = cur.fetchone()
                     if prev_ver:
-                        p_snap = prev_ver.get("data_snapshot") or {}
-                        if isinstance(p_snap, str):
-                            try:
-                                p_snap = json.loads(p_snap)
-                            except Exception:
-                                p_snap = {}
+                        p_snap = _snapshot(prev_ver.get("data_snapshot"))
                         v["previous_curriculums"] = p_snap.get("curriculums") or ([p_snap.get("curriculum")] if p_snap.get("curriculum") else v.get("current_curriculums") or [])
                         v["previous_facilities"] = p_snap.get("facilities") or []
                         v["previous_general_info"] = p_snap.get("general_info") or {}
@@ -1574,27 +1520,19 @@ def fetch_pending_versions(dsn: str | None = None) -> list[dict[str, Any]]:
             return versions
 
 
-def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn: str | None = None,
-                           republish: bool = False) -> dict[str, Any]:
+def approve_school_version(version_id: str, dsn: str | None = None) -> dict[str, Any]:
     """
     Approves a pending version and publishes it (UC-A04 Step 4).
     1. Updates target version status to 'published'
     2. Supersedes any previous published version
     3. Projects published tuition min/max and safeguarding policy to school_data.schools
     4. Records approval in school_data.school_scrape_log
-    republish=True publishes again a version that was approved before and has since been superseded (the
-    approve-all button published older drafts over newer ones until 2 Nov 2026). Its data date stays the day
-    it was collected, not today.
     """
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             # FOR UPDATE: a second approve/reject of the same draft waits here, then sees the new status
             cur.execute("""
-                SELECT version_id, school_id, status::text AS status, version_number, data_snapshot, submitted_at
+                SELECT version_id, school_id, status::text AS status, version_number, data_snapshot
                 FROM school_data.school_versions
                 WHERE version_id = %s
                 FOR UPDATE
@@ -1602,10 +1540,8 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
             ver = cur.fetchone()
             if not ver:
                 raise ValueError("ไม่พบเวอร์ชันที่ต้องการอนุมัติ")
-            if republish and ver["status"] != "superseded":
-                raise ValueError(f"เผยแพร่ซ้ำได้เฉพาะฉบับที่เคยอนุมัติแล้วถูกแทน (สถานะตอนนี้: {ver['status']})")
             # A page left open can still list a draft that was approved or rejected since
-            if not republish and ver["status"] != "pending_review":
+            if ver["status"] != "pending_review":
                 raise ValueError(f"ร่างนี้ไม่ได้รออนุมัติแล้ว (สถานะตอนนี้: {ver['status']}) กดรีเฟรชเพื่อดูรายการล่าสุด")
 
             school_id = ver["school_id"]
@@ -1646,12 +1582,7 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
             """, (version_id,))
 
             # Extract snapshot fields to update on school if available
-            snapshot = ver.get("data_snapshot") or {}
-            if isinstance(snapshot, str):
-                try:
-                    snapshot = json.loads(snapshot)
-                except Exception:
-                    snapshot = {}
+            snapshot = _snapshot(ver.get("data_snapshot"))
 
             # Curriculums come from OPEC (execute_opec_import). The website's only fills in a school
             # still holding nothing but SCHOOL_SPECIFIC, i.e. one whose OPEC record names no curriculum
@@ -1669,20 +1600,18 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
                     curriculums = CASE WHEN %s::text[] IS NOT NULL AND curriculums <@ ARRAY['SCHOOL_SPECIFIC']::text[]
                                             AND curriculums_confirmed_at IS NULL
                                        THEN %s::text[] ELSE curriculums END,
-                    pub_data_updated_at = COALESCE(%s, NOW()),
+                    pub_data_updated_at = NOW(),
                     updated_at = NOW()
                 WHERE school_id = %s
             """, (version_id, min_tuition, max_tuition, has_safeguarding,
-                  website_curriculums, website_curriculums,
-                  ver["submitted_at"] if republish else None, school_id))
+                  website_curriculums, website_curriculums, school_id))
 
             # Log approval in school_data.school_scrape_log
             cur.execute("""
                 INSERT INTO school_data.school_scrape_log
                     (school_id, version_id, run_id, phase, status, ai_reasoning, created_at)
                 VALUES (%s, %s, gen_random_uuid(), 'extract', 'ok'::school_data.scrape_status, %s, NOW())
-            """, (school_id, version_id, "Admin re-published an earlier approved version" if republish
-                  else "Admin approved and published draft to live database"))
+            """, (school_id, version_id, "Admin approved and published draft to live database"))
 
             conn.commit()
 
@@ -1699,11 +1628,7 @@ def approve_school_version(version_id: str, reviewed_by: str | None = None, dsn:
 
 def reject_school_version(version_id: str, reason: str | None = None, dsn: str | None = None) -> dict[str, Any]:
     """Rejects a pending version with an optional reason."""
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             # Only a draft: rejecting the version that is live would leave the site showing a "rejected" version
             cur.execute("""
@@ -1758,11 +1683,7 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
     `school_id` may be the schools.school_id uuid or the OPEC school code: the admin
     table only carries the code.
     """
-    target_dsn = dsn or get_current_dsn()
-    if not target_dsn:
-        raise ValueError("DATABASE_URL is not set")
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT school_id FROM school_data.schools WHERE school_id::text = %s OR opec_school_code = %s LIMIT 1",

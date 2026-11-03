@@ -5,7 +5,7 @@ pipeline_preview.py — ลองรันแต่ละขั้นของ d
 ไฟล์ data/ และไฟล์อ้างอิงไปไว้ที่นั่น แต่ไม่คัดลอก .env จึงไม่มี DATABASE_URL ขั้นที่ปกติบันทึกลง Supabase
 จะข้ามไปเอง และ psycopg.connect ถูกปิดไว้อีกชั้น ไฟล์ data/ ตัวจริงไม่ถูกเขียนทับ
 
-แต่ละขั้นใช้โค้ดเดียวกับปุ่มในหน้า admin (step_* ใน opec_service.py) และต่ออินเทอร์เน็ตจริง:
+แต่ละขั้นใช้โค้ดเดียวกับปุ่มในหน้า admin (step_* ใน school_service.py) และต่ออินเทอร์เน็ตจริง:
 OPEC, ISAT, เว็บไซต์โรงเรียน, ArcGIS และ OpenStreetMap
 
     python microservices/pipeline_preview.py opec         ดึงข้อมูล OPEC
@@ -75,7 +75,7 @@ def prepare_workspace(keep_data):
 
 
 def load_service():
-    """Imports opec_service from the workspace copy, with every database connection refused."""
+    """Imports school_service from the workspace copy, with every database connection refused."""
     for key in [k for k in os.environ if "DATABASE_URL" in k]:
         del os.environ[key]
 
@@ -90,13 +90,13 @@ def load_service():
     def same(p):
         return os.path.normcase(os.path.realpath(p or ".")) == os.path.normcase(str(Path(__file__).resolve().parent))
     sys.path[:] = [p for p in sys.path if not same(p)]
-    sys.path[:0] = [str(WORK / "microservices" / "opec"), str(WORK / "microservices")]
+    sys.path[:0] = [str(WORK / "microservices" / "pipeline"), str(WORK / "microservices")]
     os.chdir(WORK)
-    import opec_service
+    import school_service
     import supabase_sync  # type: ignore
-    assert Path(opec_service.__file__).resolve().is_relative_to(WORK), "imported the real opec_service"
+    assert Path(school_service.__file__).resolve().is_relative_to(WORK), "imported the real school_service"
     assert supabase_sync.get_current_dsn() is None, "a DATABASE_URL is still visible"
-    return opec_service
+    return school_service
 
 
 def read_dataset():
@@ -193,7 +193,7 @@ def progress_printer(log_lines):
     return progress
 
 
-def run_step(svc, label, fn):
+def run_step(label, fn):
     before = read_dataset()
     out(f"\n## {label}\n")
     logs = []
@@ -225,7 +225,7 @@ def pick_recheck(by_code, n):
     return picked
 
 
-def preview_import(svc):
+def preview_import():
     """Runs the Supabase import against a recorder: shows what would be sent, connects to nothing."""
     import supabase_sync  # type: ignore
     sent = []
@@ -322,7 +322,7 @@ def main():
     steps["auto"] = steps["names"] + steps["websites"] + steps["gps"]
 
     if args.step == "import":
-        preview_import(svc)
+        preview_import()
     else:
         rechecked = []
         if args.step == "gps" and args.recheck:
@@ -333,7 +333,7 @@ def main():
             save_dataset(data)
             out(f"\nส่งกลับไปตรวจพิกัดใหม่ {len(rechecked)} แห่ง: {', '.join(rechecked)}")
         for label, fn in steps[args.step]:
-            ok, before, after = run_step(svc, label, fn)
+            ok, before, after = run_step(label, fn)
             if rechecked:
                 report_gps_recheck(before, after, rechecked)
             if not ok:

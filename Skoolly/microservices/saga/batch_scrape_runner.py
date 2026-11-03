@@ -20,13 +20,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 
 # Ensure imports resolve regardless of cwd
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(CURRENT_DIR)
-OPEC_DIR = os.path.join(CURRENT_DIR, "opec")
+MICROSERVICES_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(MICROSERVICES_DIR)   # Skoolly/, where the result files go
+PIPELINE_DIR = os.path.join(MICROSERVICES_DIR, "pipeline")
 
-for p in [CURRENT_DIR, BASE_DIR, OPEC_DIR]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if PIPELINE_DIR not in sys.path:
+    sys.path.insert(0, PIPELINE_DIR)
 
 from data_manager import load_schools  # type: ignore
 from website_registry import read_school_and_url_txt  # type: ignore

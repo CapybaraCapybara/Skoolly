@@ -70,7 +70,7 @@ echo.
 
 rem ── 2/3 Backend ──────────────────────────────────────────────────────────
 echo   %BLUE%[2/3]%R% Starting backend on port %API_PORT% ...
-start "" /b "%PYTHON_EXE%" -m uvicorn opec_service:app --app-dir microservices --host 127.0.0.1 --port %API_PORT% --reload --reload-dir microservices
+start "" /b "%PYTHON_EXE%" -m uvicorn school_service:app --app-dir microservices --host 127.0.0.1 --port %API_PORT% --reload --reload-dir microservices
 call :wait_port %API_PORT% 60 || (set "DOWN=Backend failed to start - see the error above" & goto :stop)
 echo   %OK%[ OK ]%R% Backend ready    http://127.0.0.1:%API_PORT%
 echo.

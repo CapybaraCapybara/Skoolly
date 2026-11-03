@@ -424,7 +424,7 @@ def needs_en_name(name):
     return not name or is_garbled_name(name) or bool(THAI_CHARS.search(name))
 
 
-def enrich_all_school_names_en(update_progress, on_save_callback=None):
+def enrich_all_school_names_en(update_progress):
     """
     Main Runner for Button: เติมชื่อภาษาอังกฤษ (EN)
     """
@@ -471,8 +471,6 @@ def enrich_all_school_names_en(update_progress, on_save_callback=None):
         update_progress(f"กำลังประมวลผลชื่อภาษาอังกฤษ ({idx}/{total_tasks})", idx, total_tasks, msg)
 
     save_schools(schools)
-    if on_save_callback:
-        on_save_callback(schools)
 
     # Sync to Supabase directly
     supabase_synced = 0

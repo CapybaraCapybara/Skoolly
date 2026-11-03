@@ -10,10 +10,10 @@
 
 | สิ่งที่มีอยู่ | รายละเอียด | ผลต่อการออกแบบ |
 |---|---|---|
-| **มีฐานข้อมูลจริงแล้ว** (Supabase Postgres 17.6) | `schools` 290 (active ทั้งหมด), `school_versions` 766, `version_fees` 1,956, `version_extra_fees` 2,005, `version_safety` 476, `school_scrape_log` 1,544, `official_website_registry` 291, `user_accounts` 3 (admin 2) ส่วนตารางฟอรัม ผู้ใช้ และ AI ยังว่าง รายละเอียดอยู่ในหัวข้อ 8 | pipeline OPEC และ scraper เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`db_service.py`, `results.json`) ไม่ได้อยู่ในเส้นทางหลักอีก |
+| **มีฐานข้อมูลจริงแล้ว** (Supabase Postgres 17.6) | `schools` 290 (active ทั้งหมด), `school_versions` 766, `version_fees` 1,956, `version_extra_fees` 2,005, `version_safety` 476, `school_scrape_log` 1,544, `official_website_registry` 291, `user_accounts` 3 (admin 2) ส่วนตารางฟอรัม ผู้ใช้ และ AI ยังว่าง รายละเอียดอยู่ในหัวข้อ 8 | pipeline OPEC และ scraper เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`saga/save_service.py`, `results.json`) ไม่ได้อยู่ในเส้นทางหลักอีก |
 | **ข้อมูล OPEC 290 โรงเรียน** | `data/international_schools_thailand_opec.json` — lat/lng ครบ 290/290, website 283/290, curriculums 256/290 (free-text ไทย), levels 285/290 | ต้องมีตาราง lookup + alias เพื่อ normalize ก่อน ไม่งั้นตัวกรองของ UC-01 ใช้ไม่ได้จริง |
 | **ผลลัพธ์ scraper** | `tuition_by_grade`, `hidden_costs` (มี `frequency` ของแต่ละรายการ), `safety_and_security`, `signature_programs`, `facilities`, `confidence`, `confidence_reasoning` | เป็นตัวกำหนดหน้าตาตาราง `version_fees` / `version_extra_fees` / `version_safety` โดยตรง ส่วน `signature_programs` กับ `facilities` อ่านจาก `data_snapshot` |
-| **Frontend React 19 + Vite** | หน้าเว็บอ่านข้อมูลผ่าน FastAPI `microservices/opec_service.py` (Vite proxy `/api` ไปพอร์ต 8004) ซึ่งต่อ Postgres ตรงด้วย `DATABASE_URL` ในฐานะ role `postgres` ส่วน `@supabase/supabase-js` ใช้แค่ระบบล็อกอิน | Data API (Auto-API) กับ RLS ยังไม่ได้ถูกใช้โดยหน้าเว็บ แต่ยังเปิดอยู่ จึงยังต้องดูแลสิทธิ์ให้ถูก (หัวข้อ 8.3) |
+| **Frontend React 19 + Vite** | หน้าเว็บอ่านข้อมูลผ่าน FastAPI `microservices/school_service.py` (Vite proxy `/api` ไปพอร์ต 8004) ซึ่งต่อ Postgres ตรงด้วย `DATABASE_URL` ในฐานะ role `postgres` ส่วน `@supabase/supabase-js` ใช้แค่ระบบล็อกอิน | Data API (Auto-API) กับ RLS ยังไม่ได้ถูกใช้โดยหน้าเว็บ แต่ยังเปิดอยู่ จึงยังต้องดูแลสิทธิ์ให้ถูก (หัวข้อ 8.3) |
 | **หน้า Forum** | `src/pages/ForumPage.tsx` อ่านผ่าน `GET /api/public/forum/posts` ยังไม่มีการเขียนกระทู้ | ตาราง `forum_*` พร้อมแล้วแต่ยังไม่มีแถว |
 | **scraper เก็บ safety/safeguarding** | `EXTRACT_SCHEMA.safety_and_security` | ✅ ผนวกเข้าเอกสารแล้ว → แท็บใน UC-02, แถวเปรียบเทียบใน UC-03, ตาราง `version_safety` |
 
@@ -295,7 +295,7 @@ python db/import_opec.py               # เขียนจริง
 ```
 
 สคริปต์นี้เรียกตัวนำเข้าตัวเดียวกับปุ่ม "ดึงข้อมูล OPEC" ในหน้า admin (`execute_opec_import` ใน
-`microservices/opec/supabase_sync.py`) หลักสูตรถูก map ด้วย keyword pattern เป็นรหัสในตาราง `curriculums`
+`microservices/pipeline/supabase_sync.py`) หลักสูตรถูก map ด้วย keyword pattern เป็นรหัสในตาราง `curriculums`
 ค่าที่ map ไม่ได้จะตกเป็น `SCHOOL_SPECIFIC` ส่วนระดับชั้นที่ map ไม่ได้จะถูกรายงานออกมาตอนจบ
 ตาม Business Rule ของหัวข้อ 7.16 ใน Use Case Spec
 
@@ -305,8 +305,8 @@ python db/import_opec.py               # เขียนจริง
    เรื่องนี้สำคัญขึ้นแล้ว เพราะตอนนี้การแก้ `schema.sql` ไม่ได้ไปถึงฐานจริงเอง ต้องมีคนรันไฟล์ซ้ำหรือรัน migration
    และที่ผ่านมาไม่มีใครรัน ฐานกับไฟล์จึงค่อย ๆ ต่างกัน (ดูหัวข้อ 8.2) ส่วนการแก้ที่ `create table if not exists`
    ทำให้ไม่ได้ (เปลี่ยน nullable, ถอนสิทธิ์, ลบฟังก์ชัน) ต้องเขียนเป็นคำสั่ง `alter` / `revoke` / `drop` ไว้ในไฟล์ด้วย
-2. ✅ pipeline เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`db_service.py`, `orchestrator.py`, `batch_scrape_runner.py`, `run_all.py`) ไม่ได้อยู่ในเส้นทางหลัก
-   ลบออกได้ ยกเว้น `validator_service.validate_result()` ที่ `opec_service.py` เรียกใช้อยู่
+2. ✅ pipeline เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`microservices/saga/` และ `run_all.py`) ไม่ได้อยู่ในเส้นทางหลัก
+   ลบออกได้ ยกเว้น `validator_service.validate_result()` ที่ `school_service.py` เรียกใช้อยู่
 3. ✅ `psycopg[binary]` อยู่ใน `requirements.txt` และ `@supabase/supabase-js` อยู่ใน `package.json` แล้ว (ใช้กับระบบล็อกอิน)
 4. ✅ หน้าเว็บเลิกใช้ mock แล้ว แต่เลือกอ่านผ่าน FastAPI `/api` แทน Supabase client
 5. เขียน pgTAP test ของ RLS อย่างน้อย 5 เคส: อ่าน `children_profiles` ข้ามบัญชี,
@@ -388,7 +388,7 @@ python db/import_opec.py               # เขียนจริง
 
 | จุด | เดิมในไฟล์ | ในฐานจริง | สถานะ |
 |---|---|---|---|
-| `version_fees.order_start`, `order_end`, `display_name` | มี | ไม่มี | ✅ ลบออกจาก `schema.sql` แล้ว `/api/public/fees` คำนวณสามค่านี้ตอนอ่านด้วย `microservices/opec/grade_years.py` (เรียงตามลำดับในหน้าเว็บโรงเรียนจาก `data_snapshot` แล้วแปลงชื่อชั้นเป็นสเกล 0-16) |
+| `version_fees.order_start`, `order_end`, `display_name` | มี | ไม่มี | ✅ ลบออกจาก `schema.sql` แล้ว `/api/public/fees` คำนวณสามค่านี้ตอนอ่านด้วย `microservices/pipeline/grade_years.py` (เรียงตามลำดับในหน้าเว็บโรงเรียนจาก `data_snapshot` แล้วแปลงชื่อชั้นเป็นสเกล 0-16) |
 | enum `fee_frequency` | มี `per_semester` | มีแล้ว | ✅ ตรงกัน |
 | `schools.is_isat_member`, `is_boarding`, `accreditations` | `not null` | nullable (มี default) | ✅ ไฟล์ถูกอยู่แล้วและเพิ่ม `alter column ... set not null` ในหัวข้อ 19 ฐานจริงเป็น `not null` แล้วหลังรัน migration |
 | `official_website_registry.website_url`, `source` | nullable | `not null` default `''` และ `'Manual Registry'` | ✅ แก้ไฟล์ให้ตรงกับฐานแล้ว |

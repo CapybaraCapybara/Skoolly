@@ -10,17 +10,10 @@ Only published / approved rows are returned, so nothing here needs admin rights.
 
 from typing import Any
 
-# Bare name like every other opec module: importing it as opec.supabase_sync as well
+# Bare name like every other pipeline module: importing it as pipeline.supabase_sync as well
 # would load supabase_sync twice.
-from supabase_sync import db_connect, dict_row, get_current_dsn
+from supabase_sync import db_connect, dict_row
 from grade_years import year_rows
-
-
-def _require_dsn(dsn: str | None) -> str:
-    target = dsn or get_current_dsn()
-    if not target:
-        raise ValueError("DATABASE_URL is not set")
-    return target
 
 
 def _num(value: Any) -> float | None:
@@ -49,10 +42,9 @@ def _extra_fee_notes(row: dict[str, Any]) -> str:
 
 def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
     """Tuition and extra fees from each school's currently published version."""
-    target_dsn = _require_dsn(dsn)
     schools: dict[str, dict[str, Any]] = {}
 
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT s.school_id::text AS school_id, s.opec_school_code, s.name_en, s.name_th,
@@ -135,9 +127,7 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
     - signature_programs / facilities: from the published scraped version; None when that version
       was scraped before the field existed (unknown), [] when the site mentions none
     """
-    target_dsn = _require_dsn(dsn)
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT s.school_id, s.current_published_version_id, s.opec_profile_url,
@@ -205,9 +195,7 @@ def fetch_school_sources(opec_code: str, dsn: str | None = None) -> dict[str, An
 
 def fetch_forum_posts(limit: int = 100, dsn: str | None = None) -> dict[str, Any]:
     """Approved forum posts (newest first) with their approved comments and overall stats."""
-    target_dsn = _require_dsn(dsn)
-
-    with db_connect(target_dsn, row_factory=dict_row) as conn:
+    with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT p.post_id::text AS post_id, p.category::text AS category, p.title, p.content,

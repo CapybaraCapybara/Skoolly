@@ -760,10 +760,10 @@ def _slim_overture_rows(rows):
     return out
 
 
-def refresh_overture_index(local_parquet=None):
+def refresh_overture_index():
     """
     Rebuild the Thai school-places cache. Reads Overture's public S3 release (no account)
-    with DuckDB, or a local GeoParquet extract when given. Returns the row count, or 0 when
+    with DuckDB. Returns the row count, or 0 when
     DuckDB is unavailable or the result looks truncated (the old cache is then kept).
     """
     try:
@@ -772,19 +772,16 @@ def refresh_overture_index(local_parquet=None):
         print("[GPS/Overture] duckdb not installed (pip install duckdb) — Overture skipped")
         return 0
     con = duckdb.connect()
-    if local_parquet:
-        table = f"read_parquet('{local_parquet}')"
-    else:
-        release = latest_overture_release()
-        if not release:
-            return 0
-        con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
-        table = f"""(SELECT *, ST_Y(geometry) AS lat, ST_X(geometry) AS lon, names.primary AS name_primary,
-                            names.common AS name_common, taxonomy.primary AS tax_primary,
-                            taxonomy.hierarchy AS tax_hierarchy
-                     FROM read_parquet('s3://overturemaps-us-west-2/release/{release}/theme=places/type=place/*',
-                                       hive_partitioning=1)
-                     WHERE bbox.xmin BETWEEN 97.3 AND 105.7 AND bbox.ymin BETWEEN 5.5 AND 20.6)"""
+    release = latest_overture_release()
+    if not release:
+        return 0
+    con.execute("INSTALL httpfs; LOAD httpfs; INSTALL spatial; LOAD spatial; SET s3_region='us-west-2';")
+    table = f"""(SELECT *, ST_Y(geometry) AS lat, ST_X(geometry) AS lon, names.primary AS name_primary,
+                        names.common AS name_common, taxonomy.primary AS tax_primary,
+                        taxonomy.hierarchy AS tax_hierarchy
+                 FROM read_parquet('s3://overturemaps-us-west-2/release/{release}/theme=places/type=place/*',
+                                   hive_partitioning=1)
+                 WHERE bbox.xmin BETWEEN 97.3 AND 105.7 AND bbox.ymin BETWEEN 5.5 AND 20.6)"""
     rows = _slim_overture_rows(con.execute(overture_filter_sql(table)).fetchall())
     if len(rows) < OVERTURE_MIN_ROWS:
         print(f"[GPS/Overture] only {len(rows)} rows — looks truncated, keeping the old cache")

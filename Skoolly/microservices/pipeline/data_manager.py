@@ -79,13 +79,13 @@ def clear_manual_pin(school_code):
     return True
 
 
-def apply_manual_pins(schools, pins=None):
+def apply_manual_pins(schools):
     """
     Writes each manual pin over its school record, in place, and returns the list.
     Every load and save goes through here, so no scraper, GPS run or late save of a
     stale list can put a different coordinate on a locked school.
     """
-    pins = load_manual_pins() if pins is None else pins
+    pins = load_manual_pins()
     for s in schools or []:
         code = str(s.get("school_code") or "").strip()
         pin = pins.get(code)

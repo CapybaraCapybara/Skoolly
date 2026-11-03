@@ -47,6 +47,11 @@ def orchestrate_scrape_school(req: SagaRequest):
         })
         print(f"[Saga Step] {step_name} -> {status}")
 
+    def compensate(step_name: str, url: str):
+        log_step(step_name, "started")
+        post_json(url, {})
+        log_step(step_name, "completed")
+
     # ----------------------------------------------------
     # STEP 1: SCRAPE
     # ----------------------------------------------------
@@ -60,9 +65,7 @@ def orchestrate_scrape_school(req: SagaRequest):
         log_step("SCRAPER_EXECUTE", "failed", scraper_resp)
         
         # Compensating Scraper action (cleanup browser context)
-        log_step("SCRAPER_COMPENSATE", "started")
-        post_json("http://127.0.0.1:8001/compensate", {})
-        log_step("SCRAPER_COMPENSATE", "completed")
+        compensate("SCRAPER_COMPENSATE", "http://127.0.0.1:8001/compensate")
         
         return {
             "status": "saga_failed",
@@ -88,9 +91,7 @@ def orchestrate_scrape_school(req: SagaRequest):
         log_step("VALIDATOR_EXECUTE", "failed", val_resp)
         
         # Compensate: Rollback Scraper
-        log_step("SCRAPER_COMPENSATE", "started")
-        post_json("http://127.0.0.1:8001/compensate", {})
-        log_step("SCRAPER_COMPENSATE", "completed")
+        compensate("SCRAPER_COMPENSATE", "http://127.0.0.1:8001/compensate")
         
         return {
             "status": "saga_failed",
@@ -116,13 +117,8 @@ def orchestrate_scrape_school(req: SagaRequest):
         log_step("DB_EXECUTE", "failed", db_resp)
         
         # Compensate: Rollback DB write AND Scraper resources
-        log_step("DB_COMPENSATE", "started")
-        post_json("http://127.0.0.1:8003/compensate", {})
-        log_step("DB_COMPENSATE", "completed")
-        
-        log_step("SCRAPER_COMPENSATE", "started")
-        post_json("http://127.0.0.1:8001/compensate", {})
-        log_step("SCRAPER_COMPENSATE", "completed")
+        compensate("DB_COMPENSATE", "http://127.0.0.1:8003/compensate")
+        compensate("SCRAPER_COMPENSATE", "http://127.0.0.1:8001/compensate")
         
         return {
             "status": "saga_failed",

@@ -6,11 +6,11 @@ import subprocess
 import threading
 
 services = [
-    ("Orchestrator", "orchestrator.py", 8000),
+    ("Orchestrator", "saga/orchestrator.py", 8000),
     ("Scraper Service", "scraper_service.py", 8001),
-    ("Validator Service", "validator_service.py", 8002),
-    ("Database Service", "db_service.py", 8003),
-    ("OPEC Service", "opec_service.py", 8004),
+    ("Validator Service", "saga/validator_service.py", 8002),
+    ("Save Service", "saga/save_service.py", 8003),
+    ("School Service", "school_service.py", 8004),
 ]
 
 processes = []
@@ -68,7 +68,7 @@ try:
     print(f"[INFO] Python Interpreter: {python_bin}")
 
     for name, script, port in services:
-        # start-dev.bat already runs the OPEC Service; a second copy would only die on the port
+        # start-dev.bat already runs the School Service; a second copy would only die on the port
         if port_in_use(port):
             print(f"  -> {name}: port {port} is already in use, assuming it is running - skipped")
             continue
@@ -93,7 +93,7 @@ try:
 
     print("\n[SUCCESS] All microservices started successfully! Press Ctrl+C to terminate.")
     print("Saga Orchestrator is listening at: http://localhost:8000")
-    print("OPEC Service is listening at:      http://localhost:8004")
+    print("School Service is listening at:    http://localhost:8004")
     print("----------------------------------------------------------------------")
 
     # Monitor processes

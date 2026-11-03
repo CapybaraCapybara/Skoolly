@@ -13,13 +13,13 @@ from pydantic import BaseModel
 
 MICROSERVICES_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(MICROSERVICES_DIR)
-OPEC_DIR = os.path.join(MICROSERVICES_DIR, "opec")
-# The opec modules import each other by bare name (`from data_manager import ...`), so this
-# file does too. Importing them as `opec.x` as well loaded every module twice, each copy with
+PIPELINE_DIR = os.path.join(MICROSERVICES_DIR, "pipeline")
+# The pipeline modules import each other by bare name (`from data_manager import ...`), so this
+# file does too. Importing them as `pipeline.x` as well loaded every module twice, each copy with
 # its own caches, locks and database connections. Editors only find these modules with
-# microservices/opec on their search path, hence the `type: ignore` on the imports below.
-if OPEC_DIR not in sys.path:
-    sys.path.insert(0, OPEC_DIR)
+# microservices/pipeline on their search path, hence the `type: ignore` on the imports below.
+if PIPELINE_DIR not in sys.path:
+    sys.path.insert(0, PIPELINE_DIR)
 
 from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
 from fetch_opec import fetch_opec_schools, search_international_schools  # type: ignore
@@ -64,11 +64,11 @@ from enrich_from_isat import run_isat_enrichment  # type: ignore
 from public_queries import fetch_published_fees, fetch_forum_posts, fetch_school_sources  # type: ignore
 if MICROSERVICES_DIR not in sys.path:
     sys.path.insert(0, MICROSERVICES_DIR)
-from validator_service import validate_result  # noqa: E402
+from saga.validator_service import validate_result  # noqa: E402
 
 app = FastAPI(
-    title="OPEC International Schools Admin Service",
-    description="Microservice managing OPEC data scraping, official website resolving, GPS geocoding, and enrichment"
+    title="Skoolly School Service",
+    description="The site's API: public school data, the admin pages and the data pipeline (OPEC, ISAT, websites, GPS)"
 )
 
 # Enable CORS for development
@@ -167,7 +167,7 @@ def _run_job(steps):
             update_progress("รันครบทุกขั้นตอนแล้ว", 100, 100,
                             f"รันครบ {n} ขั้นตอน: " + " -> ".join(name for name, _ in steps))
     except Exception as e:
-        print(f"[OPEC Service] Error in {label}:", e)
+        print(f"[School Service] Error in {label}:", e)
         update_progress(f"เกิดข้อผิดพลาด: {label}", 100, 100, f"Error ({label}): {e}")
     finally:
         with state_lock:
@@ -328,7 +328,7 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
         supa_data = fetch_supabase_schools(limit=1000)
         schools = supa_data.get("schools", [])
     except Exception as e:
-        print(f"[OPEC Service] Warning: Could not fetch from Supabase ({e}), falling back to local JSON")
+        print(f"[School Service] Warning: Could not fetch from Supabase ({e}), falling back to local JSON")
         schools = get_current_schools()
         
     with_websites = [

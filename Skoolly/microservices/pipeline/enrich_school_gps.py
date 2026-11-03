@@ -751,14 +751,12 @@ def _own_opec_backs(school):
                for e in school.get("gps_evidence") or [])
 
 
-def resolve_shared_points(schools, only=None):
+def resolve_shared_points(schools):
     """
     One point cannot be two campuses. When several records end up Exact on the same
     spot (sister campuses whose POIs, OSM entries or website pins all name the brand),
     only a record whose own OPEC registration backs that spot keeps Exact; the others
     become Approximate with a note naming the school they collide with.
-
-    `only`: restrict downgrades to these school codes (single-school re-check).
     Returns the number of records downgraded.
     """
     exact = [x for x in schools if x.get("gps_precision") == "Exact" and x.get("latitude")]
@@ -785,7 +783,7 @@ def resolve_shared_points(schools, only=None):
         if len(keep) > 1 and not all(x.get("gps_locked") for x in keep):
             keep = []   # two registrations on one spot: cannot tell whose campus it is
         for x in group:
-            if x.get("gps_locked") or x in keep or (only is not None and str(x.get("school_code")) not in only):
+            if x.get("gps_locked") or x in keep:
                 continue
             others = [o.get("school_name_th", "") for o in group if o is not x]
             x["gps_precision"] = "Approximate"
@@ -826,7 +824,7 @@ def _registry():
 
 # ─── entry points ────────────────────────────────────────────────────────────
 
-def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
+def enrich_all_school_gps(update_progress):
     """
     Main runner for the GPS button. Re-checks every school not yet resolved by this
     method (all of them on the first run), then only new or changed ones.
@@ -836,9 +834,9 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
         update_progress("ไม่พบข้อมูลโรงเรียน", 100, 100, "กรุณากดดึงข้อมูล OPEC (ปุ่ม 1) ก่อน!")
         return []
 
-    # Hand-placed pins are never re-checked, not even with force.
+    # Hand-placed pins are never re-checked.
     targets = [s for s in schools if not s.get("gps_locked") and (
-               force or s.get("gps_method") != GPS_METHOD or not (s.get("latitude") and s.get("longitude")))]
+               s.get("gps_method") != GPS_METHOD or not (s.get("latitude") and s.get("longitude")))]
     total = len(targets)
     if total == 0:
         update_progress("พิกัด GPS สมบูรณ์ครบถ้วนแล้ว", 100, 100,
@@ -913,8 +911,6 @@ def enrich_all_school_gps(update_progress, on_save_callback=None, force=False):
                         f"ลด {collided} แห่งเป็น Approximate: ได้จุดเดียวกับวิทยาเขตอื่นของแบรนด์เดียวกัน")
 
     save_schools(schools)
-    if on_save_callback:
-        on_save_callback(schools)
 
     update_progress("ค้นหาพิกัด GPS เสร็จแล้ว", total, total, (
         f"ตรวจพิกัด GPS เสร็จแล้ว ({total} แห่ง)\n"

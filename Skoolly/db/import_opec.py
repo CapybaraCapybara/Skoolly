@@ -2,7 +2,7 @@
 Import the OPEC dataset into Postgres (Phase 1 — Bootstrap).
 
 Command-line front end to the importer the admin page uses (execute_opec_import in
-microservices/opec/supabase_sync.py), so there is one importer to keep in step with
+microservices/pipeline/supabase_sync.py), so there is one importer to keep in step with
 db/schema.sql. It reads data/international_schools_thailand_opec.json, upserts every school
 into school_data.schools keyed on `opec_school_code` (re-running updates rows instead of
 duplicating them, UC-12 E5) and maps the free-text curriculum / level values onto the codes
@@ -28,7 +28,7 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "microservices" / "opec"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "microservices" / "pipeline"))
 
 from supabase_sync import execute_opec_import  # type: ignore  # found via the sys.path line above
 

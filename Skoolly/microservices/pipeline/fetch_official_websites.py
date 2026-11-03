@@ -413,7 +413,7 @@ def _record(s, url, source, page):
     s["website_checked_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def resolve_all_official_websites(update_progress, on_save_callback=None):
+def resolve_all_official_websites(update_progress):
     """
     Decides every school's website through the order above, opening each link once on the way
     (that is the health check), logs one line per school in dataset order and saves to data/.
@@ -460,13 +460,9 @@ def resolve_all_official_websites(update_progress, on_save_callback=None):
 
         if idx % 25 == 0:
             save_schools(schools)
-            if on_save_callback:
-                on_save_callback(schools)
 
     # Final atomic save
     save_schools(schools)
-    if on_save_callback:
-        on_save_callback(schools)
 
     with_url = sum(1 for s in schools if s.get("website"))
     summary_log = (

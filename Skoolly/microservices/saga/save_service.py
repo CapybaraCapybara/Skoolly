@@ -6,10 +6,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
-app = FastAPI(title="Database Service", description="Handles results and log persistence with rollbacks")
+app = FastAPI(title="Save Service", description="Saves Saga scrape results and logs to JSON files, with rollbacks")
 
-# Paths to the JSON files in the parent directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# results.json and scrape_log.json sit in Skoolly/, two folders up
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RESULTS_PATH = os.path.join(BASE_DIR, "results.json")
 LOG_PATH = os.path.join(BASE_DIR, "scrape_log.json")
 
