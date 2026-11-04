@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Database, X, RefreshCw, ExternalLink, Wand2, Loader2, AlertTriangle } from "lucide-react";
 import type { SupabaseStatusResponse } from "@/api/adminApi";
 import { initSupabaseSchema } from "@/api/adminApi";
+import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 import { cn } from "@/lib/utils";
 
 interface AdminSupabaseModalProps {
@@ -24,15 +25,17 @@ export function AdminSupabaseModal({ isOpen, status, onClose, onRefreshStatus }:
   const [refreshing, setRefreshing] = useState(false);
   const [initializingSchema, setInitializingSchema] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [confirmInit, setConfirmInit] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      // Escape on the confirm dialog closes only that dialog
+      if (e.key === "Escape" && !confirmInit) onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, confirmInit]);
 
   if (!isOpen) return null;
 
@@ -49,7 +52,7 @@ export function AdminSupabaseModal({ isOpen, status, onClose, onRefreshStatus }:
   };
 
   const handleInitSchema = async () => {
-    if (!window.confirm("รัน db/schema.sql เพื่อสร้าง Schemas และ Tables บน Supabase ใช่หรือไม่?")) return;
+    setConfirmInit(false);
     setInitializingSchema(true);
     setSchemaError(null);
     try {
@@ -167,7 +170,7 @@ export function AdminSupabaseModal({ isOpen, status, onClose, onRefreshStatus }:
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={handleInitSchema}
+                onClick={() => setConfirmInit(true)}
                 disabled={initializingSchema}
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-warm-charcoal px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-warm-charcoal/90 disabled:opacity-60 cursor-pointer"
               >
@@ -202,6 +205,19 @@ export function AdminSupabaseModal({ isOpen, status, onClose, onRefreshStatus }:
             ปิด
           </button>
         </div>
+
+        <ConfirmActionModal
+          isOpen={confirmInit}
+          onClose={() => setConfirmInit(false)}
+          onConfirm={handleInitSchema}
+          title="สร้าง Tables บน Supabase?"
+          description="รัน db/schema.sql เพื่อสร้าง Schemas และ Tables ใช้กับฐานข้อมูลใหม่ที่ยังว่างเท่านั้น"
+          confirmText="สร้าง Tables"
+          cancelText="ยกเลิก"
+          variant="primary"
+          iconType="database"
+          isLoading={initializingSchema}
+        />
       </div>
     </div>
   );

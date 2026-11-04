@@ -25,6 +25,7 @@ import {
   triggerWebsiteHealthCheck,
   getWebsiteHealthCheckStatus,
 } from "@/api/adminApi";
+import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 
 interface AdminUrlVerificationModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function AdminUrlVerificationModal({
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [actionLoadingCode, setActionLoadingCode] = useState<string | null>(null);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [confirmSync, setConfirmSync] = useState(false);
   const [healthCheckState, setHealthCheckState] = useState<WebsiteHealthState | null>(null);
   const [isStartingHealthCheck, setIsStartingHealthCheck] = useState(false);
   const [editingCode, setEditingCode] = useState<string | null>(null);
@@ -154,13 +156,7 @@ export function AdminUrlVerificationModal({
 
   // Handle bulk sync from schoolAndURL.txt
   const handleBulkSync = async () => {
-    if (
-      !window.confirm(
-        "ซิงค์ URL จาก reference/schoolAndURL.txt เข้า Supabase หรือไม่?"
-      )
-    ) {
-      return;
-    }
+    setConfirmSync(false);
     setIsSyncingAll(true);
     try {
       const res = await syncWebsiteRegistryFromText();
@@ -262,7 +258,7 @@ export function AdminUrlVerificationModal({
             {/* Sync from txt button */}
             <button
               type="button"
-              onClick={handleBulkSync}
+              onClick={() => setConfirmSync(true)}
               disabled={isSyncingAll}
               className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 text-warm-charcoal border border-warm-accent text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               title="ซิงค์ URL จาก schoolAndURL.txt เข้า Supabase"
@@ -791,6 +787,19 @@ export function AdminUrlVerificationModal({
           </button>
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={confirmSync}
+        onClose={() => setConfirmSync(false)}
+        onConfirm={handleBulkSync}
+        title="ซิงค์ URL จากไฟล์อ้างอิง?"
+        description="นำ URL ใน reference/schoolAndURL.txt เข้า Supabase และไฟล์ข้อมูลในเครื่อง โรงเรียนที่ลิงก์เปลี่ยนจะได้เวอร์ชันใหม่"
+        confirmText="ซิงค์"
+        cancelText="ยกเลิก"
+        variant="primary"
+        iconType="database"
+        isLoading={isSyncingAll}
+      />
     </div>
   );
 }

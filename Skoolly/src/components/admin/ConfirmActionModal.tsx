@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { AlertTriangle, Trash2, Database, HelpCircle, X, Loader2 } from "lucide-react";
 
 interface ConfirmActionModalProps {
@@ -12,6 +12,8 @@ interface ConfirmActionModalProps {
   variant?: "danger" | "warning" | "primary";
   iconType?: "trash" | "warning" | "database" | "help";
   isLoading?: boolean;
+  /** Shown under the description, e.g. a field for a reason */
+  children?: ReactNode;
 }
 
 export function ConfirmActionModal({
@@ -25,6 +27,7 @@ export function ConfirmActionModal({
   variant = "danger",
   iconType = "warning",
   isLoading = false,
+  children,
 }: ConfirmActionModalProps) {
   useEffect(() => {
     if (!isOpen) return;
@@ -40,10 +43,18 @@ export function ConfirmActionModal({
   if (!isOpen) return null;
 
   const renderIcon = () => {
-    if (variant === "danger" || iconType === "trash") {
+    if (iconType === "trash") {
       return (
         <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
           <Trash2 className="w-6 h-6" />
+        </div>
+      );
+    }
+    // a red action that deletes nothing (reject, close a school): warning sign, not a bin
+    if (variant === "danger") {
+      return (
+        <div className="w-12 h-12 rounded-2xl bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+          <AlertTriangle className="w-6 h-6" />
         </div>
       );
     }
@@ -85,7 +96,9 @@ export function ConfirmActionModal({
         if (e.target === e.currentTarget && !isLoading) onClose();
       }}
     >
-      <div className="relative w-full max-w-md bg-warm-cream border border-warm-accent rounded-[2rem] p-6 shadow-2xl transition-all scale-100">
+      <div
+        className={`relative w-full ${children ? "max-w-lg" : "max-w-md"} bg-warm-cream border border-warm-accent rounded-[2rem] p-6 shadow-2xl transition-all scale-100`}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -108,6 +121,8 @@ export function ConfirmActionModal({
             </p>
           </div>
         </div>
+
+        {children && <div className="mt-5">{children}</div>}
 
         <div className="mt-6 flex items-center justify-end gap-2.5">
           <button

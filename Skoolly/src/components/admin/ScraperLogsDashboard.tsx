@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { ScrapeLogRecord, PendingVersionRecord, ScraperProgressState } from "@/types/admin";
 import { getScrapeLogs, triggerBatchScrape } from "@/api/adminApi";
+import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
 
 interface ScraperLogsDashboardProps {
   pendingVersions?: PendingVersionRecord[];
@@ -38,6 +39,7 @@ export function ScraperLogsDashboard({
   const deferredSearch = useDeferredValue(searchQuery);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isTriggeringBatch, setIsTriggeringBatch] = useState(false);
+  const [confirmBatch, setConfirmBatch] = useState(false);
 
   const isScraperRunning = Boolean(progress?.is_running);
 
@@ -64,11 +66,11 @@ export function ScraperLogsDashboard({
       onShowToast("ระบบกำลังทำงาน Scrape อยู่แล้ว");
       return;
     }
-    const confirmed = window.confirm(
-      "คุณต้องการสั่ง Scrape โรงเรียนนานาชาติที่มีเว็บไซต์ทางการทั้งหมดในระบบใช่หรือไม่?\n\nระบบจะเก็บข้อมูลและบันทึกประวัติการขูดลงใน Supabase log โดยอัตโนมัติ"
-    );
-    if (!confirmed) return;
+    setConfirmBatch(true);
+  };
 
+  const runBatchScrape = async () => {
+    setConfirmBatch(false);
     setIsTriggeringBatch(true);
     try {
       onShowToast("กำลังเริ่มรัน Batch Scraper สำหรับทุกโรงเรียนที่มีเว็บไซต์...");
@@ -442,6 +444,19 @@ export function ScraperLogsDashboard({
           </table>
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={confirmBatch}
+        onClose={() => setConfirmBatch(false)}
+        onConfirm={runBatchScrape}
+        title="Scrape ทุกโรงเรียนที่มีลิงก์?"
+        description="ระบบจะเปิดเว็บของทุกโรงเรียนที่มีเว็บไซต์ทางการผ่าน Saga แล้วบันทึกเป็นร่างรออนุมัติ ใช้เวลานานและใช้โควตา Gemini"
+        confirmText="เริ่ม Scrape"
+        cancelText="ยกเลิก"
+        variant="primary"
+        iconType="help"
+        isLoading={isTriggeringBatch}
+      />
     </div>
   );
 }

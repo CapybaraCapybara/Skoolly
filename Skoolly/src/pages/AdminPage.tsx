@@ -54,6 +54,7 @@ import { AdminDrillDownModal } from "@/components/admin/AdminDrillDownModal";
 import { AdminSupabaseModal } from "@/components/admin/AdminSupabaseModal";
 import { AdminUrlVerificationModal } from "@/components/admin/AdminUrlVerificationModal";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
+import { RejectDraftForm } from "@/components/admin/RejectDraftForm";
 import { VersionApprovalModal } from "@/components/admin/VersionApprovalModal";
 import { ScraperLogsDashboard } from "@/components/admin/ScraperLogsDashboard";
 import { SchoolChangeHistory } from "@/components/admin/SchoolChangeHistory";
@@ -101,6 +102,9 @@ export function AdminPage({
   const [isPendingLoading, setIsPendingLoading] = useState(false);
   const [reviewingVersion, setReviewingVersion] = useState<PendingVersionRecord | null>(null);
   const [isVersionActionLoading, setIsVersionActionLoading] = useState(false);
+  const [rejectingVersion, setRejectingVersion] = useState<PendingVersionRecord | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isApproveAllOpen, setIsApproveAllOpen] = useState(false);
 
   // Confirmation Modals
   const [isSyncConfirmOpen, setIsSyncConfirmOpen] = useState(false);
@@ -287,9 +291,9 @@ export function AdminPage({
     }
   };
 
-  // Handle Approve All Versions
+  // Handle Approve All Versions (asked first in the approve-all dialog)
   const handleApproveAll = async () => {
-    if (!window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการอนุมัติทั้งหมด ${pendingVersions.length} รายการ?`)) return;
+    setIsApproveAllOpen(false);
     setIsVersionActionLoading(true);
     let successCount = 0;
     try {
@@ -1072,7 +1076,7 @@ export function AdminPage({
                       {pendingVersions.length > 0 && (
                         <button
                           type="button"
-                          onClick={handleApproveAll}
+                          onClick={() => setIsApproveAllOpen(true)}
                           disabled={isVersionActionLoading}
                           className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                         >
@@ -1210,8 +1214,8 @@ export function AdminPage({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const reason = window.prompt("ระบุเหตุผลในการปฏิเสธข้อมูล (ถ้ามี):");
-                                  if (reason !== null) handleRejectVersion(v.version_id, reason);
+                                  setRejectReason("");
+                                  setRejectingVersion(v);
                                 }}
                                 disabled={isVersionActionLoading}
                                 className={review.btnRose}
@@ -1325,7 +1329,7 @@ export function AdminPage({
         onClose={() => setReviewingVersion(null)}
         onApprove={handleApproveVersion}
         onReject={handleRejectVersion}
-        onApproveAll={handleApproveAll}
+        onApproveAll={async () => setIsApproveAllOpen(true)}
         totalPendingCount={pendingVersions.length}
         isActionLoading={isVersionActionLoading}
       />
@@ -1346,6 +1350,42 @@ export function AdminPage({
           setDrillDown((prev) => ({ ...prev, isOpen: false }));
           setSelectedSchool(s);
         }}
+      />
+
+      {/* Reject a draft, with an optional reason */}
+      <ConfirmActionModal
+        isOpen={rejectingVersion !== null}
+        onClose={() => setRejectingVersion(null)}
+        onConfirm={async () => {
+          if (!rejectingVersion) return;
+          await handleRejectVersion(rejectingVersion.version_id, rejectReason.trim() || undefined);
+          setRejectingVersion(null);
+        }}
+        title="ปฏิเสธร่างนี้?"
+        description="ร่างจะออกจากคิวรอตรวจ หน้าเว็บยังแสดงข้อมูลฉบับที่ใช้อยู่ตามเดิม"
+        confirmText="ปฏิเสธร่าง"
+        cancelText="ยกเลิก"
+        variant="danger"
+        iconType="warning"
+        isLoading={isVersionActionLoading}
+      >
+        {rejectingVersion && (
+          <RejectDraftForm version={rejectingVersion} reason={rejectReason} onReasonChange={setRejectReason} />
+        )}
+      </ConfirmActionModal>
+
+      {/* Approve every pending draft */}
+      <ConfirmActionModal
+        isOpen={isApproveAllOpen}
+        onClose={() => setIsApproveAllOpen(false)}
+        onConfirm={handleApproveAll}
+        title={`อนุมัติทั้งหมด ${pendingVersions.length} ร่าง?`}
+        description="ทุกร่างในคิวจะเผยแพร่ขึ้นหน้าเว็บทันที ร่างของโรงเรียนเดียวกันจะอนุมัติจากเก่าไปใหม่"
+        confirmText="อนุมัติทั้งหมด"
+        cancelText="ยกเลิก"
+        variant="primary"
+        iconType="help"
+        isLoading={isVersionActionLoading}
       />
 
       {/* OPEC Sync Confirmation Modal */}
