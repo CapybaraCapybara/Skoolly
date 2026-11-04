@@ -87,7 +87,7 @@ export function Navbar({
     { key: 'favorites', label: 'รายการโปรด', icon: Heart, onClick: onFavorites, count: favoritesCount, countColor: 'bg-rose-500' },
     { key: 'compare', label: 'เปรียบเทียบ', icon: GitCompare, onClick: onCompare, count: compareCount, countColor: 'bg-warm-bronze' },
     { key: 'calculator', label: 'คำนวณค่าใช้จ่าย', icon: Calculator, onClick: onCalculator },
-    { key: 'community', label: 'ชุมชน', icon: MessageSquare, onClick: onForum },
+    { key: 'community', label: 'ฟอรัม', icon: MessageSquare, onClick: onForum },
   ];
 
   return (

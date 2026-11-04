@@ -200,10 +200,8 @@ create table if not exists school_data.schools (
 
   last_verified_at              timestamptz,                -- "ตรวจสอบล่าสุด" (มิติ 1, UC-13 step 5)
 
-  -- Optimistic Locking ตาม UC-11 E1: client ส่งค่าที่อ่านมากลับมาด้วยตอนบันทึก
-  -- ถ้าไม่ตรงแปลว่ามีคนอื่นแก้ไปก่อน → ต้อง reload ไม่ใช่เขียนทับ
-  --   update ... where school_id = $1 and row_version = $2
-  -- ถ้าได้ 0 แถว = conflict (trigger เป็นคนบวกเลขให้ ไม่ต้องบวกเองในโค้ด)
+  -- ตัวนับจำนวนครั้งที่แถวถูกแก้ (trigger บวกให้เอง)
+  -- การกันผู้ดูแลสองคนบันทึกทับกันใช้ล็อกแถว (select ... for update) ไม่ได้ใช้คอลัมน์นี้
   row_version                   int not null default 1,
   created_at                    timestamptz not null default now(),
   updated_at                    timestamptz not null default now()
@@ -394,10 +392,9 @@ create table if not exists community.report_submissions (
   primary key (report_id, user_id)                   -- กันคนเดิมแจ้งซ้ำนับซ้ำ
 );
 
--- ── 4.3 ฟอรัม (UC-05 / UC-05 / UC-16) — Post-Moderation ───────────────────
--- เผยแพร่ทันที แล้วตรวจเมื่อถูกรายงาน (ต่างจาก reviews ที่ Pre-Moderation)
--- เหตุผลเต็ม: Business Rule ของ UC-05 — รีวิวกระทบคะแนนเฉลี่ยที่แสดงในผลค้นหาโดยตรง
--- ส่วนฟอรัมเป็นบทสนทนาที่ต้องการความทันที และไม่กระทบตัวเลขทางการใดๆ ที่ระบบแสดง
+-- ── 4.3 ฟอรัม (UC-05 / UC-16) — Post-Moderation ───────────────────────────
+-- เผยแพร่ทันที แล้วตรวจเมื่อถูกรายงาน เพราะเป็นบทสนทนาที่ต้องการความทันที
+-- รีวิวโรงเรียนคือกระทู้หมวด Review ที่แท็กโรงเรียน อยู่ในตารางนี้เหมือนกระทู้อื่น
 create table if not exists community.forum_posts (
   post_id          uuid primary key default gen_random_uuid(),
   user_id          uuid not null,
@@ -599,7 +596,7 @@ create index if not exists version_extra_fees_version_idx on school_data.version
 create index if not exists scrape_log_school_idx on school_data.school_scrape_log (school_id, created_at desc);
 create index if not exists scrape_log_run_idx on school_data.school_scrape_log (run_id);
 
--- ── รีวิวจาก Google + ticket แจ้งข้อมูลผิด ──────────────────────────────────
+-- ── ticket แจ้งข้อมูลผิด ──────────────────────────────────────────────────
 create index if not exists reports_open_idx on community.data_correction_reports (report_count desc)
   where status = 'open';
 
@@ -977,7 +974,7 @@ on conflict (user_id) do nothing;
 -- =============================================================================
 -- 12.2 บันทึกทุกการเปลี่ยน role/status ของบัญชีลง audit_log อัตโนมัติ
 -- =============================================================================
--- การเลื่อนขั้นเป็น admin คือ action ที่อันตรายที่สุดในระบบ (เห็นข้อมูลบุตรหลานคนอื่น,
+-- การเลื่อนขั้นเป็น admin คือ action ที่อันตรายที่สุดในระบบ (เห็นข้อมูลบัญชีของผู้ใช้คนอื่น,
 -- ลบข้อมูลโรงเรียนได้) และทำผ่าน SQL ตรงตาม Use Case §6 ซึ่งไม่ผ่าน Edge Function ใดๆ
 -- จึงไม่มีอะไรบันทึกให้เลยถ้าไม่ดักที่ระดับ database — trigger นี้ทำให้ต่อให้เปลี่ยนจาก
 -- SQL Editor ก็ยังมีร่องรอยเสมอ ตอบ Business Rule ของ UC-15/UC-18
@@ -1195,7 +1192,7 @@ begin
   return new;
 end $$;
 
--- schools ต้องบวก row_version ด้วยเพื่อให้ Optimistic Locking ของ UC-11 E1 ใช้ได้จริง
+-- schools บวก row_version ทุกครั้งที่แถวถูกแก้ (ตัวนับการแก้ไข)
 create or replace function school_data.bump_school_version() returns trigger
 language plpgsql as $$
 begin

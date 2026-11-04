@@ -27,7 +27,7 @@ const TAB_LABELS: Record<string, string> = {
   Fees: "ค่าเทอม",
   Gallery: "รูปภาพ",
   Reviews: "รีวิว",
-  Forum: "ชุมชน",
+  Forum: "ฟอรัม",
 };
 
 // ─── Props ───────────────────────────────────────────────────────────────────

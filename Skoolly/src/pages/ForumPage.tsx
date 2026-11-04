@@ -8,7 +8,7 @@ export function ForumPage() {
         className="pt-10 pb-14 px-4"
       >
         <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">ชุมชนผู้ปกครอง</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">ฟอรัมผู้ปกครอง</h1>
           <p className="text-slate-300 text-sm max-w-lg mx-auto">
             คำถามและประสบการณ์เรื่องโรงเรียนจากผู้ปกครองคนอื่น
           </p>
