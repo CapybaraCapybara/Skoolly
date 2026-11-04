@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { OpecSchoolRecord } from "@/types/admin";
 import { SchoolChangeHistory } from "@/components/admin/SchoolChangeHistory";
+import { SchoolVersionHistory } from "@/components/admin/SchoolVersionHistory";
 import { DATA_SOURCE_PARTS, formatThaiDate } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 import { ConfirmActionModal } from "@/components/admin/ConfirmActionModal";
@@ -56,6 +57,8 @@ interface AdminSchoolDetailModalProps {
   onScrapeTuition?: (school: OpecSchoolRecord) => void;
   /** Closes (hides from parents) or reopens a school; the parent shows the result and reloads */
   onSetClosed?: (school: OpecSchoolRecord, closed: boolean) => Promise<void>;
+  /** A rollback published a new version; the parent shows it and reloads */
+  onVersionRestored?: (school: OpecSchoolRecord, restoredFrom: number) => void;
 }
 
 export function AdminSchoolDetailModal({
@@ -65,10 +68,10 @@ export function AdminSchoolDetailModal({
   onResolveSchoolWebsite,
   onScrapeTuition,
   onSetClosed,
+  onVersionRestored,
 }: AdminSchoolDetailModalProps) {
-  const [showJson, setShowJson] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [copiedJson, setCopiedJson] = useState(false);
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false);
   const [copiedWeb, setCopiedWeb] = useState(false);
   const [confirmClosing, setConfirmClosing] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -76,14 +79,14 @@ export function AdminSchoolDetailModal({
   // Close on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape on the close-school dialog closes only that dialog
-      if (e.key === "Escape" && !confirmClosing) {
+      // Escape on a confirm dialog closes only that dialog
+      if (e.key === "Escape" && !confirmClosing && !versionDialogOpen) {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, confirmClosing]);
+  }, [onClose, confirmClosing, versionDialogOpen]);
 
   if (!school) return null;
 
@@ -122,12 +125,6 @@ export function AdminSchoolDetailModal({
   const isLevelActive = (lvl: string) => {
     const aliases = LEVEL_ALIASES[lvl] || [lvl];
     return activeLevels.some((al) => aliases.some((alias) => al.trim().toLowerCase() === alias.trim().toLowerCase()));
-  };
-
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(school, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2000);
   };
 
   const handleCopyWebsite = (url: string) => {
@@ -751,6 +748,13 @@ export function AdminSchoolDetailModal({
                 })}
               </div>
             </div>
+
+            {/* CARD 8: ประวัติเวอร์ชัน (UC-11) */}
+            <SchoolVersionHistory
+              schoolCode={school.school_code}
+              onDialogChange={setVersionDialogOpen}
+              onRestored={(n) => onVersionRestored?.(school, n)}
+            />
           </div>
 
           <div className="pt-2">
@@ -765,33 +769,6 @@ export function AdminSchoolDetailModal({
             {showHistory && (
               <div className="mt-2">
                 <SchoolChangeHistory schoolCode={school.school_code} />
-              </div>
-            )}
-          </div>
-
-          {/* Raw JSON Debug (Admin toggle) */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setShowJson(!showJson)}
-              className="text-xs font-bold text-[#78716c] hover:text-warm-charcoal flex items-center gap-1.5 py-1 transition-colors"
-            >
-              <FileJson className="w-4 h-4 text-warm-bronze" />
-              <span>{showJson ? "ซ่อนข้อมูลดิบ" : "ดูข้อมูลดิบ (JSON)"}</span>
-            </button>
-            {showJson && (
-              <div className="mt-2 relative">
-                <button
-                  type="button"
-                  onClick={handleCopyJson}
-                  className="absolute top-3 right-3 p-1.5 bg-[#2d2825] hover:bg-[#3d3835] text-warm-accent rounded-lg text-xs flex items-center gap-1 transition-colors"
-                >
-                  {copiedJson ? <Check className="w-3.5 h-3.5 text-[#456ca6]" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedJson ? "คัดลอกแล้ว" : "คัดลอก JSON"}</span>
-                </button>
-                <pre className="bg-warm-charcoal text-warm-accent p-4 rounded-2xl text-xs font-mono overflow-x-auto max-h-60 border border-[#2d2825]">
-                  {JSON.stringify(school, null, 2)}
-                </pre>
               </div>
             )}
           </div>

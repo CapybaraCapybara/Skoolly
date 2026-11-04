@@ -36,7 +36,7 @@ export function CurriculumReview({ onShowToast, onCountChange }: CurriculumRevie
   const confirm = async (item: CurriculumReviewItem, codes: string[]) => {
     setBusyCode(item.school_code);
     try {
-      await confirmSchoolCurriculums(item.school_code, codes);
+      await confirmSchoolCurriculums(item.school_code, codes, item.version_id);
       onShowToast(`บันทึกหลักสูตรของ ${item.name_th || item.name_en} แล้ว`);
       setEditingCode(null);
       await load();
@@ -50,7 +50,7 @@ export function CurriculumReview({ onShowToast, onCountChange }: CurriculumRevie
   const clear = async (item: CurriculumReviewItem) => {
     setBusyCode(item.school_code);
     try {
-      await clearSchoolCurriculums(item.school_code);
+      await clearSchoolCurriculums(item.school_code, item.version_id);
       onShowToast(`ยกเลิกการยืนยันของ ${item.name_th || item.name_en} แล้ว`);
       await load();
     } catch (err: any) {

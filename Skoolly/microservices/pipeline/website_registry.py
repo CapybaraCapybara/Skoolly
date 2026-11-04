@@ -13,7 +13,7 @@ import time
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from data_manager import load_schools, save_schools
-from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
+from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect, admin_edit, tag_versions
 from fetch_official_websites import reset_verified_registry, check_link
 
 health_lock = threading.Lock()
@@ -128,7 +128,8 @@ def get_full_registry_status() -> Dict[str, Any]:
             with db_connect(dsn, row_factory=dict_row) as conn:
                 with conn.cursor() as cur:
                     # 1. Active schools
-                    cur.execute("SELECT opec_school_code, name_th, name_en, official_website_url, website_source, province FROM school_data.schools")
+                    cur.execute("SELECT opec_school_code, name_th, name_en, official_website_url, website_source, province, "
+                                "current_published_version_id::text AS version_id FROM school_data.schools")
                     for row in cur.fetchall():
                         db_schools_map[row["opec_school_code"]] = row
                     
@@ -215,6 +216,7 @@ def get_full_registry_status() -> Dict[str, Any]:
             "error_reason": error_reason,
             "last_checked_at": last_chk_str,
             "last_checked_at_display": last_chk_display,
+            "version_id": db_s.get("version_id"),   # the published version the page shows; sent back on save
         })
 
     broken_count = sum(1 for i in items if i.get("is_broken"))
@@ -233,19 +235,30 @@ def get_full_registry_status() -> Dict[str, Any]:
         "items": items,
     }
 
-def verify_or_update_school_url(school_code: str, website: str, is_verified: bool = True) -> Dict[str, Any]:
-    """
-    Updates a single school's URL, marks it as Verified, syncs to Supabase and schoolAndURL.txt.
-    """
-    school_code = str(school_code).strip()
-    website = (website or "").strip().rstrip('/')
-    source = "Verified Official Registry" if is_verified else "Manual Edit"
+# The admin-confirmed URL of one school; every later website run keeps it (fetch_official_websites)
+_REGISTRY_UPSERT = """
+    INSERT INTO school_data.official_website_registry
+        (school_code, school_name_th, school_name_en, website_url, is_verified, source, verified_at, verified_by, updated_at)
+    VALUES
+        (%(code)s, %(name_th)s, %(name_en)s, %(web)s, %(is_verified)s, %(src)s,
+         CASE WHEN %(is_verified)s THEN NOW() ELSE NULL END, 'Admin', NOW())
+    ON CONFLICT (school_code) DO UPDATE
+    SET
+        website_url = EXCLUDED.website_url,
+        is_verified = EXCLUDED.is_verified,
+        source = EXCLUDED.source,
+        verified_at = CASE WHEN EXCLUDED.is_verified THEN NOW() ELSE school_data.official_website_registry.verified_at END,
+        verified_by = 'Admin',
+        updated_at = NOW()
+    RETURNING verified_at
+"""
 
-    # 1. Update in local data
+
+def _keep_local_copies(school_code: str, website: str, source: str) -> None:
+    """The local dataset and reference/schoolAndURL.txt follow the link the database now holds, and the
+    website step drops its cached registry so its next run does not put the old URL back."""
     schools = load_schools()
-    updated_local = False
-    name_th = ""
-    name_en = ""
+    name_th = name_en = ""
     for s in schools:
         if s.get("school_code") == school_code:
             s["website"] = website
@@ -253,62 +266,9 @@ def verify_or_update_school_url(school_code: str, website: str, is_verified: boo
             s["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
             name_th = s.get("school_name_th", "")
             name_en = s.get("school_name_en", "")
-            updated_local = True
+            save_schools(schools)
             break
-    if updated_local:
-        save_schools(schools)
 
-    # 2. Update in Supabase
-    dsn = get_current_dsn()
-    saved_verified_at = ""
-    saved_verified_at_display = ""
-    if dsn and psycopg:
-        try:
-            with db_connect(dsn, row_factory=dict_row) as conn:
-                with conn.cursor() as cur:
-                    # A) Upsert into permanent official_website_registry
-                    cur.execute(
-                        """
-                        INSERT INTO school_data.official_website_registry
-                            (school_code, school_name_th, school_name_en, website_url, is_verified, source, verified_at, verified_by, updated_at)
-                        VALUES
-                            (%(code)s, %(name_th)s, %(name_en)s, %(web)s, %(is_verified)s, %(src)s,
-                             CASE WHEN %(is_verified)s THEN NOW() ELSE NULL END, 'Admin', NOW())
-                        ON CONFLICT (school_code) DO UPDATE
-                        SET
-                            website_url = EXCLUDED.website_url,
-                            is_verified = EXCLUDED.is_verified,
-                            source = EXCLUDED.source,
-                            verified_at = CASE WHEN EXCLUDED.is_verified THEN NOW() ELSE school_data.official_website_registry.verified_at END,
-                            verified_by = 'Admin',
-                            updated_at = NOW()
-                        RETURNING verified_at;
-                        """,
-                        {"code": school_code, "name_th": name_th, "name_en": name_en, "web": website, "is_verified": is_verified, "src": source}
-                    )
-                    ret_row = cur.fetchone()
-                    if ret_row and ret_row["verified_at"]:
-                        v_at = ret_row["verified_at"]
-                        saved_verified_at = v_at.isoformat()
-                        saved_verified_at_display = v_at.strftime("%d/%m/%Y %H:%M:%S")
-
-                    # B) Update active school_data.schools table
-                    cur.execute(
-                        """
-                        UPDATE school_data.schools
-                        SET official_website_url = %(web)s,
-                            website_source = %(src)s,
-                            website_confirmed_at = CASE WHEN %(is_verified)s THEN NOW() ELSE website_confirmed_at END,
-                            updated_at = NOW()
-                        WHERE opec_school_code = %(code)s
-                        """,
-                        {"web": website, "src": source, "code": school_code, "is_verified": is_verified}
-                    )
-                    conn.commit()
-        except Exception as e:
-            print("[Website Registry] Error updating Supabase:", e)
-
-    # 3. Update schoolAndURL.txt as local backup
     txt_entries = read_school_and_url_txt()
     if school_code in txt_entries:
         txt_entries[school_code]["url"] = website
@@ -317,7 +277,36 @@ def verify_or_update_school_url(school_code: str, website: str, is_verified: boo
         if name_th:
             txt_entries[school_code]["name_th"] = name_th
         write_school_and_url_txt(txt_entries)
-    reset_verified_registry()   # the next website run must not put the old URL back
+    reset_verified_registry()
+
+
+def verify_or_update_school_url(school_code: str, website: str, is_verified: bool = True,
+                                expected_version_id: str | None = None) -> Dict[str, Any]:
+    """An admin's link for one school. The URL registry and schools change in one transaction, which makes an
+    'admin' version (admin_edit; VersionConflict when the page showed an older published version), then the
+    local copies follow."""
+    school_code = str(school_code).strip()
+    website = (website or "").strip().rstrip('/')
+    source = "Verified Official Registry" if is_verified else "Manual Edit"
+
+    with admin_edit(school_code, "edit_website", expected_version_id) as (cur, school):
+        verified_at = cur.execute(_REGISTRY_UPSERT, {
+            "code": school_code, "name_th": school["name_th"], "name_en": school["name_en"] or "",
+            "web": website, "is_verified": is_verified, "src": source,
+        }).fetchone()["verified_at"]
+        version_id = cur.execute(
+            """
+            UPDATE school_data.schools
+            SET official_website_url = %(web)s,
+                website_source = %(src)s,
+                website_confirmed_at = CASE WHEN %(is_verified)s THEN NOW() ELSE website_confirmed_at END,
+                updated_at = NOW()
+            WHERE school_id = %(id)s
+            RETURNING current_published_version_id::text AS version_id
+            """,
+            {"web": website, "src": source, "id": school["school_id"], "is_verified": is_verified},
+        ).fetchone()["version_id"]
+    _keep_local_copies(school_code, website, source)
 
     return {
         "status": "success",
@@ -325,10 +314,24 @@ def verify_or_update_school_url(school_code: str, website: str, is_verified: boo
         "website": website,
         "website_source": source,
         "is_verified": is_verified,
-        "verified_at": saved_verified_at,
-        "verified_at_display": saved_verified_at_display,
+        "verified_at": verified_at.isoformat() if verified_at else "",
+        "verified_at_display": verified_at.strftime("%d/%m/%Y %H:%M:%S") if verified_at else "",
         "verified_by": "Admin",
+        "version_id": version_id,
     }
+
+
+def remember_restored_url(school_code: str, website: str, source: str) -> None:
+    """After a rollback brought back an older link: the registry and the local copies follow it, as they do
+    for a link an admin typed, so the next website run does not undo the rollback."""
+    with db_connect(get_current_dsn(), row_factory=dict_row) as conn:
+        names = conn.execute("SELECT name_th, name_en FROM school_data.schools WHERE opec_school_code = %s",
+                             (school_code,)).fetchone() or {}
+        conn.execute(_REGISTRY_UPSERT, {"code": school_code, "name_th": names.get("name_th") or "",
+                                        "name_en": names.get("name_en") or "", "web": website or "",
+                                        "is_verified": True, "src": "Verified Official Registry"})
+        conn.commit()
+    _keep_local_copies(school_code, website or "", source or "Verified Official Registry")
 
 def bulk_sync_from_reference_txt() -> Dict[str, Any]:
     """
@@ -359,6 +362,7 @@ def bulk_sync_from_reference_txt() -> Dict[str, Any]:
         try:
             with db_connect(dsn) as conn:
                 with conn.cursor() as cur:
+                    tag_versions(cur, "bulk_import", "registry_sync")   # a changed link becomes a version
                     for code, e in txt_entries.items():
                         url = e.get("url", "").strip()
                         if url:

@@ -10,7 +10,7 @@
 
 | สิ่งที่มีอยู่ | รายละเอียด | ผลต่อการออกแบบ |
 |---|---|---|
-| **มีฐานข้อมูลจริงแล้ว** (Supabase Postgres 17.6) | `schools` 290 (active ทั้งหมด), `school_versions` 766, `version_fees` 1,956, `version_extra_fees` 2,005, `version_safety` 476, `school_scrape_log` 1,544, `official_website_registry` 291, `user_accounts` 3 (admin 2) ส่วนตารางฟอรัม ผู้ใช้ และ AI ยังว่าง รายละเอียดอยู่ในหัวข้อ 8 | pipeline OPEC และ scraper เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`saga/save_service.py`, `results.json`) ไม่ได้อยู่ในเส้นทางหลักอีก |
+| **มีฐานข้อมูลจริงแล้ว** (Supabase Postgres 17.6) | `schools` 290 (active ทั้งหมด), `school_versions` 766, `version_fees` 1,956, `version_extra_fees` 2,005, `version_safety` 476, `school_scrape_log` 1,544, `official_website_registry` 291, `user_accounts` 3 (admin 2) ส่วนตารางฟอรัม ผู้ใช้ และ AI ยังว่าง รายละเอียดอยู่ในหัวข้อ 8 | pipeline OPEC เขียนลง Postgres โดยตรง ปุ่มเก็บข้อมูลทั้งชุดในหน้าแอดมินเรียกผ่าน Saga (orchestrator → scraper → validator → `save_service`) และ `save_service` บันทึกร่างลงฐาน (4 พ.ย. 2569) |
 | **ข้อมูล OPEC 290 โรงเรียน** | `data/international_schools_thailand_opec.json` — lat/lng ครบ 290/290, website 283/290, curriculums 256/290 (free-text ไทย), levels 285/290 | ต้องมีตาราง lookup + alias เพื่อ normalize ก่อน ไม่งั้นตัวกรองของ UC-01 ใช้ไม่ได้จริง |
 | **ผลลัพธ์ scraper** | `tuition_by_grade`, `hidden_costs` (มี `frequency` ของแต่ละรายการ), `safety_and_security`, `signature_programs`, `facilities`, `confidence`, `confidence_reasoning` | เป็นตัวกำหนดหน้าตาตาราง `version_fees` / `version_extra_fees` / `version_safety` โดยตรง ส่วน `signature_programs` กับ `facilities` อ่านจาก `data_snapshot` |
 | **Frontend React 19 + Vite** | หน้าเว็บอ่านข้อมูลผ่าน FastAPI `microservices/school_service.py` (Vite proxy `/api` ไปพอร์ต 8004) ซึ่งต่อ Postgres ตรงด้วย `DATABASE_URL` ในฐานะ role `postgres` ส่วน `@supabase/supabase-js` ใช้แค่ระบบล็อกอิน | Data API (Auto-API) กับ RLS ยังไม่ได้ถูกใช้โดยหน้าเว็บ แต่ยังเปิดอยู่ จึงยังต้องดูแลสิทธิ์ให้ถูก (หัวข้อ 8.3) |
@@ -48,7 +48,7 @@
 
 | ข้อมูล | เก็บแบบไหน | เหตุผล |
 |---|---|---|
-| `school_versions.data_snapshot` | **JSONB** | payload ดิบจาก AI ที่ schema เปลี่ยนได้ตลอด เก็บไว้เป็นหลักฐาน/rollback |
+| `school_versions.data_snapshot` | **JSONB** | payload ดิบจาก AI ที่ schema เปลี่ยนได้ตลอด เก็บไว้เป็นหลักฐาน/rollback และลิงก์เว็บ หมุด หลักสูตร ณ ตอนเผยแพร่ (คีย์ `school`, หัวข้อ 3.1) |
 | `messages.tool_calls`, `audit_log.before/after` | **JSONB** | โครงสร้างต่างกันทุก event |
 | ค่าเทอมรายชั้น, hidden cost, safety | **ตาราง normalize** | ต้องคำนวณเงิน (numeric) + Use Case Spec หัวข้อ 7.3 บังคับให้ `academic_year`/`source_published_at` กำกับ **ระดับฟิลด์** ซึ่งเป็นแถวโดยธรรมชาติ |
 | ตัวกรองหน้าค้นหา | **คอลัมน์ typed** | filter ใน JSONB ช้าและเขียน query ยากกว่ามาก |
@@ -183,6 +183,44 @@ ops         ── audit_log (append-only)
 8. **`forum_reports` ผู้ใช้ทั่วไป select ไม่ได้เลย** — insert ได้อย่างเดียว อ่านได้เฉพาะ Admin
    ป้องกันไม่ให้ใครรู้ว่าใครรายงานใคร ซึ่งจะกลายเป็นเครื่องมือกลั่นแกล้งกันเองในชุมชน
 
+### 3.1 เวอร์ชันของข้อมูลโรงเรียน (UC-11, เพิ่ม 4 พ.ย. 2569)
+
+ข้อมูลจากเว็บ ลิงก์เว็บ หมุด และหลักสูตรเปลี่ยนเมื่อไรก็เป็นฉบับใหม่ใน `school_versions` ฉบับเก่าไม่ถูกแก้หรือลบ
+ตาราง `schools` ยังเป็นที่ที่หน้าเว็บอ่าน (read model) ส่วนเวอร์ชันเก็บประวัติและใช้ย้อนกลับ
+
+| ข้อมูล | เป็นเวอร์ชันอย่างไร |
+|---|---|
+| ข้อมูลจากเว็บโรงเรียน (ค่าเทอม ค่าใช้จ่ายแฝง ความปลอดภัย สิ่งอำนวยความสะดวก) | scraper สร้างร่าง `pending_review` แอดมินอนุมัติแล้วจึงเผยแพร่ (เหมือนเดิม) |
+| ลิงก์เว็บ หมุด หลักสูตร | ทริกเกอร์ `version_school_change` (BEFORE UPDATE บน `schools`) สร้างฉบับใหม่ที่เผยแพร่ทันทีเมื่อค่าเปลี่ยนจริง ไม่ว่าใครเขียน `source_type` บอกที่มา: `admin` (แอดมินแก้), `opec_import` (ขั้นนำเข้า สช.), `pipeline` (ขั้นหาพิกัด/หาเว็บ), `bulk_import` (ซิงค์ทะเบียนเว็บไซต์) ผู้เขียนบอกที่มาด้วย `set_config('skoolly.version_source', ..., true)` (ฟังก์ชัน `tag_versions()` ใน `supabase_sync.py`) ไม่บอกถือเป็น `pipeline` |
+| ข้อมูล สช. อื่น, ISAT, `social_links` | ยังเขียนทับใน `schools` ตรง ๆ มีประวัติจากทริกเกอร์ `log_school_change` ลง `ops.audit_log` |
+
+ฉบับใหม่ที่ทริกเกอร์หรือการย้อนสร้าง (ฟังก์ชัน `school_data.new_school_version()`) คัดลอกข้อมูลจากเว็บชั้นบนสุดของ
+`data_snapshot` และแถวใน `version_fees`, `version_extra_fees`, `version_safety` ของฉบับต้นทางมาด้วย
+ค่าเทอมจึงไม่หายจากหน้าเว็บเมื่อแก้แค่หมุด โครงของ `data_snapshot`:
+
+```
+{ ...คีย์เดิมของ scraper (tuition_by_grade, hidden_costs, safety_and_security, facilities, ...),
+  "school":     { official_website_url, website_source, website_confirmed_at, latitude, longitude,
+                  gps_precision, gps_source, curriculums, curriculums_confirmed_at, curriculums_confirmed_by },
+  "web_origin": { version_id, version_number, collected_at, approved_at } }   // ข้อมูลจากเว็บมาจากฉบับ scraper ไหน
+```
+
+ฉบับที่บันทึกก่อน 4 พ.ย. 2569 ไม่มีสองคีย์นี้และยังอ่านได้ตามเดิม (ฉบับ scraper ถือเป็นต้นทางของข้อมูลจากเว็บของตัวเอง)
+`diff_summary` ของฉบับที่ไม่ได้มาจาก scraper เก็บ `action`, `fields` (ค่าก่อนและหลังของช่องที่เปลี่ยน) และ `restored_from`
+
+- **กันแอดมินสองคนบันทึกทับกัน:** ทุกการแก้ของแอดมิน (`admin_edit()`) ล็อกแถวโรงเรียนด้วย `SELECT ... FOR UPDATE`
+  แล้วตรวจซ้ำหลังได้ล็อกว่า `current_published_version_id` ยังเป็นฉบับที่หน้าเว็บเปิดอยู่ (หน้าเว็บส่ง `expected_version_id` มา)
+  ถ้าไม่ใช่ตอบ 409 ให้รีเฟรช การอนุมัติร่างและการบันทึกร่างของ scraper ล็อกแถวเดียวกัน เลขเวอร์ชันจึงไม่ชนกัน
+- **ย้อนเวอร์ชัน:** `restore_school_version()` สร้างฉบับใหม่ที่มีค่าเหมือนฉบับที่เลือก (รวมตารางลูก) แล้วเผยแพร่
+  ย้อนได้เฉพาะฉบับ `superseded` ฉบับที่ไม่มีคีย์ `school` ย้อนเฉพาะข้อมูลจากเว็บ ส่วนลิงก์ หมุด หลักสูตรคงค่าปัจจุบัน
+  เมื่อลิงก์หรือหมุดเปลี่ยน ทะเบียนเว็บไซต์ (`official_website_registry`) ไฟล์หมุดที่ปักมือ และไฟล์ข้อมูลในเครื่องเปลี่ยนตาม
+  ไม่อย่างนั้นขั้นหาเว็บหรือหาพิกัดรอบถัดไปจะเอาค่าใหม่กลับมา
+- **อนุมัติร่างที่เก็บก่อนแอดมินแก้:** ร่างนำมาเฉพาะข้อมูลจากเว็บ ตอนอนุมัติระบบเขียนลิงก์ หมุด หลักสูตรที่เผยแพร่อยู่ ณ ตอนนั้นลงคีย์ `school`
+  ของร่าง ค่าที่แอดมินแก้ไว้จึงไม่ถูกทับ
+- **Saga:** `save_service` บันทึกร่างด้วย `save_scraped_draft_version()` โดยใช้ `saga_id` ของ orchestrator เป็น `correlation_id`
+  ของแถวใน `school_scrape_log` ขั้นชดเชยลบร่างที่ `saga_id` นั้นสร้าง (เฉพาะที่ยังรอตรวจ) พร้อมตารางลูกและแถวบันทึก
+  orchestrator หยุดที่สถานะ `blocked` (robots.txt ไม่อนุญาต) และตอบ `saga_skipped` ไม่ส่งผลว่างไปตรวจหรือบันทึก
+
 ---
 
 ## 4. การแมปข้อมูลที่มีอยู่ → ตารางใหม่
@@ -199,7 +237,7 @@ ops         ── audit_log (append-only)
 | `.hidden_costs[]` | `version_extra_fees` (`frequency` มาจากช่อง `frequency` ที่ Gemini ตอบ: `once` / `per_year` / `per_semester` (ปีละ 2) / `per_term` (ปีละ 3) / `per_month` / `conditional` / `unknown` ถ้าได้ `unknown` จะเดาจากข้อความด้วย `guess_fee_frequency()` แถวที่บันทึกก่อนมีช่องนี้ยังเป็น `unknown` อยู่ 580 แถว) |
 | `.safety_and_security` | `version_safety` |
 | `.confidence`, `.confidence_reasoning`, `.page_scraped` | `school_versions` |
-| `scrape_log.json`, `.elapsed_sec`, `.status` | `school_scrape_log` |
+| `.elapsed_sec`, `.status` ของแต่ละรอบ | `school_scrape_log` (ร่างที่บันทึกได้ `save_scraped_draft_version()` เขียนให้ รอบที่ไม่ได้ร่าง `school_service.py` เขียนสถานะ blocked/nav_failed/error/timeout) `save_service` เลิกเขียน `results.json`/`scrape_log.json` แล้ว (4 พ.ย. 2569) |
 | ฟอรัม (`Post`/`Comment` ใน `src/api/forumApi.ts`) | `community.forum_posts` / `forum_comments` (`category` ตรงกับ enum เดิม 4 ค่า) ตอนนี้อ่านอย่างเดียวผ่าน `fetch_forum_posts()` ใน `public_queries.py` |
 
 ---
@@ -304,8 +342,8 @@ python db/import_opec.py               # เขียนจริง
    เรื่องนี้สำคัญขึ้นแล้ว เพราะตอนนี้การแก้ `schema.sql` ไม่ได้ไปถึงฐานจริงเอง ต้องมีคนรันไฟล์ซ้ำหรือรัน migration
    และที่ผ่านมาไม่มีใครรัน ฐานกับไฟล์จึงค่อย ๆ ต่างกัน (ดูหัวข้อ 8.2) ส่วนการแก้ที่ `create table if not exists`
    ทำให้ไม่ได้ (เปลี่ยน nullable, ถอนสิทธิ์, ลบฟังก์ชัน) ต้องเขียนเป็นคำสั่ง `alter` / `revoke` / `drop` ไว้ในไฟล์ด้วย
-2. ✅ pipeline เขียนลง Postgres โดยตรงแล้ว ชุด Saga (`microservices/saga/` และ `run_all.py`) ไม่ได้อยู่ในเส้นทางหลัก
-   ลบออกได้ ยกเว้น `validator_service.validate_result()` ที่ `school_service.py` เรียกใช้อยู่
+2. ✅ pipeline เขียนลง Postgres โดยตรงแล้ว ส่วนปุ่มเก็บข้อมูลทั้งชุดเรียกผ่านชุด Saga (`microservices/saga/`)
+   ซึ่ง `start-dev.bat` เปิดให้ครบตั้งแต่ 4 พ.ย. 2569 (orchestrator 8000, validator 8002, save 8003)
 3. ✅ `psycopg[binary]` อยู่ใน `requirements.txt` และ `@supabase/supabase-js` อยู่ใน `package.json` แล้ว (ใช้กับระบบล็อกอิน)
 4. ✅ หน้าเว็บเลิกใช้ mock แล้ว แต่เลือกอ่านผ่าน FastAPI `/api` แทน Supabase client
 5. เขียน pgTAP test ของ RLS อย่างน้อย 5 เคส: อ่าน `favorites` ข้ามบัญชี,
@@ -320,7 +358,7 @@ python db/import_opec.py               # เขียนจริง
 | ประเด็น | ทางเลือก |
 |---|---|
 | มิติ `embedding vector(768)` | ตอนนี้ตั้งตาม Gemini `text-embedding-004` (768) — ถ้าเปลี่ยนไป OpenAI `text-embedding-3-small` ต้องเป็น 1536 **และเปลี่ยนทีหลังไม่ได้โดยไม่ล้างตาราง** |
-| เก็บกี่เวอร์ชันย้อนหลัง | ยังไม่ได้ตั้ง retention — 500 MB รับได้สบาย แต่ควรมีนโยบายเขียนไว้ |
+| เก็บกี่เวอร์ชันย้อนหลัง | ยังไม่ได้ตั้ง retention — 500 MB รับได้สบาย แต่ควรมีนโยบายเขียนไว้ ตั้งแต่ 4 พ.ย. 2569 ทุกครั้งที่ลิงก์ หมุด หรือหลักสูตรเปลี่ยนก็ได้ฉบับใหม่พร้อมสำเนาแถวค่าเทอม (ราว 6-8 แถวต่อฉบับ) |
 | Rate limiter counter | เอกสารบอกว่ามี rate limit แต่ไม่ระบุที่เก็บ — แนะนำตาราง `ops.rate_limits` เล็ก ๆ (ไม่มี Redis ในสแตกนี้) |
 | ~~ตัวนับ `like_count` / `comment_count`~~ | ✅ **ตัดสินใจแล้ว (v6.6)** — ใช้ trigger ที่ระดับ DB (`forum_likes_sync`, `forum_comments_sync`, `report_submissions_sync`) ไม่ปล่อยให้โค้ดแอปอัปเดตเอง เพราะพลาดได้ทุกจุดที่ลืมเรียก โดยเฉพาะตอน client ลองใหม่ |
 
@@ -394,6 +432,7 @@ python db/import_opec.py               # เขียนจริง
 | ฟังก์ชัน `publish_version()` | สูตร `min(nullif(annual_thb, 0))` | สูตรเก่า `coalesce(annual_thb, semester_thb * 2)` | ✅ ไม่มีโค้ดเรียก ลบออกทั้งจากไฟล์และฐานจริงแล้ว เดิมใครที่มี anon key ก็เรียกผ่าน `/rest/v1/rpc/publish_version` ได้ เพราะฟังก์ชันไม่ได้จำกัดสิทธิ์ EXECUTE และรันด้วยสิทธิ์ `postgres` |
 | `schools.opec_missing_since`, `archived_at`, `archived_reason` | มี (เพิ่ม 31 ต.ค. 2569) | มี (รัน `db/migrations/2026-10-31_school_closure.sql` แล้ว) | ✅ |
 | `schools.opec_missing_checked_at` | ลบแล้ว 1 พ.ย. 2569 | ลบแล้ว (รัน `db/migrations/2026-11-01_drop_opec_missing_checked_at.sql` 1 พ.ย. 2569) | ✅ |
+| enum `source_type` ค่า `pipeline`, ฟังก์ชัน `school_fields()` `new_school_version()` และทริกเกอร์ `version_school_change` (หัวข้อ 3.1) | มี (เพิ่ม 4 พ.ย. 2569) | มี (รัน `db/migrations/2026-11-04_school_versioning.sql` 5 พ.ย. 2569 หลังสำรองไว้ที่ `D:\pleum\skoolly-db-backups\2026-11-05_0019`) | ✅ |
 
 ### 8.3 สิทธิ์ที่ต้องแก้
 

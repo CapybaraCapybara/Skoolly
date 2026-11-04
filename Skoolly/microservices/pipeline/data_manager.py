@@ -44,6 +44,10 @@ def load_schools():
 
 # ─── manual GPS pins ────────────────────────────────────────────────────────
 
+# gps_source of a hand-placed pin starts with this; a rollback reads it to put the pin's lock back
+MANUAL_PIN_SOURCE = "ปักหมุดด้วยมือโดยแอดมิน: "
+
+
 def load_manual_pins():
     """{school_code: {"lat", "lon", "source", "note", "by", "at"}} — empty when none."""
     try:
@@ -94,7 +98,7 @@ def apply_manual_pins(schools):
                 "latitude": pin["lat"], "longitude": pin["lon"],
                 "gps_locked": True, "gps_method": "manual",
                 "gps_precision": "Exact", "gps_confidence": "high", "gps_verified": True,
-                "gps_source": f"ปักหมุดด้วยมือโดยแอดมิน: {pin['source']}",
+                "gps_source": MANUAL_PIN_SOURCE + pin["source"],
                 "gps_confirmed_by": ["แอดมิน"],
                 "gps_manual": {k: pin.get(k, "") for k in ("source", "note", "by", "at")},
             })

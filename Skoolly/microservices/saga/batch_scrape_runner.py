@@ -79,6 +79,7 @@ def scrape_single_school(school, session, delay_between_requests=1.5):
     school_code = str(school.get("school_code") or school.get("no") or "")
 
     payload = {
+        "school_id": school_code,   # save_service saves the draft version under this school
         "school_name": school_name,
         "homepage_url": homepage_url
     }

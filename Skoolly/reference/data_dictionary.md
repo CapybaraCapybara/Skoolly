@@ -1,7 +1,7 @@
 # Skoolly — Data Dictionary
 
 > อ่านจากฐานข้อมูล Supabase จริงโดยตรง ไม่ได้คัดลอกจากเอกสารออกแบบ  
-> **22 ตาราง · 244 คอลัมน์ · Primary Key 22 · Unique 6 · Foreign Key 13 · Check 16 · Index 61 · Trigger 16**
+> **22 ตาราง · 244 คอลัมน์ · Primary Key 22 · Unique 6 · Foreign Key 13 · Check 16 · Index 61 · Trigger 17**
 
 คอลัมน์ **Reference Table** แสดงตารางปลายทางที่คอลัมน์นี้อ้างถึง — ถ้าเป็น Foreign Key จริงจะมี
 พฤติกรรมตอนลบกำกับไว้ด้วย ส่วนที่ไม่มี Foreign Key คือการอ้างอิงข้าม Service ตามกติกา
@@ -94,10 +94,10 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `version_id` | รหัสเวอร์ชันของข้อมูลโรงเรียน | `uuid` | PK, DEFAULT gen_random_uuid() | — |
 | `school_id` | โรงเรียนที่เวอร์ชันนี้เป็นของ | `uuid` | FK, UNIQUE รวม (school_id, version_number), NOT NULL | school_data.schools · ON DELETE CASCADE |
 | `version_number` | ลำดับเวอร์ชันของโรงเรียนนั้น เริ่มที่ 1 และไม่ซ้ำกันภายในโรงเรียนเดียว | `integer` | UNIQUE รวม (school_id, version_number), NOT NULL, CHECK versions_number_positive | — |
-| `status` | สถานะเวอร์ชัน รอตรวจ ปฏิเสธ เผยแพร่ หรือถูกแทนที่แล้ว | `school_data.version_status` | NOT NULL, DEFAULT 'pending_review' | — |
-| `source_type` | ที่มาของเวอร์ชัน มาจากผู้ดูแลแก้เอง จาก Scraper หรือจากการนำเข้าชุดใหญ่ | `school_data.source_type` | NOT NULL | — |
-| `data_snapshot` | ข้อมูลทั้งก้อนของเวอร์ชันนี้เก็บเป็น JSON เพื่อย้อนดูและกู้คืนได้ | `jsonb` | NOT NULL | — |
-| `diff_summary` | สรุปว่าเปลี่ยนอะไรจากเวอร์ชันก่อนหน้า ใช้แสดงในหน้าตรวจสอบของผู้ดูแล | `jsonb` | — | — |
+| `status` | สถานะเวอร์ชัน รอตรวจ ปฏิเสธ เผยแพร่ หรือถูกแทนที่แล้ว โรงเรียนหนึ่งมีฉบับที่เผยแพร่ได้ฉบับเดียว ฉบับที่ถูกแทนที่แล้วเลือกย้อนกลับมาใช้ได้ (ค่า approved มีใน enum แต่ไม่มีโค้ดใช้) | `school_data.version_status` | NOT NULL, DEFAULT 'pending_review' | — |
+| `source_type` | ที่มาของเวอร์ชัน admin คือผู้ดูแลแก้ลิงก์เว็บ หมุด หลักสูตร หรือย้อนเวอร์ชัน, scraper คือข้อมูลจากเว็บโรงเรียนที่รออนุมัติ, opec_import คือขั้นนำเข้า สช., pipeline คือขั้นหาพิกัดหรือหาเว็บ, bulk_import คือซิงค์ทะเบียนเว็บไซต์ | `school_data.source_type` | NOT NULL | — |
+| `data_snapshot` | ข้อมูลทั้งก้อนของเวอร์ชันนี้เก็บเป็น JSON เพื่อย้อนดูและกู้คืนได้ ชั้นบนสุดคือข้อมูลจากเว็บตามที่ Scraper คืนมา (ค่าเทอม ค่าใช้จ่ายแฝง ความปลอดภัย สิ่งอำนวยความสะดวก) คีย์ school เก็บลิงก์เว็บ หมุด และหลักสูตร ณ ตอนเผยแพร่ คีย์ web_origin บอกว่าข้อมูลจากเว็บคัดลอกมาจากฉบับ scraper ไหน เก็บเมื่อไรและอนุมัติเมื่อไร ฉบับที่บันทึกก่อน 4 พ.ย. 2569 ไม่มีสองคีย์นี้ | `jsonb` | NOT NULL | — |
+| `diff_summary` | สรุปว่าเปลี่ยนอะไรจากเวอร์ชันก่อนหน้า ใช้แสดงในหน้าตรวจสอบและหน้าประวัติเวอร์ชันของผู้ดูแล ฉบับที่ไม่ได้มาจาก Scraper เก็บ action (สิ่งที่ทำ) fields (ค่าก่อนและหลังของช่องที่เปลี่ยน) และ restored_from (ฉบับที่ย้อนกลับไปใช้) | `jsonb` | — | — |
 | `confidence_score` | ระดับความมั่นใจของ AI ต่อข้อมูลที่สกัดมาได้ ค่าอยู่ระหว่าง 0 ถึง 1 มีความหมายเฉพาะเวอร์ชันที่ source_type เป็น scraper เท่านั้น | `real` | CHECK versions_confidence_range | — |
 | `confidence_reasoning` | คำอธิบายจาก Scraper ว่าทำไมจึงให้คะแนนความมั่นใจเท่านี้ ใช้แสดงประกอบใน Diff View ตอนผู้ดูแลตรวจ (UC-14) | `text` | — | — |
 | `scraped_page_url` | หน้าเว็บที่ Scraper อ่านข้อมูลนี้มา | `text` | — | — |
@@ -122,7 +122,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `name_th` | ชื่อโรงเรียนภาษาไทยตามทะเบียน สช. | `text` | NOT NULL | — |
 | `name_en` | ชื่อโรงเรียนภาษาอังกฤษ บางโรงเรียนไม่มี | `text` | — | — |
 | `status` | สถานะโรงเรียน active คือแสดงในระบบ archived คือปิดกิจการหรือถูกนำออก | `school_data.school_status` | NOT NULL, DEFAULT 'active' | — |
-| `current_published_version_id` | เวอร์ชันข้อมูลที่กำลังเผยแพร่ให้ผู้ใช้เห็นอยู่ ว่างแปลว่ายังไม่เคยเผยแพร่ | `uuid` | FK | school_data.school_versions |
+| `current_published_version_id` | เวอร์ชันข้อมูลที่กำลังเผยแพร่ให้ผู้ใช้เห็นอยู่ ว่างแปลว่ายังไม่เคยเผยแพร่ เมื่อลิงก์เว็บ หมุด หรือหลักสูตรเปลี่ยน ทริกเกอร์ version_school_change สร้างฉบับใหม่และชี้มาที่ฉบับนั้นให้เอง หน้าแอดมินส่งค่านี้กลับมาตอนบันทึก ถ้าไม่ตรงกับค่าปัจจุบันระบบตอบ 409 | `uuid` | FK | school_data.school_versions |
 | `official_website_url` | URL เว็บไซต์ทางการ ใช้เป็นเป้าหมายของ Scraper | `text` | — | — |
 | `website_source` | ที่มาของ URL เว็บไซต์ จากหน้าข้อมูล สช. จากการค้นหา หรือผู้ดูแลกรอกเอง | `text` | — | — |
 | `website_confirmed_at` | เวลาที่ผู้ดูแลระบบยืนยันว่า URL นี้ถูกต้อง | `timestamp with time zone` | — | — |
@@ -159,7 +159,7 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `accreditations` | รายการสถาบันรับรองมาตรฐาน เช่น CIS, WASC, NEASC | `text[]` | DEFAULT '{}' | — |
 | `isat_school_name` | ชื่อโรงเรียนตามที่ปรากฏบนเว็บ ISAT ใช้ตรวจสอบว่าจับคู่ถูกโรงเรียน | `text` | — | — |
 | `social_links` | ลิงก์โซเชียลรวมเป็น JSON ก้อนเดียว คีย์ที่ใช้คือ facebook, line_id, instagram, youtube | `jsonb` | NOT NULL, DEFAULT '{}' | — |
-| `row_version` | ตัวนับสำหรับ Optimistic Locking กันผู้ดูแลสองคนบันทึกทับกัน ทริกเกอร์บวกให้เอง | `integer` | NOT NULL, DEFAULT 1 | — |
+| `row_version` | ตัวนับจำนวนครั้งที่แถวถูกแก้ ทริกเกอร์บวกให้เอง การกันผู้ดูแลสองคนบันทึกทับกันใช้การล็อกแถว (SELECT ... FOR UPDATE) แล้วตรวจ current_published_version_id ไม่ได้ใช้คอลัมน์นี้ | `integer` | NOT NULL, DEFAULT 1 | — |
 | `archived_at` | เวลาที่ผู้ดูแลระบบปิดโรงเรียน (สถานะ archived) ว่างแปลว่ายังไม่ถูกปิด | `timestamp with time zone` | — | — |
 | `archived_reason` | เหตุผลที่ปิดโรงเรียน ใส่ให้เองเฉพาะโรงเรียนที่หายจากรายชื่อ สช. | `text` | — | — |
 | `opec_missing_since` | วันที่ตรวจพบว่าโรงเรียนหายจากรายชื่อ สช. ว่างแปลว่ายังอยู่ในรายชื่อ ระบบไม่ปิดโรงเรียนเอง | `timestamp with time zone` | — | — |

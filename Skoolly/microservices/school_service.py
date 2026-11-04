@@ -22,7 +22,8 @@ PIPELINE_DIR = os.path.join(MICROSERVICES_DIR, "pipeline")
 if PIPELINE_DIR not in sys.path:
     sys.path.insert(0, PIPELINE_DIR)
 
-from data_manager import DATA_FILE, CSV_FILE, load_schools, save_schools, set_manual_pin, clear_manual_pin, apply_manual_pins  # type: ignore
+from data_manager import (DATA_FILE, CSV_FILE, MANUAL_PIN_SOURCE, load_schools, save_schools,  # type: ignore
+                          set_manual_pin, clear_manual_pin, apply_manual_pins)
 from fetch_opec import fetch_opec_schools, search_international_schools  # type: ignore
 from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
 from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
@@ -37,7 +38,6 @@ from supabase_sync import (  # type: ignore
     update_supabase_school_gps,
     update_supabase_school_websites,
     update_supabase_school_sources,
-    sync_single_school_to_supabase,
     fetch_pending_versions,
     approve_school_version,
     reject_school_version,
@@ -52,10 +52,17 @@ from supabase_sync import (  # type: ignore
     close_school,
     reopen_school,
     fetch_school_history,
+    fetch_school_versions,
+    fetch_version_compare,
+    restore_school_version,
+    admin_edit,
+    write_school_gps,
+    VersionConflict,
 )
 from website_registry import (  # type: ignore
     get_full_registry_status,
     verify_or_update_school_url,
+    remember_restored_url,
     bulk_sync_from_reference_txt,
     run_bulk_health_check,
     get_health_state,
@@ -96,10 +103,29 @@ async def refuse_other_sites(request: Request, call_next):
         return JSONResponse(status_code=403, content={"detail": "คำสั่งนี้ต้องมาจากหน้าเว็บ Skoolly"})
     return await call_next(request)
 
+
+@app.exception_handler(VersionConflict)
+async def stale_page(request: Request, exc: VersionConflict):
+    """Another admin saved this school after the page loaded it (supabase_sync.admin_edit)."""
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
 # Scraper Service (scraper_service.py, started by start-dev.bat on port 8001). A scrape can
 # wait out several Gemini rate-limit back-offs, hence the timeout.
 SCRAPER_URL = os.environ.get("SCRAPER_URL", "http://127.0.0.1:8001/scrape")
 SCRAPE_TIMEOUT_S = 600  # scraper may retry Playwright once with doubled timeouts
+
+# The batch scrape goes through the Saga (microservices/saga, started by start-dev.bat):
+# orchestrator -> scraper -> validator_service -> save_service, which saves the draft version.
+ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://127.0.0.1:8000/saga/scrape-school")
+# Longer than the whole saga can take (scrape 600 s, then validate, save and two compensations at 60 s
+# each), so the batch never logs a timeout for a school whose draft is still being saved
+SAGA_TIMEOUT_S = SCRAPE_TIMEOUT_S + 300
+SAGA_SERVICES = {
+    "orchestrator (8000)": "http://127.0.0.1:8000",
+    "scraper (8001)": SCRAPER_URL.rsplit("/", 1)[0],
+    "validator_service (8002)": "http://127.0.0.1:8002",
+    "save_service (8003)": "http://127.0.0.1:8003",
+}
 
 # In-memory Scraper State
 scraper_state = {
@@ -307,12 +333,16 @@ def step_scrape_school(progress, school_id, school_name, website):
              f"บันทึกแบบร่าง version {draft.get('version_number')} ของ {school_name} รอแอดมินอนุมัติ")
 
 
-def _scraper_alive() -> bool:
-    """True if the scraper service answers on its port (FastAPI serves /docs)."""
+def _alive(base_url: str) -> bool:
+    """True if a FastAPI service answers on its port (FastAPI serves /docs)."""
     try:
-        return requests.get(SCRAPER_URL.rsplit("/", 1)[0] + "/docs", timeout=5).ok
+        return requests.get(base_url + "/docs", timeout=5).ok
     except requests.RequestException:
         return False
+
+
+def _saga_down() -> list[str]:
+    return [name for name, url in SAGA_SERVICES.items() if not _alive(url)]
 
 
 def _failed_school_ids() -> set[str]:
@@ -363,9 +393,10 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
         return
 
     progress(f"เริ่ม Batch Scrape ทั้งหมด {total} โรงเรียน...", 0, total, f"ตรวจพบโรงเรียนที่มีเว็บไซต์ทางการ {total} แห่ง")
-    if not _scraper_alive():
-        progress("Scraper service ไม่ตอบ", 0, total,
-                 f"เรียก {SCRAPER_URL} ไม่ได้ เปิด scraper (ไม่ใช้ --reload) แล้วรันใหม่")
+    down = _saga_down()
+    if down:
+        progress("บริการ Saga ไม่ตอบ", 0, total,
+                 f"เรียก {', '.join(down)} ไม่ได้ ปิดหน้าต่าง start-dev.bat แล้วเปิดใหม่ แล้วรันอีกครั้ง")
         return
 
     success_count = 0
@@ -381,53 +412,45 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
 
         progress(f"กำลัง Scrape: {name} ({curr_num}/{total})", curr_num, total, f"[{curr_num}/{total}] กำลังสแกน {website}")
 
-        result = None
+        saved = False
         error_msg = ""
         fail_status = "error"
         t_req = time.time()
         try:
-            resp = requests.post(SCRAPER_URL, json={"school_name": name, "homepage_url": website}, timeout=SCRAPE_TIMEOUT_S)
+            # save_service saves the draft (save_scraped_draft_version) and logs it to school_scrape_log
+            resp = requests.post(ORCHESTRATOR_URL, json={"school_id": str(school_id), "school_name": name,
+                                                         "homepage_url": website, "run_id": batch_run_id},
+                                 timeout=SAGA_TIMEOUT_S)
             ctype = resp.headers.get("content-type", "")
             body = resp.json() if ctype.startswith("application/json") else {}
-            if resp.ok and body.get("status") == "success":
-                result = body.get("result_data")
-            elif body.get("status") == "blocked":
+            saga = body.get("status")
+            if resp.ok and saga == "saga_success":
+                saved = True
+            elif saga == "saga_skipped":
                 # robots.txt says no: log it as blocked, no draft, no fallback to an older result
                 error_msg, fail_status = body.get("error") or "robots.txt disallow", "blocked"
+            elif saga == "saga_failed" and body.get("failed_at") == "validation":
+                # a result that breaks validator_service rules saves no draft
+                error_msg = "ข้อมูลที่ scrape มาไม่ผ่านการตรวจ: " + "; ".join(map(str, body.get("errors") or []))
+            elif saga == "saga_failed" and body.get("failed_at") == "database":
+                error_msg = f"บันทึกแบบร่างไม่สำเร็จ (Saga ชดเชยแล้ว): {body.get('error')}"
+            elif saga == "saga_failed":
+                error_msg = f"Scraper ทำไม่สำเร็จ: {body.get('error')}"
+                if body.get("timed_out"):
+                    fail_status = "timeout"
             else:
-                # keep everything needed to tell why: code, type, scraper status/error, start of body
+                # keep everything needed to tell why: code, type, saga status, start of body
                 error_msg = (f"HTTP {resp.status_code} | {ctype or 'no content-type'} | "
-                             f"status={body.get('status')!r} | error={body.get('error')!r} | "
-                             f"body={resp.text[:200]!r}")
+                             f"status={saga!r} | body={resp.text[:200]!r}")
         except requests.Timeout as ex:
             error_msg, fail_status = f"Timeout: {ex}", "timeout"
         except Exception as ex:
             error_msg = f"{type(ex).__name__}: {ex}"
         elapsed = round(time.time() - t_req, 2)
 
-        # A failed scrape saves no draft (never an older result in its place), and neither does
-        # a result that breaks validator_service rules
-        if result is not None:
-            error_msg = _validation_problem(result)
-            if error_msg:
-                result = None
-
-        if result:
-            result["run_id"] = batch_run_id
-            try:
-                save_scraped_draft_version(school_id, result)
-                success_count += 1
-                consecutive_fails = 0
-            except Exception as e:
-                fail_count += 1
-                log_school_scrape(
-                    school_id=school_id,
-                    phase="extract",
-                    status="error",
-                    run_id=batch_run_id,
-                    page_scraped=website,
-                    error_message=f"บันทึกแบบร่างไม่สำเร็จ: {e}",
-                )
+        if saved:
+            success_count += 1
+            consecutive_fails = 0
         else:
             fail_count += 1
             log_school_scrape(
@@ -437,13 +460,13 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
                 run_id=batch_run_id,
                 page_scraped=website,
                 elapsed_sec=elapsed,
-                error_message=error_msg or "empty response from scraper",
+                error_message=error_msg or "empty response from orchestrator",
             )
-            if fail_status != "blocked":  # a robots.txt refusal says nothing about the scraper's health
+            if fail_status != "blocked":  # a robots.txt refusal says nothing about the services' health
                 consecutive_fails += 1
-            if consecutive_fails >= MAX_CONSECUTIVE_FAILS and not _scraper_alive():
-                progress("หยุด batch: scraper ไม่ตอบ", curr_num, total,
-                         f"ล้มติดกัน {consecutive_fails} โรงเรียนและ scraper ไม่ตอบ — หยุดไว้ก่อนเพื่อไม่ให้ล้มทั้งรอบ")
+            if consecutive_fails >= MAX_CONSECUTIVE_FAILS and _saga_down():
+                progress("หยุด batch: บริการ Saga ไม่ตอบ", curr_num, total,
+                         f"ล้มติดกัน {consecutive_fails} โรงเรียนและ {', '.join(_saga_down())} ไม่ตอบ — หยุดไว้ก่อนเพื่อไม่ให้ล้มทั้งรอบ")
                 break
 
         time.sleep(1.0)
@@ -521,11 +544,18 @@ class VerifyWebsitePayload(BaseModel):
     school_code: str
     website: str
     is_verified: Optional[bool] = True
+    # The published version the page showed (current_published_version_id). A different one live now
+    # means another admin saved first: 409. Omitted (scripts, curl): no check.
+    expected_version_id: Optional[str] = None
 
 @app.post("/api/websites/verify")
 def api_verify_website(payload: VerifyWebsitePayload):
     _require_idle()
-    return verify_or_update_school_url(payload.school_code, payload.website, payload.is_verified)
+    try:
+        return verify_or_update_school_url(payload.school_code, payload.website, payload.is_verified,
+                                           payload.expected_version_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @app.post("/api/websites/sync-registry")
 def api_sync_registry():
@@ -684,6 +714,7 @@ class UpdateSchoolPayload(BaseModel):
     website: Optional[str] = None
     official_website: Optional[str] = None
     website_source: Optional[str] = "Manual Edit"
+    expected_version_id: Optional[str] = None   # as in VerifyWebsitePayload
 
 @app.put("/api/school/{school_code}")
 def update_school(school_code: str, payload: UpdateSchoolPayload):
@@ -692,9 +723,13 @@ def update_school(school_code: str, payload: UpdateSchoolPayload):
         raise HTTPException(status_code=404, detail="School not found")
     # A link typed by an admin is an admin decision: recorded in the registry like the verify button, so every
     # later website run keeps it (a 'Manual Edit' label alone was protected for one run only)
-    verify_or_update_school_url(school_code, payload.website or payload.official_website or "", True)
+    try:
+        saved = verify_or_update_school_url(school_code, payload.website or payload.official_website or "", True,
+                                            payload.expected_version_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     set_current_schools(load_schools())
-    return {"status": "updated"}
+    return {"status": "updated", "version_id": saved["version_id"]}
 
 class ManualGpsPayload(BaseModel):
     latitude: float
@@ -705,6 +740,7 @@ class ManualGpsPayload(BaseModel):
     note: Optional[str] = ""
     by: Optional[str] = ""
     allow_outside_province: bool = False
+    expected_version_id: Optional[str] = None   # as in VerifyWebsitePayload
 
 # Coordinates read off Google Maps / Earth / Street View may not be stored or shown on our map.
 _FORBIDDEN_GPS_SOURCES = ("google", "goo.gl", "g.page", "street view", "streetview")
@@ -733,30 +769,41 @@ def set_school_gps(school_code: str, payload: ManualGpsPayload):
     if not payload.allow_outside_province and not is_coords_in_province(payload.latitude, payload.longitude, school.get("province")):
         raise HTTPException(status_code=422, detail=f"พิกัดอยู่นอกจังหวัด{school.get('province', '')} ที่จดทะเบียน "
                                                     "(ถ้าตั้งใจ ส่ง allow_outside_province=true)")
-    set_manual_pin(school_code, payload.latitude, payload.longitude, source, payload.note or "", payload.by or "")
-    apply_manual_pins(schools)
-    school["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    set_current_schools(schools)
-    save_schools(schools)
-    sync_single_school_to_supabase(school)
-    return {k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source",
-                                       "gps_locked", "gps_manual")}
+    # Lock and check first, so a stale page changes nothing; the files are written inside the transaction
+    # because the pin the database gets is the one apply_manual_pins() makes
+    try:
+        with admin_edit(school_code, "set_gps", payload.expected_version_id, by=payload.by or "") as (cur, row):
+            set_manual_pin(school_code, payload.latitude, payload.longitude, source, payload.note or "", payload.by or "")
+            apply_manual_pins(schools)
+            school["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            set_current_schools(schools)
+            save_schools(schools)
+            version_id = write_school_gps(cur, row["school_id"], school)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {**{k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source",
+                                          "gps_locked", "gps_manual")}, "version_id": version_id}
 
 @app.delete("/api/school/{school_code}/gps")
-def clear_school_gps(school_code: str):
+def clear_school_gps(school_code: str, expected_version_id: Optional[str] = None):
     """Removes a hand-placed pin; the next GPS run decides this school again."""
     _require_idle()
     schools = get_current_schools()
     school = _find_school(schools, school_code)
     if not school:
         raise HTTPException(status_code=404, detail="School not found")
-    if not clear_manual_pin(school_code):
-        raise HTTPException(status_code=404, detail="โรงเรียนนี้ไม่มีหมุดที่ปักด้วยมือ")
-    apply_manual_pins(schools)
-    set_current_schools(schools)
-    save_schools(schools)
-    sync_single_school_to_supabase(school)
-    return {k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source", "gps_locked")}
+    try:
+        with admin_edit(school_code, "clear_gps", expected_version_id) as (cur, row):
+            if not clear_manual_pin(school_code):
+                raise HTTPException(status_code=404, detail="โรงเรียนนี้ไม่มีหมุดที่ปักด้วยมือ")
+            apply_manual_pins(schools)
+            set_current_schools(schools)
+            save_schools(schools)
+            version_id = write_school_gps(cur, row["school_id"], school)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {**{k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source",
+                                          "gps_locked")}, "version_id": version_id}
 
 @app.get("/api/curriculums/review")
 def get_curriculum_review():
@@ -770,6 +817,7 @@ def get_curriculum_review():
 class ConfirmCurriculumsPayload(BaseModel):
     curriculums: List[str]
     confirmed_by: Optional[str] = ""
+    expected_version_id: Optional[str] = None   # as in VerifyWebsitePayload
 
 
 @app.put("/api/school/{school_code}/curriculums")
@@ -777,18 +825,19 @@ def confirm_curriculums(school_code: str, payload: ConfirmCurriculumsPayload):
     """An admin's choice of curriculums; later OPEC imports keep it."""
     _require_idle()   # a running import would write over the choice
     try:
-        return confirm_school_curriculums(school_code, payload.curriculums, payload.confirmed_by)
+        return confirm_school_curriculums(school_code, payload.curriculums, payload.confirmed_by,
+                                          payload.expected_version_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.delete("/api/school/{school_code}/curriculums")
-def clear_curriculums(school_code: str):
+def clear_curriculums(school_code: str, expected_version_id: Optional[str] = None):
     """Drops an admin's choice; the school follows OPEC (or its website when OPEC names none) again."""
     _require_idle()
     school = _find_school(get_current_schools(), school_code) or {}
     try:
-        return clear_curriculums_confirmation(school_code, school.get("curriculums"))
+        return clear_curriculums_confirmation(school_code, school.get("curriculums"), expected_version_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -841,6 +890,73 @@ def get_all_schools_history(limit: int = 300):
         return {"history": fetch_school_history(None, limit=min(max(limit, 1), 1000))}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"อ่านประวัติการแก้ไขไม่สำเร็จ: {e}")
+
+
+@app.get("/api/school/{school_code}/versions")
+def get_school_versions(school_code: str):
+    """Every version of the school, latest first, with the one published now (admin page)."""
+    try:
+        return fetch_school_versions(school_code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"อ่านประวัติเวอร์ชันไม่สำเร็จ: {e}")
+
+
+@app.get("/api/school/{school_code}/versions/{version_id}/compare")
+def get_version_compare(school_code: str, version_id: uuid.UUID):
+    """A version next to the published one: what restoring it would change (admin page)."""
+    try:
+        data = fetch_version_compare(school_code, str(version_id))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"อ่านข้อมูลฉบับนี้ไม่สำเร็จ: {e}")
+    if data is None:
+        raise HTTPException(status_code=404, detail="ไม่พบฉบับนี้ของโรงเรียนนี้")
+    return data
+
+
+class RestoreVersionPayload(BaseModel):
+    expected_version_id: Optional[str] = None   # as in VerifyWebsitePayload
+
+
+def _follow_restored_version(school_code: str, restored: dict) -> None:
+    """A rollback changed the link or the pin in the database. The URL registry, the pin locks and the local
+    dataset follow it, or the next website or GPS run would put the newer values back."""
+    values, fields = restored["school"], restored["fields"]
+    if "official_website_url" in fields:
+        remember_restored_url(school_code, values.get("official_website_url"), values.get("website_source"))
+    if not {"latitude", "longitude", "gps_precision", "gps_source"} & fields.keys():
+        return
+    source = values.get("gps_source") or ""
+    manual = source.startswith(MANUAL_PIN_SOURCE) and values.get("latitude") is not None
+    if manual:
+        set_manual_pin(school_code, values["latitude"], values["longitude"], source[len(MANUAL_PIN_SOURCE):],
+                       f"ย้อนกลับไปใช้ฉบับ {restored['restored_from']}")
+    else:
+        clear_manual_pin(school_code)
+    schools = get_current_schools()
+    school = _find_school(schools, school_code)
+    if school:
+        school.update({k: values.get(k) for k in ("latitude", "longitude", "gps_precision", "gps_source")})
+        if not manual and school.pop("gps_locked", False):
+            # like a removed pin: the next GPS run decides this school again
+            school["gps_method"] = "manual-unlocked"
+            school.pop("gps_manual", None)
+        apply_manual_pins(schools)
+        set_current_schools(schools)
+        save_schools(schools)
+
+
+@app.post("/api/school/{school_code}/versions/{version_id}/restore")
+def post_restore_school_version(school_code: str, version_id: uuid.UUID,
+                                payload: Optional[RestoreVersionPayload] = None):
+    """Rollback: a new published version with the values of an older one; history stays as it is."""
+    _require_idle()   # a running job would write the link or pin back
+    try:
+        restored = restore_school_version(school_code, str(version_id),
+                                          payload.expected_version_id if payload else None)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    _follow_restored_version(school_code, restored)
+    return restored
 
 
 @app.post("/api/school/{school_code}/resolve")

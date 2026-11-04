@@ -123,7 +123,7 @@ export function AdminUrlVerificationModal({
     }
     setActionLoadingCode(item.school_code);
     try {
-      await verifySchoolWebsite(item.school_code, item.website, true);
+      await verifySchoolWebsite(item.school_code, item.website, true, item.version_id);
       showMsg(`รับรองเว็บไซต์ของ ${item.school_name_th} แล้ว`);
       await loadData();
       if (onDataChanged) onDataChanged();
@@ -138,7 +138,8 @@ export function AdminUrlVerificationModal({
   const handleSaveEdit = async (schoolCode: string) => {
     setActionLoadingCode(schoolCode);
     try {
-      await verifySchoolWebsite(schoolCode, editUrlValue.trim(), true);
+      const item = data?.items.find((i) => i.school_code === schoolCode);
+      await verifySchoolWebsite(schoolCode, editUrlValue.trim(), true, item?.version_id);
       showMsg(`บันทึกและรับรอง URL ของ ${schoolCode} แล้ว`);
       setEditingCode(null);
       setEditUrlValue("");

@@ -6,6 +6,8 @@ import type {
   PendingVersionRecord,
   ScrapeLogRecord,
   CurriculumReviewResponse,
+  SchoolVersion,
+  VersionCompare,
 } from "@/types/admin";
 
 const API_BASE = ""; // Relative path to support Vite proxy and server middlewares
@@ -54,21 +56,67 @@ export async function postAction(endpoint: string): Promise<{ status: string }> 
   return await res.json();
 }
 
-// 409: a pipeline job is running and would save over this edit; `detail` says so
+// 409: a pipeline job is running and would save over this edit, or another admin saved this school
+// after the page loaded it; `detail` says which
 async function throwIfBusy(res: Response): Promise<void> {
   if (res.status !== 409) return;
   const body = await res.json().catch(() => ({}));
   throw new Error(body.detail || "มีงานอื่นกำลังทำงานอยู่");
 }
 
-export async function updateSchoolWebsite(schoolCode: string, website: string): Promise<boolean> {
+/** Returns the school's new published version id, or null when the save failed */
+export async function updateSchoolWebsite(
+  schoolCode: string,
+  website: string,
+  expectedVersionId?: string | null
+): Promise<string | null> {
   const res = await fetch(`${API_BASE}/api/school/${schoolCode}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ website, website_source: "Manual Edit" }),
+    body: JSON.stringify({ website, website_source: "Manual Edit", expected_version_id: expectedVersionId }),
   });
   await throwIfBusy(res);
-  return res.ok;
+  return res.ok ? (await res.json()).version_id ?? null : null;
+}
+
+/** Every version of one school, highest number first, and the one published now */
+export async function getSchoolVersions(
+  schoolCode: string
+): Promise<{ current_version_id: string | null; versions: SchoolVersion[] }> {
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/versions`, { cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "อ่านประวัติเวอร์ชันไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+/** A version next to the one published now: what restoring it would change */
+export async function getVersionCompare(schoolCode: string, versionId: string): Promise<VersionCompare> {
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/versions/${versionId}/compare`, { cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "อ่านข้อมูลฉบับนี้ไม่สำเร็จ");
+  }
+  return await res.json();
+}
+
+/** Publishes a new version with the values of `versionId`; the history stays as it is */
+export async function restoreSchoolVersion(
+  schoolCode: string,
+  versionId: string,
+  expectedVersionId: string | null
+): Promise<{ version_id: string; version_number: number; restored_from: number }> {
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/versions/${versionId}/restore`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ expected_version_id: expectedVersionId }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "ย้อนเวอร์ชันไม่สำเร็จ");
+  }
+  return await res.json();
 }
 
 export async function resolveSchoolWebsite(schoolCode: string): Promise<OpecSchoolRecord | null> {
@@ -181,12 +229,18 @@ export async function getWebsiteRegistry(): Promise<WebsiteRegistryResponse> {
 export async function verifySchoolWebsite(
   schoolCode: string,
   website: string,
-  isVerified: boolean = true
-): Promise<{ status: string; website: string; website_source: string }> {
+  isVerified: boolean = true,
+  expectedVersionId?: string | null
+): Promise<{ status: string; website: string; website_source: string; version_id: string }> {
   const res = await fetch(`${API_BASE}/api/websites/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ school_code: schoolCode, website, is_verified: isVerified }),
+    body: JSON.stringify({
+      school_code: schoolCode,
+      website,
+      is_verified: isVerified,
+      expected_version_id: expectedVersionId,
+    }),
   });
   await throwIfBusy(res);
   if (!res.ok) {
@@ -332,12 +386,13 @@ export async function getCurriculumReview(): Promise<CurriculumReviewResponse> {
 // The backend also stores who confirmed; it will come from the signed-in admin once the admin page has a login
 export async function confirmSchoolCurriculums(
   schoolCode: string,
-  curriculums: string[]
+  curriculums: string[],
+  expectedVersionId?: string | null
 ): Promise<{ status: string; curriculums: string[] }> {
   const res = await fetch(`${API_BASE}/api/school/${schoolCode}/curriculums`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ curriculums }),
+    body: JSON.stringify({ curriculums, expected_version_id: expectedVersionId }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -346,8 +401,12 @@ export async function confirmSchoolCurriculums(
   return await res.json();
 }
 
-export async function clearSchoolCurriculums(schoolCode: string): Promise<{ status: string; curriculums: string[] }> {
-  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/curriculums`, { method: "DELETE" });
+export async function clearSchoolCurriculums(
+  schoolCode: string,
+  expectedVersionId?: string | null
+): Promise<{ status: string; curriculums: string[] }> {
+  const query = expectedVersionId ? `?expected_version_id=${encodeURIComponent(expectedVersionId)}` : "";
+  const res = await fetch(`${API_BASE}/api/school/${schoolCode}/curriculums${query}`, { method: "DELETE" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "ยกเลิกการยืนยันไม่สำเร็จ");

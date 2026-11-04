@@ -64,6 +64,8 @@ export interface OpecSchoolRecord {
   youtube?: string;
   fetched_at?: string;
   last_updated?: string;
+  /** The published version the page shows; sent back with an edit so a stale page gets 409 */
+  current_published_version_id?: string | null;
 }
 
 /** One candidate pin the GPS button considered, with its distance from the chosen point. */
@@ -142,6 +144,8 @@ export interface WebsiteRegistryItem {
   error_reason?: string;
   last_checked_at?: string;
   last_checked_at_display?: string;
+  /** The school's published version when the list was loaded (see OpecSchoolRecord) */
+  version_id?: string | null;
 }
 
 export interface WebsiteRegistryResponse {
@@ -278,6 +282,56 @@ export interface CurriculumReviewItem {
   current_codes: string[];
   confirmed_at: string | null;
   confirmed_by: string | null;
+  /** The school's published version when the list was loaded (see OpecSchoolRecord) */
+  version_id: string | null;
+}
+
+/** One version of a school (GET /api/school/{code}/versions) */
+export interface SchoolVersion {
+  version_id: string;
+  version_number: number;
+  status: "pending_review" | "approved" | "rejected" | "published" | "superseded";
+  source_type: "admin" | "scraper" | "bulk_import" | "opec_import" | "pipeline";
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  scraped_page_url: string | null;
+  /** action: what was done; fields: each changed value as [before, after]; restored_from: rollback source */
+  diff_summary: {
+    action?: string;
+    fields?: Record<string, [unknown, unknown]>;
+    restored_from?: number;
+    web_changed?: boolean;
+    by?: string;
+  } | null;
+  rejection_reason: string | null;
+  has_web_data: boolean;
+  /** The scraper version this version's fees and website data came from */
+  web_from_number: number | null;
+  fee_rows: number;
+  /** Lowest and highest annual tuition, as the site shows it from this version */
+  annual_min: number | null;
+  annual_max: number | null;
+  extra_rows: number;
+  /** Link, pin and curriculums; null in versions saved before 4 Nov 2569 */
+  school: Record<string, unknown> | null;
+}
+
+/** One side of GET /api/school/{code}/versions/{id}/compare */
+export interface VersionDetail {
+  version_number: number | null;
+  has_web_data: boolean;
+  /** In the order the school's own fee page lists them */
+  fees: { grade_label: string; annual_thb: number | null; semester_thb: number | null; notes: string | null }[];
+  extra_fees: VersionExtraFeeItem[];
+  safety: VersionSafetyData | null;
+  facilities: string[];
+  /** Link, pin and curriculums; null for a version saved before 4 Nov 2569 */
+  school: Record<string, unknown> | null;
+}
+
+export interface VersionCompare {
+  version: VersionDetail;
+  current: VersionDetail;
 }
 
 export interface CurriculumReviewResponse {

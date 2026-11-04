@@ -1,121 +1,78 @@
 import os
-import json
-import shutil
+import sys
 import threading
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import Dict, Any, Optional
 
-app = FastAPI(title="Save Service", description="Saves Saga scrape results and logs to JSON files, with rollbacks")
+# The pipeline modules import each other by bare name, so their folder goes on the path (as in school_service.py)
+PIPELINE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pipeline")
+if PIPELINE_DIR not in sys.path:
+    sys.path.insert(0, PIPELINE_DIR)
 
-# results.json and scrape_log.json sit in Skoolly/, two folders up
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RESULTS_PATH = os.path.join(BASE_DIR, "results.json")
-LOG_PATH = os.path.join(BASE_DIR, "scrape_log.json")
+from supabase_sync import db_connect, save_scraped_draft_version  # noqa: E402  # type: ignore
 
-# Backup paths for Saga compensation
-RESULTS_BAK_PATH = RESULTS_PATH + ".bak"
-LOG_BAK_PATH = LOG_PATH + ".bak"
+app = FastAPI(title="Save Service", description="Saves a Saga scrape result as a draft version awaiting admin review, with rollbacks")
 
-# The batch runner saves several schools at once. Each save reads, edits and rewrites both
-# files, so two at the same time would lose one school's result: one save at a time.
+# A compensation must not run in the middle of a save of the same saga
 _lock = threading.Lock()
 
+
 class SavePayload(BaseModel):
-    school_name: str
-    homepage_url: str
+    saga_id: str      # the orchestrator's id for this saga; the compensation finds the draft by it
+    school_id: str    # schools.school_id (uuid) or the OPEC school code
+    run_id: Optional[str] = None
     result_data: Dict[str, Any]
-    logs: List[Dict[str, Any]]
 
 
-def _read_list(path):
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
-
-
-def _drop_backups():
-    for path in (RESULTS_BAK_PATH, LOG_BAK_PATH):
-        if os.path.exists(path):
-            os.remove(path)
-
-
-def _restore_backups():
-    """Puts back the files as they were before the save in progress. True if there was one."""
-    rollback_performed = False
-    if os.path.exists(RESULTS_BAK_PATH):
-        shutil.copy2(RESULTS_BAK_PATH, RESULTS_PATH)
-        os.remove(RESULTS_BAK_PATH)
-        rollback_performed = True
-    if os.path.exists(LOG_BAK_PATH):
-        shutil.copy2(LOG_BAK_PATH, LOG_PATH)
-        os.remove(LOG_BAK_PATH)
-        rollback_performed = True
-    return rollback_performed
+class CompensatePayload(BaseModel):
+    saga_id: str
 
 
 @app.post("/save")
 def save_data(payload: SavePayload):
+    """Saves the result as a pending_review version with its fees, extra fees and safety rows, and one
+    school_scrape_log row, in one transaction (save_scraped_draft_version). correlation_id = saga_id."""
+    result = dict(payload.result_data, correlation_id=payload.saga_id)
+    if payload.run_id:
+        result["run_id"] = payload.run_id
     with _lock:
         try:
-            # 1. Create backups before doing any write operations (Saga preparation)
-            if os.path.exists(RESULTS_PATH):
-                shutil.copy2(RESULTS_PATH, RESULTS_BAK_PATH)
-            else:
-                # If file doesn't exist, create an empty backup indicator
-                with open(RESULTS_BAK_PATH, "w") as f:
-                    f.write("[]")
-
-            if os.path.exists(LOG_PATH):
-                shutil.copy2(LOG_PATH, LOG_BAK_PATH)
-            else:
-                with open(LOG_BAK_PATH, "w") as f:
-                    f.write("[]")
-
-            # 2. Update results.json
-            results = _read_list(RESULTS_PATH)
-
-            # Remove existing record of the same school if present
-            results = [r for r in results if r.get("school_name", "").lower() != payload.school_name.lower()]
-            results.append(payload.result_data)
-
-            with open(RESULTS_PATH, "w", encoding="utf-8") as f:
-                json.dump(results, f, ensure_ascii=False, indent=2)
-
-            # 3. Update scrape_log.json
-            existing_logs = _read_list(LOG_PATH)
-            existing_logs.extend(payload.logs)
-
-            with open(LOG_PATH, "w", encoding="utf-8") as f:
-                json.dump(existing_logs, f, ensure_ascii=False, indent=2)
-
-            # Committed. The backups only guard a save in progress; left behind, a later
-            # /compensate would roll back this school's result as well.
-            _drop_backups()
-            return {"status": "success", "message": "Results and logs saved successfully"}
-
+            draft = save_scraped_draft_version(payload.school_id, result)
         except Exception as e:
-            # If writing fails, perform local immediate rollback
-            _restore_backups()
-            raise HTTPException(status_code=500, detail=f"Database service write failed: {str(e)}")
+            # Nothing was committed: save_scraped_draft_version is one transaction
+            raise HTTPException(status_code=500, detail=f"บันทึกแบบร่างลงฐานไม่สำเร็จ: {e}")
+    return {"status": "success", "version_id": draft["version_id"], "version_number": draft["version_number"]}
+
 
 @app.post("/compensate")
-def compensate_save():
+def compensate_save(payload: CompensatePayload):
     """
-    Saga Compensating Transaction:
-    Restores the backup copies of results.json and scrape_log.json to rollback changes.
+    Saga Compensating Transaction: deletes what /save wrote for this saga, if it got that far (the
+    orchestrator compensates when it got no answer, which can come after the commit). Only a draft still
+    awaiting review: one an admin has already approved or rejected stays.
+    Its fees, extra fees and safety rows go with it (on delete cascade).
     """
     with _lock:
         try:
-            if _restore_backups():
-                return {"status": "compensated", "message": "Database successfully rolled back using backups."}
-            return {"status": "no_action", "message": "No backups found to compensate."}
+            with db_connect() as conn:
+                deleted = conn.execute("""
+                    DELETE FROM school_data.school_versions
+                    WHERE status = 'pending_review'
+                      AND version_id IN (SELECT version_id FROM school_data.school_scrape_log
+                                         WHERE correlation_id = %s::uuid AND version_id IS NOT NULL)
+                    RETURNING version_id::text
+                """, (payload.saga_id,)).fetchall()
+                if deleted:
+                    conn.execute("DELETE FROM school_data.school_scrape_log WHERE correlation_id = %s::uuid",
+                                 (payload.saga_id,))
+                conn.commit()
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Compensating transaction failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Compensating transaction failed: {e}")
+    if deleted:
+        return {"status": "compensated", "deleted_version_ids": [r[0] for r in deleted]}
+    return {"status": "no_action", "message": "No draft from this saga to delete."}
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -183,6 +183,7 @@ export function AdminPage({
         status: s.status === "archived" ? "archived" : "active",
         archived_at: s.archived_at ?? null,
         opec_missing_since: s.opec_missing_since ?? null,
+        current_published_version_id: s.current_published_version_id ?? null,
       }));
       setSchools(mapped.filter((s) => s.status !== "archived"));
       setClosedSchools(mapped.filter((s) => s.status === "archived"));
@@ -423,12 +424,19 @@ export function AdminPage({
 
   const handleSaveWebsite = async (schoolCode: string, newWebsite: string): Promise<boolean> => {
     try {
-      const ok = await updateSchoolWebsite(schoolCode, newWebsite);
-      if (ok) {
+      const shown = schools.find((s) => s.school_code === schoolCode);
+      const versionId = await updateSchoolWebsite(schoolCode, newWebsite, shown?.current_published_version_id);
+      if (versionId) {
         setSchools((prev) =>
           prev.map((s) =>
             s.school_code === schoolCode
-              ? { ...s, website: newWebsite, website_source: "Manual Edit", last_updated: new Date().toISOString() }
+              ? {
+                  ...s,
+                  website: newWebsite,
+                  website_source: "Manual Edit",
+                  last_updated: new Date().toISOString(),
+                  current_published_version_id: versionId,
+                }
               : s
           )
         );
@@ -1302,6 +1310,11 @@ export function AdminPage({
             throw err; // keeps the confirm dialog open
           }
           showToast(`${closed ? "ปิดโรงเรียนแล้ว" : "เปิดโรงเรียนคืนแล้ว"}: ${s.school_name_th || s.school_name_en}`);
+          setSelectedSchool(null);
+          loadSchoolsData();
+        }}
+        onVersionRestored={(s, n) => {
+          showToast(`ย้อนกลับไปใช้ฉบับ ${n} แล้ว: ${s.school_name_th || s.school_name_en}`);
           setSelectedSchool(null);
           loadSchoolsData();
         }}
