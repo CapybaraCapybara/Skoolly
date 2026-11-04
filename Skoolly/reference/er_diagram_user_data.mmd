@@ -1,17 +1,4 @@
 erDiagram
-  user_data__children_profiles {
-    uuid profile_id PK
-    uuid user_id FK
-    text nickname 
-    integer birth_year 
-    text target_level_code 
-    numeric budget_min_thb 
-    numeric budget_max_thb 
-    text_arr curriculum_preference 
-    text preferred_area 
-    timestamp_with_time_zone created_at 
-    timestamp_with_time_zone updated_at 
-  }
   user_data__comparison_sets {
     uuid comparison_id PK
     uuid user_id FK
@@ -67,7 +54,6 @@ erDiagram
   school_data__schools {
     ตารางของ_Service_อื่น อ้างอิงข้ามมา
   }
-  user_data__user_accounts ||--o{ user_data__children_profiles : "user_id"
   user_data__user_accounts ||--o{ user_data__comparison_sets : "user_id"
   user_data__user_accounts ||--o{ user_data__favorites : "user_id"
   user_data__user_accounts ||..o{ community__forum_posts : "user_id"
@@ -77,7 +63,5 @@ erDiagram
   user_data__user_accounts ||..o{ community__report_submissions : "user_id"
   school_data__schools ||..o{ user_data__favorites : "school_id"
   school_data__schools ||..o{ user_data__comparison_sets : "school_ids อาร์เรย์"
-  school_data__grade_levels ||..o{ user_data__children_profiles : "target_level_code"
-  school_data__curriculums ||..o{ user_data__children_profiles : "curriculum_preference"
   user_data__user_accounts ||..o{ ai__conversations : "user_id"
   user_data__user_accounts ||..o{ ops__audit_log : "actor_id"

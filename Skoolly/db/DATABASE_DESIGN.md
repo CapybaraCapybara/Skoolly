@@ -49,7 +49,7 @@
 | ข้อมูล | เก็บแบบไหน | เหตุผล |
 |---|---|---|
 | `school_versions.data_snapshot` | **JSONB** | payload ดิบจาก AI ที่ schema เปลี่ยนได้ตลอด เก็บไว้เป็นหลักฐาน/rollback |
-| `messages.tool_calls`, `failed_jobs.payload`, `audit_log.before/after` | **JSONB** | โครงสร้างต่างกันทุก event |
+| `messages.tool_calls`, `audit_log.before/after` | **JSONB** | โครงสร้างต่างกันทุก event |
 | ค่าเทอมรายชั้น, hidden cost, safety | **ตาราง normalize** | ต้องคำนวณเงิน (numeric) + Use Case Spec หัวข้อ 7.3 บังคับให้ `academic_year`/`source_published_at` กำกับ **ระดับฟิลด์** ซึ่งเป็นแถวโดยธรรมชาติ |
 | ตัวกรองหน้าค้นหา | **คอลัมน์ typed** | filter ใน JSONB ช้าและเขียน query ยากกว่ามาก |
 
@@ -136,11 +136,10 @@ community   ── data_correction_reports ─ report_submissions
                forum_posts ─ forum_comments     (Post-Moderation)
                forum_likes │ forum_reports
 
-user_data   ── user_accounts ─┬─ children_profiles 🔒
-                              ├─ favorites
+user_data   ── user_accounts ─┬─ favorites
                               └─ comparison_sets (share_token / share_enabled)
 ai          ── conversations ─ messages │ school_embeddings (pgvector, ⏸ ยังไม่เปิดใช้)
-ops         ── audit_log (append-only) │ failed_jobs
+ops         ── audit_log (append-only)
 ```
 
 ### จุดออกแบบสำคัญ 8 ข้อ
@@ -173,8 +172,8 @@ ops         ── audit_log (append-only) │ failed_jobs
    สถานะจริง: role `svc_*` ทั้ง 5 ตัวมีอยู่ในฐานแล้ว แต่ backend ทุกตัวยังต่อด้วย `DATABASE_URL` ของ role `postgres`
    การแยกสิทธิ์นี้จึงยังไม่มีผลตอนรันจริง
 
-6. **`children_profiles` ไม่เปิด RLS ให้ Admin อ่าน** — เป็นข้อมูลอ่อนไหวสุดตาม PDPA
-   UC-15 ต้องการแค่ "ลบ" ไม่ใช่ "อ่าน" จึงให้ `account-deletion-cron` ทำด้วยสิทธิ์ระบบแทน
+6. **ไม่เก็บโปรไฟล์บุตรหลาน** — ตาราง `children_profiles` ลบแล้ว (4 พ.ย. 2569) เพราะผู้จัดทำตัดสินไม่ทำฟีเจอร์นี้
+   ข้อมูลส่วนบุคคลที่เหลือในสกีมา `user_data` คือบัญชี รายการโปรด และชุดเปรียบเทียบ
 
 7. **ฟอรัมใช้ `content_status` ที่มี default เป็น `approved`** — เผยแพร่ทันทีแล้วตรวจเมื่อถูกรายงาน
    (Post-Moderation) ตั้งแต่ v6.5 ฟอรัมเป็นเนื้อหาจากผู้ใช้ชนิดเดียวที่ระบบเป็นเจ้าของ เพราะรีวิว
@@ -309,7 +308,7 @@ python db/import_opec.py               # เขียนจริง
    ลบออกได้ ยกเว้น `validator_service.validate_result()` ที่ `school_service.py` เรียกใช้อยู่
 3. ✅ `psycopg[binary]` อยู่ใน `requirements.txt` และ `@supabase/supabase-js` อยู่ใน `package.json` แล้ว (ใช้กับระบบล็อกอิน)
 4. ✅ หน้าเว็บเลิกใช้ mock แล้ว แต่เลือกอ่านผ่าน FastAPI `/api` แทน Supabase client
-5. เขียน pgTAP test ของ RLS อย่างน้อย 5 เคส: อ่าน `children_profiles` ข้ามบัญชี,
+5. เขียน pgTAP test ของ RLS อย่างน้อย 5 เคส: อ่าน `favorites` ข้ามบัญชี,
    อ่าน `comparison_sets` ข้ามบัญชี, แก้ `audit_log`, select `forum_reports` ด้วยบัญชีที่ไม่ใช่ admin,
    และผู้ใช้ทั่วไปแก้ `role` ของตัวเองใน `user_accounts` ไม่ได้ (ปิดแล้ว 31 ต.ค. 2569 ดูหัวข้อ 8.3 test นี้กันไม่ให้ช่องนี้กลับมา)
 6. ค่อยเพิ่ม `hnsw` index ของ pgvector **หลังมีข้อมูลจริงแล้ว**
@@ -358,7 +357,7 @@ python db/import_opec.py               # เขียนจริง
 |---|---|
 | Postgres | 17.6 |
 | Extension | `postgis`, `vector`, `pg_trgm`, `pg_cron`, `pg_net`, `pgcrypto`, `uuid-ossp`, `unaccent`, `pg_stat_statements`, `supabase_vault` |
-| ตาราง | 25 ตารางใน 5 schema ตรงกับไฟล์ (ไม่นับ `public.spatial_ref_sys` ของ PostGIS) |
+| ตาราง | 23 ตารางใน 5 schema ตรงกับไฟล์ (ลบ `children_profiles` และ `failed_jobs` เมื่อ 4 พ.ย. 2569) (ไม่นับ `public.spatial_ref_sys` ของ PostGIS) |
 | งาน `pg_cron` | ยังไม่มีสักงาน |
 | ตารางที่ไม่เปิด RLS | `grade_levels`, `school_google_reviews`, `official_website_registry` (ไม่เปิดทั้งในไฟล์และในฐาน) สองตัวแรก grant ให้แค่ `select` จึงอ่านได้อย่างเดียว ตัวสุดท้ายไม่มี grant ให้ `anon`/`authenticated` จึงเข้าผ่าน API ไม่ได้ |
 | ตารางที่ไม่มีในฐาน | `public.profiles` (จาก `db/migrations/2026-10-02_auth_profiles.sql`) และ `school_data.grade_level_aliases` (จาก `db/add_grade_level_aliases.sql`) ทั้งสองไฟล์ยังไม่เคยรันกับฐานจริง |

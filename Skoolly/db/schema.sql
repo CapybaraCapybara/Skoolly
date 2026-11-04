@@ -499,26 +499,6 @@ create table if not exists user_data.user_accounts (
   updated_at            timestamptz not null default now()
 );
 
-create table if not exists user_data.children_profiles (
-  profile_id            uuid primary key default gen_random_uuid(),
-  user_id               uuid not null references user_data.user_accounts(user_id) on delete cascade,
-  nickname              text,
-  birth_year            int check (birth_year between 2000 and 2035),
-                                   -- ช่วงที่เป็นไปได้จริงของเด็กที่กำลังหาโรงเรียนในอายุระบบนี้
-                                   -- ขอบบนเดิมคือ 2100 ซึ่งอนุญาตให้กรอกปีเกิดในอนาคตได้ 70 กว่าปี
-  target_level_code     text,                        -- logical ref → grade_levels.code
-  budget_min_thb        numeric(12,2) check (budget_min_thb >= 0),
-  budget_max_thb        numeric(12,2) check (budget_max_thb >= 0),
-  curriculum_preference text[],                      -- logical ref → curriculums.code
-  preferred_area        text,
-  created_at            timestamptz not null default now(),
-  updated_at            timestamptz not null default now(),
-
-  constraint children_budget_range check (
-    budget_min_thb is null or budget_max_thb is null or budget_min_thb <= budget_max_thb
-  )
-);
-
 create table if not exists user_data.favorites (
   user_id    uuid not null references user_data.user_accounts(user_id) on delete cascade,
   school_id  uuid not null,                          -- logical ref ข้าม Service
@@ -603,17 +583,6 @@ create table if not exists ops.audit_log (
   created_at      timestamptz not null default now()
 );
 
-create table if not exists ops.failed_jobs (
-  job_id         uuid primary key default gen_random_uuid(),
-  job_type       text not null,                      -- 're-embed' | 'pdf-export' | 'scrape' | 'email'
-  payload        jsonb not null,
-  error_message  text,
-  attempt_count  int not null default 1,
-  correlation_id uuid,
-  resolved_at    timestamptz,
-  created_at     timestamptz not null default now()
-);
-
 
 -- =============================================================================
 -- 8. FOREIGN KEY ที่ต้องเพิ่มทีหลัง (circular)
@@ -637,15 +606,9 @@ alter table school_data.schools
 create index if not exists schools_name_th_trgm on school_data.schools using gin (name_th gin_trgm_ops);
 create index if not exists schools_name_en_trgm on school_data.schools using gin (name_en gin_trgm_ops);
 
--- ── หน้าค้นหา (UC-01): เฉพาะโรงเรียนที่มองเห็นได้จริงเท่านั้น ─────────────────
-create index if not exists schools_visible_idx
-  on school_data.schools (province, pub_tuition_min_thb)
-  where status = 'active' and current_published_version_id is not null;
-
 create index if not exists schools_geom_gix on school_data.schools using gist (geom);
 create index if not exists schools_tuition_idx on school_data.schools (pub_tuition_min_thb, pub_tuition_max_thb);
 create index if not exists schools_curriculums_idx on school_data.schools using gin (curriculums);
-create index if not exists schools_levels_offered_idx on school_data.schools using gin (levels_offered);
 
 -- ── versioning / คิวรออนุมัติ (UC-14) ────────────────────────────────────────
 create index if not exists versions_school_idx on school_data.school_versions (school_id, version_number desc);
@@ -680,7 +643,6 @@ create index if not exists forum_posts_pending_idx on community.forum_posts (cre
   where status = 'pending';
 
 -- ── user_data ────────────────────────────────────────────────────────────────
-create index if not exists children_user_idx on user_data.children_profiles (user_id);
 create index if not exists comparison_user_idx on user_data.comparison_sets (user_id, updated_at desc);
 create unique index if not exists comparison_share_token_idx on user_data.comparison_sets (share_token)
   where share_token is not null;
@@ -698,7 +660,6 @@ create index if not exists messages_flagged_idx on ai.messages (created_at desc)
 -- ── ops ──────────────────────────────────────────────────────────────────────
 create index if not exists audit_entity_idx on ops.audit_log (entity_type, entity_id, created_at desc);
 create index if not exists audit_actor_idx on ops.audit_log (actor_id, created_at desc);
-create index if not exists failed_jobs_open_idx on ops.failed_jobs (created_at desc) where resolved_at is null;
 
 
 -- =============================================================================
@@ -731,7 +692,7 @@ grant all on all tables in schema ops         to svc_ops;
 
 -- ข้อยกเว้นตาม Architecture หัวข้อ 4.2: ทุก Service insert log ตรงได้ (infrastructure concern)
 grant usage on schema ops to svc_school_data, svc_community, svc_user, svc_ai;
-grant insert on ops.audit_log, ops.failed_jobs to svc_school_data, svc_community, svc_user, svc_ai;
+grant insert on ops.audit_log to svc_school_data, svc_community, svc_user, svc_ai;
 
 
 -- =============================================================================
@@ -763,7 +724,6 @@ revoke insert, update, delete on user_data.user_accounts from authenticated;
 grant select, update (display_name) on user_data.user_accounts to authenticated;
 
 grant select, insert, update, delete on
-  user_data.children_profiles,
   user_data.favorites, user_data.comparison_sets,
   community.forum_likes,
   ai.conversations, ai.messages
@@ -777,7 +737,7 @@ grant select, insert on community.report_submissions, community.forum_reports to
 -- ไม่ใช่ด้วย database role เพราะ Supabase Auth ออก JWT เป็น authenticated ให้ทุกคนที่ล็อกอิน
 grant select on
   school_data.school_scrape_log,
-  ops.audit_log, ops.failed_jobs
+  ops.audit_log
 to authenticated;
 grant insert on ops.audit_log to authenticated;
 grant insert, update, delete on
@@ -792,7 +752,6 @@ to authenticated;
 -- 11. ROW LEVEL SECURITY
 -- =============================================================================
 alter table user_data.user_accounts           enable row level security;
-alter table user_data.children_profiles       enable row level security;
 alter table user_data.favorites               enable row level security;
 alter table user_data.comparison_sets         enable row level security;
 alter table community.data_correction_reports enable row level security;
@@ -814,7 +773,6 @@ alter table school_data.school_scrape_log     enable row level security;
 alter table school_data.curriculums           enable row level security;
 alter table community.report_submissions      enable row level security;
 alter table ai.school_embeddings              enable row level security;
-alter table ops.failed_jobs                   enable row level security;
 
 -- helper: ตรวจว่าเป็น admin จากตารางของเราเอง (ไม่พึ่ง JWT claim ที่ client แก้ได้)
 create or replace function user_data.is_admin() returns boolean
@@ -830,12 +788,6 @@ drop policy if exists own_account on user_data.user_accounts;
 create policy own_account on user_data.user_accounts
   for all using (user_id = auth.uid() or user_data.is_admin())
   with check (user_id = auth.uid());
-
-drop policy if exists own_children on user_data.children_profiles;
-create policy own_children on user_data.children_profiles
-  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
--- หมายเหตุ: children_profiles ตั้งใจ "ไม่" ให้ Admin อ่านผ่าน RLS (ข้อมูลอ่อนไหวสุดตาม PDPA)
--- ถ้า UC-15 ต้องลบข้อมูลนี้ ให้ทำผ่าน account-deletion-cron ที่รันด้วยสิทธิ์ระบบเท่านั้น
 
 drop policy if exists own_favorites on user_data.favorites;
 create policy own_favorites on user_data.favorites
@@ -995,13 +947,9 @@ drop policy if exists report_submissions_insert on community.report_submissions;
 create policy report_submissions_insert on community.report_submissions
   for insert with check (user_id = auth.uid());
 
--- ── ai.school_embeddings / ops.failed_jobs: ไม่มี policy select สำหรับผู้ใช้ ──
+-- ── ai.school_embeddings: ไม่มี policy select สำหรับผู้ใช้ ──
 -- เปิด RLS ไว้เฉยๆ โดยไม่มี policy = ไม่มีใครอ่านได้ผ่าน Data API เลย
--- ทั้งสองตารางถูกใช้โดย Edge Function ด้วย service role ซึ่ง bypass RLS อยู่แล้ว
--- (failed_jobs.payload อาจมีข้อมูลผู้ใช้ติดมา, embeddings เป็นข้อมูลภายในของ AI Service)
-drop policy if exists failed_jobs_admin_read on ops.failed_jobs;
-create policy failed_jobs_admin_read on ops.failed_jobs
-  for select using (user_data.is_admin());
+-- ใช้โดย Edge Function ด้วย service role ซึ่ง bypass RLS อยู่แล้ว (ข้อมูลภายในของ AI Service)
 
 -- ── audit_log: append-only แม้แต่ Admin ก็แก้/ลบไม่ได้ (UC-18 E1) ───────────
 drop policy if exists audit_admin_read on ops.audit_log;
@@ -1023,7 +971,7 @@ drop function if exists school_data.publish_version(uuid, uuid);
 -- =============================================================================
 -- 12.1 สร้างแถว user_accounts อัตโนมัติเมื่อมีคนสมัครสมาชิก
 -- =============================================================================
--- จำเป็นจริง ไม่ใช่ของอำนวยความสะดวก: `children_profiles`/`favorites`/`comparison_sets`
+-- จำเป็นจริง ไม่ใช่ของอำนวยความสะดวก: `favorites`/`comparison_sets`
 -- ต่างมี FK ไปที่ `user_accounts.user_id` ถ้าไม่มีแถวนี้ ผู้ใช้ที่เพิ่งสมัครตาม UC-04 จะ
 -- ใช้ฟีเจอร์อะไรไม่ได้เลยสักอย่าง — Supabase Auth เขียนเฉพาะ `auth.users` ให้เท่านั้น
 -- ไม่รู้จักตารางฝั่งธุรกิจของเรา จึงต้องมี trigger เชื่อมให้
@@ -1337,7 +1285,6 @@ begin
     'community.forum_posts',
     'community.forum_comments',
     'user_data.user_accounts',
-    'user_data.children_profiles',
     'user_data.comparison_sets',
     'ai.conversations'
   ] loop

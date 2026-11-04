@@ -169,9 +169,6 @@ erDiagram
   community__forum_posts {
     ตารางของ_Service_อื่น อ้างอิงข้ามมา
   }
-  user_data__children_profiles {
-    ตารางของ_Service_อื่น อ้างอิงข้ามมา
-  }
   user_data__comparison_sets {
     ตารางของ_Service_อื่น อ้างอิงข้ามมา
   }
@@ -194,6 +191,4 @@ erDiagram
   school_data__schools ||..o{ community__forum_posts : "school_id"
   school_data__schools ||..o{ user_data__favorites : "school_id"
   school_data__schools ||..o{ user_data__comparison_sets : "school_ids อาร์เรย์"
-  school_data__grade_levels ||..o{ user_data__children_profiles : "target_level_code"
-  school_data__curriculums ||..o{ user_data__children_profiles : "curriculum_preference"
   school_data__school_versions ||..o{ ai__school_embeddings : "school_version_id"

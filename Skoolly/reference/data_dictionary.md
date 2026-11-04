@@ -1,7 +1,7 @@
 # Skoolly — Data Dictionary
 
 > อ่านจากฐานข้อมูล Supabase จริงโดยตรง ไม่ได้คัดลอกจากเอกสารออกแบบ  
-> **25 ตาราง · 272 คอลัมน์ · Primary Key 25 · Unique 6 · Foreign Key 16 · Check 22 · Index 70 · Trigger 17**
+> **23 ตาราง · 253 คอลัมน์ · Primary Key 23 · Unique 6 · Foreign Key 16 · Check 22 · Index 70 · Trigger 17**
 
 คอลัมน์ **Reference Table** แสดงตารางปลายทางที่คอลัมน์นี้อ้างถึง — ถ้าเป็น Foreign Key จริงจะมี
 พฤติกรรมตอนลบกำกับไว้ด้วย ส่วนที่ไม่มี Foreign Key คือการอ้างอิงข้าม Service ตามกติกา
@@ -355,26 +355,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 ## schema `user_data` — User Service
 
-### `children_profiles`
-
-*0 แถวในฐานข้อมูลปัจจุบัน*
-
-| Field Name | Description | Data Type | Key / Constraint | Reference Table |
-|---|---|---|---|---|
-| `profile_id` | รหัสโปรไฟล์บุตรหลาน | `uuid` | PK, DEFAULT gen_random_uuid() | — |
-| `user_id` | บัญชีผู้ปกครองที่เป็นเจ้าของโปรไฟล์นี้ | `uuid` | FK, NOT NULL | user_data.user_accounts · ON DELETE CASCADE |
-| `nickname` | ชื่อเรียกที่ผู้ปกครองตั้งเอง ใช้แยกเมื่อมีบุตรหลายคน | `text` | — | — |
-| `birth_year` | ปีเกิดของบุตรหลาน ใช้ประมาณระดับชั้นที่เหมาะสม เก็บเป็นปีไม่ใช่วันเกิดเต็มเพื่อลดข้อมูลส่วนบุคคลที่ถือไว้ตาม PDPA และจำกัดช่วงไว้ที่ 2000 ถึง 2035 กันการกรอกปีในอนาคต (UC-06 E2) | `integer` | CHECK children_profiles_birth_year_check | — |
-| `target_level_code` | ระดับชั้นที่กำลังมองหาให้บุตรหลานคนนี้ | `text` | — | school_data.grade_levels |
-| `budget_min_thb` | งบประมาณค่าเทอมต่ำสุดที่รับได้ | `numeric(12,2)` | CHECK children_budget_range, CHECK children_profiles_budget_min_thb_check | — |
-| `budget_max_thb` | งบประมาณค่าเทอมสูงสุดที่รับได้ | `numeric(12,2)` | CHECK children_budget_range, CHECK children_profiles_budget_max_thb_check | — |
-| `curriculum_preference` | หลักสูตรที่ผู้ปกครองสนใจ เลือกได้หลายรายการ | `text[]` | — | school_data.curriculums (สมาชิกในอาร์เรย์) |
-| `preferred_area` | พื้นที่ที่สะดวกเดินทาง | `text` | — | — |
-| `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
-| `updated_at` | เวลาที่แก้ไขล่าสุด (ทริกเกอร์ set_updated_at อัปเดตให้อัตโนมัติ) | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
-
----
-
 ### `comparison_sets`
 
 *0 แถวในฐานข้อมูลปัจจุบัน*
@@ -496,19 +476,3 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 
 ---
 
-### `failed_jobs`
-
-*0 แถวในฐานข้อมูลปัจจุบัน*
-
-| Field Name | Description | Data Type | Key / Constraint | Reference Table |
-|---|---|---|---|---|
-| `job_id` | รหัสงานที่ล้มเหลว | `uuid` | PK, DEFAULT gen_random_uuid() | — |
-| `job_type` | ประเภทงานที่ล้มเหลว เช่น สร้างเวกเตอร์ ส่งออก PDF เก็บข้อมูล หรือส่งอีเมล | `text` | NOT NULL | — |
-| `payload` | รายละเอียดงานทั้งก้อน เก็บเป็น JSON จึงไม่ต้องอ้างตารางใด | `jsonb` | NOT NULL | — |
-| `error_message` | ข้อความผิดพลาดครั้งล่าสุด | `text` | — | — |
-| `attempt_count` | จำนวนครั้งที่พยายามทำใหม่ | `integer` | NOT NULL, DEFAULT 1 | — |
-| `correlation_id` | รหัสสำหรับตามรอยคำขอเดียวกันข้าม Service เวลาไล่ปัญหา | `uuid` | — | — |
-| `resolved_at` | เวลาที่แก้ไขเรียบร้อย ว่างแปลว่ายังค้างอยู่ | `timestamp with time zone` | — | — |
-| `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
-
----
