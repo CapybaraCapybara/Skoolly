@@ -1,13 +1,14 @@
+import ipaddress
 import os
 import sys
 import time
 import uuid
 import threading
 from typing import List, Optional
+from urllib.parse import urlsplit
 
 import requests
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 
@@ -71,14 +72,29 @@ app = FastAPI(
     description="The site's API: public school data, the admin pages and the data pipeline (OPEC, ISAT, websites, GPS)"
 )
 
-# Enable CORS for development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# The site reaches this API through Vite's /api proxy, from its own origin. A browser sends Origin with
+# every POST/PUT/DELETE, so a page on another site (one that fires clear-data at 127.0.0.1:8004 while
+# you have it open) is refused here. Scripts and curl send no Origin and still work.
+WEB_PORT = int(os.environ.get("WEB_PORT", 8443))
+
+
+def _our_site(origin: str) -> bool:
+    """The Skoolly site on this machine or the local network (the port start-dev.bat serves it on)."""
+    url = urlsplit(origin)
+    if url.port != WEB_PORT:
+        return False
+    try:
+        return ipaddress.ip_address(url.hostname or "").is_private
+    except ValueError:
+        return url.hostname == "localhost"
+
+
+@app.middleware("http")
+async def refuse_other_sites(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if request.method not in ("GET", "HEAD", "OPTIONS") and origin and not _our_site(origin):
+        return JSONResponse(status_code=403, content={"detail": "คำสั่งนี้ต้องมาจากหน้าเว็บ Skoolly"})
+    return await call_next(request)
 
 # Scraper Service (scraper_service.py, started by start-dev.bat on port 8001). A scrape can
 # wait out several Gemini rate-limit back-offs, hence the timeout.
