@@ -1,7 +1,7 @@
 # Skoolly — Data Dictionary
 
 > อ่านจากฐานข้อมูล Supabase จริงโดยตรง ไม่ได้คัดลอกจากเอกสารออกแบบ  
-> **23 ตาราง · 255 คอลัมน์ · Primary Key 23 · Unique 6 · Foreign Key 14 · Check 18 · Index 63 · Trigger 17**
+> **22 ตาราง · 244 คอลัมน์ · Primary Key 22 · Unique 6 · Foreign Key 13 · Check 16 · Index 61 · Trigger 16**
 
 คอลัมน์ **Reference Table** แสดงตารางปลายทางที่คอลัมน์นี้อ้างถึง — ถ้าเป็น Foreign Key จริงจะมี
 พฤติกรรมตอนลบกำกับไว้ด้วย ส่วนที่ไม่มี Foreign Key คือการอ้างอิงข้าม Service ตามกติกา
@@ -60,23 +60,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `last_checked_at` | เวลาที่ตรวจสอบล่าสุดว่า URL ยังเข้าได้ | `timestamp with time zone` | — | — |
 | `is_broken` | ลิงก์เสียหรือไม่ | `boolean` | NOT NULL, DEFAULT false | — |
 | `error_reason` | สาเหตุที่เข้าไม่ได้ | `text` | — | — |
-
----
-
-### `school_google_reviews`
-
-*0 แถวในฐานข้อมูลปัจจุบัน*
-
-| Field Name | Description | Data Type | Key / Constraint | Reference Table |
-|---|---|---|---|---|
-| `school_id` | โรงเรียนที่แคชชุดนี้เป็นของ | `uuid` | PK, FK | school_data.schools · ON DELETE CASCADE |
-| `google_place_id` | รหัสสถานที่บน Google ที่ใช้ดึงข้อมูลชุดนี้ คัดลอกไว้เพื่อตรวจย้อนหลัง | `text` | NOT NULL | — |
-| `rating_avg` | คะแนนเฉลี่ยที่ Google คืนมา ณ เวลาที่ดึง | `numeric(2,1)` | CHECK google_reviews_sane | — |
-| `review_count` | จำนวนรีวิวทั้งหมดที่ Google คืนมา | `integer` | NOT NULL, DEFAULT 0, CHECK google_reviews_sane | — |
-| `payload` | รายการรีวิวที่ Google คืนมาทั้งชุด (ไม่ query รายแถว จึงเก็บเป็นก้อน) | `jsonb` | NOT NULL | — |
-| `attribution_url` | ลิงก์กลับหน้า Google ของโรงเรียน — บังคับแสดงคู่รีวิวเสมอ (UC-02 BR ข้อ 2) | `text` | NOT NULL | — |
-| `fetched_at` | เวลาที่ดึงข้อมูลชุดนี้มาจริง ใช้แสดงว่าข้อมูลรีวิวเป็นของวันไหน | `timestamp with time zone` | NOT NULL, DEFAULT now(), CHECK google_reviews_sane | — |
-| `expires_at` | ห้ามแสดง cache ที่เลยเวลานี้ ต้องดึงใหม่ | `timestamp with time zone` | NOT NULL, CHECK google_reviews_sane | — |
 
 ---
 
@@ -162,8 +145,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `pub_tuition_max_thb` | ค่าเทอมสูงสุดของเวอร์ชันที่เผยแพร่อยู่ | `numeric(12,2)` | CHECK schools_tuition_range | — |
 | `pub_has_safeguarding_policy` | มีนโยบายคุ้มครองเด็กหรือไม่ ใช้แสดงป้ายในผลค้นหา | `boolean` | — | — |
 | `pub_data_updated_at` | วันที่ข้อมูลของโรงเรียนนี้เปลี่ยนแปลงล่าสุด ใช้แสดงให้ผู้ใช้เห็นว่าข้อมูลสดแค่ไหน | `timestamp with time zone` | — | — |
-| `rating_avg` | คะแนนรีวิวเฉลี่ยจาก Google คัดลอกมาโดยทริกเกอร์ google_reviews_sync | `numeric(2,1)` | CHECK schools_rating_range | — |
-| `review_count` | จำนวนรีวิวจาก Google | `integer` | NOT NULL, DEFAULT 0, CHECK schools_counts_nonneg | — |
 | `last_verified_at` | วันที่ระบบเข้าไปตรวจสอบล่าสุด อาจใหม่กว่าวันที่ข้อมูลเปลี่ยน เพราะตรวจแล้วอาจไม่พบการเปลี่ยนแปลง | `timestamp with time zone` | — | — |
 | `created_at` | เวลาที่สร้างแถวนี้ | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
 | `updated_at` | เวลาที่แก้ไขล่าสุด (ทริกเกอร์ set_updated_at อัปเดตให้อัตโนมัติ) | `timestamp with time zone` | NOT NULL, DEFAULT now() | — |
@@ -177,7 +158,6 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `year_established` | ปีที่ก่อตั้งโรงเรียน | `integer` | — | — |
 | `accreditations` | รายการสถาบันรับรองมาตรฐาน เช่น CIS, WASC, NEASC | `text[]` | DEFAULT '{}' | — |
 | `isat_school_name` | ชื่อโรงเรียนตามที่ปรากฏบนเว็บ ISAT ใช้ตรวจสอบว่าจับคู่ถูกโรงเรียน | `text` | — | — |
-| `google_place_id` | รหัสสถานที่บน Google ของโรงเรียนนี้ ใช้ดึงรีวิวมาแสดง (UC-02 ข้อ 4) ว่างแปลว่าจับคู่กับสถานที่บน Google ไม่ได้ (UC-02 E6) | `text` | — | — |
 | `social_links` | ลิงก์โซเชียลรวมเป็น JSON ก้อนเดียว คีย์ที่ใช้คือ facebook, line_id, instagram, youtube | `jsonb` | NOT NULL, DEFAULT '{}' | — |
 | `row_version` | ตัวนับสำหรับ Optimistic Locking กันผู้ดูแลสองคนบันทึกทับกัน ทริกเกอร์บวกให้เอง | `integer` | NOT NULL, DEFAULT 1 | — |
 | `archived_at` | เวลาที่ผู้ดูแลระบบปิดโรงเรียน (สถานะ archived) ว่างแปลว่ายังไม่ถูกปิด | `timestamp with time zone` | — | — |

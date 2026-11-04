@@ -1,4 +1,4 @@
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface HeroProps {
   eyebrow?: string;
@@ -11,8 +11,6 @@ interface HeroProps {
   backgroundImage?: string;
   /** ตัวเลขใต้ Hero คำนวณจากข้อมูลจริงโดยหน้าที่เรียกใช้ ถ้าไม่ส่งมาจะไม่แสดงส่วนนี้ */
   stats?: HeroStat[];
-  /** คะแนนเฉลี่ยจากรีวิวจริง ถ้ายังไม่มีรีวิวให้ส่ง null เพื่อซ่อน badge */
-  averageRating?: number | null;
 }
 
 export interface HeroStat {
@@ -30,7 +28,6 @@ export function Hero({
   primaryCtaHref = '#schools',
   backgroundImage = 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1000&h=800&fit=crop&auto=format',
   stats = [],
-  averageRating = null,
 }: HeroProps) {
   return (
     <section className="relative bg-warm-bg pt-4 sm:pt-8 pb-16 sm:pb-20 px-4 sm:px-8 md:px-12 lg:px-16 overflow-hidden">
@@ -72,19 +69,6 @@ export function Hero({
                 className="w-full h-full object-cover"
               />
             </div>
-            
-            {/* Micro Badge — แสดงเฉพาะเมื่อมีรีวิวจริงในระบบ */}
-            {averageRating != null && (
-              <div className="absolute -bottom-3 left-2 sm:-bottom-4 sm:-left-4 bg-warm-cream border border-warm-accent rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-lg sm:shadow-xl z-20 flex items-center gap-2.5 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-warm-bronze/10 flex items-center justify-center text-warm-bronze">
-                  <Star className="size-4 fill-current" />
-                </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-bold text-warm-charcoal">{averageRating.toFixed(1)} / 5.0</div>
-                  <div className="text-[10px] sm:text-xs text-warm-charcoal/60 font-semibold">คะแนนเฉลี่ยจากผู้ปกครอง</div>
-                </div>
-              </div>
-            )}
           </div>
 
         </div>

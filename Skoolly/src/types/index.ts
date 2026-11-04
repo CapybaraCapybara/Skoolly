@@ -25,8 +25,6 @@ export interface School {
   levels?: string[];
   tuitionStart: number;
   tuitionMax?: number | null;
-  rating: number;
-  reviewCount: number;
   distance: number;
   language: string;
   grades: string;
@@ -57,15 +55,6 @@ export interface SchoolCoords {
 export interface SchoolFee {
   label: string;
   amount: string;
-}
-
-export interface SchoolReview {
-  author: string;
-  avatar: string;
-  rating: number;
-  text: string;
-  time: string;
-  childYear: string;
 }
 
 export interface SchoolSafety {
@@ -103,7 +92,6 @@ export interface SchoolDetail {
   fees: SchoolFee[];
   gallery: string[];
   facilities: string[];
-  reviews: SchoolReview[];
   safety?: SchoolSafety;
   lastUpdated?: string;
   logoUrl?: string | null;
@@ -189,8 +177,6 @@ export interface SupabaseSchoolRecord {
   pub_tuition_max_thb?: number | null;
   pub_has_safeguarding_policy?: boolean | null;
   pub_data_updated_at?: string | null;
-  rating_avg?: number | null;
-  review_count?: number;
   is_isat_member?: boolean;
   is_boarding?: boolean;
   year_established?: number | null;

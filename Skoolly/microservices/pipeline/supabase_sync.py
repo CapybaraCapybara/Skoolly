@@ -874,8 +874,6 @@ def fetch_supabase_schools(
                     pub_tuition_max_thb,
                     pub_has_safeguarding_policy,
                     pub_data_updated_at,
-                    rating_avg,
-                    review_count,
                     is_isat_member,
                     is_boarding,
                     year_established,
@@ -901,8 +899,6 @@ def fetch_supabase_schools(
                     item["pub_tuition_min_thb"] = float(item["pub_tuition_min_thb"])
                 if item.get("pub_tuition_max_thb") is not None:
                     item["pub_tuition_max_thb"] = float(item["pub_tuition_max_thb"])
-                if item.get("rating_avg") is not None:
-                    item["rating_avg"] = float(item["rating_avg"])
                 for when in ("pub_data_updated_at", "archived_at", "opec_missing_since"):
                     if item.get(when):
                         item[when] = item[when].isoformat()

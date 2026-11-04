@@ -29,16 +29,6 @@ erDiagram
     boolean is_broken 
     text error_reason 
   }
-  school_data__school_google_reviews {
-    uuid school_id PK
-    text google_place_id 
-    numeric rating_avg 
-    integer review_count 
-    jsonb payload 
-    text attribution_url 
-    timestamp_with_time_zone fetched_at 
-    timestamp_with_time_zone expires_at 
-  }
   school_data__school_scrape_log {
     uuid school_id FK
     uuid version_id FK
@@ -102,8 +92,6 @@ erDiagram
     numeric pub_tuition_max_thb 
     boolean pub_has_safeguarding_policy 
     timestamp_with_time_zone pub_data_updated_at 
-    numeric rating_avg 
-    integer review_count 
     timestamp_with_time_zone last_verified_at 
     timestamp_with_time_zone created_at 
     timestamp_with_time_zone updated_at 
@@ -117,7 +105,6 @@ erDiagram
     integer year_established 
     text_arr accreditations 
     text isat_school_name 
-    text google_place_id 
     jsonb social_links 
     integer row_version 
   }
@@ -175,7 +162,6 @@ erDiagram
   user_data__favorites {
     ตารางของ_Service_อื่น อ้างอิงข้ามมา
   }
-  school_data__schools ||--|| school_data__school_google_reviews : "school_id"
   school_data__schools ||--o{ school_data__school_scrape_log : "school_id"
   school_data__school_versions ||--o{ school_data__school_scrape_log : "version_id"
   school_data__schools ||--o{ school_data__school_versions : "school_id"

@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { School } from "@/types";
-import { StarRating, formatTuition } from "@/components/schools/SchoolCard";
+import { formatTuition } from "@/components/schools/SchoolCard";
 import { curriculumLabel, languageLabel, schoolNames } from "@/lib/labels";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
 
@@ -48,7 +48,7 @@ export function FavoritesPage({
 }: FavoritesPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCurriculum, setSelectedCurriculum] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"name" | "tuitionAsc" | "tuitionDesc" | "rating">("name");
+  const [sortBy, setSortBy] = useState<"name" | "tuitionAsc" | "tuitionDesc">("name");
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
 
   // In-memory notes state (ready to sync with user_data in DB once auth is active)
@@ -108,9 +108,6 @@ export function FavoritesPage({
       }
       if (sortBy === "tuitionDesc") {
         return (b.tuitionStart || 0) - (a.tuitionStart || 0);
-      }
-      if (sortBy === "rating") {
-        return (b.rating || 0) - (a.rating || 0);
       }
       return schoolNames(a).primary.localeCompare(schoolNames(b).primary, "th");
     });
@@ -370,7 +367,6 @@ export function FavoritesPage({
                     <option value="name">เรียงตาม: ชื่อ (A-Z)</option>
                     <option value="tuitionAsc">ค่าเทอม: ต่ำไปสูง</option>
                     <option value="tuitionDesc">ค่าเทอม: สูงไปต่ำ</option>
-                    <option value="rating">คะแนนรีวิว: สูงสุด</option>
                   </select>
                 </div>
               </div>
@@ -498,9 +494,6 @@ export function FavoritesPage({
                                   <span className="text-xs font-semibold text-warm-charcoal/60">ไม่มีข้อมูล</span>
                                 )}
                               </div>
-                            </div>
-                            <div className="text-right">
-                              {school.reviewCount > 0 && school.rating > 0 && <StarRating rating={school.rating} />}
                             </div>
                           </div>
 

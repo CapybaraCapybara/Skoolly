@@ -99,13 +99,6 @@ export function CompareModal({
                       {schoolNames(s).secondary && (
                         <p className="mt-0.5 line-clamp-1 text-[11px] text-warm-charcoal/55">{schoolNames(s).secondary}</p>
                       )}
-                      {s.reviewCount > 0 && s.rating > 0 && (
-                        <div className="flex items-center gap-1 mt-1 text-xs">
-                          <span className="text-amber-500 font-semibold">
-                            ★ {s.rating} <span className="text-warm-charcoal/50">({s.reviewCount} รีวิว)</span>
-                          </span>
-                        </div>
-                      )}
                     </div>
                     <div className="flex flex-col gap-1.5 mt-2">
                       <button

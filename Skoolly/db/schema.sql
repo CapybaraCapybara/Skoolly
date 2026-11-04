@@ -162,7 +162,6 @@ create table if not exists school_data.schools (
   gps_source                    text,
 
   logo_url                      text,
-  google_place_id               text,                       -- ใช้ดึงรีวิวจาก Google (UC-02 ข้อ 4) — null = จับคู่ไม่ได้ (UC-02 E6)
   level_range                   text,                       -- ข้อความสรุปดิบจาก OPEC เช่น "อนุบาล - ประถมศึกษา"
   levels_offered                text[] not null default '{}',-- อาร์เรย์ระดับชั้น เช่น {'PRE_K', 'KINDERGARTEN', 'PRIMARY'}
   curriculums                   text[] not null default '{}',-- อาร์เรย์รหัสหลักสูตร เช่น {'BRITISH', 'IB'}
@@ -198,11 +197,6 @@ create table if not exists school_data.schools (
   pub_tuition_max_thb           numeric(12,2),
   pub_has_safeguarding_policy   boolean,
   pub_data_updated_at           timestamptz,                -- "ข้อมูลเปลี่ยนแปลงล่าสุด" (มิติ 1)
-
-  -- สรุปคะแนนรีวิวจาก Google (sync มาจาก school_data.school_google_reviews)
-  -- เก็บซ้ำไว้เพื่อให้ UC-01 เรียง/กรองด้วย index ได้ โดยไม่ต้องเรียก Google ทุกครั้ง
-  rating_avg                    numeric(2,1),
-  review_count                  int not null default 0,
 
   last_verified_at              timestamptz,                -- "ตรวจสอบล่าสุด" (มิติ 1, UC-13 step 5)
 
@@ -319,24 +313,6 @@ create table if not exists school_data.version_safety (
 comment on table school_data.version_safety is
   'ทุกฟิลด์ boolean เป็น nullable โดยเจตนา: null = ระบบหาไม่เจอ ไม่ใช่ "โรงเรียนไม่มี" '
   'UI ห้ามแปลง null เป็น false หรือแสดงเป็นกากบาทเด็ดขาด (UC-02 E2b)';
-
--- ── 3.8 cache รีวิวจาก Google Places API (Use Case Spec หัวข้อ 7.6) ───────────
--- แทนตาราง community.reviews เดิมที่ถูกตัดออกใน v6.5 (ผู้ใช้ไม่เขียนรีวิวในระบบแล้ว)
--- อยู่ schema school_data เพราะเป็น "ข้อมูลเกี่ยวกับโรงเรียนจากแหล่งภายนอก"
--- ไม่ใช่เนื้อหาที่ผู้ใช้ของเราสร้าง — และทำให้ sync rating_avg กลับ schools เป็นการเขียนภายใน Service เดียว
-create table if not exists school_data.school_google_reviews (
-  school_id       uuid primary key references school_data.schools(school_id) on delete cascade,
-  google_place_id text not null,
-  rating_avg      numeric(2,1),
-  review_count    int not null default 0,
-  payload         jsonb not null,          -- รายการรีวิวที่ Google คืนมาทั้งชุด (ไม่ query รายแถว จึงเก็บเป็นก้อน)
-  attribution_url text not null,           -- ลิงก์กลับหน้า Google ของโรงเรียน — บังคับแสดงคู่รีวิวเสมอ (UC-02 BR ข้อ 2)
-  fetched_at      timestamptz not null default now(),
-  expires_at      timestamptz not null     -- ห้ามแสดง cache ที่เลยเวลานี้ ต้องดึงใหม่
-);
-comment on table school_data.school_google_reviews is
-  'cache ชั่วคราวของรีวิวจาก Google — ไม่ใช่ source of truth ระบบแก้ไข/คัดกรอง/ลบรีวิวไม่ได้ '
-  'expires_at ต้องไม่เกินระยะเวลาที่ข้อกำหนดการใช้งานของ Google อนุญาตให้เก็บ (UC-02 E8)';
 
 -- ── 3.9 ทะเบียน URL เว็บไซต์ทางการที่ยืนยันแล้ว (UC-12) ──────────────────────
 -- ตารางนี้ถูกสร้างด้วยมือใน Supabase มาก่อนและไม่เคยอยู่ใน schema.sql (schema drift)
@@ -624,7 +600,6 @@ create index if not exists scrape_log_school_idx on school_data.school_scrape_lo
 create index if not exists scrape_log_run_idx on school_data.school_scrape_log (run_id);
 
 -- ── รีวิวจาก Google + ticket แจ้งข้อมูลผิด ──────────────────────────────────
-create index if not exists google_reviews_expiry_idx on school_data.school_google_reviews (expires_at);
 create index if not exists reports_open_idx on community.data_correction_reports (report_count desc)
   where status = 'open';
 
@@ -711,7 +686,6 @@ grant select on
   school_data.schools, school_data.school_versions,
   school_data.version_fees, school_data.version_extra_fees, school_data.version_safety,
   school_data.curriculums, school_data.grade_levels,
-  school_data.school_google_reviews,
   community.forum_posts, community.forum_comments
 to anon, authenticated;
 
@@ -1297,43 +1271,12 @@ end $$;
 
 
 -- =============================================================================
--- 18. TRIGGER: sync คะแนนรีวิวจาก cache ของ Google กลับไปที่ schools
--- =============================================================================
--- schools.rating_avg / review_count เป็นค่าที่ copy มาจาก school_google_reviews
--- เพื่อให้หน้าค้นหา (UC-01) เรียง/กรองด้วย index ได้ — ถ้าไม่มี trigger ค่าสองที่จะไม่ตรงกัน
--- (ปัญหาชนิดเดียวกับ like_count ในหัวข้อ 14)
-create or replace function school_data.sync_school_rating() returns trigger
-language plpgsql security definer set search_path = school_data, pg_catalog as $$
-begin
-  if tg_op = 'DELETE' then
-    update school_data.schools
-       set rating_avg = null, review_count = 0
-     where school_id = old.school_id;
-  else
-    update school_data.schools
-       set rating_avg = new.rating_avg, review_count = new.review_count
-     where school_id = new.school_id;
-  end if;
-  return null;
-end $$;
-
-drop trigger if exists google_reviews_sync on school_data.school_google_reviews;
-create trigger google_reviews_sync
-  after insert or update or delete on school_data.school_google_reviews
-  for each row execute function school_data.sync_school_rating();
-
-
--- =============================================================================
 -- 19. CONSTRAINT ที่ขาดไป — กันข้อมูลที่เป็นไปไม่ได้ตั้งแต่ต้นทาง
 -- =============================================================================
 alter table school_data.schools
-  drop constraint if exists schools_rating_range,
-  add  constraint schools_rating_range
-       check (rating_avg is null or rating_avg between 0 and 5),
   drop constraint if exists schools_counts_nonneg,
   add  constraint schools_counts_nonneg
-       check (review_count >= 0
-              and (student_count is null or student_count >= 0)
+       check ((student_count is null or student_count >= 0)
               and (teacher_count is null or teacher_count >= 0)),
   drop constraint if exists schools_tuition_range,
   add  constraint schools_tuition_range
@@ -1389,13 +1332,6 @@ alter table school_data.version_extra_fees
   drop constraint if exists extra_fees_amount_nonneg,
   add  constraint extra_fees_amount_nonneg
        check (amount_thb is null or amount_thb >= 0);
-
-alter table school_data.school_google_reviews
-  drop constraint if exists google_reviews_sane,
-  add  constraint google_reviews_sane
-       check (review_count >= 0
-              and (rating_avg is null or rating_avg between 0 and 5)
-              and expires_at > fetched_at);
 
 alter table community.forum_posts
   drop constraint if exists forum_posts_counts_nonneg,

@@ -21,7 +21,6 @@ const LANGUAGE_TH: Record<string, string> = {
 const BADGE_TH: Record<string, string> = {
   "ISAT Member": "สมาชิก ISAT",
   "Boarding School": "โรงเรียนประจำ",
-  "Top Rated": "คะแนนรีวิวสูง",
 };
 
 const FORUM_CATEGORY_TH: Record<string, string> = {

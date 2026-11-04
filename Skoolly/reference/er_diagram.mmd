@@ -2,7 +2,6 @@ erDiagram
     ai__conversations ||--o{ ai__messages : "conversation_id"
     community__forum_posts ||--o{ community__forum_comments : "post_id"
     community__data_correction_reports ||--o{ community__report_submissions : "report_id"
-    school_data__schools ||--|| school_data__school_google_reviews : "school_id"
     school_data__schools ||--o{ school_data__school_scrape_log : "school_id"
     school_data__school_versions ||--o{ school_data__school_scrape_log : "version_id"
     school_data__schools ||--o{ school_data__school_versions : "school_id"

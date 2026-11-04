@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import type { School, SchoolDetail } from "@/types";
+import type { Post, School, SchoolDetail } from "@/types";
 import { getSchoolDetail } from "@/api/schoolsApi";
+import { getForum } from "@/api/forumApi";
+import { PostCard } from "@/components/forum/PostCard";
 import {
   DATA_SOURCE_PARTS,
   formatThaiDate,
@@ -9,7 +11,6 @@ import {
   type SchoolSources,
 } from "@/api/sourcesApi";
 import { SchoolMonogram } from "@/components/schools/SchoolMonogram";
-import { StarRating } from "@/components/schools/SchoolCard";
 import { badgeLabel, curriculumLabel, schoolNames } from "@/lib/labels";
 import {
   ACCREDITATION_KIND_LABELS,
@@ -81,6 +82,31 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
   const [detail, setDetail] = useState<SchoolDetail | null>(null);
   const [detailMissing, setDetailMissing] = useState(false);
   const [sources, setSources] = useState<SchoolSources | null>(null);
+  // Reviews are forum posts in the Review category tagged with this school; loaded when the tab opens
+  const [reviews, setReviews] = useState<Post[] | "error" | null>(null);
+
+  useEffect(() => setReviews(null), [school.id]);
+
+  useEffect(() => {
+    if (tab !== "Reviews" || reviews !== null) return;
+    getForum()
+      .then(({ posts }) => setReviews(posts.filter((p) => p.schoolId === school.id && p.category === "Review")))
+      .catch(() => setReviews("error"));
+  }, [tab, reviews, school.id]);
+
+  // Likes are local only, as on the forum page, until members can sign in
+  const toggleLike = (postId: string, commentId?: string) =>
+    setReviews((prev) =>
+      Array.isArray(prev)
+        ? prev.map((p) =>
+            p.id !== postId
+              ? p
+              : commentId
+                ? { ...p, comments: p.comments.map((c) => (c.id === commentId ? { ...c, liked: !c.liked } : c)) }
+                : { ...p, liked: !p.liked }
+          )
+        : prev
+    );
 
   // ── Fetch extended school detail from the API layer on mount ───────────────
   useEffect(() => {
@@ -227,16 +253,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
             )}
 
             <div className="flex items-center gap-3 mt-3 text-slate-300 text-xs sm:text-sm flex-wrap">
-              {school.reviewCount > 0 && school.rating > 0 && (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <StarRating rating={school.rating} size="lg" showValue={false} />
-                    <span className="text-white font-semibold">{school.rating}</span>
-                    <span className="text-slate-400">({school.reviewCount} รีวิว)</span>
-                  </div>
-                  <span>·</span>
-                </>
-              )}
               <span>{school.location}</span>
               <span>·</span>
               <span>หลักสูตร {curriculumLabel(school.curriculum)}</span>
@@ -715,37 +731,45 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
         {/* ── REVIEWS ──────────────────────────────────────────────────────── */}
         {tab === "Reviews" && (
           <div className="max-w-2xl mx-auto space-y-4">
-            {detail.reviews && detail.reviews.length > 0 ? (
-              detail.reviews.map((r, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-xs">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0"
-                      style={{ background: "#456ca6" }}
-                    >
-                      {r.avatar}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-navy-900">{r.author}</span>
-                        <span className="text-xs text-slate-400">{r.time}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <StarRating rating={r.rating} showValue={false} />
-                        <span className="text-xs text-slate-500">ลูกเรียนชั้น {r.childYear}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-700 leading-relaxed">{r.text}</p>
+            {reviews === null && (
+              <div className="py-12 text-center text-sm text-slate-400">กำลังโหลดรีวิว…</div>
+            )}
+            {reviews === "error" && (
+              <div className="py-12 text-center text-sm text-slate-500">โหลดรีวิวไม่สำเร็จ ลองใหม่อีกครั้งภายหลัง</div>
+            )}
+            {Array.isArray(reviews) && reviews.length > 0 && (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-slate-500">กระทู้หมวดรีวิวที่แท็กโรงเรียนนี้</p>
+                  <button
+                    onClick={onForum}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold border border-teal-500 text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer"
+                  >
+                    เขียนรีวิว
+                  </button>
                 </div>
-              ))
-            ) : (
+                {reviews.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onLikePost={(id) => toggleLike(id)}
+                    onLikeComment={toggleLike}
+                    onSchoolClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                  />
+                ))}
+              </>
+            )}
+            {Array.isArray(reviews) && reviews.length === 0 && (
               <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-xs">
                 <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-3 text-xl font-bold">
                   ★
                 </div>
-                <h3 className="font-bold text-navy-900 text-base mb-5">ยังไม่มีรีวิว</h3>
-                <button className="px-5 py-2.5 rounded-xl text-xs font-semibold border border-teal-500 text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer">
+                <h3 className="font-bold text-navy-900 text-base mb-1">ยังไม่มีรีวิว</h3>
+                <p className="text-xs text-slate-500 mb-5">รีวิวมาจากกระทู้หมวดรีวิวที่แท็กโรงเรียนนี้</p>
+                <button
+                  onClick={onForum}
+                  className="px-5 py-2.5 rounded-xl text-xs font-semibold border border-teal-500 text-teal-700 hover:bg-teal-50 transition-colors cursor-pointer"
+                >
                   เขียนรีวิว
                 </button>
               </div>

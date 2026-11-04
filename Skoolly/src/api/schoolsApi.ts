@@ -19,7 +19,6 @@ import type {
   SchoolCoords,
   SchoolDetail,
   SchoolFee,
-  SchoolReview,
   SupabaseSchoolRecord,
   SupabaseSchoolsFilterParams,
   SupabaseSchoolsResponse,
@@ -189,8 +188,6 @@ export function mapSupabaseToDomainSchool(
   const location = formatLocation(record);
   const tuitionStart = record.pub_tuition_min_thb ?? 0;
   const tuitionMax = record.pub_tuition_max_thb ?? null;
-  const rating = record.rating_avg ? Number(record.rating_avg.toFixed(1)) : 0;
-  const reviewCount = record.review_count ?? 0;
   const distance = 0; // True distance only; 0 indicates not computed rather than fake mock formula
   const language = deriveLanguage(curriculum);
   const grades = formatGrades(record);
@@ -204,8 +201,6 @@ export function mapSupabaseToDomainSchool(
     badge = "ISAT Member";
   } else if (record.is_boarding) {
     badge = "Boarding School";
-  } else if (rating >= 4.7 && reviewCount >= 10) {
-    badge = "Top Rated";
   }
 
   const lastUpdated =
@@ -226,8 +221,6 @@ export function mapSupabaseToDomainSchool(
     levels: record.levels_offered || [],
     tuitionStart,
     tuitionMax,
-    rating,
-    reviewCount,
     distance,
     language,
     grades,
@@ -298,7 +291,6 @@ export function mapSupabaseToDomainDetail(
   // Strictly empty if not verified in database
   const gallery: string[] = [];
   const facilities: string[] = [];
-  const reviews: SchoolReview[] = [];
 
   const safety: SchoolDetail["safety"] = record.pub_has_safeguarding_policy
     ? {
@@ -330,7 +322,6 @@ export function mapSupabaseToDomainDetail(
     fees,
     gallery,
     facilities,
-    reviews,
     safety,
     lastUpdated: record.pub_data_updated_at || record.updated_at || record.created_at || "ไม่มีข้อมูล",
     logoUrl,

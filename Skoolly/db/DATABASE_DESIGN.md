@@ -125,7 +125,7 @@ Database Webhooks + PostGIS + pgvector **ในที่เดียวและ
 ```
 school_data ─┬─ schools ─┬─ curriculums    (lookup พร้อม aliases[])  ← curriculums[] อ้างด้วย code
 (School Data │            ├─ grade_levels  (lookup พร้อม aliases[])  ← levels_offered[] อ้างด้วย code
-   Service)  │            ├─ school_google_reviews   (cache รีวิวจาก Google Places)
+   Service)  │            │
              │            └─ school_versions ─┬─ version_fees        (ค่าเทอมรายชั้น)
              │                                ├─ version_extra_fees  (ค่าใช้จ่ายแฝง)
              │                                └─ version_safety      (ความปลอดภัย/คุ้มครองเด็ก)
@@ -176,8 +176,8 @@ ops         ── audit_log (append-only)
    ข้อมูลส่วนบุคคลที่เหลือในสกีมา `user_data` คือบัญชี รายการโปรด และชุดเปรียบเทียบ
 
 7. **ฟอรัมใช้ `content_status` ที่มี default เป็น `approved`** — เผยแพร่ทันทีแล้วตรวจเมื่อถูกรายงาน
-   (Post-Moderation) ตั้งแต่ v6.5 ฟอรัมเป็นเนื้อหาจากผู้ใช้ชนิดเดียวที่ระบบเป็นเจ้าของ เพราะรีวิว
-   ย้ายไปใช้ข้อมูลจาก Google แล้ว — แยก enum ของฟอรัมออกจากคิวตรวจอื่นไว้ เพื่อไม่ให้เผลอ
+   (Post-Moderation) ตั้งแต่ v6.5 ฟอรัมเป็นเนื้อหาจากผู้ใช้ชนิดเดียวที่ระบบเป็นเจ้าของ รีวิวในหน้า
+   โรงเรียนก็คือกระทู้หมวด Review ที่แท็กโรงเรียนนั้น — แยก enum ของฟอรัมออกจากคิวตรวจอื่นไว้ เพื่อไม่ให้เผลอ
    เปลี่ยน default ผิดในอนาคต ซึ่งจะทำให้กระทู้ทุกอันค้างรอตรวจและฟอรัมหยุดเคลื่อนไหว
 
 8. **`forum_reports` ผู้ใช้ทั่วไป select ไม่ได้เลย** — insert ได้อย่างเดียว อ่านได้เฉพาะ Admin
@@ -335,7 +335,7 @@ python db/import_opec.py               # เขียนจริง
 | Architecture หัวข้อ 5: full-text search ภาษาไทย | ✅ **แก้แล้ว (v6.3)** — เปลี่ยนเป็น `pg_trgm` พร้อมเหตุผลว่า Postgres ไม่มี dictionary ภาษาไทย |
 | Architecture หัวข้อ 13.2: 3 Supabase projects | ✅ **แก้แล้ว (v6.3)** — เหลือ Dev local (Supabase CLI) + Production cloud **project เดียว** พร้อมเงื่อนไขชัดเจนว่าจะเพิ่ม staging เมื่อเริ่ม UAT กับผู้ใช้จริง และเตือนเรื่องโปรเจกต์ถูกหยุดหลังไม่มี activity 1 สัปดาห์ |
 | เอกสารหัวข้อ 7 ไม่ตรงกับ `schema.sql` | ✅ **แก้แล้ว (v6.6)** — ตรงกันครบ 3 ทาง: เอกสาร 25 ตาราง = `schema.sql` 25 ตาราง = ฐานข้อมูลจริง 25 ตาราง ตรวจด้วยสคริปต์เทียบชื่อตารางแล้วไม่มีตัวไหนต่างกัน |
-| `community.reviews` เป็นรีวิวที่ผู้ใช้เขียนเอง | ✅ **แก้แล้ว (v6.5/v6.6)** — แทนด้วย `school_data.school_google_reviews` ที่เป็น cache จาก Google Places พร้อมย้าย schema ให้ตรงกับเจ้าของข้อมูล |
+| `community.reviews` เป็นรีวิวที่ผู้ใช้เขียนเอง | ✅ **แก้แล้ว (v6.5/v6.6)** — เคยแทนด้วย cache รีวิวจาก Google Places (`school_google_reviews`) ซึ่งลบไปแล้ว 4 พ.ย. 2569 เพราะยังไม่มีโค้ดใช้ ต่อมาตัดสินไม่ใช้รีวิว Google จึงลบ `schools.google_place_id`, `rating_avg`, `review_count` ด้วย (4 พ.ย. 2569) รีวิวในหน้าโรงเรียนคือกระทู้หมวด Review ที่แท็กโรงเรียน |
 | ตาราง lookup `curriculums` ไม่เคยถูกใช้ (คำศัพท์ 3 ชุดไม่ตรงกัน) | ✅ **แก้แล้ว (v6.6)** — รวมเป็นชุดเดียว DB เก็บ code, API แปลงกลับเป็นภาษาไทยตอนส่งออก, trigger `schools_vocab_check` บังคับความถูกต้อง |
 | คอลัมน์ ISAT + `official_website_registry` ไม่อยู่ใน `schema.sql` (schema drift) | ✅ **แก้แล้ว (v6.6)** — ย้ายมาประกาศใน `schema.sql` ทั้งหมด ไม่ต้องพึ่ง `ALTER TABLE` ตอนรันอีก |
 | `updated_at` ไม่มีอะไรอัปเดตให้ 8 ตาราง | ✅ **แก้แล้ว (v6.6)** — trigger `set_updated_at` |
@@ -357,9 +357,9 @@ python db/import_opec.py               # เขียนจริง
 |---|---|
 | Postgres | 17.6 |
 | Extension | `postgis`, `vector`, `pg_trgm`, `pg_cron`, `pg_net`, `pgcrypto`, `uuid-ossp`, `unaccent`, `pg_stat_statements`, `supabase_vault` |
-| ตาราง | 23 ตารางใน 5 schema ตรงกับไฟล์ (ลบ `children_profiles` และ `failed_jobs` เมื่อ 4 พ.ย. 2569) (ไม่นับ `public.spatial_ref_sys` ของ PostGIS) |
+| ตาราง | 22 ตารางใน 5 schema ตรงกับไฟล์ (ลบ `children_profiles`, `failed_jobs` และ `school_google_reviews` เมื่อ 4 พ.ย. 2569) (ไม่นับ `public.spatial_ref_sys` ของ PostGIS) |
 | งาน `pg_cron` | ยังไม่มีสักงาน |
-| ตารางที่ไม่เปิด RLS | `grade_levels`, `school_google_reviews`, `official_website_registry` (ไม่เปิดทั้งในไฟล์และในฐาน) สองตัวแรก grant ให้แค่ `select` จึงอ่านได้อย่างเดียว ตัวสุดท้ายไม่มี grant ให้ `anon`/`authenticated` จึงเข้าผ่าน API ไม่ได้ |
+| ตารางที่ไม่เปิด RLS | `grade_levels`, `official_website_registry` (ไม่เปิดทั้งในไฟล์และในฐาน) ตัวแรก grant ให้แค่ `select` จึงอ่านได้อย่างเดียว ตัวสุดท้ายไม่มี grant ให้ `anon`/`authenticated` จึงเข้าผ่าน API ไม่ได้ |
 | ตารางที่ไม่มีในฐาน | `public.profiles` (จาก `db/migrations/2026-10-02_auth_profiles.sql`) และ `school_data.grade_level_aliases` (จาก `db/add_grade_level_aliases.sql`) ทั้งสองไฟล์ยังไม่เคยรันกับฐานจริง |
 | trigger บน `auth.users` | `on_auth_user_created` เรียก `user_data.handle_new_auth_user()` ตาม `schema.sql` (ไม่ใช่ตัวใน migration profiles ซึ่งใช้ชื่อ trigger เดียวกัน ถ้ารัน migration นั้นจะทับตัวนี้ และผู้ใช้ใหม่จะไม่ได้แถวใน `user_accounts`) |
 

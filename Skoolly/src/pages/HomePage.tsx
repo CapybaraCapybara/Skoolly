@@ -174,13 +174,6 @@ export function HomePage({
       .catch(() => setLoadState("error"));
   }, []);
 
-  const averageRating = useMemo(() => {
-    const rated = schools.filter((s) => s.reviewCount > 0 && s.rating > 0);
-    const weight = rated.reduce((sum, s) => sum + s.reviewCount, 0);
-    if (weight === 0) return null;
-    return rated.reduce((sum, s) => sum + s.rating * s.reviewCount, 0) / weight;
-  }, [schools]);
-
   // Province and curriculum choices come from the data, so every value in the database can be picked
   const provinceOptions = useMemo(() => countOptions(schools.map((s) => (s.province ? [s.province] : []))), [schools]);
   const curriculumOptions = useMemo(() => countOptions(schools.map((s) => s.curricula ?? [])), [schools]);
@@ -316,7 +309,6 @@ export function HomePage({
         primaryCtaHref="#schools"
         backgroundImage="https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=1600&h=900&fit=crop&auto=format"
         stats={heroStats}
-        averageRating={averageRating}
       />
 
       {/* ── SEARCH / FILTER PANEL ─────────────────────────────────────────── */}
