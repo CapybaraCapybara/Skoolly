@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -36,6 +36,17 @@ const drawerItem =
 const countBadge = (color: string) =>
   cn('flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white', color);
 
+/** How this session signed in ("oauth" or "password"), from the token's amr claim. app_metadata.provider
+ *  is only the first method the account ever used, so an email account later linked to Google says "email". */
+function sessionMethod(token?: string): string | undefined {
+  try {
+    const payload = JSON.parse(atob(token!.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.amr?.[0]?.method;
+  } catch {
+    return undefined;
+  }
+}
+
 export function Navbar({
   current = null,
   onLogin,
@@ -48,15 +59,27 @@ export function Navbar({
   favoritesCount = 0,
   onFavorites,
 }: NavbarProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAccountOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [accountOpen]);
 
   const handleMobileNav = (action?: () => void) => {
     action?.();
     setSheetOpen(false);
   };
 
-  const displayName = profile?.display_name || user?.email?.split('@')[0] || '';
+  // Name and picture come from the sign-in itself (Google profile, or the name typed at sign-up)
+  const meta = user?.user_metadata ?? {};
+  const displayName: string = meta.full_name || meta.name || user?.email?.split('@')[0] || '';
+  const avatarUrl: string | undefined = meta.avatar_url || meta.picture;
+  const signedInWith = sessionMethod(session?.access_token) === 'oauth' ? 'Google' : 'อีเมลและรหัสผ่าน';
 
   // In the order parents use the site: find schools, save them, compare, work out the cost, ask others
   const links: { key: NavKey | 'compare'; label: string; icon: typeof House; onClick?: () => void; count?: number; countColor?: string }[] = [
@@ -119,24 +142,48 @@ export function Navbar({
           )}
 
           {user ? (
-            <div className="ml-1 flex h-9 items-center gap-2 rounded-full border border-warm-accent bg-warm-card pl-1 pr-1">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="size-7 rounded-full object-cover" />
-              ) : (
-                <span className="flex size-7 items-center justify-center rounded-full bg-warm-charcoal text-xs font-bold text-white">
-                  {(displayName || 'U').charAt(0).toUpperCase()}
-                </span>
-              )}
-              <span className="hidden max-w-[110px] truncate text-sm font-medium text-warm-charcoal md:inline">{displayName}</span>
+            <div className="relative ml-1">
               <button
                 type="button"
-                onClick={() => signOut()}
-                className="flex size-7 items-center justify-center rounded-full text-warm-charcoal/50 transition-colors hover:bg-warm-accent hover:text-warm-charcoal cursor-pointer"
-                title="ออกจากระบบ"
-                aria-label="ออกจากระบบ"
+                onClick={() => setAccountOpen((o) => !o)}
+                aria-expanded={accountOpen}
+                aria-haspopup="dialog"
+                className="flex h-9 items-center gap-2 rounded-full border border-warm-accent bg-warm-card pl-1 pr-1 transition-colors hover:bg-warm-accent/50 cursor-pointer md:pr-3"
               >
-                <LogOut className="size-3.5" />
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="size-7 rounded-full object-cover" />
+                ) : (
+                  <span className="flex size-7 items-center justify-center rounded-full bg-warm-charcoal text-xs font-bold text-white">
+                    {(displayName || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="hidden max-w-[110px] truncate text-sm font-medium text-warm-charcoal md:inline">{displayName}</span>
               </button>
+              {accountOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setAccountOpen(false)} aria-hidden="true" />
+                  <div
+                    role="dialog"
+                    aria-label="บัญชีของฉัน"
+                    className="absolute right-0 top-11 z-50 w-64 rounded-2xl border border-warm-accent bg-warm-card p-4 shadow-lg"
+                  >
+                    <div className="truncate font-semibold text-warm-charcoal">{displayName}</div>
+                    {user.email && <div className="truncate text-sm text-warm-charcoal/60">{user.email}</div>}
+                    <div className="mt-3 text-xs text-warm-charcoal/60">เข้าสู่ระบบด้วย {signedInWith}</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountOpen(false);
+                        signOut();
+                      }}
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-warm-accent py-2 text-sm font-medium text-warm-charcoal transition-colors hover:bg-warm-accent/50 cursor-pointer"
+                    >
+                      <LogOut className="size-4" />
+                      ออกจากระบบ
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <button

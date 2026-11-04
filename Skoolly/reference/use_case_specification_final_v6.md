@@ -1,6 +1,8 @@
 # เอกสารข้อกำหนด Use Case (Use Case Specification) — v6 (ฉบับปรับตาม Wireframe)
 ## ระบบ AI แนะนำโรงเรียนนานาชาติสำหรับผู้ปกครองในประเทศไทย
 
+> **หมายเหตุ (4 พ.ย. 2569):** เอกสารนี้เขียนก่อนการตัดฟีเจอร์ ตาราง `children_profiles`, `ops.failed_jobs`, `school_google_reviews` และคอลัมน์ `google_place_id`, `rating_avg`, `review_count` ถูกลบไปแล้ว ระบบไม่เก็บข้อมูลบุตรหลานและไม่ใช้รีวิวจาก Google ส่วนที่พูดถึงสิ่งเหล่านี้ด้านล่างเป็นแบบเดิม โครงสร้างฐานข้อมูลปัจจุบันดูที่ `db/DATABASE_DESIGN.md` และ `db/schema.sql`
+
 **หมายเหตุเรื่องเลขเวอร์ชัน:** เดิมเอกสารนี้ใช้เลข "(v2)" ตาม Wireframe/Scope revision (ดู bullet ด้านล่าง) ซึ่งเป็น
 คนละชุดเลขกับ System Architecture doc — ตั้งแต่รอบนี้จึงปรับหัวเอกสารมาใช้เลขเดียวกันคือ **v6** (ปรับให้สอดคล้องกับสถาปัตยกรรม
 Microservices แบบ Schema-per-Service ตามแบบฟอร์ม คง.101, เพิ่ม DevOps & QA Plan ตอบข้อ 7.5-7.6

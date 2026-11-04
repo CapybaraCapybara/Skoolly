@@ -190,7 +190,7 @@ export default function App() {
     const authMode = window.location.hash.replace(/^#\/?/, "") === "signup" ? "signup" : "signin";
     pageContent = <LoginPage onNavigateHome={goHome} initialMode={authMode} />;
   } else if (view === "forum") {
-    pageContent = <ForumPage onSchoolClick={goSchool} />;
+    pageContent = <ForumPage />;
   } else if (view === "calculator" || (typeof view === "object" && view.type === "calculator")) {
     const initialId = typeof view === "object" && "schoolId" in view ? view.schoolId : undefined;
     pageContent = (

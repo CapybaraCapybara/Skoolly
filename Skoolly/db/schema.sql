@@ -703,7 +703,8 @@ grant select, insert, update, delete on
   ai.conversations, ai.messages
 to authenticated;
 
-grant insert, update on community.forum_posts, community.forum_comments to authenticated;
+-- กระทู้/ความคิดเห็นยังไม่เปิดให้เขียน (อ่านผ่าน API ของ backend) ตอนเปิดให้ grant ทีละคอลัมน์ไม่รวม status
+revoke insert, update on community.forum_posts, community.forum_comments from authenticated;
 grant select, insert, update on community.data_correction_reports to authenticated;
 grant select, insert on community.report_submissions, community.forum_reports to authenticated;
 
