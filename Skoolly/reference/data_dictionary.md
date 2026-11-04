@@ -1,7 +1,7 @@
 # Skoolly — Data Dictionary
 
 > อ่านจากฐานข้อมูล Supabase จริงโดยตรง ไม่ได้คัดลอกจากเอกสารออกแบบ  
-> **23 ตาราง · 253 คอลัมน์ · Primary Key 23 · Unique 6 · Foreign Key 16 · Check 22 · Index 70 · Trigger 17**
+> **23 ตาราง · 255 คอลัมน์ · Primary Key 23 · Unique 6 · Foreign Key 14 · Check 18 · Index 63 · Trigger 17**
 
 คอลัมน์ **Reference Table** แสดงตารางปลายทางที่คอลัมน์นี้อ้างถึง — ถ้าเป็น Foreign Key จริงจะมี
 พฤติกรรมตอนลบกำกับไว้ด้วย ส่วนที่ไม่มี Foreign Key คือการอ้างอิงข้าม Service ตามกติกา
@@ -180,6 +180,12 @@ Schema-per-Service หรือกรณีที่ PostgreSQL ประกา�
 | `google_place_id` | รหัสสถานที่บน Google ของโรงเรียนนี้ ใช้ดึงรีวิวมาแสดง (UC-02 ข้อ 4) ว่างแปลว่าจับคู่กับสถานที่บน Google ไม่ได้ (UC-02 E6) | `text` | — | — |
 | `social_links` | ลิงก์โซเชียลรวมเป็น JSON ก้อนเดียว คีย์ที่ใช้คือ facebook, line_id, instagram, youtube | `jsonb` | NOT NULL, DEFAULT '{}' | — |
 | `row_version` | ตัวนับสำหรับ Optimistic Locking กันผู้ดูแลสองคนบันทึกทับกัน ทริกเกอร์บวกให้เอง | `integer` | NOT NULL, DEFAULT 1 | — |
+| `archived_at` | เวลาที่ผู้ดูแลระบบปิดโรงเรียน (สถานะ archived) ว่างแปลว่ายังไม่ถูกปิด | `timestamp with time zone` | — | — |
+| `archived_reason` | เหตุผลที่ปิดโรงเรียน ใส่ให้เองเฉพาะโรงเรียนที่หายจากรายชื่อ สช. | `text` | — | — |
+| `opec_missing_since` | วันที่ตรวจพบว่าโรงเรียนหายจากรายชื่อ สช. ว่างแปลว่ายังอยู่ในรายชื่อ ระบบไม่ปิดโรงเรียนเอง | `timestamp with time zone` | — | — |
+| `curriculums_confirmed_at` | เวลาที่ผู้ดูแลระบบยืนยันหลักสูตรเอง หลังจากนี้การนำเข้าจาก สช. จะไม่เขียนทับ | `timestamp with time zone` | — | — |
+| `curriculums_confirmed_by` | ผู้ดูแลระบบที่ยืนยันหลักสูตร | `text` | — | — |
+| `data_sources` | ที่มาของข้อมูลแต่ละส่วน (opec, isat, website, location) เก็บแหล่ง ลิงก์ และเวลา | `jsonb` | NOT NULL, DEFAULT '{}' | — |
 
 ---
 

@@ -1319,7 +1319,7 @@ Google Places API** เพื่อลดจำนวนครั้งที่
 รวมเป็น 6 ตาราง ซึ่งไม่คุ้มกับสิ่งที่ได้ เพราะ (1) alias เป็นความสัมพันธ์ many-to-one ที่ไม่มี attribute อื่นเลย
 เก็บเป็น `text[]` ในตาราง lookup เองได้โดยยังค้นด้วย GIN index ได้เหมือนกัน (2) ความสัมพันธ์
 โรงเรียน↔หลักสูตร และ โรงเรียน↔ระดับชั้น เก็บเป็น `schools.curriculums text[]` และ
-`schools.levels_offered text[]` พร้อม GIN index อยู่แล้ว การแตกเป็นตารางเชื่อมเพิ่มแค่ join
+`schools.levels_offered text[]` (`curriculums` มี GIN index ส่วน index ของ `levels_offered` ถอดออกแล้วเพราะหน้าค้นหากรองในเบราว์เซอร์) การแตกเป็นตารางเชื่อมเพิ่มแค่ join
 โดยไม่ได้ความสามารถใหม่ — ตัวกรองของ UC-01 ใช้ `curriculums && ARRAY[...]` ได้ตรง ๆ
 
 **Business Rule:** ข้อความดิบที่ map ไม่ลงต้องไม่ถูกทิ้งเงียบ — พฤติกรรมจริงของ `supabase_sync.py`
