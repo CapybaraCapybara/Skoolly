@@ -37,6 +37,7 @@ import {
   getSupabaseStatus,
   getPendingVersions,
   approveVersion,
+  type ApprovalPart,
   rejectVersion,
   scrapeSchoolTuition,
   getCurriculumReview,
@@ -276,11 +277,11 @@ export function AdminPage({
   }, [loadSchoolsData, loadPendingVersions, pollProgress]);
 
   // Handle Approve Version (Publish to Supabase)
-  const handleApproveVersion = async (versionId: string) => {
+  const handleApproveVersion = async (versionId: string, keepLive: ApprovalPart[] = []) => {
     setIsVersionActionLoading(true);
     try {
-      await approveVersion(versionId);
-      showToast("อนุมัติและเผยแพร่ค่าเทอมแล้ว");
+      await approveVersion(versionId, keepLive);
+      showToast(keepLive.length ? "อนุมัติเฉพาะหมวดที่เลือกและเผยแพร่แล้ว" : "อนุมัติและเผยแพร่ค่าเทอมแล้ว");
       setReviewingVersion(null);
       await loadPendingVersions();
       await loadSchoolsData();

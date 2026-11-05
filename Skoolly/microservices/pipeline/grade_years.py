@@ -4,7 +4,7 @@ Turns a school's tuition rows into one row per school year, in grade order, for 
 
 Schools label grades in their own way ("Year 7 - Year 9", "Key Stage 2 (Year 3 - 6)", "K1 (FS2)",
 "Nursery (3 days)"), and the calculator counts one row as one year. Each label is read as a span on
-the same 0-16 scale as db/add_grade_level_aliases.sql (0-1 pre-nursery, 2-4 อ.1-3, 5-10 ป.1-6,
+a 0-16 scale (0-1 pre-nursery, 2-4 อ.1-3, 5-10 ป.1-6,
 11-13 ม.1-3, 14-16 ม.4-6), then multi-year rows are expanded and option rows (half day / full day,
 3 or 5 days) for the same year are reduced to one.
 """

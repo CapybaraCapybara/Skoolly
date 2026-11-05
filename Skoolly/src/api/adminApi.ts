@@ -295,7 +295,10 @@ export async function getPendingVersions(): Promise<PendingVersionRecord[]> {
   return await res.json();
 }
 
-export async function approveVersion(versionId: string): Promise<{
+/** Parts of a draft an admin can turn down while approving the rest (APPROVAL_PARTS in supabase_sync.py) */
+export type ApprovalPart = "fees" | "safety" | "info";
+
+export async function approveVersion(versionId: string, keepLive: ApprovalPart[] = []): Promise<{
   status: string;
   action: string;
   version_id: string;
@@ -306,6 +309,8 @@ export async function approveVersion(versionId: string): Promise<{
 }> {
   const res = await fetch(`${API_BASE}/api/supabase/versions/${versionId}/approve`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keep_live: keepLive }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "การอนุมัติล้มเหลว" }));

@@ -41,7 +41,6 @@ from supabase_sync import (  # type: ignore
     fetch_pending_versions,
     approve_school_version,
     reject_school_version,
-    save_scraped_draft_version,
     fetch_scrape_logs,
     log_school_scrape,
     db_connect,
@@ -70,9 +69,6 @@ from website_registry import (  # type: ignore
 )
 from enrich_from_isat import run_isat_enrichment  # type: ignore
 from public_queries import fetch_published_fees, fetch_forum_posts, fetch_school_sources  # type: ignore
-if MICROSERVICES_DIR not in sys.path:
-    sys.path.insert(0, MICROSERVICES_DIR)
-from saga.validator_service import validate_result  # noqa: E402
 
 app = FastAPI(
     title="Skoolly School Service",
@@ -296,41 +292,58 @@ WEBSITES = ("ค้นหา Website", step_websites)
 GPS = ("ปักหมุด GPS", step_gps)
 
 
-def _validation_problem(result):
-    """Error text when a scrape result breaks validator_service rules, else empty string."""
-    errors, _ = validate_result(result)
-    return "ข้อมูลที่ scrape มาไม่ผ่านการตรวจ: " + "; ".join(errors) if errors else ""
+def _scrape_via_saga(school_id, school_name: str, website: str, run_id: str) -> dict:
+    """One school through the Saga (orchestrator -> scraper -> validator -> save_service, which saves the draft).
+
+    Returns {"saved": the save_service answer} or {"error": text, "fail_status": school_scrape_log status}."""
+    try:
+        resp = requests.post(ORCHESTRATOR_URL, json={"school_id": str(school_id), "school_name": school_name,
+                                                     "homepage_url": website, "run_id": run_id},
+                             timeout=SAGA_TIMEOUT_S)
+    except requests.Timeout as ex:
+        return {"error": f"Timeout: {ex}", "fail_status": "timeout"}
+    except Exception as ex:
+        return {"error": f"{type(ex).__name__}: {ex}", "fail_status": "error"}
+    ctype = resp.headers.get("content-type", "")
+    body = resp.json() if ctype.startswith("application/json") else {}
+    saga = body.get("status")
+    if resp.ok and saga == "saga_success":
+        return {"saved": body.get("saved") or {}}
+    if saga == "saga_skipped":
+        # robots.txt says no: no draft, no fallback to an older result
+        return {"error": body.get("error") or "robots.txt disallow", "fail_status": "blocked"}
+    if saga == "saga_failed" and body.get("failed_at") == "validation":
+        # a result that breaks validator_service rules saves no draft
+        return {"error": "ข้อมูลที่ scrape มาไม่ผ่านการตรวจ: " + "; ".join(map(str, body.get("errors") or [])),
+                "fail_status": "error"}
+    if saga == "saga_failed" and body.get("failed_at") == "database":
+        return {"error": f"บันทึกแบบร่างไม่สำเร็จ (Saga ชดเชยแล้ว): {body.get('error')}", "fail_status": "error"}
+    if saga == "saga_failed":
+        return {"error": f"Scraper ทำไม่สำเร็จ: {body.get('error')}",
+                "fail_status": "timeout" if body.get("timed_out") else "error"}
+    # keep everything needed to tell why: code, type, saga status, start of body
+    return {"error": f"HTTP {resp.status_code} | {ctype or 'no content-type'} | status={saga!r} | body={resp.text[:200]!r}",
+            "fail_status": "error"}
 
 
 def step_scrape_school(progress, school_id, school_name, website):
-    """Scrapes one school's fees into a pending_review version for an admin to approve.
+    """Scrapes one school's fees into a pending_review version for an admin to approve, through the Saga.
 
     A failed scrape saves nothing: an older result saved again would look like fresh data to the admin."""
+    down = _saga_down()
+    if down:
+        raise RuntimeError(f"เรียก {', '.join(down)} ไม่ได้ ปิดหน้าต่าง start-dev.bat แล้วเปิดใหม่ แล้วลองอีกครั้ง")
     progress(f"กำลัง scrape ค่าเทอม: {school_name}", 15, 100, f"เริ่มสแกน {website} ({school_name})")
-    result, problem = None, ""
-    try:
-        resp = requests.post(SCRAPER_URL, json={"school_name": school_name, "homepage_url": website},
-                             timeout=SCRAPE_TIMEOUT_S)
-        body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-        if resp.ok and body.get("status") == "success":
-            result = body.get("result_data")
-        elif body.get("status") == "blocked":
-            problem = f"ข้ามโรงเรียนนี้: {body.get('error')}"
-        else:
-            problem = f"Scraper ทำไม่สำเร็จ: {body.get('error') or body.get('detail') or f'HTTP {resp.status_code}'}"
-    except requests.RequestException as e:
-        problem = ("เชื่อมต่อ Scraper Service (พอร์ต 8001) ไม่ได้ เปิดด้วย python microservices/scraper_service.py"
-                   if isinstance(e, requests.ConnectionError) else f"Scraper ไม่ตอบกลับ: {e}")
-
-    if result is None:
-        raise RuntimeError(problem)
-    problem = _validation_problem(result)
-    if problem:
-        raise RuntimeError(problem)
-
-    draft = save_scraped_draft_version(school_id, result)
-    progress(f"บันทึกแบบร่างแล้ว: {school_name}", 100, 100,
-             f"บันทึกแบบร่าง version {draft.get('version_number')} ของ {school_name} รอแอดมินอนุมัติ")
+    out = _scrape_via_saga(school_id, school_name, website, str(uuid.uuid4()))
+    if "error" in out:
+        raise RuntimeError(f"ข้ามโรงเรียนนี้: {out['error']}" if out["fail_status"] == "blocked" else out["error"])
+    saved = out["saved"]
+    if saved.get("unchanged"):
+        progress(f"ข้อมูลไม่เปลี่ยน: {school_name}", 100, 100,
+                 f"ข้อมูลของ {school_name} เหมือนฉบับ {saved.get('version_number')} จึงไม่สร้างร่างใหม่")
+    else:
+        progress(f"บันทึกแบบร่างแล้ว: {school_name}", 100, 100,
+                 f"บันทึกแบบร่าง version {saved.get('version_number')} ของ {school_name} รอแอดมินอนุมัติ")
 
 
 def _alive(base_url: str) -> bool:
@@ -412,40 +425,10 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
 
         progress(f"กำลัง Scrape: {name} ({curr_num}/{total})", curr_num, total, f"[{curr_num}/{total}] กำลังสแกน {website}")
 
-        saved = False
-        error_msg = ""
-        fail_status = "error"
         t_req = time.time()
-        try:
-            # save_service saves the draft (save_scraped_draft_version) and logs it to school_scrape_log
-            resp = requests.post(ORCHESTRATOR_URL, json={"school_id": str(school_id), "school_name": name,
-                                                         "homepage_url": website, "run_id": batch_run_id},
-                                 timeout=SAGA_TIMEOUT_S)
-            ctype = resp.headers.get("content-type", "")
-            body = resp.json() if ctype.startswith("application/json") else {}
-            saga = body.get("status")
-            if resp.ok and saga == "saga_success":
-                saved = True
-            elif saga == "saga_skipped":
-                # robots.txt says no: log it as blocked, no draft, no fallback to an older result
-                error_msg, fail_status = body.get("error") or "robots.txt disallow", "blocked"
-            elif saga == "saga_failed" and body.get("failed_at") == "validation":
-                # a result that breaks validator_service rules saves no draft
-                error_msg = "ข้อมูลที่ scrape มาไม่ผ่านการตรวจ: " + "; ".join(map(str, body.get("errors") or []))
-            elif saga == "saga_failed" and body.get("failed_at") == "database":
-                error_msg = f"บันทึกแบบร่างไม่สำเร็จ (Saga ชดเชยแล้ว): {body.get('error')}"
-            elif saga == "saga_failed":
-                error_msg = f"Scraper ทำไม่สำเร็จ: {body.get('error')}"
-                if body.get("timed_out"):
-                    fail_status = "timeout"
-            else:
-                # keep everything needed to tell why: code, type, saga status, start of body
-                error_msg = (f"HTTP {resp.status_code} | {ctype or 'no content-type'} | "
-                             f"status={saga!r} | body={resp.text[:200]!r}")
-        except requests.Timeout as ex:
-            error_msg, fail_status = f"Timeout: {ex}", "timeout"
-        except Exception as ex:
-            error_msg = f"{type(ex).__name__}: {ex}"
+        out = _scrape_via_saga(school_id, name, website, batch_run_id)
+        saved = "saved" in out
+        error_msg, fail_status = out.get("error", ""), out.get("fail_status", "error")
         elapsed = round(time.time() - t_req, 2)
 
         if saved:
@@ -663,10 +646,13 @@ def get_pending_versions_endpoint():
 class RejectVersionPayload(BaseModel):
     reason: Optional[str] = "ไม่ผ่านเกณฑ์การตรวจสอบของแอดมิน"
 
+class ApproveVersionPayload(BaseModel):
+    keep_live: List[str] = []   # parts turned down ("fees", "safety", "info"): they keep the live data
+
 @app.post("/api/supabase/versions/{version_id}/approve")
-def post_approve_version_endpoint(version_id: str):
+def post_approve_version_endpoint(version_id: str, payload: Optional[ApproveVersionPayload] = None):
     try:
-        return approve_school_version(version_id)
+        return approve_school_version(version_id, payload.keep_live if payload else None)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

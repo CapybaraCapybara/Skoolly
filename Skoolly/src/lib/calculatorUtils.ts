@@ -155,11 +155,11 @@ export function formatCurrency(amountTHB: number, currency: CurrencyCode | strin
 }
 
 /**
- * Grades with published tuition. Returns an empty list rather than inventing tiers
- * when a school has no per-grade fees.
+ * Grades with a published annual tuition. A grade without one is left out rather than
+ * given a made-up price, so it cannot be picked in the calculator.
  */
 export function getSchoolGrades(school?: ScrapedSchoolData): ScrapedTuitionGrade[] {
-  return school?.tuition_by_grade ?? [];
+  return (school?.tuition_by_grade ?? []).filter((g) => typeof g.annual_thb === "number" && g.annual_thb > 0);
 }
 
 // "enrol" covers Enrolment/Enrollment; re-enrolment is charged again each year, so it isn't an entrance fee
@@ -275,25 +275,9 @@ export function getAddonAnnualMultiplier(cost: ScrapedHiddenCost): number {
 /**
  * Core deterministic calculation function with dynamic school-specific add-ons
  */
-export function calculateSchoolCosts(
-  school: ScrapedSchoolData | undefined,
-  state: CalculatorState
-): CalculationResult {
-  const safeSchool: ScrapedSchoolData = school || {
-    school_name: "โรงเรียนนานาชาติ",
-    homepage_url: "",
-    status: "ok",
-    page_scraped: "",
-    curriculum: "International",
-    tuition_found: true,
-    tuition_by_grade: [],
-    hidden_costs: [],
-    tuition_min_thb: null,
-    tuition_max_thb: null,
-  };
-
-  const grades = getSchoolGrades(safeSchool);
-  const hiddenCosts = safeSchool.hidden_costs || [];
+export function calculateSchoolCosts(school: ScrapedSchoolData, state: CalculatorState): CalculationResult {
+  const grades = getSchoolGrades(school);
+  const hiddenCosts = school.hidden_costs || [];
 
   // 1. One-Time Mandatory Admission Costs (Non-optional)
   let oneTimeTotalTHB = 0;
@@ -314,7 +298,7 @@ export function calculateSchoolCosts(
   });
 
   // Registration / Entrance / Enrolment Fee (Mandatory, with child tier awareness)
-  const regFeeObj = entranceFeeForTier(safeSchool, state.childTier);
+  const regFeeObj = entranceFeeForTier(school, state.childTier);
   const regFee = hasAmount(regFeeObj) ? regFeeObj.amount_thb : 0;
 
   oneTimeTotalTHB += regFee;
@@ -347,7 +331,7 @@ export function calculateSchoolCosts(
   const startIndex = Math.max(0, Math.min(state.startingGradeIndex || 0, Math.max(0, grades.length - 1)));
 
   // 3. Dynamic Add-ons calculation (Only for selected items that this school actually has)
-  const availableAddons = getSchoolAvailableAddons(safeSchool);
+  const availableAddons = getSchoolAvailableAddons(school);
   let annualAddonsPerYear = 0;
   let oneTimeAddonsTotal = 0;
 
@@ -389,9 +373,9 @@ export function calculateSchoolCosts(
 
   // Build year-by-year schedule
   for (let y = 0; y < duration; y++) {
-    const gradeIdx = Math.min(startIndex + y, Math.max(0, grades.length - 1));
-    const gradeItem = grades[gradeIdx] || { grade_level: `Year ${y + 1}`, annual_thb: 500000, semester_thb: null };
-    const tuitionForYear = gradeItem.annual_thb || 500000;
+    const gradeItem = grades[Math.min(startIndex + y, grades.length - 1)];
+    if (!gradeItem) break;   // no grade has a published price: nothing to schedule
+    const tuitionForYear = gradeItem.annual_thb as number;
 
     const oneTimeForYear = y === 0 ? oneTimeTotalTHB : 0;
     const addonsForYear = annualAddonsPerYear;

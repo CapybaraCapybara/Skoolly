@@ -1528,14 +1528,58 @@ def _read_model(cur, version_id: Any) -> dict[str, Any]:
     """, {"v": version_id}).fetchone()
 
 
-def approve_school_version(version_id: str, dsn: str | None = None) -> dict[str, Any]:
+# What an admin can turn down in a draft while approving the rest: snapshot keys and child tables per part.
+# A part turned down keeps what the live version holds (UC-11 review by part).
+APPROVAL_PARTS: dict[str, tuple[list[str], dict[str, str]]] = {
+    "fees": (["tuition_by_grade", "hidden_costs", "tuition_found", "tuition_min_thb", "tuition_max_thb"],
+             {"version_fees": "grade_label, level_code, annual_thb, semester_thb, currency, academic_year, "
+                              "source_published_at, source_url, confidence_score, notes",
+              "version_extra_fees": "name, amount_thb, frequency, refundable, sibling_related, academic_year, "
+                                    "source_published_at, notes"}),
+    "safety": (["safety_and_security"],
+               {"version_safety": "security_guards, cctv_monitoring, nurse_medical_clinic, child_safeguarding_policy, "
+                                  "air_quality_pm25_protocol, visitor_access_control, highlights, policy_summary, "
+                                  "policy_url, source_published_at"}),
+    "info": (["general_info", "facilities", "signature_programs", "curriculums", "curriculum"], {}),
+}
+
+
+def _keep_live_parts(cur, draft_id: Any, live_id: Any, parts: list[str]) -> None:
+    """Puts the live version's data of `parts` into the draft before it is published."""
+    keys = [k for p in parts for k in APPROVAL_PARTS[p][0]]
+    for p in parts:
+        for table, cols in APPROVAL_PARTS[p][1].items():
+            cur.execute(f"DELETE FROM school_data.{table} WHERE version_id = %s", (draft_id,))
+            if live_id:
+                cur.execute(f"INSERT INTO school_data.{table} (version_id, {cols}) "
+                            f"SELECT %s, {cols} FROM school_data.{table} WHERE version_id = %s", (draft_id, live_id))
+    cur.execute("""
+        UPDATE school_data.school_versions d
+        SET data_snapshot = (d.data_snapshot - %(keys)s::text[])
+                            || COALESCE((SELECT jsonb_object_agg(k, v) FROM jsonb_each(l.data_snapshot) AS e(k, v)
+                                         WHERE k = ANY(%(keys)s::text[])), '{}'::jsonb),
+            diff_summary = COALESCE(d.diff_summary, '{}'::jsonb) || jsonb_build_object('kept_from_live', %(parts)s::jsonb)
+        FROM (SELECT %(live)s::uuid AS id) x
+        LEFT JOIN school_data.school_versions l ON l.version_id = x.id
+        WHERE d.version_id = %(draft)s
+    """, {"keys": keys, "parts": json.dumps(parts), "live": live_id, "draft": draft_id})
+
+
+def approve_school_version(version_id: str, keep_live: list[str] | None = None,
+                           dsn: str | None = None) -> dict[str, Any]:
     """
     Approves a pending version and publishes it (UC-A04 Step 4).
     1. Updates target version status to 'published'
     2. Supersedes any previous published version
     3. Projects published tuition min/max and safeguarding policy to school_data.schools
     4. Records approval in school_data.school_scrape_log
+    keep_live: parts of APPROVAL_PARTS ("fees", "safety", "info") the admin turned down; those keep the live data.
     """
+    keep_live = sorted(set(keep_live or []))
+    if set(keep_live) - APPROVAL_PARTS.keys():
+        raise ValueError(f"ไม่รู้จักหมวด: {', '.join(sorted(set(keep_live) - APPROVAL_PARTS.keys()))}")
+    if len(keep_live) == len(APPROVAL_PARTS):
+        raise ValueError("ต้องรับอย่างน้อยหนึ่งหมวด ถ้าไม่รับเลยให้กดปฏิเสธแทน")
     with db_connect(dsn, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             # FOR UPDATE: a second approve/reject of the same draft waits here, then sees the new status
@@ -1555,7 +1599,12 @@ def approve_school_version(version_id: str, dsn: str | None = None) -> dict[str,
             school_id = ver["school_id"]
             # An admin edit of this school waits until the approval is done, so the link, pin and
             # curriculums written into the draft below are the ones live when it is published
-            cur.execute("SELECT 1 FROM school_data.schools WHERE school_id = %s FOR UPDATE", (school_id,))
+            live_id = cur.execute("SELECT current_published_version_id FROM school_data.schools WHERE school_id = %s FOR UPDATE",
+                                  (school_id,)).fetchone()["current_published_version_id"]
+            if keep_live:
+                _keep_live_parts(cur, version_id, live_id, keep_live)
+                ver["data_snapshot"] = cur.execute("SELECT data_snapshot FROM school_data.school_versions WHERE version_id = %s",
+                                                   (version_id,)).fetchone()["data_snapshot"]
 
             rm = _read_model(cur, version_id)
             min_tuition, max_tuition, has_safeguarding = rm["min_tuition"], rm["max_tuition"], rm["has_safeguarding"]
@@ -1594,11 +1643,11 @@ def approve_school_version(version_id: str, dsn: str | None = None) -> dict[str,
                     curriculums = CASE WHEN %s::text[] IS NOT NULL AND curriculums <@ ARRAY['SCHOOL_SPECIFIC']::text[]
                                             AND curriculums_confirmed_at IS NULL
                                        THEN %s::text[] ELSE curriculums END,
-                    pub_data_updated_at = NOW(),
+                    pub_data_updated_at = CASE WHEN %s THEN pub_data_updated_at ELSE NOW() END,   -- fees kept: their date too
                     updated_at = NOW()
                 WHERE school_id = %s
             """, (version_id, min_tuition, max_tuition, has_safeguarding,
-                  website_curriculums, website_curriculums, school_id))
+                  website_curriculums, website_curriculums, "fees" in keep_live, school_id))
 
             # The draft brings only what the website says (fees, extra fees, safety, facilities). A draft
             # scraped before an admin moved the pin or fixed the link must not put the old ones back: the
@@ -1748,6 +1797,9 @@ def restore_school_version(school_code: str, version_id: str, expected_version_i
                    school_data.school_fields(s) AS live,
                    COALESCE(v.data_snapshot->'web_origin'->>'version_id',
                             CASE WHEN v.source_type = 'scraper' THEN v.version_id::text END) AS web_from,
+                   -- when the restored website data was approved: the date parents see on its fees
+                   CASE WHEN v.data_snapshot ? 'web_origin' THEN (v.data_snapshot->'web_origin'->>'approved_at')::timestamptz
+                        WHEN v.source_type = 'scraper' THEN v.reviewed_at END AS web_approved_at,
                    COALESCE(c.data_snapshot->'web_origin'->>'version_id',
                             CASE WHEN c.source_type = 'scraper' THEN c.version_id::text END) AS web_now
             FROM school_data.school_versions v
@@ -1788,10 +1840,11 @@ def restore_school_version(school_code: str, version_id: str, expected_version_i
                 pub_tuition_min_thb = %(min_tuition)s,
                 pub_tuition_max_thb = %(max_tuition)s,
                 pub_has_safeguarding_policy = %(has_safeguarding)s,
-                pub_data_updated_at = CASE WHEN %(web_changed)s THEN NOW() ELSE pub_data_updated_at END,
+                pub_data_updated_at = CASE WHEN %(web_changed)s THEN %(web_approved_at)s::timestamptz ELSE pub_data_updated_at END,
                 updated_at = NOW()
             WHERE school_id = %(sid)s
-        """, {**values, **rm, "vid": new_id, "sid": school["school_id"], "web_changed": web_changed})
+        """, {**values, **rm, "vid": new_id, "sid": school["school_id"], "web_changed": web_changed,
+               "web_approved_at": target["web_approved_at"]})
         number = cur.execute("SELECT version_number FROM school_data.school_versions WHERE version_id = %s",
                              (new_id,)).fetchone()["version_number"]
     return {"status": "restored", "school_code": school_code, "version_id": str(new_id), "version_number": number,
@@ -1823,10 +1876,37 @@ def guess_fee_frequency(name: str | None, notes: str | None) -> str:
     return "unknown"
 
 
+# Keys of a scrape result that change on every run and say nothing about the school
+_RUN_KEYS = {"run_id", "correlation_id", "status", "elapsed_sec", "confidence", "confidence_reasoning",
+             "needs_ocr_review", "fee_page_discovery", "identity_verified", "page_scraped", "school_name",
+             "homepage_url", "metadata", "diff_summary", "ai_model", "error", "scraped_at",
+             "school", "web_origin"}   # the last two: what new_school_version() adds to a published version
+
+
+def _web_data(snapshot: Any) -> str:
+    """A version's website data, comparable across runs."""
+    return json.dumps({k: v for k, v in (_snapshot(snapshot) or {}).items() if k not in _RUN_KEYS},
+                      ensure_ascii=False, sort_keys=True)
+
+
+def _same_web_data(cur, school_id: Any, result_data: dict[str, Any]) -> dict[str, Any] | None:
+    """The published version, or a draft still awaiting review, whose website data equals this result."""
+    new = _web_data(result_data)
+    cur.execute("""
+        SELECT v.version_id, v.version_number, v.data_snapshot
+        FROM school_data.school_versions v
+        WHERE v.school_id = %s AND (v.status = 'pending_review' OR
+              (v.status = 'published' AND (v.source_type = 'scraper' OR v.data_snapshot ? 'web_origin')))
+        ORDER BY v.version_number DESC
+    """, (school_id,))
+    return next((r for r in cur.fetchall() if _web_data(r["data_snapshot"]) == new), None)
+
+
 def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn: str | None = None) -> dict[str, Any]:
     """
     Saves new scraped data as a draft version in school_data.school_versions
     with status 'pending_review' (preserving versioning history & auditability).
+    No draft when the data equals the published version or a waiting draft: status 'unchanged'.
 
     `school_id` may be the schools.school_id uuid or the OPEC school code: the admin
     table only carries the code.
@@ -1843,6 +1923,23 @@ def save_scraped_draft_version(school_id: str, result_data: dict[str, Any], dsn:
             if not found:
                 raise ValueError(f"ไม่พบโรงเรียนรหัส {school_id} ใน Supabase")
             school_id = found["school_id"]
+
+            # Same data as the live version or a draft already waiting: log the run, make no new draft
+            same = _same_web_data(cur, school_id, result_data)
+            if same:
+                cur.execute("""
+                    INSERT INTO school_data.school_scrape_log
+                        (school_id, run_id, correlation_id, phase, status, page_scraped, elapsed_sec, ai_model,
+                         ai_reasoning, created_at)
+                    VALUES (%s, %s::uuid, %s::uuid, 'extract', 'ok', %s, %s, %s, %s, NOW())
+                """, (school_id, result_data.get("run_id") or str(uuid.uuid4()),
+                      result_data.get("correlation_id") or str(uuid.uuid4()),
+                      result_data.get("page_scraped") or "", to_float(result_data.get("elapsed_sec")) or 0.0,
+                      result_data.get("ai_model") or "gemini-flash-lite-latest",
+                      f"ข้อมูลเหมือนฉบับ {same['version_number']} จึงไม่สร้างร่างใหม่"))
+                conn.commit()
+                return {"status": "unchanged", "version_id": str(same["version_id"]),
+                        "version_number": same["version_number"], "school_id": str(school_id)}
 
             cur.execute("""
                 SELECT COALESCE(MAX(version_number), 0) + 1 as next_num 

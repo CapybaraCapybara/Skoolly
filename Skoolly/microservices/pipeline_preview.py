@@ -340,7 +340,6 @@ def main():
                 break
 
     report = "\n".join(REPORT) + "\n"
-    (WORK / "report.md").write_text(report, encoding="utf-8")
     (WORK / f"report-{args.step}.md").write_text(report, encoding="utf-8")   # kept per step
     print(f"\nรายงานเต็ม: {WORK / f'report-{args.step}.md'}")
     print(f"ข้อมูลหลังรัน: {WORK / DATASET}")

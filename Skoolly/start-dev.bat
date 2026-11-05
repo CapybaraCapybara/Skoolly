@@ -103,7 +103,7 @@ echo.
 
 rem ── 6/6 Frontend ─────────────────────────────────────────────────────────
 echo   %CYAN%[6/6]%R% Starting frontend on port %WEB_PORT% ...
-start "" /b node node_modules\vite\bin\vite.js --host 0.0.0.0 --port %WEB_PORT%
+start "" /b node node_modules\vite\bin\vite.js --host 127.0.0.1 --port %WEB_PORT%
 call :wait_port %WEB_PORT% 60 || (set "DOWN=Frontend failed to start - see the error above" & goto :stop)
 ping -n 2 127.0.0.1 >nul
 echo.

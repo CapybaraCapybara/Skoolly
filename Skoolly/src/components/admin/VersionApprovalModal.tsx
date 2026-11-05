@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   X,
   ExternalLink,
@@ -24,12 +24,13 @@ import {
   Building2,
 } from "lucide-react";
 import type { PendingVersionRecord } from "@/types/admin";
+import type { ApprovalPart } from "@/api/adminApi";
 import { programCategoryLabel } from "@/lib/highlights";
 
 interface VersionApprovalModalProps {
   version: PendingVersionRecord | null;
   onClose: () => void;
-  onApprove: (versionId: string) => Promise<void>;
+  onApprove: (versionId: string, keepLive?: ApprovalPart[]) => Promise<void>;
   onReject: (versionId: string, reason?: string) => Promise<void>;
   onApproveAll?: () => Promise<void>;
   totalPendingCount?: number;
@@ -37,6 +38,13 @@ interface VersionApprovalModalProps {
 }
 
 type TabKey = "diff" | "fees" | "curriculums" | "general" | "facilities" | "safety";
+
+// Parts an admin can turn down while approving the rest; a part turned down keeps the live data
+const APPROVAL_PARTS: [ApprovalPart, string][] = [
+  ["fees", "ค่าเทอมและค่าใช้จ่าย"],
+  ["safety", "ความปลอดภัย"],
+  ["info", "หลักสูตร ข้อมูลทั่วไป สิ่งอำนวยความสะดวก"],
+];
 
 export function VersionApprovalModal({
   version,
@@ -50,6 +58,9 @@ export function VersionApprovalModal({
   const [activeTab, setActiveTab] = useState<TabKey>("diff");
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [turnedDown, setTurnedDown] = useState<ApprovalPart[]>([]);
+
+  useEffect(() => setTurnedDown([]), [version?.version_id]);
 
   if (!version) return null;
 
@@ -197,8 +208,10 @@ export function VersionApprovalModal({
   };
 
   const handleConfirmApprove = async () => {
-    await onApprove(version.version_id);
+    await onApprove(version.version_id, turnedDown);
   };
+  const togglePart = (part: ApprovalPart) =>
+    setTurnedDown((prev) => (prev.includes(part) ? prev.filter((p) => p !== part) : [...prev, part]));
 
   return (
     <div
@@ -893,9 +906,27 @@ export function VersionApprovalModal({
 
         {/* Modal Footer: Action Buttons */}
         <div className="bg-warm-cream border-t border-warm-accent p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="text-xs text-[#78716c]">
-            💡 หากกดยืนยัน ข้อมูลจะถูกบันทึกและเผยแพร่ลงในฐานข้อมูล Supabase และขึ้นหน้าเว็บจริงทันที
-          </div>
+          {isVirtualLog ? (
+            <div />
+          ) : (
+            <fieldset className="text-xs text-warm-charcoal space-y-1.5">
+              <legend className="font-bold mb-1">รับข้อมูลหมวดไหนบ้าง</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {APPROVAL_PARTS.map(([part, label]) => (
+                  <label key={part} className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!turnedDown.includes(part)}
+                      onChange={() => togglePart(part)}
+                      className="size-4 accent-emerald-600"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-[#78716c]">หมวดที่ไม่ติ๊กจะคงข้อมูลของฉบับที่เผยแพร่อยู่ หมวดที่ติ๊กจะขึ้นหน้าเว็บทันทีที่อนุมัติ</p>
+            </fieldset>
+          )}
 
           <div className="flex items-center gap-3 self-end sm:self-center">
             {/* Reject Button */}
@@ -944,7 +975,8 @@ export function VersionApprovalModal({
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
-                {totalPendingCount > 1 && onApproveAll && (
+                {/* approve-all takes every part, so it is hidden while a part is unticked */}
+                {totalPendingCount > 1 && onApproveAll && turnedDown.length === 0 && (
                   <button
                     type="button"
                     onClick={async () => {
@@ -963,7 +995,7 @@ export function VersionApprovalModal({
                 <button
                   type="button"
                   onClick={handleConfirmApprove}
-                  disabled={isActionLoading}
+                  disabled={isActionLoading || turnedDown.length === APPROVAL_PARTS.length}
                   className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
                   {isActionLoading ? (
@@ -974,7 +1006,7 @@ export function VersionApprovalModal({
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>อนุมัติเฉพาะรายการนี้</span>
+                      <span>{turnedDown.length ? "อนุมัติเฉพาะหมวดที่ติ๊ก" : "อนุมัติเฉพาะรายการนี้"}</span>
                     </>
                   )}
                 </button>

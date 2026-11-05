@@ -42,7 +42,8 @@ def save_data(payload: SavePayload):
         except Exception as e:
             # Nothing was committed: save_scraped_draft_version is one transaction
             raise HTTPException(status_code=500, detail=f"บันทึกแบบร่างลงฐานไม่สำเร็จ: {e}")
-    return {"status": "success", "version_id": draft["version_id"], "version_number": draft["version_number"]}
+    return {"status": "success", "version_id": draft["version_id"], "version_number": draft["version_number"],
+            "unchanged": draft["status"] == "unchanged"}   # same data as before: no new draft
 
 
 @app.post("/compensate")

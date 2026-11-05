@@ -10,7 +10,7 @@ class ValidationRequest(BaseModel):
 
 def validate_result(data: Dict[str, Any]) -> tuple[list[str], list[str]]:
     """Business rules for one scrape result. Returns (errors, warnings); any error rejects it.
-    school_service.py imports this too, so drafts saved without the Saga pass the same rules."""
+    Both scrape buttons in the admin page go through the Saga, so every draft passes these rules."""
     errors = []
     warnings = []
 

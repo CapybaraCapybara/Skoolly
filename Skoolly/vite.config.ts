@@ -16,7 +16,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'leaflet'],
   },
   server: {
-    host: '0.0.0.0',
+    host: '127.0.0.1',   // this machine only: the admin pages have no login yet
     port: parseInt(process.env.PORT || '8443'),
     strictPort: true,
     watch: {
@@ -48,7 +48,7 @@ export default defineConfig({
     },
   },
   preview: {
-    host: '0.0.0.0',
+    host: '127.0.0.1',   // this machine only: the admin pages have no login yet
     port: parseInt(process.env.PORT || '8443'),
   },
 })

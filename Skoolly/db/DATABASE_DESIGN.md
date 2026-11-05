@@ -398,7 +398,7 @@ python db/import_opec.py               # เขียนจริง
 | ตาราง | 22 ตารางใน 5 schema ตรงกับไฟล์ (ลบ `children_profiles`, `failed_jobs` และ `school_google_reviews` เมื่อ 4 พ.ย. 2569) (ไม่นับ `public.spatial_ref_sys` ของ PostGIS) |
 | งาน `pg_cron` | ยังไม่มีสักงาน |
 | ตารางที่ไม่เปิด RLS | `grade_levels`, `official_website_registry` (ไม่เปิดทั้งในไฟล์และในฐาน) ตัวแรก grant ให้แค่ `select` จึงอ่านได้อย่างเดียว ตัวสุดท้ายไม่มี grant ให้ `anon`/`authenticated` จึงเข้าผ่าน API ไม่ได้ |
-| ตารางที่ไม่มีในฐาน | `school_data.grade_level_aliases` (จาก `db/add_grade_level_aliases.sql`) ยังไม่เคยรันกับฐานจริง (ไฟล์ migration ของ `public.profiles` ลบแล้ว 4 พ.ย. 2569 หน้าเว็บอ่านชื่อจากบัญชีที่ล็อกอินตรง ๆ) |
+| ตารางที่ไม่มีในฐาน | ไม่มี (ไฟล์ `db/add_grade_level_aliases.sql` ลบแล้ว 5 พ.ย. 2569 เพราะไม่มีโค้ดใช้ การเรียงชั้นทำใน `microservices/pipeline/grade_years.py` และไฟล์นั้น seed รหัสหลักสูตรที่ไม่ตรงกับฐาน เช่น `SINGAPORE`, `OTHER`; ไฟล์ migration ของ `public.profiles` ลบแล้ว 4 พ.ย. 2569) |
 | trigger บน `auth.users` | `on_auth_user_created` เรียก `user_data.handle_new_auth_user()` ตาม `schema.sql` (ไม่ใช่ตัวใน migration profiles ซึ่งใช้ชื่อ trigger เดียวกัน ถ้ารัน migration นั้นจะทับตัวนี้ และผู้ใช้ใหม่จะไม่ได้แถวใน `user_accounts`) |
 
 จำนวนแถวและสถานะข้อมูล:
