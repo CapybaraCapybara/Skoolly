@@ -14,6 +14,7 @@ class SagaRequest(BaseModel):
     school_name: str
     homepage_url: str
     run_id: Optional[str] = None   # one batch run (school_scrape_log.run_id)
+    shared_site: bool = False      # the website is shared with another school: the scraper looks for this campus's page
 
 # Seconds. A scrape loads pages with Playwright and may wait out several Gemini rate-limit
 # back-offs; validation and saving are quick. Callers (school_service.py, batch_scrape_runner.py)
@@ -68,7 +69,8 @@ def orchestrate_scrape_school(req: SagaRequest):
     log_step("SCRAPER_EXECUTE", "started", {"school_name": req.school_name})
     code, scraper_resp = post_json("http://127.0.0.1:8001/scrape", {
         "school_name": req.school_name,
-        "homepage_url": req.homepage_url
+        "homepage_url": req.homepage_url,
+        "shared_site": req.shared_site
     }, timeout=SCRAPE_TIMEOUT_S)
 
     # robots.txt does not allow the site: nothing was scraped, so nothing to validate, save or undo

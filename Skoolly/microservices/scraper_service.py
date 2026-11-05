@@ -113,11 +113,20 @@ EXTRACT_SCHEMA = {
             },
         },
         "tuition_found": {"type": "boolean"},
+        "terms_per_year": {
+            "type": "integer",
+            "nullable": True,
+            "description": "จำนวนเทอม/ภาคเรียนที่เก็บค่าเทอมต่อปี ถ้าเว็บระบุ เช่น 'Payable for 2 terms only', "
+                           "'3 terms per year', 'Term 1, Term 2, Term 3' ไม่ระบุให้เป็น null ห้ามเดา",
+        },
         "tuition_by_grade": {
             "type": "array",
             "description": "ค่าเทอมแยกตามระดับชั้น ใช้ปีการศึกษาล่าสุด/ใหม่สุดที่เจอเท่านั้น "
                            "ค่าที่จ่ายเพิ่มจากค่าเทอมปกติ เช่น extended hours, after-school care, early drop-off, "
-                           "ค่าหอพัก ให้ใส่ใน hidden_costs ไม่ใช่ที่นี่",
+                           "ค่าหอพัก ให้ใส่ใน hidden_costs ไม่ใช่ที่นี่ "
+                           "ถ้าเว็บบอกแค่ราคาเริ่มต้น ('from', 'starting at', 'เริ่มต้น') ให้ใส่แถวเดียวตามชั้นที่เว็บระบุ "
+                           "(ไม่ระบุชั้นให้ใช้ grade_level 'Starting price') และเขียนใน notes ว่าเป็นราคาเริ่มต้น "
+                           "ห้ามคัดลอกราคาเดียวกันไปใส่ชั้นอื่นที่เว็บไม่ได้ให้ราคาไว้",
             "items": {
                 "type": "object",
                 "properties": {
@@ -216,6 +225,8 @@ EXTRACT_SCHEMA = {
 class ScrapeRequest(BaseModel):
     school_name: str
     homepage_url: str
+    # The website is shared with another school (a group site): look for this campus's own page first
+    shared_site: bool = False
 
 class ScrapeLogEntry(BaseModel):
     school_name: str
@@ -467,15 +478,65 @@ def verify_school_identity(school_name: str, combined_text: str) -> tuple[bool, 
     matched = [token for token in brand_tokens if token in text_lower]
     return len(matched) > 0, brand_tokens
 
+# Hosting, parked and server-error pages. A draft built from one publishes the error text as school data
+# (Dragon: "site not found" on Framer became the school's description)
+ERROR_PAGE_PATTERNS = re.compile(
+    r"site not found|page not found|404 not found|this site can.?t be reached|domain (?:is )?for sale"
+    r"|account (?:has been )?suspended|(?:website|site) (?:is )?(?:coming soon|under construction|expired)"
+    r"|bad gateway|service unavailable|ไม่พบหน้า", re.I)
+
+
+def error_page_reason(status: Optional[int], text: str) -> str:
+    """Why a loaded page is an error page rather than the school's own, or "" when it looks real.
+    Only short pages count: a real school site that merely mentions "page not found" somewhere is long."""
+    if status and status >= 400 and len(text) < 1500:
+        return f"HTTP {status}"
+    m = ERROR_PAGE_PATTERNS.search(text)
+    if m and len(text) < 600:
+        return f"the page says '{m.group(0)}'"
+    return ""
+
+
+def campus_phrase(school_name: str, where_we_are: str) -> str:
+    """The part of the school's name that the site's URL and title do not have, squashed: what tells this
+    campus apart on a group site ("Wells International School - On Nut" on wells.ac.th -> "onnut").
+    "" when the site already names the whole school."""
+    words = set(re.findall(r"[\w฀-๿]+", where_we_are.lower()))
+    squashed = "".join(sorted(words, key=where_we_are.lower().find))
+    # a whole word of the URL/title, or a longer token inside one ("sathorn" in standrewssathorn.com);
+    # short ones only as whole words, or "on" would be found inside "international"
+    missing = [t for t in extract_brand_tokens(school_name)
+               if t not in words and not (len(t) >= 4 and t in squashed)]
+    phrase = "".join(missing)
+    return phrase if len(phrase) >= 4 else ""
+
+
+def find_campus_link(page, phrase: str) -> str:
+    """A link on this site to the page of the campus named by `phrase`, preferring one whose address names
+    it; "" when there is none."""
+    host = urlsplit(page.url).hostname or ""
+    base = host[4:] if host.startswith("www.") else host
+    links = page.eval_on_selector_all("a[href]", "els => els.map(e => [(e.innerText || '').trim(), e.href])")
+    squash = lambda s: re.sub(r"[^\w฀-๿]", "", (s or "").lower())
+    same_site = [(text, href) for text, href in links
+                 if href.startswith("http") and ((urlsplit(href).hostname or "") in (base, host)
+                                                 or (urlsplit(href).hostname or "").endswith("." + base))]
+    in_href = [href for text, href in same_site if phrase in squash(urlsplit(href).path + urlsplit(href).hostname)]
+    in_text = [href for text, href in same_site if phrase in squash(text)]
+    return (in_href or in_text or [""])[0]
+
+
 def apply_confidence_caps(
     extraction: dict,
     fee_page_discovery: str,
-    identity_verified: bool
+    identity_verified: bool,
+    campus_missing: bool = False
 ) -> dict:
     """
     Enforces business integrity caps on AI confidence score:
     - If school identity is not verified: cap at 0.3
     - Else if fee page was fallback or no candidates found: cap at 0.4
+    - Else if a group site shared by several campuses has no page for this one: cap at 0.4
     """
     orig_conf = extraction.get("confidence")
     if orig_conf is None:
@@ -490,6 +551,10 @@ def apply_confidence_caps(
     elif fee_page_discovery in ("fallback_homepage", "no_candidates"):
         cap_limit = 0.4
         reasons.append(f"fee_page_discovery is '{fee_page_discovery}'")
+    elif campus_missing:
+        cap_limit = 0.4
+        reasons.append("the website is shared with other campuses and has no page for this one, "
+                       "so the fees may be another campus's")
 
     if cap_limit is not None and orig_conf > cap_limit:
         extraction["confidence"] = cap_limit
@@ -724,6 +789,10 @@ Extract:
 2. General school info: about (2-4 sentence summary), founded year, student count/capacity, levels offered, is boarding.
 3. Campus facilities list (e.g. swimming pool, football pitch, science labs, black box theatre, robotics lab, libraries, gym).
 4. Tuition broken down by grade level (use the most recent academic year found; only use the newest one).
+   - A price given only as a starting/minimum price ("from", "starting at", "เริ่มต้น") goes in ONE row for the
+     grade it is stated for (or grade_level "Starting price"), with notes saying it is a starting price.
+     Never copy one price to grades the content gives no price for.
+   - terms_per_year: how many terms/semesters a year the fees are paid in, only when the content says so.
 5. Any hidden/additional costs mentioned (registration fee, bus fee, uniform, books, capital levy) with amounts when stated.
 6. Campus Safety & Security measures:
    - Security guards (24/7 gate security, guard patrols)
@@ -975,8 +1044,45 @@ def scrape_endpoint(req: ScrapeRequest):
                 page.on("response", on_response)
 
                 add_log("navigate", "opening homepage", req.homepage_url)
-                page.goto(req.homepage_url, timeout=ms(20000), wait_until="domcontentloaded")
+                home_resp = page.goto(req.homepage_url, timeout=ms(20000), wait_until="domcontentloaded")
                 wait_for_links_settled(page, ms(4000))
+                reason = error_page_reason(home_resp.status if home_resp else None, clean_page_text(page.content()))
+                if reason:
+                    add_log("error_page", f"homepage is an error page ({reason})", req.homepage_url, status="failed")
+                    browser.close()
+                    robots_ctx.dispose()
+                    return {
+                        "status": "failed",
+                        "error": f"The homepage {req.homepage_url} is an error page ({reason}): nothing to extract",
+                        "logs": logs
+                    }
+
+                # A group site shared by several campuses: start from this campus's own page when the site has one
+                start_url = req.homepage_url
+                campus_missing = False
+                phrase = campus_phrase(req.school_name, f"{page.url} {page.title()}") if req.shared_site else ""
+                if phrase:
+                    campus_url = find_campus_link(page, phrase)
+                    left_home = False
+                    try:
+                        if not campus_url or not gate.before_load(campus_url):
+                            raise RuntimeError("no page for this campus on the site")
+                        left_home = True
+                        campus_resp = page.goto(campus_url, timeout=ms(20000), wait_until="domcontentloaded")
+                        wait_for_links_settled(page, ms(4000))
+                        reason = error_page_reason(campus_resp.status if campus_resp else None,
+                                                   clean_page_text(page.content()))
+                        if reason:
+                            raise RuntimeError(f"error page ({reason})")
+                        start_url = campus_url
+                        add_log("campus_page", f"shared site: using this campus's page ('{phrase}')", campus_url)
+                    except Exception as ex:
+                        campus_missing = True
+                        add_log("campus_page", f"shared site: {ex} ('{phrase}') — using the group homepage",
+                                campus_url or req.homepage_url, status="warning")
+                        if left_home:
+                            page.goto(req.homepage_url, timeout=ms(20000), wait_until="domcontentloaded")
+                            wait_for_links_settled(page, ms(4000))
 
                 # 1. Discover both Fee & Safety / Policy candidate links
                 fee_candidates, safety_candidates = get_candidate_links(page)
@@ -984,7 +1090,7 @@ def scrape_endpoint(req: ScrapeRequest):
                     add_log(
                         "link_discovery_retry",
                         "retrying candidate link extraction after 4000ms wait",
-                        url=req.homepage_url,
+                        url=start_url,
                         reasoning="Initial scan returned 0 fee candidates and 0 safety candidates; waiting for delayed JS render",
                         status="warning"
                     )
@@ -1014,7 +1120,7 @@ def scrape_endpoint(req: ScrapeRequest):
 
                 # Scrape Tuition Fee Page
                 # network_pdfs keeps growing across pages: each page only counts what it loaded itself
-                target_fee_url = req.homepage_url
+                target_fee_url = start_url
                 fee_pdf_mark = 0
                 if fee_page_discovery == "found" and not gate.before_load(fee_candidates[fee_idx]["href"]):
                     fee_page_discovery = "robots_disallowed"
@@ -1022,22 +1128,25 @@ def scrape_endpoint(req: ScrapeRequest):
                     target_fee_url = fee_candidates[fee_idx]["href"]
                     fee_pdf_mark = len(network_pdfs)
                     try:
-                        page.goto(target_fee_url, timeout=ms(20000), wait_until="domcontentloaded")
+                        fee_resp = page.goto(target_fee_url, timeout=ms(20000), wait_until="domcontentloaded")
                         page.wait_for_timeout(ms(1000))
+                        reason = error_page_reason(fee_resp.status if fee_resp else None, clean_page_text(page.content()))
+                        if reason:
+                            raise RuntimeError(f"error page ({reason})")
                         add_log("navigate", "opened candidate fee page", target_fee_url)
                     except Exception as ex:
                         # The homepage text is still worth extracting from
                         add_log("navigate", f"fee page failed to load ({ex}) — using homepage text",
                                 target_fee_url, status="fallback")
-                        target_fee_url = req.homepage_url
+                        target_fee_url = start_url
                         fee_page_discovery = "fallback_homepage"
                         fee_pdf_mark = 0
-                        gate.before_load(req.homepage_url)
-                        page.goto(req.homepage_url, timeout=ms(20000), wait_until="domcontentloaded")
+                        gate.before_load(start_url)
+                        page.goto(start_url, timeout=ms(20000), wait_until="domcontentloaded")
                 elif fee_page_discovery == "no_candidates":
-                    add_log("navigate", "no fee page candidates found — using homepage text", req.homepage_url, status="fallback")
+                    add_log("navigate", "no fee page candidates found — using homepage text", start_url, status="fallback")
                 else:
-                    add_log("navigate", "fee page candidates rejected by AI — using homepage text", req.homepage_url, status="fallback")
+                    add_log("navigate", "fee page candidates rejected by AI — using homepage text", start_url, status="fallback")
 
                 add_log(
                     "fee_discovery_result",
@@ -1048,8 +1157,8 @@ def scrape_endpoint(req: ScrapeRequest):
                 )
 
                 fee_html = page.content()
-                combined_text = f"=== HOMEPAGE ({req.homepage_url}) ===\n" + homepage_text
-                if target_fee_url != req.homepage_url:
+                combined_text = f"=== HOMEPAGE ({start_url}) ===\n" + homepage_text
+                if target_fee_url != start_url:
                     combined_text += f"\n\n=== TUITION & FEE PAGE ({target_fee_url}) ===\n" + clean_page_text(fee_html)
 
                 # Detect PDFs on fee page
@@ -1117,7 +1226,7 @@ def scrape_endpoint(req: ScrapeRequest):
                 extraction = call_with_retry(client, ai_extract, client, req.school_name, combined_text, log_fn=add_log)
 
                 # Apply centralized confidence capping (identity mismatch <= 0.3, fee discovery fallback <= 0.4)
-                extraction = apply_confidence_caps(extraction, fee_page_discovery, identity_verified)
+                extraction = apply_confidence_caps(extraction, fee_page_discovery, identity_verified, campus_missing)
 
                 kept_programs, dropped_programs = keep_programs_with_evidence(
                     extraction.get("signature_programs"), combined_text
@@ -1144,6 +1253,14 @@ def scrape_endpoint(req: ScrapeRequest):
                     elif safety_policy_url and not extraction["safety_and_security"].get("policy_url"):
                         extraction["safety_and_security"]["policy_url"] = safety_policy_url
 
+                # Per-term fees: the year's fee is known once the site says how many terms are paid
+                terms = extraction.get("terms_per_year")
+                if terms in (2, 3, 4):
+                    for g in extraction.get("tuition_by_grade", []):
+                        if not g.get("annual_thb") and g.get("semester_thb"):
+                            g["annual_thb"] = g["semester_thb"] * terms
+                            g["notes"] = f"{g.get('notes') or ''} (annual = per-term fee x {terms} terms, as the site states)".strip()
+
                 annual_values = [
                     g["annual_thb"] for g in extraction.get("tuition_by_grade", [])
                     if g.get("annual_thb")
@@ -1153,6 +1270,7 @@ def scrape_endpoint(req: ScrapeRequest):
 
                 result.update({
                     "page_scraped": target_fee_url,
+                    "campus_page": start_url if start_url != req.homepage_url else None,
                     "fee_page_discovery": fee_page_discovery,
                     "identity_verified": identity_verified,
                     "needs_ocr_review": needs_ocr_review,

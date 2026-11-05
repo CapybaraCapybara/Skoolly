@@ -4,6 +4,7 @@ import sys
 import time
 import uuid
 import threading
+from collections import Counter
 from typing import List, Optional
 from urllib.parse import urlsplit
 
@@ -292,13 +293,23 @@ WEBSITES = ("ค้นหา Website", step_websites)
 GPS = ("ปักหมุด GPS", step_gps)
 
 
-def _scrape_via_saga(school_id, school_name: str, website: str, run_id: str) -> dict:
+def _shared_websites() -> set[str]:
+    """Websites that more than one open school uses (a group site): the scraper looks for the campus's own page."""
+    with db_connect(get_current_dsn()) as conn:
+        return {r[0] for r in conn.execute("""
+            SELECT official_website_url FROM school_data.schools
+            WHERE status = 'active' AND COALESCE(official_website_url, '') <> ''
+            GROUP BY 1 HAVING count(*) > 1""").fetchall()}
+
+
+def _scrape_via_saga(school_id, school_name: str, website: str, run_id: str, shared_site: bool = False) -> dict:
     """One school through the Saga (orchestrator -> scraper -> validator -> save_service, which saves the draft).
 
     Returns {"saved": the save_service answer} or {"error": text, "fail_status": school_scrape_log status}."""
     try:
         resp = requests.post(ORCHESTRATOR_URL, json={"school_id": str(school_id), "school_name": school_name,
-                                                     "homepage_url": website, "run_id": run_id},
+                                                     "homepage_url": website, "run_id": run_id,
+                                                     "shared_site": shared_site},
                              timeout=SAGA_TIMEOUT_S)
     except requests.Timeout as ex:
         return {"error": f"Timeout: {ex}", "fail_status": "timeout"}
@@ -334,7 +345,7 @@ def step_scrape_school(progress, school_id, school_name, website):
     if down:
         raise RuntimeError(f"เรียก {', '.join(down)} ไม่ได้ ปิดหน้าต่าง start-dev.bat แล้วเปิดใหม่ แล้วลองอีกครั้ง")
     progress(f"กำลัง scrape ค่าเทอม: {school_name}", 15, 100, f"เริ่มสแกน {website} ({school_name})")
-    out = _scrape_via_saga(school_id, school_name, website, str(uuid.uuid4()))
+    out = _scrape_via_saga(school_id, school_name, website, str(uuid.uuid4()), website in _shared_websites())
     if "error" in out:
         raise RuntimeError(f"ข้ามโรงเรียนนี้: {out['error']}" if out["fail_status"] == "blocked" else out["error"])
     saved = out["saved"]
@@ -394,6 +405,9 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
         s for s in schools 
         if str(s.get("website") or s.get("official_website_url") or s.get("official_website") or "").strip()
     ]
+    # counted over every school, before any filter: a group site is shared even when one campus is re-run alone
+    uses = Counter(str(s.get("website") or s.get("official_website") or "").strip() for s in with_websites)
+    shared = {w for w, n in uses.items() if n > 1}
     if only_failed:
         failed_ids = _failed_school_ids()
         with_websites = [s for s in with_websites if str(s.get("school_id") or "") in failed_ids]
@@ -426,7 +440,7 @@ def step_batch_scrape_websites(progress, max_schools: Optional[int] = None, only
         progress(f"กำลัง Scrape: {name} ({curr_num}/{total})", curr_num, total, f"[{curr_num}/{total}] กำลังสแกน {website}")
 
         t_req = time.time()
-        out = _scrape_via_saga(school_id, name, website, batch_run_id)
+        out = _scrape_via_saga(school_id, name, website, batch_run_id, website in shared)
         saved = "saved" in out
         error_msg, fail_status = out.get("error", ""), out.get("fail_status", "error")
         elapsed = round(time.time() - t_req, 2)
