@@ -1797,9 +1797,11 @@ def restore_school_version(school_code: str, version_id: str, expected_version_i
                    school_data.school_fields(s) AS live,
                    COALESCE(v.data_snapshot->'web_origin'->>'version_id',
                             CASE WHEN v.source_type = 'scraper' THEN v.version_id::text END) AS web_from,
-                   -- when the restored website data was approved: the date parents see on its fees
+                   -- the data date parents see: when the restored website data was approved, or for a version
+                   -- with none (an OPEC import), when that version was published, as the import sets it
                    CASE WHEN v.data_snapshot ? 'web_origin' THEN (v.data_snapshot->'web_origin'->>'approved_at')::timestamptz
-                        WHEN v.source_type = 'scraper' THEN v.reviewed_at END AS web_approved_at,
+                        WHEN v.source_type = 'scraper' THEN v.reviewed_at
+                        ELSE COALESCE(v.reviewed_at, v.submitted_at, v.created_at) END AS web_approved_at,
                    COALESCE(c.data_snapshot->'web_origin'->>'version_id',
                             CASE WHEN c.source_type = 'scraper' THEN c.version_id::text END) AS web_now
             FROM school_data.school_versions v

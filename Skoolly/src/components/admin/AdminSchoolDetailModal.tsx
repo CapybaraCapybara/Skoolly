@@ -750,7 +750,9 @@ export function AdminSchoolDetailModal({
             </div>
 
             {/* CARD 8: ประวัติเวอร์ชัน (UC-11) */}
+            {/* key: a new school starts with fresh state, not one render of the last school's open comparison */}
             <SchoolVersionHistory
+              key={school.school_code}
               schoolCode={school.school_code}
               onDialogChange={setVersionDialogOpen}
               onRestored={(n) => onVersionRestored?.(school, n)}

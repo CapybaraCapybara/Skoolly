@@ -113,9 +113,6 @@ export function SchoolVersionHistory({
   }, [schoolCode]);
 
   useEffect(() => {
-    setData(null);
-    setShowAll(false);
-    setComparing(null);
     load();
   }, [load]);
 
