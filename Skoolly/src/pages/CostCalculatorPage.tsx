@@ -1054,8 +1054,8 @@ export function CostCalculatorPage({
                             {formatCurrency(addon.amount_thb, curr)}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-warm-charcoal/60 pt-1 border-t border-warm-accent/40">
-                          <span className="line-clamp-1">
+                        <div className="flex items-start justify-between text-[11px] text-warm-charcoal/60 pt-1 border-t border-warm-accent/40">
+                          <span>
                             {addon.notes || (multiplier === 0 ? "จ่ายครั้งเดียว" : "ตามรอบปีการศึกษา")}
                           </span>
                           {multiplier > 1 && (
@@ -1324,61 +1324,45 @@ export function CostCalculatorPage({
               </div>
 
               {showYearlyTable && (
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-warm-accent text-warm-charcoal/60 text-[11px]">
-                        <th className="pb-2 font-medium">ปีที่</th>
-                        <th className="pb-2 font-medium">ชั้น</th>
-                        <th className="pb-2 font-medium">ค่าเทอม</th>
-                        <th className="pb-2 font-medium">แรกเข้าและบริการเสริม</th>
-                        <th className="pb-2 font-medium text-right">ยอดรวม</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-warm-accent/40">
-                      {results && results.yearlySchedule.length > 0 ? (
-                        results.yearlySchedule.map((row) => (
-                          <tr key={row.yearNumber} className="hover:bg-warm-card/50 transition-colors">
-                            <td className="py-2.5 font-bold text-warm-bronze">
-                              Y{row.yearNumber}
-                            </td>
-                            <td className="py-2.5">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-warm-charcoal text-xs">
-                                  {formatFullGradeTitle({ display_name: row.displayName, grade_level: row.gradeLabel })}
-                                </span>
-                                {row.displayName && row.displayName !== row.gradeLabel && (
-                                  <span className="text-[10px] text-warm-charcoal/50">
-                                    หลักสูตร: {row.gradeLabel}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-2.5 text-warm-charcoal/80 font-medium">
-                              {formatCurrency(row.tuitionTHB, curr)}
-                            </td>
-                            <td className="py-2.5 text-warm-charcoal/80">
+                <div className="mt-4 divide-y divide-warm-accent/40 text-xs">
+                  {results && results.yearlySchedule.length > 0 ? (
+                    results.yearlySchedule.map((row) => (
+                      <div key={row.yearNumber} className="py-3">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-warm-bronze shrink-0">ปีที่ {row.yearNumber}</span>
+                          <span className="font-bold text-warm-charcoal">
+                            {formatFullGradeTitle({ display_name: row.displayName, grade_level: row.gradeLabel })}
+                          </span>
+                        </div>
+                        {row.displayName && row.displayName !== row.gradeLabel && (
+                          <div className="text-[10px] text-warm-charcoal/50 mt-0.5">หลักสูตร: {row.gradeLabel}</div>
+                        )}
+                        <dl className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                          <div>
+                            <dt className="text-warm-charcoal/50">ค่าเทอม</dt>
+                            <dd className="font-medium text-warm-charcoal/80">{formatCurrency(row.tuitionTHB, curr)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-warm-charcoal/50">แรกเข้าและบริการเสริม</dt>
+                            <dd className="font-medium text-warm-charcoal/80">
                               {formatCurrency(row.addonsTHB + row.oneTimeTHB, curr)}
                               {row.oneTimeTHB > 0 && (
-                                <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded ml-1 border border-emerald-200">
+                                <span className="inline-block whitespace-nowrap text-[9px] text-warm-bronze bg-warm-card px-1 py-0.5 rounded ml-1 border border-warm-accent">
                                   +แรกเข้า
                                 </span>
                               )}
-                            </td>
-                            <td className="py-2.5 font-bold text-warm-charcoal text-right">
-                              {formatCurrency(row.totalTHB, curr)}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="py-6 text-center text-xs text-warm-charcoal/50">
-                            ยังไม่มีข้อมูล
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </dd>
+                          </div>
+                          <div className="text-right">
+                            <dt className="text-warm-charcoal/50">ยอดรวม</dt>
+                            <dd className="font-bold text-warm-charcoal">{formatCurrency(row.totalTHB, curr)}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-6 text-center text-warm-charcoal/50">ยังไม่มีข้อมูล</div>
+                  )}
                 </div>
               )}
             </div>
