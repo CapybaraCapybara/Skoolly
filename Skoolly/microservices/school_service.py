@@ -5,6 +5,7 @@ import time
 import uuid
 import threading
 from collections import Counter
+from datetime import date
 from typing import List, Optional
 from urllib.parse import urlsplit
 
@@ -813,11 +814,15 @@ def get_school_history(school_code: str):
 
 
 @app.get("/api/schools/history")
-def get_all_schools_history(limit: int = 300, q: str | None = None):
+def get_all_schools_history(limit: int = 300, q: str | None = None,
+                            date_from: date | None = None, date_to: date | None = None):
     """The latest changes across every school (admin page, tab ประวัติการแก้ไข); q narrows them to schools
-    whose name or code contains it."""
+    whose name or code contains it, date_from/date_to (YYYY-MM-DD, Thai time, both included) to a period."""
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(status_code=400, detail="วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด")
     try:
-        return {"history": fetch_school_history(None, limit=min(max(limit, 1), 1000), search=q)}
+        return {"history": fetch_school_history(None, limit=min(max(limit, 1), 1000), search=q,
+                                                date_from=date_from, date_to=date_to)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"อ่านประวัติการแก้ไขไม่สำเร็จ: {e}")
 

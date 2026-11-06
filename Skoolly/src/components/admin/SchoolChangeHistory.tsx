@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { CalendarDays, Search } from "lucide-react";
 import { getSchoolHistory, type SchoolChange } from "@/api/adminApi";
 import { ACTION_LABELS } from "@/components/admin/SchoolVersionHistory";
 
@@ -84,6 +84,32 @@ function editor(c: SchoolChange): { who: string; chip: string; what?: string; ti
     : { who: "ระบบ", chip: "bg-warm-card text-[#78716c]", what: label };
 }
 
+/** The browser's date picker, but the value reads วว/ดด/ปปปป (พ.ศ.) like the rest of the page,
+ *  whatever locale the browser uses: the native input sits invisible on top of the formatted text. */
+function DateField({ label, value, min, max, onChange, className }: {
+  label: string; value: string; min?: string; max?: string; onChange: (v: string) => void; className: string;
+}) {
+  const [y, m, d] = value.split("-");
+  return (
+    <span className="relative inline-flex">
+      <span aria-hidden className={`${className} min-w-[9.5rem] flex items-center justify-between gap-2 ${value ? "" : "text-[#a8a29e]"}`}>
+        {value ? `${d}/${m}/${Number(y) + 543}` : "วว/ดด/ปปปป"}
+        <CalendarDays className="w-4 h-4 text-[#a8a29e]" />
+      </span>
+      <input
+        type="date"
+        aria-label={label}
+        value={value}
+        min={min || undefined}
+        max={max || undefined}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => e.currentTarget.showPicker?.()}
+        className="absolute inset-0 w-full opacity-0 cursor-pointer"
+      />
+    </span>
+  );
+}
+
 /** Every change to one school's data, newest first, as the database logged it (trigger log_school_change).
  *  Without a school code: the latest changes across every school, with a search by school name or code. */
 export function SchoolChangeHistory({ schoolCode }: { schoolCode?: string }) {
@@ -91,7 +117,10 @@ export function SchoolChangeHistory({ schoolCode }: { schoolCode?: string }) {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const all = !schoolCode;
+  const badRange = !!dateFrom && !!dateTo && dateFrom > dateTo;
 
   // ask the server once typing pauses
   useEffect(() => {
@@ -100,16 +129,21 @@ export function SchoolChangeHistory({ schoolCode }: { schoolCode?: string }) {
   }, [query]);
 
   useEffect(() => {
+    if (badRange) return;
     let live = true;
     setChanges(null);
     setError("");
-    getSchoolHistory(schoolCode, search)
+    getSchoolHistory(schoolCode, search, dateFrom, dateTo)
       .then((h) => live && setChanges(h))
       .catch((e: Error) => live && setError(e.message));
     return () => {
       live = false;
     };
-  }, [schoolCode, search]);
+  }, [schoolCode, search, dateFrom, dateTo, badRange]);
+
+  const filtered = !!(search || dateFrom || dateTo);
+  const dateInput =
+    "px-3 py-2 rounded-xl bg-white border border-[#e5dcce] text-warm-charcoal focus:outline-hidden focus:ring-2 focus:ring-warm-bronze/30";
 
   const cols = all
     ? "md:grid-cols-[7rem_9rem_minmax(0,14rem)_minmax(0,1fr)]"
@@ -118,28 +152,51 @@ export function SchoolChangeHistory({ schoolCode }: { schoolCode?: string }) {
   return (
     <div className="flex flex-col gap-3 text-xs">
       {all && (
-        <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-[#a8a29e] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="search"
-            placeholder="ค้นหาชื่อโรงเรียน หรือรหัส สช."
-            aria-label="ค้นหาชื่อโรงเรียน หรือรหัส สช."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-[#e5dcce] text-warm-charcoal placeholder-[#a8a29e] focus:outline-hidden focus:ring-2 focus:ring-warm-bronze/30"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full max-w-md">
+            <Search className="w-4 h-4 text-[#a8a29e] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="search"
+              placeholder="ค้นหาชื่อโรงเรียน หรือรหัส สช."
+              aria-label="ค้นหาชื่อโรงเรียน หรือรหัส สช."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-[#e5dcce] text-warm-charcoal placeholder-[#a8a29e] focus:outline-hidden focus:ring-2 focus:ring-warm-bronze/30"
+            />
+          </div>
+          <label className="flex items-center gap-1.5 text-[#78716c]">
+            ตั้งแต่
+            <DateField label="ตั้งแต่วันที่" value={dateFrom} max={dateTo} onChange={setDateFrom} className={dateInput} />
+          </label>
+          <label className="flex items-center gap-1.5 text-[#78716c]">
+            ถึง
+            <DateField label="ถึงวันที่" value={dateTo} min={dateFrom} onChange={setDateTo} className={dateInput} />
+          </label>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="text-warm-bronze underline underline-offset-2"
+            >
+              ล้างวันที่
+            </button>
+          )}
         </div>
       )}
 
+      {badRange && <p className="text-rose-700">วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด</p>}
       {error && <p className="text-rose-700">{error}</p>}
-      {!changes && !error && <p className="text-[#78716c]">กำลังโหลด…</p>}
-      {changes && !changes.length && (
+      {!changes && !error && !badRange && <p className="text-[#78716c]">กำลังโหลด…</p>}
+      {changes && !changes.length && !badRange && (
         <p className="text-[#a8a29e] italic">
-          {search ? "ไม่พบการแก้ไขของโรงเรียนที่ค้นหา" : "ยังไม่มีการแก้ไขที่บันทึกไว้"}
+          {filtered ? "ไม่พบการแก้ไขตามที่ค้นหา" : "ยังไม่มีการแก้ไขที่บันทึกไว้"}
         </p>
       )}
 
-      {changes && changes.length > 0 && (
+      {changes && changes.length > 0 && !badRange && (
         <div className={`bg-white border border-warm-accent rounded-xl ${all ? "" : "max-h-80 overflow-y-auto"}`}>
           <div
             className={`hidden ${all ? "md:grid" : "sm:grid"} ${cols} gap-x-4 px-4 py-2 border-b border-warm-accent bg-warm-cream text-[11px] font-semibold text-[#78716c] rounded-t-xl`}

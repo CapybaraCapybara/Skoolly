@@ -143,10 +143,19 @@ export interface SchoolChange {
 }
 
 /** One school's changes, or the latest changes across every school without a code (search: name or code) */
-export async function getSchoolHistory(schoolCode?: string, search = ""): Promise<SchoolChange[]> {
+export async function getSchoolHistory(
+  schoolCode?: string,
+  search = "",
+  dateFrom = "",
+  dateTo = ""
+): Promise<SchoolChange[]> {
+  const qs = new URLSearchParams();
+  if (search.trim()) qs.set("q", search.trim());
+  if (dateFrom) qs.set("date_from", dateFrom);
+  if (dateTo) qs.set("date_to", dateTo);
   const path = schoolCode
     ? `/api/school/${schoolCode}/history`
-    : `/api/schools/history${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ""}`;
+    : `/api/schools/history${qs.toString() ? `?${qs}` : ""}`;
   const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

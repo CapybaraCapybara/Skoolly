@@ -647,7 +647,7 @@ export function AdminPage({
       items: [
         { tab: "pipeline", label: "Data Pipeline", icon: Workflow },
         { tab: "verify", label: "ตรวจรับรอง URL", icon: CheckCircle2 },
-        { tab: "reviews", label: "รีวิวผู้ปกครอง", icon: MessageSquare },
+        { tab: "reviews", label: "จัดการฟอรัม", icon: MessageSquare },
         { tab: "tickets", label: "แจ้งปัญหา", icon: Ticket },
         { tab: "ai-logs", label: "AI & Scraper Logs", icon: Bot },
         { tab: "audit-log", label: "ประวัติการแก้ไข", icon: ShieldCheck },

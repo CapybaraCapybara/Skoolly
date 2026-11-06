@@ -19,6 +19,7 @@ import unicodedata
 import uuid
 from collections import Counter
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
 from typing import Callable, Any, Optional
 
@@ -1055,11 +1056,13 @@ def reopen_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
 
 
 def fetch_school_history(school_code: str | None = None, limit: int = 200, search: str | None = None,
+                         date_from: date | None = None, date_to: date | None = None,
                          dsn: str | None = None) -> list[dict[str, Any]]:
     """What changed on one school's row (every school's when school_code is None), newest first: the trigger
     log_school_change (db/schema.sql) writes each change to ops.audit_log with the old and new value of
     every field that changed. The published version shows as its number, not its id.
-    search: part of the school's Thai or English name, or its OPEC code."""
+    search: part of the school's Thai or English name, or its OPEC code.
+    date_from / date_to: whole days in Thai time, both ends included."""
     search = (search or "").strip()
     pattern = "%" + search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%" if search else None
     with db_connect(dsn, row_factory=dict_row) as conn:
@@ -1077,9 +1080,12 @@ def fetch_school_history(school_code: str | None = None, limit: int = 200, searc
             WHERE l.entity_type = 'school' AND (%(code)s::text IS NULL OR s.opec_school_code = %(code)s)
               AND (%(pattern)s::text IS NULL OR s.name_th ILIKE %(pattern)s OR s.name_en ILIKE %(pattern)s
                    OR s.opec_school_code LIKE %(pattern)s)
+              AND (%(dfrom)s::date IS NULL OR l.created_at >= (%(dfrom)s::date)::timestamp AT TIME ZONE 'Asia/Bangkok')
+              AND (%(dto)s::date IS NULL OR l.created_at < (%(dto)s::date + 1)::timestamp AT TIME ZONE 'Asia/Bangkok')
             ORDER BY l.created_at DESC, l.log_id DESC
             LIMIT %(limit)s
-        """, {"code": school_code, "limit": limit, "pattern": pattern}).fetchall()
+        """, {"code": school_code, "limit": limit, "pattern": pattern,
+              "dfrom": date_from, "dto": date_to}).fetchall()
     return [{"changed_at": r["created_at"].isoformat(), "action": r["action"], "actor_type": r["actor_type"],
              "school_code": r["opec_school_code"], "name_th": r["name_th"], "name_en": r["name_en"],
              "before": r["before_snapshot"] or {}, "after": r["after_snapshot"] or {}}
