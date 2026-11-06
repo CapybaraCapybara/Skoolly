@@ -289,7 +289,6 @@ export function mapSupabaseToDomainDetail(
   }
 
   // Strictly empty if not verified in database
-  const gallery: string[] = [];
   const facilities: string[] = [];
 
   const safety: SchoolDetail["safety"] = record.pub_has_safeguarding_policy
@@ -320,7 +319,6 @@ export function mapSupabaseToDomainDetail(
     website,
     about,
     fees,
-    gallery,
     facilities,
     safety,
     lastUpdated: record.pub_data_updated_at || record.updated_at || record.created_at || "ไม่มีข้อมูล",
@@ -365,36 +363,6 @@ export async function getSchools(): Promise<School[]> {
  * Fetch the extended detail record for a school (Domain Model).
  */
 export async function getSchoolDetail(id: number): Promise<SchoolDetail | undefined> {
-  const data = await getMergedData();
-  if (data.details[id]) {
-    return data.details[id];
-  }
-
-  // Build detail dynamically from School if not in the cached details
-  const matchedSchool = data.schools.find((s) => s.id === id);
-  if (matchedSchool) {
-    return mapSupabaseToDomainDetail(
-      {
-        school_id: String(matchedSchool.id),
-        slug: "",
-        name_th: matchedSchool.nameTh || matchedSchool.name,
-        name_en: matchedSchool.name,
-        status: "active",
-        province: matchedSchool.location,
-        levels_offered: [matchedSchool.grades],
-        curriculums: [matchedSchool.curriculum],
-        opec_school_code: matchedSchool.schoolCode,
-        logo_url: matchedSchool.logoUrl,
-        official_website_url: matchedSchool.websiteUrl,
-        official_phone: matchedSchool.phone,
-        pub_tuition_min_thb: matchedSchool.tuitionStart,
-        pub_tuition_max_thb: matchedSchool.tuitionMax,
-        is_isat_member: matchedSchool.isIsatMember ?? false,
-        is_boarding: matchedSchool.isBoarding ?? false,
-      } as SupabaseSchoolRecord,
-      matchedSchool
-    );
-  }
-
-  return undefined;
+  // Details are built for every school in the same pass as the list
+  return (await getMergedData()).details[id];
 }

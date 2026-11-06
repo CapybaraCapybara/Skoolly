@@ -386,7 +386,7 @@ def opec_point(school):
 #                   into a map link, an OSM/Apple/Waze link. A published fact — storable.
 #        "google" = coordinates carried by a Google Maps embed or place URL, i.e. Google's own
 #                   place data. Google's Maps terms forbid copying that out for use elsewhere,
-#                   so with LICENCE_MODE "open" (the default) the pipeline does not use them.
+#                   so the pipeline does not use them.
 _PIN_PATTERNS = (
     # Google place URL data segment: ...!3d<lat>!4d<lon>
     (re.compile(r'!3d(-?\d{1,3}\.\d{4,})!4d(-?\d{1,3}\.\d{4,})'), "latlon", "place", "google"),
@@ -651,7 +651,10 @@ def load_osm_index():
                               f"({len(rows)} usable of {len(elements)} rows, remark={remark[:80]!r}); keeping the old cache")
                         continue
                     os.makedirs(CACHE_DIR, exist_ok=True)
-                    io.open(OSM_CACHE, "w", encoding="utf-8").write(json.dumps(rows, ensure_ascii=False))
+                    tmp = OSM_CACHE + ".tmp"
+                    with io.open(tmp, "w", encoding="utf-8") as f:
+                        f.write(json.dumps(rows, ensure_ascii=False))
+                    os.replace(tmp, OSM_CACHE)
                     break
                 except Exception as e:
                     print(f"[GPS/OSM] {endpoint} failed: {e}")

@@ -54,11 +54,10 @@ export interface CalculatorState {
   schoolName: string;
   startingGradeIndex: number;
   durationYears: number;
-  // Selected dynamic add-on cost names from school's actual hidden_costs
-  selectedAddonNames: string[];
+  // Selected add-ons, as indexes into the school's hidden_costs (names repeat across grades)
+  selectedAddonIndexes: number[];
   // Child / Sibling status
   childTier: "first_child" | "second_child";
-  customSiblingDiscountPercent: number; // 0, 5, 10, 15
   currency: CurrencyCode;
 }
 
@@ -76,12 +75,14 @@ export const CURRENCY_RATES: Record<CurrencyCode, { rate: number; symbol: string
 };
 
 export interface FeeItemBreakdown {
-  category: "One-Time Mandatory" | "Annual Tuition" | "Selected Campus Add-on" | "Discount";
+  category: "One-Time Mandatory" | "Annual Tuition" | "Selected Campus Add-on";
   name: string;
   unitAmountTHB: number;
   totalAmountTHB: number;
   isOneTime: boolean;
   notes?: string;
+  /** Admission fee with no single amount: several rows by grade, or none published */
+  amountUnknown?: "by_grade" | "missing";
 }
 
 export interface YearlyScheduleRow {
@@ -91,7 +92,6 @@ export interface YearlyScheduleRow {
   tuitionTHB: number;
   oneTimeTHB: number;
   addonsTHB: number;
-  discountTHB: number;
   totalTHB: number;
 }
 
@@ -103,7 +103,6 @@ export interface CalculationResult {
   oneTimeTotalTHB: number;
   totalTuitionTHB: number;
   totalAddonsTHB: number;
-  totalDiscountTHB: number;
   lineItems: FeeItemBreakdown[];
   yearlySchedule: YearlyScheduleRow[];
 }
@@ -167,44 +166,30 @@ const ENTRANCE_FEE_RE = /entrance|registration|admission|guaranteed|enrol/i;
 const RE_ENROL_RE = /re-?\s?(enrol|registration)/i;
 const SIBLING_FEE_RE = /second and subsequent|2nd child|second child|subsequent child|sibling/i;
 
-/**
- * Helper to identify if an item is a mandatory one-time admission fee
- */
-export function isMandatoryAdmissionFee(cost: ScrapedHiddenCost): boolean {
-  if (!cost || !cost.name) return false;
-  const name = cost.name.toLowerCase();
-  return (
-    name.includes("application") ||
-    (ENTRANCE_FEE_RE.test(name) && !RE_ENROL_RE.test(name)) ||
-    name.includes("deposit")
-  );
-}
-
 function hasAmount(cost: ScrapedHiddenCost | undefined): cost is ScrapedHiddenCost {
   return Boolean(cost && typeof cost.amount_thb === "number");
 }
 
-/** The entrance fee for a first child, as published by the school */
-export function findEntranceFee(school?: ScrapedSchoolData | null): ScrapedHiddenCost | undefined {
-  return school?.hidden_costs?.find(
-    (c) => c?.name && ENTRANCE_FEE_RE.test(c.name) && !RE_ENROL_RE.test(c.name) && !SIBLING_FEE_RE.test(c.name)
-  );
+/** Row behind an admission card; "by_grade" when several rows have amounts (one per grade), so none is picked */
+export type FeePick = ScrapedHiddenCost | "by_grade" | undefined;
+
+function pickFee(school: ScrapedSchoolData | null | undefined, test: (name: string) => boolean): FeePick {
+  const rows = (school?.hidden_costs ?? []).filter((c) => c?.name && test(c.name));
+  const priced = rows.filter(hasAmount);
+  return priced.length > 1 ? "by_grade" : priced[0] ?? rows[0];
 }
 
-/** The reduced entrance fee for a second or later child, if the school publishes one with an amount */
-export function findSiblingEntranceFee(school?: ScrapedSchoolData | null): ScrapedHiddenCost | undefined {
-  const item = school?.hidden_costs?.find(
-    (c) => c?.name && ENTRANCE_FEE_RE.test(c.name) && SIBLING_FEE_RE.test(c.name)
-  );
-  return hasAmount(item) ? item : undefined;
-}
-
-/** Entrance fee row that applies to the chosen child tier */
-export function entranceFeeForTier(
-  school: ScrapedSchoolData | undefined,
-  childTier: CalculatorState["childTier"]
-): ScrapedHiddenCost | undefined {
-  return (childTier === "second_child" && findSiblingEntranceFee(school)) || findEntranceFee(school);
+/** Rows for the application, entrance (first child / later child) and deposit cards */
+export function findAdmissionFees(school?: ScrapedSchoolData | null) {
+  return {
+    application: pickFee(school, (n) => /application/i.test(n)),
+    entrance: pickFee(school, (n) => ENTRANCE_FEE_RE.test(n) && !RE_ENROL_RE.test(n) && !SIBLING_FEE_RE.test(n)),
+    // Sibling rows are tiers (second child, subsequent children), not grades: the first one is the second-child rate
+    sibling: school?.hidden_costs?.find(
+      (c) => hasAmount(c) && ENTRANCE_FEE_RE.test(c.name) && SIBLING_FEE_RE.test(c.name)
+    ),
+    deposit: pickFee(school, (n) => /deposit/i.test(n) && !/boarding/i.test(n)),
+  };
 }
 
 /**
@@ -215,8 +200,7 @@ export function isSiblingOrAlumniEntry(cost: ScrapedHiddenCost): boolean {
   const name = cost.name.toLowerCase();
   const notes = (cost.notes || "").toLowerCase();
   return (
-    name.includes("second and subsequent") ||
-    name.includes("sibling") ||
+    SIBLING_FEE_RE.test(name) ||
     name.includes("alumni") ||
     notes.includes("alumni") ||
     notes.includes("subsequent children")
@@ -226,11 +210,13 @@ export function isSiblingOrAlumniEntry(cost: ScrapedHiddenCost): boolean {
 /**
  * Get dynamic optional add-on items that actually exist for this school in results.json
  */
-export function getSchoolAvailableAddons(school?: ScrapedSchoolData): ScrapedHiddenCost[] {
+export function getSchoolAvailableAddons(school?: ScrapedSchoolData): (ScrapedHiddenCost & { index: number })[] {
   if (!school?.hidden_costs) return [];
-  return school.hidden_costs.filter(
-    (c) => !isMandatoryAdmissionFee(c) && !isSiblingOrAlumniEntry(c)
-  );
+  const { application, entrance, deposit } = findAdmissionFees(school);
+  const onCards: FeePick[] = [application, entrance, deposit];
+  return school.hidden_costs
+    .map((c, index) => ({ ...c, index }))
+    .filter((c, i) => !onCards.includes(school.hidden_costs[i]) && !isSiblingOrAlumniEntry(c));
 }
 
 // Times a year each frequency is charged; 0 means only once, in year 1
@@ -277,53 +263,29 @@ export function getAddonAnnualMultiplier(cost: ScrapedHiddenCost): number {
  */
 export function calculateSchoolCosts(school: ScrapedSchoolData, state: CalculatorState): CalculationResult {
   const grades = getSchoolGrades(school);
-  const hiddenCosts = school.hidden_costs || [];
 
-  // 1. One-Time Mandatory Admission Costs (Non-optional)
+  // 1. One-Time Mandatory Admission Costs: application, entrance (by child tier), deposit
   let oneTimeTotalTHB = 0;
   const lineItems: FeeItemBreakdown[] = [];
-
-  // Application Fee (Mandatory)
-  const appFeeObj = hiddenCosts.find((c) => c && c.name && /application/i.test(c.name));
-  const hasAppFee = appFeeObj && typeof appFeeObj.amount_thb === "number";
-  const appFee = hasAppFee ? appFeeObj.amount_thb : 0;
-  oneTimeTotalTHB += appFee;
-  lineItems.push({
-    category: "One-Time Mandatory",
-    name: "ค่าสมัคร",
-    unitAmountTHB: appFee,
-    totalAmountTHB: appFee,
-    isOneTime: true,
-    notes: hasAppFee ? (appFeeObj.notes || "") : "ไม่ระบุในเอกสาร",
-  });
-
-  // Registration / Entrance / Enrolment Fee (Mandatory, with child tier awareness)
-  const regFeeObj = entranceFeeForTier(school, state.childTier);
-  const regFee = hasAmount(regFeeObj) ? regFeeObj.amount_thb : 0;
-
-  oneTimeTotalTHB += regFee;
-  lineItems.push({
-    category: "One-Time Mandatory",
-    name: "ค่าแรกเข้า",
-    unitAmountTHB: regFee,
-    totalAmountTHB: regFee,
-    isOneTime: true,
-    notes: regFeeObj ? (regFeeObj.notes || "") : "ไม่ระบุในเอกสาร",
-  });
-
-  // Refundable Deposit (Mandatory)
-  const depositObj = hiddenCosts.find((c) => c && c.name && /deposit/i.test(c.name) && !/boarding/i.test(c.name));
-  const hasDeposit = depositObj && typeof depositObj.amount_thb === "number";
-  const depositFee = hasDeposit ? depositObj.amount_thb : 0;
-  oneTimeTotalTHB += depositFee;
-  lineItems.push({
-    category: "One-Time Mandatory",
-    name: "เงินประกัน",
-    unitAmountTHB: depositFee,
-    totalAmountTHB: depositFee,
-    isOneTime: true,
-    notes: hasDeposit ? (depositObj.notes || "คืนเมื่อลาออกหรือจบ") : "ไม่ระบุในเอกสาร",
-  });
+  const fees = findAdmissionFees(school);
+  const admissionCards: [string, FeePick, string][] = [
+    ["ค่าสมัคร", fees.application, ""],
+    ["ค่าแรกเข้า", (state.childTier === "second_child" && fees.sibling) || fees.entrance, ""],
+    ["เงินประกัน", fees.deposit, "คืนเมื่อลาออกหรือจบ"],
+  ];
+  for (const [name, row, defaultNote] of admissionCards) {
+    const amount = row !== "by_grade" && hasAmount(row) ? row.amount_thb : null;
+    oneTimeTotalTHB += amount ?? 0;
+    lineItems.push({
+      category: "One-Time Mandatory",
+      name,
+      unitAmountTHB: amount ?? 0,
+      totalAmountTHB: amount ?? 0,
+      isOneTime: true,
+      notes: row === "by_grade" ? "เลือกตามชั้นในบริการเสริม" : amount === null ? "ไม่ระบุในเอกสาร" : (row?.notes || defaultNote),
+      amountUnknown: row === "by_grade" ? "by_grade" : amount === null ? "missing" : undefined,
+    });
+  }
 
   // 2. Multi-Year Schedule & Annual Tuition
   // 17 = every year from pre-nursery to ม.6 (the 0-16 scale in grade_years.py)
@@ -336,7 +298,7 @@ export function calculateSchoolCosts(school: ScrapedSchoolData, state: Calculato
   let oneTimeAddonsTotal = 0;
 
   availableAddons.forEach((addon) => {
-    if (state.selectedAddonNames && state.selectedAddonNames.includes(addon.name)) {
+    if (state.selectedAddonIndexes.includes(addon.index)) {
       const multiplier = getAddonAnnualMultiplier(addon);
       if (multiplier === 0) {
         // One-time add-on (e.g. Learning Resources one-time)
@@ -367,8 +329,7 @@ export function calculateSchoolCosts(school: ScrapedSchoolData, state: Calculato
   oneTimeTotalTHB += oneTimeAddonsTotal;
 
   let totalTuitionTHB = 0;
-  let totalAddonsTHB = annualAddonsPerYear * duration + oneTimeAddonsTotal;
-  let totalDiscountTHB = 0;
+  const totalAddonsTHB = annualAddonsPerYear * duration + oneTimeAddonsTotal;
   const yearlySchedule: YearlyScheduleRow[] = [];
 
   // Build year-by-year schedule
@@ -379,16 +340,9 @@ export function calculateSchoolCosts(school: ScrapedSchoolData, state: Calculato
 
     const oneTimeForYear = y === 0 ? oneTimeTotalTHB : 0;
     const addonsForYear = annualAddonsPerYear;
-
-    // Sibling discount on tuition only
-    const discountForYear = state.customSiblingDiscountPercent > 0
-      ? Math.round(tuitionForYear * (state.customSiblingDiscountPercent / 100))
-      : 0;
-
-    const rowTotal = (tuitionForYear - discountForYear) + addonsForYear + oneTimeForYear;
+    const rowTotal = tuitionForYear + addonsForYear + oneTimeForYear;
 
     totalTuitionTHB += tuitionForYear;
-    totalDiscountTHB += discountForYear;
 
     yearlySchedule.push({
       yearNumber: y + 1,
@@ -397,7 +351,6 @@ export function calculateSchoolCosts(school: ScrapedSchoolData, state: Calculato
       tuitionTHB: tuitionForYear,
       oneTimeTHB: oneTimeForYear,
       addonsTHB: addonsForYear,
-      discountTHB: discountForYear,
       totalTHB: rowTotal,
     });
   }
@@ -415,18 +368,7 @@ export function calculateSchoolCosts(school: ScrapedSchoolData, state: Calculato
     notes: `${startLabel} ถึง ${endLabel}`,
   });
 
-  if (state.customSiblingDiscountPercent > 0) {
-    lineItems.push({
-      category: "Discount",
-      name: `ส่วนลดพี่น้อง ${state.customSiblingDiscountPercent}%`,
-      unitAmountTHB: Math.round(totalDiscountTHB / duration),
-      totalAmountTHB: -totalDiscountTHB,
-      isOneTime: false,
-      notes: "ลดจากค่าเทอม",
-    });
-  }
-
-  const totalJourneyCostTHB = (totalTuitionTHB - totalDiscountTHB) + (annualAddonsPerYear * duration) + oneTimeTotalTHB;
+  const totalJourneyCostTHB = totalTuitionTHB + (annualAddonsPerYear * duration) + oneTimeTotalTHB;
   const year1CostTHB = yearlySchedule.length > 0 ? yearlySchedule[0].totalTHB : 0;
   const averageAnnualCostTHB = Math.round(totalJourneyCostTHB / duration);
   const monthlyEquivalentTHB = Math.round(averageAnnualCostTHB / 12);
@@ -439,7 +381,6 @@ export function calculateSchoolCosts(school: ScrapedSchoolData, state: Calculato
     oneTimeTotalTHB,
     totalTuitionTHB,
     totalAddonsTHB,
-    totalDiscountTHB,
     lineItems,
     yearlySchedule,
   };

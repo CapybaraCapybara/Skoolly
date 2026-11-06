@@ -30,9 +30,7 @@ import {
   getSchoolGrades,
   getSchoolAvailableAddons,
   getAddonAnnualMultiplier,
-  findEntranceFee,
-  findSiblingEntranceFee,
-  entranceFeeForTier,
+  findAdmissionFees,
   CURRENCY_RATES,
   loadLiveCurrencyRates,
   type CurrencyRateInfo,
@@ -62,9 +60,8 @@ export function CostCalculatorPage({
     schoolName: "",
     startingGradeIndex: 0,
     durationYears: 6,
-    selectedAddonNames: [],
+    selectedAddonIndexes: [],
     childTier: "first_child",
-    customSiblingDiscountPercent: 0,
     currency: "THB",
   });
 
@@ -357,9 +354,8 @@ export function CostCalculatorPage({
 
   // Entrance fees for a first and a later child, when the school publishes both with amounts
   const siblingEntranceFees = useMemo(() => {
-    const first = findEntranceFee(currentSchool);
-    const sibling = findSiblingEntranceFee(currentSchool);
-    if (typeof first?.amount_thb !== "number" || !sibling) return null;
+    const { entrance: first, sibling } = findAdmissionFees(currentSchool);
+    if (first === "by_grade" || typeof first?.amount_thb !== "number" || !sibling) return null;
     return { first: first.amount_thb, sibling: sibling.amount_thb };
   }, [currentSchool]);
 
@@ -394,7 +390,7 @@ export function CostCalculatorPage({
       startingGradeIndex: validStartIndex,
       durationYears: Math.min(prev.durationYears, validMaxYears),
       childTier: "first_child",
-      selectedAddonNames: [],
+      selectedAddonIndexes: [],
     }));
   }, [selectedSchoolIndex, currentSchool, grades.length]);
 
@@ -403,28 +399,6 @@ export function CostCalculatorPage({
     if (!currentSchool) return null;
     return calculateSchoolCosts(currentSchool, calcState);
   }, [currentSchool, calcState]);
-
-  // Extract mandatory fee amounts for current school (or null if not published in scraped data)
-  const mandatoryAppFee = useMemo(() => {
-    if (!currentSchool) return null;
-    const item = currentSchool?.hidden_costs?.find((c) => /application/i.test(c.name));
-    return item && typeof item.amount_thb === "number" ? item.amount_thb : null;
-  }, [currentSchool]);
-
-  const mandatoryRegFee = useMemo(() => {
-    if (!currentSchool) return null;
-    const item = entranceFeeForTier(currentSchool, calcState.childTier);
-    return item && typeof item.amount_thb === "number" ? item.amount_thb : null;
-  }, [currentSchool, calcState.childTier]);
-
-  const mandatoryDeposit = useMemo(() => {
-    if (!currentSchool) return null;
-    const item = currentSchool?.hidden_costs?.find(
-      (c) => /deposit/i.test(c.name) && !/boarding/i.test(c.name)
-    );
-    return item && typeof item.amount_thb === "number" ? item.amount_thb : null;
-  }, [currentSchool]);
-
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -994,88 +968,32 @@ export function CostCalculatorPage({
 
               {/* Cards showing the 3 mandatory fees */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                {/* Application Fee Card */}
-                <div className="p-4 rounded-2xl border border-warm-bronze/40 bg-warm-card shadow-2xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-warm-charcoal">
-                        ค่าสมัคร
-                      </span>
-                    </div>
-                    <div className="text-sm font-extrabold text-warm-charcoal mt-1">
-                      {mandatoryAppFee !== null ? (
-                        formatCurrency(mandatoryAppFee, curr)
-                      ) : (
-                        <span className="text-xs text-warm-bronze font-semibold">
-                          ติดต่อโรงเรียน
+                {/* Read from the calculator's line items so the cards always match the total */}
+                {results?.lineItems.filter((item) => item.category === "One-Time Mandatory").map((item) => (
+                  <div key={item.name} className="p-4 rounded-2xl border border-warm-bronze/40 bg-warm-card shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-warm-charcoal">
+                          {item.name}
                         </span>
-                      )}
+                      </div>
+                      <div className="text-sm font-extrabold text-warm-charcoal mt-1">
+                        {item.amountUnknown ? (
+                          <span className="text-xs text-warm-bronze font-semibold">
+                            {item.amountUnknown === "by_grade" ? "ขึ้นกับชั้น" : "ติดต่อโรงเรียน"}
+                          </span>
+                        ) : (
+                          formatCurrency(item.unitAmountTHB, curr)
+                        )}
+                      </div>
                     </div>
+                    {/* Deposit notes are the school's refund conditions */}
+                    <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
+                      {item.amountUnknown || item.name === "เงินประกัน" ? item.notes : "ไม่คืนเงิน"}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
-                    {mandatoryAppFee !== null ? "ไม่คืนเงิน" : "ไม่ระบุในเอกสาร"}
-                  </span>
-                </div>
-
-                {/* Registration Fee Card */}
-                <div className="p-4 rounded-2xl border border-warm-bronze/40 bg-warm-card shadow-2xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-warm-charcoal">
-                        ค่าแรกเข้า
-                      </span>
-                    </div>
-                    <div className="text-sm font-extrabold text-warm-charcoal mt-1">
-                      {mandatoryRegFee !== null ? (
-                        formatCurrency(mandatoryRegFee, curr)
-                      ) : (
-                        <span className="text-xs text-warm-bronze font-semibold">
-                          ติดต่อโรงเรียน
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
-                    {mandatoryRegFee !== null ? "ไม่คืนเงิน" : "ไม่ระบุในเอกสาร"}
-                  </span>
-                </div>
-
-                {/* Refundable Deposit Card */}
-                <div className="p-4 rounded-2xl border border-warm-bronze/40 bg-warm-card shadow-2xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-warm-charcoal">
-                        เงินประกัน
-                      </span>
-                    </div>
-                    <div className="text-sm font-extrabold text-warm-charcoal mt-1">
-                      {mandatoryDeposit !== null ? (
-                        formatCurrency(mandatoryDeposit, curr)
-                      ) : (
-                        <span className="text-xs text-warm-bronze font-semibold">
-                          ติดต่อโรงเรียน
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-warm-charcoal/60 mt-2 block">
-                    {mandatoryDeposit !== null ? "คืนเมื่อลาออกหรือจบ" : "ไม่ระบุในเอกสาร"}
-                  </span>
-                </div>
+                ))}
               </div>
-
-              {/* Deposit conditions from the school's fee document, when it has any */}
-              {currentSchool?.hidden_costs?.find((c) => /deposit/i.test(c.name) && !/boarding/i.test(c.name))?.notes && (
-                <div className="p-3.5 rounded-2xl border border-warm-accent/70 bg-warm-bg/70 text-xs text-warm-charcoal/80 flex items-start gap-2.5">
-                  <Info className="size-4 text-warm-bronze shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-warm-charcoal">เงื่อนไขเงินประกัน</span>
-                    <p className="text-[11px] text-warm-charcoal/70 mt-0.5">
-                      {currentSchool.hidden_costs.find((c) => /deposit/i.test(c.name) && !/boarding/i.test(c.name))?.notes}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* 4. Add-on services listed by the school */}
@@ -1100,19 +1018,19 @@ export function CostCalculatorPage({
               {availableAddons.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {availableAddons.map((addon) => {
-                    const isChecked = calcState.selectedAddonNames.includes(addon.name);
+                    const isChecked = calcState.selectedAddonIndexes.includes(addon.index);
                     const multiplier = getAddonAnnualMultiplier(addon);
                     const annualizedCost = multiplier === 0 ? addon.amount_thb : addon.amount_thb * multiplier;
 
                     return (
                       <div
-                        key={addon.name}
+                        key={addon.index}
                         onClick={() => {
                           setCalcState((prev) => {
                             const next = isChecked
-                              ? prev.selectedAddonNames.filter((n) => n !== addon.name)
-                              : [...prev.selectedAddonNames, addon.name];
-                            return { ...prev, selectedAddonNames: next };
+                              ? prev.selectedAddonIndexes.filter((i) => i !== addon.index)
+                              : [...prev.selectedAddonIndexes, addon.index];
+                            return { ...prev, selectedAddonIndexes: next };
                           });
                         }}
                         className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${isChecked
@@ -1369,12 +1287,8 @@ export function CostCalculatorPage({
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <span
-                          className={`font-bold ${item.totalAmountTHB < 0 ? "text-emerald-600" : "text-warm-charcoal"
-                            }`}
-                        >
-                          {item.totalAmountTHB < 0 ? "-" : ""}
-                          {formatCurrency(Math.abs(item.totalAmountTHB), curr)}
+                        <span className="font-bold text-warm-charcoal">
+                          {formatCurrency(item.totalAmountTHB, curr)}
                         </span>
                         <span className="text-[10px] text-warm-charcoal/50 block">
                           {item.isOneTime ? "ครั้งเดียว" : `${calcState.durationYears} ปี`}

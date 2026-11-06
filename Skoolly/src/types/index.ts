@@ -90,7 +90,6 @@ export interface SchoolDetail {
   website: string;
   about: string;
   fees: SchoolFee[];
-  gallery: string[];
   facilities: string[];
   safety?: SchoolSafety;
   lastUpdated?: string;

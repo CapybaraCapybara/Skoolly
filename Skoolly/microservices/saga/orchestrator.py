@@ -17,8 +17,8 @@ class SagaRequest(BaseModel):
     shared_site: bool = False      # the website is shared with another school: the scraper looks for this campus's page
 
 # Seconds. A scrape loads pages with Playwright and may wait out several Gemini rate-limit
-# back-offs; validation and saving are quick. Callers (school_service.py, batch_scrape_runner.py)
-# wait a little longer than the whole saga, so they never give up on a school that is still being saved.
+# back-offs; validation and saving are quick. The caller (school_service.py)
+# waits a little longer than the whole saga, so they never give up on a school that is still being saved.
 SCRAPE_TIMEOUT_S = 600  # scraper may retry Playwright once with doubled timeouts
 STEP_TIMEOUT_S = 60
 

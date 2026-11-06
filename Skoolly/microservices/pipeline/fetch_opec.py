@@ -15,6 +15,7 @@ fetch_opec.py
 import re
 import threading
 import time
+from collections import Counter
 import requests
 import urllib3
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -115,6 +116,8 @@ def fetch_opec_coordinates():
 
 def build_pure_opec_record(s):
     """Transforms raw OPEC API response into standard school record (100% Pure OPEC Data)"""
+    # OPEC sends null for some empty fields; "_" keys keep None, which means "request failed, keep the old value"
+    s = {k: ("" if v is None and not k.startswith("_") else v) for k, v in s.items()}
     code = str(s.get("schoolCode", "")).strip()
     name_th = s.get("schoolNameTh", "").strip()
     # OPEC's English field occasionally carries a stray Thai mark ("ฺBritish Columbia ...")
@@ -392,6 +395,14 @@ def fetch_opec_schools(update_progress):
     if total_schools == 0 or total_schools < 0.8 * len(previous):
         raise RuntimeError(f"OPEC ส่งรายชื่อโรงเรียนนานาชาติมา {total_schools} แห่ง (เดิมมี {len(previous)} แห่ง) "
                            "ดูผิดปกติ จึงไม่บันทึกทับข้อมูลเดิม")
+    # One province answering an empty list would drop its schools, with their checked pins and websites
+    found = {str(s.get("schoolCode", "")).strip() for s in intl_schools}
+    had = Counter(p.get("province") for p in previous.values())
+    missing = Counter(p.get("province") for c, p in previous.items() if c not in found)
+    gone = [prov for prov, n in had.items() if prov and n >= 2 and missing[prov] == n]
+    if gone:
+        raise RuntimeError(f"OPEC ไม่ส่งโรงเรียนของจังหวัด {', '.join(gone)} มาเลยสักแห่ง ดูผิดปกติ "
+                           "จึงไม่บันทึกทับข้อมูลเดิม ลองดึงใหม่อีกครั้ง")
     update_progress(f"พบโรงเรียนนานาชาติ {total_schools} แห่ง", 20, 100, f"กำลังดึงข้อมูลเชิงลึก (ระดับชั้น, นักเรียน, ครู, หลักสูตร) ทั้ง {total_schools} แห่ง...")
 
     records = []

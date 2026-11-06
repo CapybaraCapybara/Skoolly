@@ -9,6 +9,7 @@ import os
 import json
 import csv
 import shutil
+import tempfile
 import time
 
 # Directory paths
@@ -26,19 +27,18 @@ os.makedirs(DATA_DIR, exist_ok=True)
 def load_schools():
     """
     Loads international schools list from data/international_schools_thailand_opec.json.
-    Returns an empty list if file doesn't exist or is empty.
+    Returns an empty list if file doesn't exist or is empty. A file that cannot be parsed raises:
+    read as "no schools", the next OPEC import would rebuild every record and overwrite checked pins.
     """
     if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-                if not content:
-                    return []
-                data = json.loads(content)
-                return apply_manual_pins(data) if isinstance(data, list) else []
-        except Exception as e:
-            print(f"[DataManager] Error loading {DATA_FILE}:", e)
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+        if not content:
             return []
+        data = json.loads(content)
+        if not isinstance(data, list):
+            raise ValueError(f"{DATA_FILE} is not a list of schools")
+        return apply_manual_pins(data)
     return []
 
 
@@ -52,10 +52,14 @@ def load_manual_pins():
     """{school_code: {"lat", "lon", "source", "note", "by", "at"}} — empty when none."""
     try:
         with open(MANUAL_PINS_FILE, "r", encoding="utf-8") as f:
-            pins = json.load(f)
-            return pins if isinstance(pins, dict) else {}
-    except (FileNotFoundError, ValueError):
+            content = f.read().strip()
+    except FileNotFoundError:
         return {}
+    # A broken file raises: read as empty, every pin would unlock and the next save would drop them
+    pins = json.loads(content) if content else {}
+    if not isinstance(pins, dict):
+        raise ValueError(f"{MANUAL_PINS_FILE} is not a dict of pins")
+    return pins
 
 
 def _save_manual_pins(pins):
@@ -116,23 +120,19 @@ def _atomic_write(path, write_fn, encoding, newline=None):
     Writes via a temp file and swaps it in. Falls back to overwriting in place
     when the target is held open (common on Windows while the file is served).
     """
-    tmp = path + ".tmp"
+    # A temp name of its own, so two writers of the same file never share one
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", suffix=".tmp")
     try:
-        with open(tmp, "w", encoding=encoding, newline=newline) as f:
+        with open(fd, "w", encoding=encoding, newline=newline) as f:
             write_fn(f)
-    except Exception as e:
-        print(f"[DataManager] Error writing {tmp}: {e}")
-        return
-
-    try:
-        os.replace(tmp, path)
-    except Exception as e:
-        print(f"[DataManager] Atomic swap failed for {path} ({e}); overwriting in place")
         try:
+            os.replace(tmp, path)
+        except PermissionError as e:
+            print(f"[DataManager] Atomic swap failed for {path} ({e}); overwriting in place")
             shutil.copyfile(tmp, path)
+    finally:
+        if os.path.exists(tmp):
             os.remove(tmp)
-        except Exception as e2:
-            print(f"[DataManager] Fallback overwrite failed for {path}: {e2}")
 
 
 CSV_FALLBACK_HEADER = [

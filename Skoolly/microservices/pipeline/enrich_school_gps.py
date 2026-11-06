@@ -9,7 +9,7 @@ enrich_school_gps.py
   OpenStreetMap  โรงเรียนใน OSM ที่ชื่อตรงกัน
   กรมการปกครอง   ข้อมูลเปิด gis-02 (สำรวจปี 2564 ไม่มีกรุงเทพฯ) ไฟล์ reference/dopa_gis02_schools.json
   เว็บไซต์โรงเรียน หมุดที่โรงเรียนเขียนเอง (JSON-LD, ลิงก์ที่พิมพ์พิกัด, OSM/Apple/Waze)
-  ArcGIS         POI และบ้านเลขที่ — ใช้โหวตได้ แต่ไม่เก็บพิกัดของมัน (ดู LICENCE_MODE)
+  ArcGIS         POI และบ้านเลขที่ — ใช้โหวตได้ แต่ไม่เก็บพิกัดของมัน
 
 ความแม่นยำของแหล่งเดียว (วัดแบบ leave-one-source-out บนข้อมูลจริง ถูกภายใน 300 ม.):
   OSM ~91%  กรมการปกครอง ~90%  ArcGIS POI ~89%  Overture ~83%  หมุดบนเว็บโรงเรียน ~70%
@@ -23,7 +23,7 @@ enrich_school_gps.py
   Approximate     นอกนั้นทั้งหมด พร้อมเหตุผลใน gps_source และหลักฐานทุกแหล่งใน gps_evidence
   ถ้าหลายโรงเรียนได้ Exact ที่จุดเดียวกัน จะเหลือ Exact เฉพาะแห่งที่หมุด OPEC ของตัวเองยืนยัน
 
-LICENCE_MODE "open" (ค่าเริ่มต้น): เก็บเฉพาะพิกัดที่สัญญาอนุญาตให้เก็บและแสดงบนแผนที่เราได้
+เรื่องใบอนุญาต: เก็บเฉพาะพิกัดที่สัญญาอนุญาตให้เก็บและแสดงบนแผนที่เราได้
   ไม่ใช้พิกัดที่มาจาก Google เลย (ข้อตกลง Google Maps ห้ามคัดลอกออกไปใช้ และห้ามแสดงบนแผนที่อื่น)
   ArcGIS แบบฟรีครอบคลุมเฉพาะการ geocode ที่ไม่เก็บผล จึงใช้โหวตได้แต่ไม่เก็บพิกัดของมัน
   หน้าเว็บที่แสดงแผนที่ต้องให้เครดิต OpenStreetMap, Overture Maps Foundation และกรมการปกครอง
@@ -60,19 +60,15 @@ SOURCE_NAME = {"opec": "OPEC", "website": "เว็บไซต์โรงเ�
                "arcgis_poi": "ArcGIS POI", "arcgis_address": "ArcGIS บ้านเลขที่",
                "overture": "Overture Maps", "dopa": "กรมการปกครอง"}
 
-# "open" (default): only STORE coordinates whose licence allows it — OPEC, OpenStreetMap,
+# Only STORE coordinates whose licence allows it — OPEC, OpenStreetMap,
 #   Overture, DOPA, and pins a school wrote itself. Google-derived pins (Maps embeds / place
 #   URLs on school websites) are not used at all: Google's Maps terms forbid copying them out.
 #   Esri ArcGIS may vote (its free tier covers geocodes that are not stored), but its
 #   coordinates are never the stored point and are not written into gps_evidence.
-# "all": use and store everything, as before.
-LICENCE_MODE = os.environ.get("GPS_LICENCE_MODE", "open")
 STORABLE_SOURCES = {"opec", "osm", "overture", "dopa"}
 
 
 def _storable(c):
-    if LICENCE_MODE != "open":
-        return True
     return c["source"] in STORABLE_SOURCES or (c["source"] == "website" and c.get("origin") == "school")
 OVERTURE_MIN_CONFIDENCE = 0.3
 AREA_TYPES = {"Locality", "PostalLoc", "Postal", "DependentLocality", "SubAdmin", "Admin"}
@@ -324,7 +320,7 @@ def collect_candidates(school, website_url):
         site_pins = pins_future.result(timeout=45)
         site_failed = site_pins is None
         for lat, lon, kind, origin in site_pins or []:
-            if origin == "google" and LICENCE_MODE == "open":
+            if origin == "google":
                 continue
             c = src.candidate(lat, lon, "website", "campus", website_url)
             c["pin"], c["origin"] = kind, origin
@@ -578,13 +574,12 @@ def decide(school, info, shared, multi_campus_brands=frozenset()):
         # campus: require it in the group, or require the group to sit in our tambon.
         own_opec = any(c["source"] == "opec" and not c.get("shared") for c in members)
         confirmed = confirmed and (own_opec or _group_in_area(members, anchor, tight))
-        if LICENCE_MODE == "open":
-            # ArcGIS POI + ArcGIS house number is one provider agreeing with itself, and a
-            # point nobody may store cannot be published: need two distinct providers and
-            # at least one member whose coordinate may be stored.
-            providers = {"esri" if c["source"].startswith("arcgis") else FAMILY[c["source"]]
-                         for c in members if not c.get("shared") and not c.get("copy")}
-            confirmed = confirmed and len(providers) >= 2 and any(_storable(c) and not c.get("shared") for c in members)
+        # ArcGIS POI + ArcGIS house number is one provider agreeing with itself, and a
+        # point nobody may store cannot be published: need two distinct providers and
+        # at least one member whose coordinate may be stored.
+        providers = {"esri" if c["source"].startswith("arcgis") else FAMILY[c["source"]]
+                     for c in members if not c.get("shared") and not c.get("copy")}
+        confirmed = confirmed and len(providers) >= 2 and any(_storable(c) and not c.get("shared") for c in members)
 
         # A confirmed group inside the registered area beats one outside it: OPEC sometimes
         # pins a campus at its parent school, and the parent's own map entries then agree
@@ -654,12 +649,11 @@ def decide(school, info, shared, multi_campus_brands=frozenset()):
     pool = [c for c in pool if c.get("amphoe_ok") is not False and (
             c["source"] == "opec" or not anchor or c.get("amphoe_ok")
             or _in_registered_area(c, anchor, tight) or (c.get("anchor_m") or 0) <= tight)]
-    if LICENCE_MODE == "open":
-        # ArcGIS may vote, but its points (POI, house number, area centre) are not ours
-        # to keep — not even as an Approximate fallback.
-        pool = [c for c in pool if _storable(c)]
-        if not pool:
-            return _no_point("ยังไม่พบพิกัดที่เก็บได้ในเขต/อำเภอที่จดทะเบียน — จะหาใหม่ทุกครั้งที่กดปักหมุด GPS", cands, anchor=anchor)
+    # ArcGIS may vote, but its points (POI, house number, area centre) are not ours
+    # to keep — not even as an Approximate fallback.
+    pool = [c for c in pool if _storable(c)]
+    if not pool:
+        return _no_point("ยังไม่พบพิกัดที่เก็บได้ในเขต/อำเภอที่จดทะเบียน — จะหาใหม่ทุกครั้งที่กดปักหมุด GPS", cands, anchor=anchor)
     if pool:
         c = pool[0]
         name = SOURCE_NAME[c["source"]]
@@ -701,9 +695,9 @@ def _apply(school, result):
         "gps_confidence": result.get("confidence"),
         "gps_confirmed_by": result["confirmed_by"],
         "gps_evidence": result["evidence"],
-        # ArcGIS-derived: keep only which area it is when LICENCE_MODE is "open"
-        "gps_anchor": ({k: result["anchor"][k] for k in ("level", "label")} if LICENCE_MODE == "open"
-                       and result.get("anchor") else result.get("anchor")),
+        # ArcGIS-derived: keep only which area it is
+        "gps_anchor": ({k: result["anchor"][k] for k in ("level", "label")} if result.get("anchor")
+                       else result.get("anchor")),
         "gps_method": GPS_METHOD,
         # True only when the point is confirmed; every record carries gps_method once checked
         "gps_verified": result["precision"] == "Exact",
@@ -727,7 +721,7 @@ def _mark_unverified(school):
         "gps_confirmed_by": [], "gps_evidence": [],
         # an anchor saved by an older run may still carry ArcGIS coordinates
         "gps_anchor": ({k: anchor[k] for k in ("level", "label") if k in anchor}
-                       if LICENCE_MODE == "open" and isinstance(anchor, dict) else anchor),
+                       if isinstance(anchor, dict) else anchor),
         "gps_method": GPS_METHOD, "gps_verified": False,
     })
 
@@ -847,7 +841,9 @@ def enrich_all_school_gps(update_progress):
                     f"เริ่มตรวจพิกัด {total} แห่ง: OPEC, เว็บไซต์โรงเรียน, OpenStreetMap, ArcGIS")
     _backfill_opec_coordinates(schools)
     registry = _registry()
-    src.load_osm_index()
+    # Deciding without OSM or Overture would save weaker pins as final, and they are never re-checked
+    if not src.load_osm_index() or not src.load_overture_index()["rows"]:
+        raise RuntimeError("โหลดจุดจาก OpenStreetMap หรือ Overture ไม่สำเร็จ จึงหยุดก่อนตัดสินพิกัด ลองใหม่อีกครั้ง")
 
     by_code = {str(s.get("school_code")).strip(): s for s in targets}
     collected, lock, done = {}, threading.Lock(), [0]
@@ -875,7 +871,7 @@ def enrich_all_school_gps(update_progress):
     for i, s in enumerate(targets, 1):
         code = str(s.get("school_code")).strip()
         info = collected.get(code)
-        if info and info["incomplete"] and s.get("latitude"):
+        if info is None or (info["incomplete"] and s.get("latitude")):
             # Keep the old pin and its method: the next run, not this half-blind one, decides it.
             retry += 1
             approx += s.get("gps_precision") != "Exact"

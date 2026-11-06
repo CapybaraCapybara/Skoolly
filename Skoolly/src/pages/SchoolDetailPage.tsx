@@ -21,11 +21,10 @@ import {
 import { Check, ExternalLink } from "lucide-react";
 
 // ─── Tab list ────────────────────────────────────────────────────────────────
-const TABS = ["Overview", "Fees", "Gallery", "Reviews", "Forum"];
+const TABS = ["Overview", "Fees", "Reviews", "Forum"];
 const TAB_LABELS: Record<string, string> = {
   Overview: "ภาพรวม",
   Fees: "ค่าเทอม",
-  Gallery: "รูปภาพ",
   Reviews: "รีวิว",
   Forum: "ฟอรัม",
 };
@@ -688,43 +687,6 @@ export function SchoolDetailPage({ school, onBack, onForum, onOpenCalculator }: 
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ── GALLERY ──────────────────────────────────────────────────────── */}
-        {tab === "Gallery" && (
-          <div className="max-w-3xl mx-auto">
-            {detail.gallery && detail.gallery.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {detail.gallery.map((img, i) => (
-                  <div key={i} className="overflow-hidden rounded-2xl bg-slate-100 h-48">
-                    <img
-                      src={img.startsWith("http") ? img : `https://images.unsplash.com/${img}?w=600&h=400&fit=crop&auto=format`}
-                      alt={`รูปที่ ${i + 1} ของ ${names.primary}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-xs">
-                <SchoolMonogram
-                  initials={school.initials}
-                  className="size-20 mx-auto mb-3 rounded-2xl text-2xl"
-                />
-                <h3 className="font-bold text-navy-900 text-base mb-4">ยังไม่มีรูปภาพ</h3>
-                {detail.website && (
-                  <a
-                    href={detail.website.startsWith("http") ? detail.website : `https://${detail.website}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 transition-colors"
-                  >
-                    ดูเว็บไซต์โรงเรียน ↗
-                  </a>
-                )}
-              </div>
-            )}
           </div>
         )}
 

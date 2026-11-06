@@ -230,8 +230,8 @@ export function AdminPage({
           if (match) {
             setReviewingVersion(match);
             showToast("Scrape ข้อมูลเรียบร้อย กำลังเปิดหน้าต่างเปรียบเทียบข้อมูลก่อน vs หลัง");
-          } else if (freshVers.length > 0) {
-            setReviewingVersion(freshVers[0]);
+          } else {
+            showToast("ไม่พบร่างใหม่ของโรงเรียนนี้");
           }
         }
       }

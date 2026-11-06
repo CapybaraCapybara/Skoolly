@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 import requests
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 MICROSERVICES_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,12 +23,12 @@ PIPELINE_DIR = os.path.join(MICROSERVICES_DIR, "pipeline")
 if PIPELINE_DIR not in sys.path:
     sys.path.insert(0, PIPELINE_DIR)
 
-from data_manager import (DATA_FILE, CSV_FILE, MANUAL_PIN_SOURCE, load_schools, save_schools,  # type: ignore
+from data_manager import (DATA_FILE, MANUAL_PIN_SOURCE, load_schools, save_schools,  # type: ignore
                           set_manual_pin, clear_manual_pin, apply_manual_pins)
 from fetch_opec import fetch_opec_schools, search_international_schools  # type: ignore
 from fetch_official_websites import resolve_all_official_websites, resolve_single_school_by_code  # type: ignore
 from enrich_school_names_en import enrich_all_school_names_en  # type: ignore
-from enrich_school_gps import enrich_all_school_gps, is_coords_in_province  # type: ignore
+from enrich_school_gps import enrich_all_school_gps  # type: ignore
 from supabase_sync import (  # type: ignore
     test_database_connection,
     initialize_schema_on_supabase,
@@ -55,8 +55,6 @@ from supabase_sync import (  # type: ignore
     fetch_school_versions,
     fetch_version_compare,
     restore_school_version,
-    admin_edit,
-    write_school_gps,
     VersionConflict,
 )
 from website_registry import (  # type: ignore
@@ -345,8 +343,12 @@ def step_scrape_school(progress, school_id, school_name, website):
     if down:
         raise RuntimeError(f"เรียก {', '.join(down)} ไม่ได้ ปิดหน้าต่าง start-dev.bat แล้วเปิดใหม่ แล้วลองอีกครั้ง")
     progress(f"กำลัง scrape ค่าเทอม: {school_name}", 15, 100, f"เริ่มสแกน {website} ({school_name})")
+    t_req = time.time()
     out = _scrape_via_saga(school_id, school_name, website, str(uuid.uuid4()), website in _shared_websites())
     if "error" in out:
+        # Logged like a batch failure, so Scrape Logs shows it and "only failed" picks the school
+        log_school_scrape(school_id=school_id, phase="extract", status=out["fail_status"], page_scraped=website,
+                          elapsed_sec=round(time.time() - t_req, 2), error_message=out["error"])
         raise RuntimeError(f"ข้ามโรงเรียนนี้: {out['error']}" if out["fail_status"] == "blocked" else out["error"])
     saved = out["saved"]
     if saved.get("unchanged"):
@@ -501,12 +503,6 @@ def clear_logs():
         scraper_state["logs"] = []
         scraper_state["log"] = ""
     return {"status": "cleared"}
-
-@app.post("/api/fetch-opec")
-def trigger_fetch_opec():
-    """Fetch from OPEC into the local dataset only (no Supabase import)."""
-    return _start_job("กำลังดึงข้อมูลจาก OPEC API...", "เริ่มดึงข้อมูลโรงเรียนนานาชาติจาก OPEC",
-                      [(FETCH[0], lambda p: step_fetch_opec(p, import_to_supabase=False))])
 
 @app.post("/api/enrich-names-en")
 def trigger_enrich_names_en():
@@ -666,7 +662,8 @@ class ApproveVersionPayload(BaseModel):
 @app.post("/api/supabase/versions/{version_id}/approve")
 def post_approve_version_endpoint(version_id: str, payload: Optional[ApproveVersionPayload] = None):
     try:
-        return approve_school_version(version_id, payload.keep_live if payload else None)
+        opec = {str(s.get("school_code")).strip(): s.get("curriculums") for s in get_current_schools()}
+        return approve_school_version(version_id, payload.keep_live if payload else None, opec)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -731,79 +728,11 @@ def update_school(school_code: str, payload: UpdateSchoolPayload):
     set_current_schools(load_schools())
     return {"status": "updated", "version_id": saved["version_id"]}
 
-class ManualGpsPayload(BaseModel):
-    latitude: float
-    longitude: float
-    # Where the coordinate came from, e.g. "OpenStreetMap way/123456 (วาดจากภาพ Esri World
-    # Imagery ใน iD)". Required: it is the licence record for a pin we publish.
-    source: str
-    note: Optional[str] = ""
-    by: Optional[str] = ""
-    allow_outside_province: bool = False
-    expected_version_id: Optional[str] = None   # as in VerifyWebsitePayload
-
-# Coordinates read off Google Maps / Earth / Street View may not be stored or shown on our map.
-_FORBIDDEN_GPS_SOURCES = ("google", "goo.gl", "g.page", "street view", "streetview")
-
 def _find_school(schools, school_code):
     for s in schools:
         if s.get("school_code") == school_code:
             return s
     return None
-
-@app.put("/api/school/{school_code}/gps")
-def set_school_gps(school_code: str, payload: ManualGpsPayload):
-    """Pins a school by hand and locks it: no GPS run, OPEC fetch or sync will move it."""
-    _require_idle()
-    schools = get_current_schools()
-    school = _find_school(schools, school_code)
-    if not school:
-        raise HTTPException(status_code=404, detail="School not found")
-    source = (payload.source or "").strip()
-    if not source:
-        raise HTTPException(status_code=422, detail="ต้องระบุแหล่งที่มาของพิกัด (source) เช่น OpenStreetMap way/123")
-    if any(w in source.lower() for w in _FORBIDDEN_GPS_SOURCES):
-        raise HTTPException(status_code=422, detail="ใช้พิกัดจาก Google ไม่ได้: เงื่อนไขของ Google ห้ามเก็บพิกัดและห้ามแสดงบนแผนที่อื่น")
-    if not is_coords_in_province(payload.latitude, payload.longitude, ""):
-        raise HTTPException(status_code=422, detail="พิกัดอยู่นอกประเทศไทย (ตรวจว่าไม่ได้สลับ lat กับ long)")
-    if not payload.allow_outside_province and not is_coords_in_province(payload.latitude, payload.longitude, school.get("province")):
-        raise HTTPException(status_code=422, detail=f"พิกัดอยู่นอกจังหวัด{school.get('province', '')} ที่จดทะเบียน "
-                                                    "(ถ้าตั้งใจ ส่ง allow_outside_province=true)")
-    # Lock and check first, so a stale page changes nothing; the files are written inside the transaction
-    # because the pin the database gets is the one apply_manual_pins() makes
-    try:
-        with admin_edit(school_code, "set_gps", payload.expected_version_id, by=payload.by or "") as (cur, row):
-            set_manual_pin(school_code, payload.latitude, payload.longitude, source, payload.note or "", payload.by or "")
-            apply_manual_pins(schools)
-            school["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            set_current_schools(schools)
-            save_schools(schools)
-            version_id = write_school_gps(cur, row["school_id"], school)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    return {**{k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source",
-                                          "gps_locked", "gps_manual")}, "version_id": version_id}
-
-@app.delete("/api/school/{school_code}/gps")
-def clear_school_gps(school_code: str, expected_version_id: Optional[str] = None):
-    """Removes a hand-placed pin; the next GPS run decides this school again."""
-    _require_idle()
-    schools = get_current_schools()
-    school = _find_school(schools, school_code)
-    if not school:
-        raise HTTPException(status_code=404, detail="School not found")
-    try:
-        with admin_edit(school_code, "clear_gps", expected_version_id) as (cur, row):
-            if not clear_manual_pin(school_code):
-                raise HTTPException(status_code=404, detail="โรงเรียนนี้ไม่มีหมุดที่ปักด้วยมือ")
-            apply_manual_pins(schools)
-            set_current_schools(schools)
-            save_schools(schools)
-            version_id = write_school_gps(cur, row["school_id"], school)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    return {**{k: school.get(k) for k in ("school_code", "latitude", "longitude", "gps_precision", "gps_source",
-                                          "gps_locked")}, "version_id": version_id}
 
 @app.get("/api/curriculums/review")
 def get_curriculum_review():
@@ -983,18 +912,6 @@ def resolve_one_school(school_code: str):
 @app.post("/api/enrich/isat")
 def enrich_isat():
     return _start_job("กำลังเริ่มซิงค์ข้อมูลสมาคม ISAT...", "เริ่มซิงค์ข้อมูลสมาคม ISAT", [ISAT])
-
-@app.get("/api/export/csv")
-def export_csv():
-    if os.path.exists(CSV_FILE):
-        return FileResponse(CSV_FILE, media_type="text/csv", filename="international_schools_thailand_opec.csv")
-    raise HTTPException(status_code=404, detail="CSV file not found")
-
-@app.get("/api/export/json")
-def export_json():
-    if os.path.exists(DATA_FILE):
-        return FileResponse(DATA_FILE, media_type="application/json", filename="international_schools_thailand_opec.json")
-    raise HTTPException(status_code=404, detail="JSON file not found")
 
 if __name__ == "__main__":
     import uvicorn

@@ -104,12 +104,12 @@ def fetch_published_fees(dsn: str | None = None) -> list[dict[str, Any]]:
 
     result = list(schools.values())
     for school in result:
-        amounts = [g["annual_thb"] for g in school["tuition_by_grade"] if g["annual_thb"]]
-        school["tuition_min_thb"] = min(amounts) if amounts else None
-        school["tuition_max_thb"] = max(amounts) if amounts else None
         # The calculator counts one row as one school year
         school["tuition_by_grade"] = [{k: v for k, v in g.items() if k != "page_pos"}
                                       for g in year_rows(school["tuition_by_grade"], school.pop("curriculum_codes"))]
+        amounts = [g["annual_thb"] for g in school["tuition_by_grade"] if g["annual_thb"]]
+        school["tuition_min_thb"] = min(amounts) if amounts else None
+        school["tuition_max_thb"] = max(amounts) if amounts else None
     return result
 
 
