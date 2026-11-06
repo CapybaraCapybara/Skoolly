@@ -748,18 +748,23 @@ export function CostCalculatorPage({
                 </div>
 
                 {/* 2. Horizontal Timeline Track Line with Circular Grade Nodes */}
-                <div className="relative py-4 px-2 sm:px-4">
-                  <div className="relative flex items-center justify-between gap-1 sm:gap-2">
-                    {/* Background line across full width */}
-                    <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1.5 bg-warm-accent rounded-full -z-0" />
-                    
+                {/* Every node gets an equal share of the row; a school with many grades scrolls sideways
+                    on a narrow screen instead of pushing the last nodes past the edge */}
+                <div className="relative pt-7 pb-3 overflow-x-auto">
+                  <div className="relative flex items-center" style={{ minWidth: grades.length * 34 }}>
+                    {/* Background line from the first node's centre to the last one's */}
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-warm-accent rounded-full -z-0"
+                      style={{ left: `${50 / grades.length}%`, right: `${50 / grades.length}%` }}
+                    />
+
                     {/* Active highlighted line portion */}
                     {grades.length > 1 && (
                       <div
                         className="absolute top-1/2 -translate-y-1/2 h-1.5 bg-warm-bronze rounded-full transition-all duration-200 -z-0"
                         style={{
-                          left: `${(calcState.startingGradeIndex / (grades.length - 1)) * 100}%`,
-                          width: `${(Math.min(calcState.durationYears - 1, grades.length - 1 - calcState.startingGradeIndex) / (grades.length - 1)) * 100}%`,
+                          left: `${((calcState.startingGradeIndex + 0.5) / grades.length) * 100}%`,
+                          width: `${(Math.min(calcState.durationYears - 1, grades.length - 1 - calcState.startingGradeIndex) / grades.length) * 100}%`,
                         }}
                       />
                     )}
@@ -774,7 +779,7 @@ export function CostCalculatorPage({
                       return (
                         <div
                           key={idx}
-                          className="flex flex-col items-center relative z-10 group"
+                          className="flex flex-1 min-w-0 flex-col items-center relative z-10 group"
                         >
                           <button
                             type="button"
