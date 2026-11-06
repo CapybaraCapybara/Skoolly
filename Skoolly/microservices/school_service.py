@@ -519,9 +519,9 @@ def trigger_fetch_websites():
 
 @app.post("/api/enrich-data")
 def trigger_enrich_data():
-    """Auto-Enrich: every step after the OPEC fetch that works from the local dataset."""
-    return _start_job("กำลังเริ่ม Auto-Enrich...", "เริ่ม Auto-Enrich: เติมชื่อ EN -> ค้นหา Website -> ปักหมุด GPS",
-                      [NAMES, WEBSITES, GPS])
+    """Auto-Enrich: every step after the OPEC fetch."""
+    return _start_job("กำลังเริ่ม Auto-Enrich...", "เริ่ม Auto-Enrich: เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS",
+                      [NAMES, ISAT, WEBSITES, GPS])
 
 @app.post("/api/pipeline/run-all")
 def trigger_full_pipeline():

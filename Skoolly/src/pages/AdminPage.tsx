@@ -14,7 +14,6 @@ import {
   Loader2,
   Database,
   Wand2,
-  Award,
   Zap,
   Stamp,
   ExternalLink,
@@ -662,16 +661,22 @@ export function AdminPage({
     item.onSelect?.();
   };
 
-  // Websites before GPS: the pins a school puts on its own site are one of the GPS sources
+  // Members already matched in the DB — the ISAT directory size itself is only known during a sync
+  const isatMemberCount = schools.filter((s) => s.is_isat_member).length;
+  // Same order as /api/pipeline/run-all. Websites before GPS: the pins a school puts on its own site are one of the GPS sources
   const pipelineSteps = [
     { step: 1, label: "ดึงข้อมูล OPEC", onClick: () => setIsSyncConfirmOpen(true), title: "ขั้นที่ 1: ดึงข้อมูลโรงเรียนนานาชาติจากระบบ สช. แล้วบันทึกลง Supabase" },
     { step: 2, label: "เติมชื่อ EN", onClick: handleEnrichNamesEn, title: "ขั้นที่ 2: เติมชื่อภาษาอังกฤษให้โรงเรียนที่ยังไม่มีหรือชื่อเพี้ยน" },
-    { step: 3, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 3: หาเว็บไซต์ทางการจากทะเบียนที่ยืนยันแล้ว แล้วตรวจว่าเปิดได้จริง" },
-    { step: 4, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 4: ตรวจพิกัดโดยเทียบหลายแหล่ง" },
+    {
+      step: 3,
+      label: "ซิงค์ ISAT",
+      onClick: handleEnrichIsat,
+      title: `ขั้นที่ 3: ดึงข้อมูลจากสมาคม ISAT ได้แก่ ปีก่อตั้ง การรับรองมาตรฐาน และโรงเรียนประจำ${isatMemberCount > 0 ? ` (ตอนนี้จับคู่เป็นสมาชิกแล้ว ${isatMemberCount} โรงเรียน)` : ""}`,
+    },
+    { step: 4, label: "ค้นหา Website", onClick: handleEnrichWebsites, title: "ขั้นที่ 4: หาเว็บไซต์ทางการ แล้วตรวจว่าเปิดได้จริง" },
+    { step: 5, label: "ปักหมุด GPS", onClick: handleEnrichGps, title: "ขั้นที่ 5: ตรวจพิกัดโดยเทียบหลายแหล่ง" },
   ];
   const pipelineBusy = isRunning || actionLoading;
-  // Members already matched in the DB — the ISAT directory size itself is only known during a sync
-  const isatMemberCount = schools.filter((s) => s.is_isat_member).length;
   const pillBtn =
     "inline-flex items-center gap-2 rounded-full border border-warm-accent bg-white/70 py-1.5 text-sm font-medium text-warm-charcoal transition-colors hover:border-warm-bronze hover:text-warm-bronze disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
 
@@ -875,34 +880,10 @@ export function AdminPage({
 
                   <button
                     type="button"
-                    onClick={() => setIsUrlVerificationModalOpen(true)}
-                    className={cn(pillBtn, "px-3.5")}
-                    title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
-                  >
-                    <ShieldCheck className="size-4 text-warm-bronze" />
-                    ตรวจรับรอง URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleEnrichIsat}
-                    disabled={pipelineBusy}
-                    className={cn(pillBtn, "px-3.5")}
-                    title={`ดึงและซิงค์ข้อมูลจากสมาคมโรงเรียนนานาชาติ (ISAT): โลโก้, ปีก่อตั้ง, การรับรองมาตรฐานสากล (CIS/WASC), โรงเรียนประจำ${isatMemberCount > 0 ? ` — ตอนนี้จับคู่เป็นสมาชิกแล้ว ${isatMemberCount} โรงเรียน` : ""}`}
-                  >
-                    <Award className="size-4 text-warm-bronze" />
-                    ซิงค์ ISAT
-                    {isatMemberCount > 0 && (
-                      <span className="rounded-full bg-warm-card px-2 py-0.5 text-xs font-semibold tabular-nums text-warm-bronze">
-                        {isatMemberCount} รร.
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleAutoEnrichAll}
                     disabled={pipelineBusy}
                     className={cn(pillBtn, "px-3.5")}
-                    title="รันต่อกัน: เติมชื่อ EN -> ค้นหา Website -> ปักหมุด GPS (ไม่ดึง OPEC ใหม่)"
+                    title="รันขั้นที่ 2 ถึง 5 ต่อกัน: เติมชื่อ EN -> ซิงค์ ISAT -> ค้นหา Website -> ปักหมุด GPS (ไม่ดึง OPEC ใหม่)"
                   >
                     <Wand2 className="size-4 text-warm-bronze" />
                     Auto-Enrich
@@ -916,6 +897,15 @@ export function AdminPage({
                   >
                     <SearchCheck className="size-4 text-warm-bronze" />
                     ตรวจกับรายชื่อ OPEC
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsUrlVerificationModalOpen(true)}
+                    className={cn(pillBtn, "px-3.5")}
+                    title="เปิดศูนย์ตรวจสอบและรับรองเว็บไซต์ทางการ (Official URL Registry)"
+                  >
+                    <ShieldCheck className="size-4 text-warm-bronze" />
+                    ตรวจรับรอง URL
                   </button>
                 </div>
               </section>
