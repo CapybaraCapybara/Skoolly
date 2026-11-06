@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { getSchoolHistory, type SchoolChange } from "@/api/adminApi";
+import { ACTION_LABELS } from "@/components/admin/SchoolVersionHistory";
 
 // Column names in school_data.schools; one not listed shows as the column name
 const FIELD_LABELS: Record<string, string> = {
@@ -46,14 +48,18 @@ const FIELD_LABELS: Record<string, string> = {
   archived_reason: "เหตุผลที่ปิด",
 };
 
+const TZ = "Asia/Bangkok";
+
 function when(iso: string): string {
   return new Date(iso).toLocaleString("th-TH", {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok",
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: TZ,
   });
 }
 
 function show(key: string, value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
+  // the API turns a version id into its number; one it could not find stays an id
+  if (key === "current_published_version_id") return typeof value === "number" ? `ฉบับ ${value}` : "ไม่ทราบเลขฉบับ";
   if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
   if (typeof value === "boolean") return value ? "ใช่" : "ไม่ใช่";
   if (typeof value === "number") return value.toLocaleString("th-TH");
@@ -62,56 +68,142 @@ function show(key: string, value: unknown): string {
   return String(value);
 }
 
+/** Who made the change and, under it, what they did */
+function editor(c: SchoolChange): { who: string; chip: string; what?: string; title?: string } {
+  if (c.action === "school.create") return { who: "ระบบ", chip: "bg-warm-card text-[#78716c]" };
+  const label = ACTION_LABELS[c.action.slice("school.".length)];
+  if (!label) {
+    return {
+      who: "ไม่ทราบ",
+      chip: "border border-dashed border-warm-accent text-[#a8a29e]",
+      title: "บันทึกก่อนที่ระบบจะเก็บผู้แก้ (6 พ.ย. 2569)",
+    };
+  }
+  return c.actor_type === "admin"
+    ? { who: "แอดมิน", chip: "bg-warm-charcoal text-white", what: label.replace(/^แอดมิน/, "") }
+    : { who: "ระบบ", chip: "bg-warm-card text-[#78716c]", what: label };
+}
+
 /** Every change to one school's data, newest first, as the database logged it (trigger log_school_change).
- *  Without a school code: the latest changes across every school, each with the school's name. */
+ *  Without a school code: the latest changes across every school, with a search by school name or code. */
 export function SchoolChangeHistory({ schoolCode }: { schoolCode?: string }) {
   const [changes, setChanges] = useState<SchoolChange[] | null>(null);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const all = !schoolCode;
+
+  // ask the server once typing pauses
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
   useEffect(() => {
     let live = true;
     setChanges(null);
     setError("");
-    getSchoolHistory(schoolCode)
+    getSchoolHistory(schoolCode, search)
       .then((h) => live && setChanges(h))
       .catch((e: Error) => live && setError(e.message));
     return () => {
       live = false;
     };
-  }, [schoolCode]);
+  }, [schoolCode, search]);
 
-  if (error) return <p className="text-xs text-rose-700">{error}</p>;
-  if (!changes) return <p className="text-xs text-[#78716c]">กำลังโหลด…</p>;
-  if (!changes.length) return <p className="text-xs text-[#a8a29e] italic">ยังไม่มีการแก้ไขที่บันทึกไว้</p>;
+  const cols = all
+    ? "md:grid-cols-[7rem_9rem_minmax(0,14rem)_minmax(0,1fr)]"
+    : "sm:grid-cols-[7rem_9rem_minmax(0,1fr)]";
 
   return (
-    <ol className={`space-y-2.5 text-xs ${schoolCode ? "max-h-80 overflow-y-auto pr-1" : ""}`}>
-      {changes.map((c, i) => (
-        <li key={i} className="border border-warm-accent rounded-xl p-3 bg-white">
-          <div className="font-semibold text-warm-charcoal mb-1.5">
-            {when(c.changed_at)}
-            {!schoolCode && <span className="text-warm-bronze">{` · ${c.name_th} (${c.school_code})`}</span>}
+    <div className="flex flex-col gap-3 text-xs">
+      {all && (
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 text-[#a8a29e] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="search"
+            placeholder="ค้นหาชื่อโรงเรียน หรือรหัส สช."
+            aria-label="ค้นหาชื่อโรงเรียน หรือรหัส สช."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-[#e5dcce] text-warm-charcoal placeholder-[#a8a29e] focus:outline-hidden focus:ring-2 focus:ring-warm-bronze/30"
+          />
+        </div>
+      )}
+
+      {error && <p className="text-rose-700">{error}</p>}
+      {!changes && !error && <p className="text-[#78716c]">กำลังโหลด…</p>}
+      {changes && !changes.length && (
+        <p className="text-[#a8a29e] italic">
+          {search ? "ไม่พบการแก้ไขของโรงเรียนที่ค้นหา" : "ยังไม่มีการแก้ไขที่บันทึกไว้"}
+        </p>
+      )}
+
+      {changes && changes.length > 0 && (
+        <div className={`bg-white border border-warm-accent rounded-xl ${all ? "" : "max-h-80 overflow-y-auto"}`}>
+          <div
+            className={`hidden ${all ? "md:grid" : "sm:grid"} ${cols} gap-x-4 px-4 py-2 border-b border-warm-accent bg-warm-cream text-[11px] font-semibold text-[#78716c] rounded-t-xl`}
+          >
+            <span>เวลา</span>
+            <span>ผู้แก้</span>
+            {all && <span>โรงเรียน</span>}
+            <span>สิ่งที่แก้</span>
           </div>
-          {c.action === "school.create" ? (
-            <div className="text-warm-charcoal">เพิ่มโรงเรียนเข้าระบบ</div>
-          ) : (
-            Object.keys(c.after).map((k) => (
-              <div key={k} className="flex flex-wrap gap-x-1.5 py-0.5">
-                <span className="text-[#78716c] font-medium">{FIELD_LABELS[k] ?? k}:</span>
-                {k.endsWith("_id") ? (
-                  <span className="text-warm-charcoal font-medium">เปลี่ยน</span>
-                ) : (
-                  <>
-                    <span className="line-through text-[#a8a29e] break-words">{show(k, c.before[k])}</span>
-                    <span className="text-[#78716c]">→</span>
-                    <span className="text-warm-charcoal font-medium break-words">{show(k, c.after[k])}</span>
-                  </>
-                )}
-              </div>
-            ))
-          )}
-        </li>
-      ))}
-    </ol>
+          <ol className="divide-y divide-warm-accent/70">
+            {changes.map((c, i) => {
+              const ed = editor(c);
+              const d = new Date(c.changed_at);
+              return (
+                <li key={i} className={`grid grid-cols-1 ${cols} gap-x-4 gap-y-1.5 px-4 py-3`}>
+                  <div className="text-warm-charcoal">
+                    <span className="font-semibold">
+                      {d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", timeZone: TZ })}
+                    </span>
+                    <span className="text-[#78716c]">
+                      {" "}
+                      {d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: TZ })}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 md:flex-col md:items-start">
+                    <span title={ed.title} className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${ed.chip}`}>
+                      {ed.who}
+                    </span>
+                    {ed.what && <span className="text-[#78716c]">{ed.what}</span>}
+                  </div>
+
+                  {all && (
+                    <div className="min-w-0">
+                      <div className="font-semibold text-warm-charcoal break-words">{c.name_th}</div>
+                      <div className="text-[#a8a29e] break-words">
+                        {c.name_en ? `${c.name_en} · ` : ""}
+                        {c.school_code}
+                      </div>
+                    </div>
+                  )}
+
+                  {c.action === "school.create" ? (
+                    <div className="text-warm-charcoal">เพิ่มโรงเรียนเข้าระบบ</div>
+                  ) : (
+                    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 min-w-0">
+                      {Object.keys(c.after).map((k) => (
+                        <div key={k} className="contents">
+                          <dt className="text-[#78716c]">{FIELD_LABELS[k] ?? k}</dt>
+                          <dd className="min-w-0 break-words">
+                            <span className="line-through text-[#a8a29e]">{show(k, c.before[k])}</span>
+                            <span className="text-[#78716c]">{" → "}</span>
+                            <span className="text-warm-charcoal font-medium">{show(k, c.after[k])}</span>
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
+    </div>
   );
 }

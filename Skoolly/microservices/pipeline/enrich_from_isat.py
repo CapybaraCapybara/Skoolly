@@ -7,7 +7,7 @@ import requests
 import urllib3
 from bs4 import BeautifulSoup
 from data_manager import load_schools, save_schools
-from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect
+from supabase_sync import get_current_dsn, psycopg, dict_row, db_connect, tag_versions
 
 # คำทั่วไปที่ไม่ช่วยแยกโรงเรียน (รวมคำสะกดผิดที่พบจริงในชื่อ EN ของ สช.)
 # ตั้งใจไม่ตัดคำบอกที่ตั้ง เช่น bangkok / sukhumvit / thonburi เพราะเป็นตัวแยกวิทยาเขตของโรงเรียนเครือเดียวกัน
@@ -423,6 +423,7 @@ def run_isat_enrichment(apply_to_db: bool = True, progress_callback=None) -> Dic
             with db_connect(dsn, row_factory=dict_row) as conn:
                 ensure_isat_columns_in_supabase(conn)
                 with conn.cursor() as cur:
+                    tag_versions(cur, "pipeline", "isat_step")
                     # ล้างธงของแถวที่ไม่อยู่ในผลจับคู่รอบนี้ (ผลผิดจากรอบก่อน หรือโรงเรียนที่ออกจากสมาคม)
                     cur.execute("""
                         UPDATE school_data.schools

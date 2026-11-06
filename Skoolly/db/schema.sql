@@ -1212,7 +1212,9 @@ create trigger bump_row_version before update on school_data.schools
   for each row execute function school_data.bump_school_version();
 
 -- เพิ่ม 3 พ.ย. 2569: ประวัติการแก้ไขข้อมูลโรงเรียน ทุกการเปลี่ยนแปลงลง ops.audit_log (entity_type 'school')
--- ไม่ว่าจากขั้นไหนของ pipeline หรือแอดมิน; actor_type เป็น 'system' เพราะ trigger แยกไม่ได้ว่าใครแก้
+-- ไม่ว่าจากขั้นไหนของ pipeline หรือแอดมิน (แก้ 6 พ.ย. 2569) ผู้เขียนบอกที่มาด้วย skoolly.version_source/version_note
+-- เดียวกับเวอร์ชัน (tag_versions() ใน supabase_sync.py): action เป็น 'school.<action>' และ actor_type 'admin'
+-- เมื่อที่มาคือแอดมิน ไม่บอกถือเป็น 'school.update' และ 'system'
 create or replace function school_data.log_school_change() returns trigger
 language plpgsql
 set search_path = public, extensions, pg_temp
@@ -1244,7 +1246,9 @@ begin
   end loop;
   if after_v <> '{}'::jsonb then
     insert into ops.audit_log (actor_type, action, entity_type, entity_id, before_snapshot, after_snapshot)
-    values ('system', 'school.update', 'school', new.school_id, before_v, after_v);
+    values (case when current_setting('skoolly.version_source', true) = 'admin' then 'admin' else 'system' end::ops.actor_type,
+            'school.' || coalesce(nullif(current_setting('skoolly.version_note', true), '')::jsonb ->> 'action', 'update'),
+            'school', new.school_id, before_v, after_v);
   end if;
   return null;
 end $$;

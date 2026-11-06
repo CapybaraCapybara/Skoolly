@@ -19,8 +19,8 @@ const FIELD_LABELS: Record<string, string> = {
   curriculums_confirmed_by: "ยืนยันหลักสูตรโดย",
 };
 
-// diff_summary.action -> what was done
-const ACTION_LABELS: Record<string, string> = {
+// diff_summary.action, and the action tag_versions() gave an audit_log row (SchoolChangeHistory) -> what was done
+export const ACTION_LABELS: Record<string, string> = {
   edit_website: "แอดมินแก้ลิงก์เว็บไซต์",
   set_gps: "แอดมินปักหมุด",
   clear_gps: "แอดมินลบหมุดที่ปักเอง",
@@ -30,6 +30,13 @@ const ACTION_LABELS: Record<string, string> = {
   gps_step: "ขั้นหาพิกัด",
   website_step: "ขั้นหาเว็บไซต์",
   registry_sync: "ซิงค์ทะเบียนเว็บไซต์",
+  rollback: "แอดมินย้อนเวอร์ชัน",
+  approve_version: "แอดมินอนุมัติข้อมูลจากเว็บ",
+  close_school: "แอดมินปิดโรงเรียน",
+  reopen_school: "แอดมินเปิดโรงเรียนอีกครั้ง",
+  opec_presence: "ตรวจรายชื่อ สช.",
+  name_en_step: "ขั้นหาชื่อภาษาอังกฤษ",
+  isat_step: "ขั้นดึงข้อมูล ISAT",
 };
 
 const STATUS: Record<SchoolVersion["status"], { label: string; chip: string }> = {

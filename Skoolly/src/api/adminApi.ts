@@ -132,16 +132,21 @@ export async function resolveSchoolWebsite(schoolCode: string): Promise<OpecScho
 
 export interface SchoolChange {
   changed_at: string;
-  action: "school.create" | "school.update";
+  /** "school.create", "school.update" (no source given), or "school.<action>" from tag_versions() */
+  action: string;
+  actor_type: "admin" | "system" | "user";
   school_code: string;
   name_th: string;
+  name_en: string | null;
   before: Record<string, unknown>;
   after: Record<string, unknown>;
 }
 
-/** One school's changes, or the latest changes across every school without a code */
-export async function getSchoolHistory(schoolCode?: string): Promise<SchoolChange[]> {
-  const path = schoolCode ? `/api/school/${schoolCode}/history` : "/api/schools/history";
+/** One school's changes, or the latest changes across every school without a code (search: name or code) */
+export async function getSchoolHistory(schoolCode?: string, search = ""): Promise<SchoolChange[]> {
+  const path = schoolCode
+    ? `/api/school/${schoolCode}/history`
+    : `/api/schools/history${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ""}`;
   const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

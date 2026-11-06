@@ -1009,6 +1009,7 @@ def mark_opec_presence(opec_codes: list[str], dsn: str | None = None) -> dict[st
         # A short list is a bad answer from OPEC, not a wave of closures (fetch_opec_schools checks the same)
         if len(codes) < 0.8 * listed:
             raise ValueError(f"รายชื่อจาก OPEC มี {len(codes)} แห่ง น้อยกว่าในฐาน ({listed}) ผิดปกติ จึงไม่บันทึกว่าโรงเรียนไหนหายไป")
+        tag_versions(conn, "opec_import", "opec_presence")
         changed = conn.execute("""
             UPDATE school_data.schools
             SET opec_missing_since = CASE WHEN opec_school_code = ANY(%(codes)s) THEN NULL ELSE NOW() END
@@ -1024,8 +1025,9 @@ def mark_opec_presence(opec_codes: list[str], dsn: str | None = None) -> dict[st
             "missing_still_shown": still_shown}
 
 
-def _set_closure(school_code: str, sql: str, not_found: str, dsn: str | None) -> dict[str, Any]:
+def _set_closure(school_code: str, action: str, sql: str, not_found: str, dsn: str | None) -> dict[str, Any]:
     with db_connect(dsn, row_factory=dict_row) as conn:
+        tag_versions(conn, "admin", action)
         row = conn.execute(sql, (school_code,)).fetchone()
         if not row:
             raise ValueError(not_found)
@@ -1036,7 +1038,7 @@ def _set_closure(school_code: str, sql: str, not_found: str, dsn: str | None) ->
 def close_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
     """An admin closes a school: parents no longer see it; its data stays and reopen_school() undoes it.
     The reason is recorded only when OPEC has dropped the school."""
-    return _set_closure(school_code, """
+    return _set_closure(school_code, "close_school", """
         UPDATE school_data.schools
         SET status = 'archived', archived_at = NOW(), updated_at = NOW(),
             archived_reason = CASE WHEN opec_missing_since IS NOT NULL THEN 'ไม่อยู่ในรายชื่อ OPEC แล้ว' END
@@ -1047,7 +1049,7 @@ def close_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
 
 def reopen_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
     """Undoes close_school()."""
-    return _set_closure(school_code, """
+    return _set_closure(school_code, "reopen_school", """
         UPDATE school_data.schools
         SET status = 'active', archived_at = NULL, archived_reason = NULL, updated_at = NOW()
         WHERE opec_school_code = %s AND status = 'archived'
@@ -1055,21 +1057,35 @@ def reopen_school(school_code: str, dsn: str | None = None) -> dict[str, Any]:
     """, f"ไม่พบโรงเรียนรหัส {school_code} ที่ปิดอยู่", dsn)
 
 
-def fetch_school_history(school_code: str | None = None, limit: int = 200, dsn: str | None = None) -> list[dict[str, Any]]:
+def fetch_school_history(school_code: str | None = None, limit: int = 200, search: str | None = None,
+                         dsn: str | None = None) -> list[dict[str, Any]]:
     """What changed on one school's row (every school's when school_code is None), newest first: the trigger
     log_school_change (db/schema.sql) writes each change to ops.audit_log with the old and new value of
-    every field that changed."""
+    every field that changed. The published version shows as its number, not its id.
+    search: part of the school's Thai or English name, or its OPEC code."""
+    search = (search or "").strip()
+    pattern = "%" + search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%" if search else None
     with db_connect(dsn, row_factory=dict_row) as conn:
         rows = conn.execute("""
-            SELECT l.created_at, l.action, l.before_snapshot, l.after_snapshot, s.opec_school_code, s.name_th
+            SELECT l.created_at, l.action,
+                   l.before_snapshot || coalesce((SELECT jsonb_build_object('current_published_version_id', v.version_number)
+                       FROM school_data.school_versions v
+                       WHERE v.version_id::text = l.before_snapshot->>'current_published_version_id'), '{}') AS before_snapshot,
+                   l.after_snapshot || coalesce((SELECT jsonb_build_object('current_published_version_id', v.version_number)
+                       FROM school_data.school_versions v
+                       WHERE v.version_id::text = l.after_snapshot->>'current_published_version_id'), '{}') AS after_snapshot,
+                   l.actor_type::text AS actor_type, s.opec_school_code, s.name_th, s.name_en
             FROM ops.audit_log l
             JOIN school_data.schools s ON s.school_id = l.entity_id
             WHERE l.entity_type = 'school' AND (%(code)s::text IS NULL OR s.opec_school_code = %(code)s)
+              AND (%(pattern)s::text IS NULL OR s.name_th ILIKE %(pattern)s OR s.name_en ILIKE %(pattern)s
+                   OR s.opec_school_code LIKE %(pattern)s)
             ORDER BY l.created_at DESC, l.log_id DESC
             LIMIT %(limit)s
-        """, {"code": school_code, "limit": limit}).fetchall()
-    return [{"changed_at": r["created_at"].isoformat(), "action": r["action"], "school_code": r["opec_school_code"],
-             "name_th": r["name_th"], "before": r["before_snapshot"] or {}, "after": r["after_snapshot"] or {}}
+        """, {"code": school_code, "limit": limit, "pattern": pattern}).fetchall()
+    return [{"changed_at": r["created_at"].isoformat(), "action": r["action"], "actor_type": r["actor_type"],
+             "school_code": r["opec_school_code"], "name_th": r["name_th"], "name_en": r["name_en"],
+             "before": r["before_snapshot"] or {}, "after": r["after_snapshot"] or {}}
             for r in rows]
 
 
@@ -1143,6 +1159,7 @@ def update_supabase_school_names_en(schools: list[dict] | None = None, update_pr
         if updates:
             with db_connect(target_dsn) as conn:
                 with conn.cursor() as cur:
+                    tag_versions(cur, "pipeline", "name_en_step")
                     for params in updates:
                         cur.execute(
                             """
@@ -1601,6 +1618,7 @@ def approve_school_version(version_id: str, keep_live: list[str] | None = None,
             # curriculums written into the draft below are the ones live when it is published
             live_id = cur.execute("SELECT current_published_version_id FROM school_data.schools WHERE school_id = %s FOR UPDATE",
                                   (school_id,)).fetchone()["current_published_version_id"]
+            tag_versions(cur, "admin", "approve_version")
             if keep_live:
                 _keep_live_parts(cur, version_id, live_id, keep_live)
                 ver["data_snapshot"] = cur.execute("SELECT data_snapshot FROM school_data.school_versions WHERE version_id = %s",

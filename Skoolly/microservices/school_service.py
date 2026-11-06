@@ -884,10 +884,11 @@ def get_school_history(school_code: str):
 
 
 @app.get("/api/schools/history")
-def get_all_schools_history(limit: int = 300):
-    """The latest changes across every school (admin page, tab ประวัติการแก้ไข)."""
+def get_all_schools_history(limit: int = 300, q: str | None = None):
+    """The latest changes across every school (admin page, tab ประวัติการแก้ไข); q narrows them to schools
+    whose name or code contains it."""
     try:
-        return {"history": fetch_school_history(None, limit=min(max(limit, 1), 1000))}
+        return {"history": fetch_school_history(None, limit=min(max(limit, 1), 1000), search=q)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"อ่านประวัติการแก้ไขไม่สำเร็จ: {e}")
 
